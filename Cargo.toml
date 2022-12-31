@@ -1,0 +1,12 @@
+[package]
+name = "ensnare"
+version = "0.1.0"
+edition = "2021"
+description = "Audio tools"
+documentation = "https://github.com/sowbug/ensnare"
+homepage = "https://ensnare.rs"
+repository = "https://github.com/sowbug/ensnare"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
