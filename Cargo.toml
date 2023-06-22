@@ -1,12 +1,12 @@
 [package]
 description = "Audio tools"
-documentation = "https://github.com/ensnare-org/ensnare"
+documentation = "https://docs.rs/ensnare/"
 edition = "2021"
 homepage = "https://ensnare.rs"
 license = "MIT"
 name = "ensnare"
 readme = "README.md"
 repository = "https://github.com/ensnare-org/ensnare"
-version = "0.0.1"
+version = "0.0.2"
 
 [dependencies]
