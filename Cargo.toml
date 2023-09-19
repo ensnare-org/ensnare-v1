@@ -1,3 +1,5 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
 [package]
 description = "Audio tools"
 documentation = "https://docs.rs/ensnare/"
@@ -10,3 +12,9 @@ repository = "https://github.com/ensnare-org/ensnare"
 version = "0.0.2"
 
 [dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.4.4", features = ["derive"] }
+eframe = "0.22"
+serde = { version = "1.0", features = ["derive"] }
+
+[workspace]

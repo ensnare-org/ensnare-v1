@@ -1,9 +1,10 @@
-// Copyright (c) 2023 Mike Tsao
+// Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 #![warn(missing_docs)]
 
 //! Ensnare is a library for generating digital audio.
 
-/// The [core] module contains common structures and constants used across the
-/// library.
+/// Contains common structures and constants used across the library.
 pub mod core;
+/// Handles digital-audio, wall-clock, and musical time.
+pub mod time;
