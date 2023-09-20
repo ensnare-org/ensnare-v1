@@ -11,5 +11,8 @@ pub mod time;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::core::{BipolarNormal, FrequencyHz, Normal, Sample, SampleType, StereoSample};
+    pub use crate::core::{
+        BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
+        StereoSample,
+    };
 }
