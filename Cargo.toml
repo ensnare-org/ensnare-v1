@@ -14,6 +14,7 @@ version = "0.0.2"
 [dependencies]
 anyhow = "1.0.75"
 clap = { version = "4.4.4", features = ["derive"] }
+derive_more = "0.99.17"
 eframe = "0.22"
 serde = { version = "1.0", features = ["derive"] }
 

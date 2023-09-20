@@ -8,6 +8,8 @@
 pub mod core;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
+/// Unique identifiers.
+pub mod uid;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
@@ -15,4 +17,5 @@ pub mod prelude {
         BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
         StereoSample,
     };
+    pub use crate::uid::Uid;
 }
