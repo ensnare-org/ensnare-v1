@@ -17,5 +17,6 @@ pub mod prelude {
         BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
         StereoSample,
     };
+    pub use crate::time::Tempo;
     pub use crate::uid::Uid;
 }
