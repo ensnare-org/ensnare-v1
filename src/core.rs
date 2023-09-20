@@ -600,7 +600,6 @@ impl Display for FrequencyHz {
         f.write_fmt(format_args!("{}", self.0))
     }
 }
-
 impl FrequencyHz {
     #[allow(missing_docs)]
     pub fn show(&mut self, ui: &mut Ui, range: RangeInclusive<f64>) -> bool {
