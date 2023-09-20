@@ -5,7 +5,7 @@
 
 use anyhow;
 use clap::Parser;
-use ensnare::core::Sample;
+use ensnare::prelude::*;
 
 /// The program's command-line arguments.
 #[derive(Parser, Debug, Default)]

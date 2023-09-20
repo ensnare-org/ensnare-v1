@@ -8,3 +8,8 @@
 pub mod core;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
+
+/// Recommended imports for easy onboarding.
+pub mod prelude {
+    pub use crate::core::{BipolarNormal, FrequencyHz, Normal, Sample, SampleType, StereoSample};
+}
