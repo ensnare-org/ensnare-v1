@@ -81,7 +81,7 @@ impl From<f64> for ControlValue {
 }
 impl From<ControlValue> for f64 {
     fn from(value: ControlValue) -> Self {
-        value.0 as f64
+        value.0
     }
 }
 impl From<FrequencyHz> for ControlValue {

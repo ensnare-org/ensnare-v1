@@ -309,6 +309,11 @@ impl<V: IsStereoSampleVoice> Ticks for VoicePerNoteStore<V> {
         self.sample = self.voices.values().map(|v| v.value()).sum();
     }
 }
+impl<V: IsStereoSampleVoice> Default for VoicePerNoteStore<V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 #[allow(missing_docs)]
 impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
     pub fn new() -> Self {

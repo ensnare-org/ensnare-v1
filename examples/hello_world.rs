@@ -3,7 +3,6 @@
 //! Shows how to use basic crate functionality. To see it print its version, try
 //! `cargo run --example hello_world -- -v`.
 
-use anyhow;
 use clap::Parser;
 use ensnare::prelude::*;
 

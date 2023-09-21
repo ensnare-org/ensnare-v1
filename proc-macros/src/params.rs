@@ -183,11 +183,8 @@ fn parse_params_meta(attr: &Attribute) -> bool {
 }
 
 fn get_bool_from_lit(name_value: &syn::MetaNameValue) -> bool {
-    match &name_value.lit {
-        Lit::Bool(bool_val) => {
-            return bool_val.value();
-        }
-        _ => {}
+    if let Lit::Bool(bool_val) = &name_value.lit {
+        return bool_val.value();
     }
     false
 }

@@ -27,7 +27,7 @@ impl MidiChannel {
     pub const MAX: u8 = 16;
 
     pub const fn new(value: u8) -> Self {
-        Self { 0: value }
+        Self(value)
     }
 }
 impl From<u4> for MidiChannel {

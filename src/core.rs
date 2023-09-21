@@ -439,9 +439,9 @@ impl From<FrequencyHz> for Normal {
         FrequencyHz::frequency_to_percent(value.value())
     }
 }
-impl Into<FrequencyHz> for Normal {
-    fn into(self) -> FrequencyHz {
-        FrequencyHz::percent_to_frequency(self).into()
+impl From<Normal> for FrequencyHz {
+    fn from(val: Normal) -> Self {
+        FrequencyHz::percent_to_frequency(val).into()
     }
 }
 impl Sub<Normal> for f64 {
@@ -465,14 +465,14 @@ impl Mul<f64> for Normal {
         Self(self.0 * rhs)
     }
 }
-impl Into<f32> for BipolarNormal {
-    fn into(self) -> f32 {
-        self.value_as_f32()
+impl From<BipolarNormal> for f32 {
+    fn from(val: BipolarNormal) -> Self {
+        val.value_as_f32()
     }
 }
-impl Into<f32> for Normal {
-    fn into(self) -> f32 {
-        self.value_as_f32()
+impl From<Normal> for f32 {
+    fn from(val: Normal) -> Self {
+        val.value_as_f32()
     }
 }
 impl Mul<Self> for Normal {

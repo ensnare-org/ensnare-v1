@@ -236,18 +236,12 @@ impl Default for TimeSignature {
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 parts.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
     units: usize,
 }
-impl Default for MusicalTime {
-    fn default() -> Self {
-        Self {
-            units: Default::default(),
-        }
-    }
-}
+
 #[allow(missing_docs)]
 impl MusicalTime {
     /// A part is a sixteenth of a beat.
@@ -348,7 +342,7 @@ impl MusicalTime {
     }
 
     pub const fn bars_to_units(time_signature: &TimeSignature, bars: usize) -> usize {
-        Self::beats_to_units(time_signature.top as usize * bars)
+        Self::beats_to_units(time_signature.top * bars)
     }
 
     pub const fn beats_to_units(beats: usize) -> usize {
@@ -360,7 +354,7 @@ impl MusicalTime {
     }
 
     pub const fn new_with_bars(time_signature: &TimeSignature, bars: usize) -> Self {
-        Self::new_with_beats(time_signature.top as usize * bars)
+        Self::new_with_beats(time_signature.top * bars)
     }
 
     pub const fn new_with_beats(beats: usize) -> Self {
@@ -832,7 +826,7 @@ mod tests {
         let sample_rate = SampleRate::from(32768);
 
         for bars in 0..4 {
-            for beats in 0..ts.top() as usize {
+            for beats in 0..ts.top() {
                 for parts in 0..MusicalTime::PARTS_IN_BEAT {
                     // If we stick to just a part-level division of MusicalTime, then we expect time ->
                     // frames -> time to be exact, because frames is
@@ -867,7 +861,7 @@ mod tests {
         let mut t = MusicalTime::default();
         t += MusicalTime::new_with_beats(1);
         assert_eq!(t.beats(&ts), 1);
-        let mut t = MusicalTime::new(&ts, 0, (ts.top - 1) as usize, 0, 0);
+        let mut t = MusicalTime::new(&ts, 0, ts.top - 1, 0, 0);
         t += MusicalTime::new_with_beats(1);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
@@ -925,13 +919,13 @@ mod tests {
         let mut t = MusicalTime::default() + beat_unit;
 
         assert_eq!(t.beats(&ts), 1);
-        t = t + beat_unit;
+        t += beat_unit;
         assert_eq!(t.beats(&ts), 2);
         assert_eq!(t.bars(&ts), 0);
-        t = t + beat_unit;
+        t += beat_unit;
         assert_eq!(t.beats(&ts), 3);
         assert_eq!(t.bars(&ts), 0);
-        t = t + beat_unit;
+        t += beat_unit;
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
@@ -941,7 +935,7 @@ mod tests {
         assert_eq!(t.beats(&ts), 0);
         for i in 0..MusicalTime::PARTS_IN_BEAT {
             assert_eq!(t.parts(), i);
-            t = t + part_unit;
+            t += part_unit;
         }
         assert_eq!(t.beats(&ts), 1);
         assert_eq!(t.parts(), 0);
@@ -953,7 +947,7 @@ mod tests {
         assert_eq!(t.parts(), 0);
         for i in 0..MusicalTime::UNITS_IN_PART {
             assert_eq!(t.units(), i);
-            t = t + unit_unit;
+            t += unit_unit;
         }
         assert_eq!(t.parts(), 1);
         assert_eq!(t.units(), 0);
@@ -966,7 +960,7 @@ mod tests {
             MusicalTime::PARTS_IN_BEAT - 1,
             MusicalTime::UNITS_IN_PART - 1,
         );
-        t = t + unit_unit;
+        t += unit_unit;
         assert_eq!(t.bars(&ts), 1);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.parts(), 0);
@@ -990,21 +984,21 @@ mod tests {
         let time = MusicalTime::new(
             &ts,
             0,
-            (ts.top - 1) as usize,
+            ts.top - 1,
             MusicalTime::PARTS_IN_BEAT - 1,
             MusicalTime::UNITS_IN_PART - 1,
         );
 
-        let t = time.clone() + MusicalTime::new_with_beats(1);
+        let t = time + MusicalTime::new_with_beats(1);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
-        let t = time.clone() + MusicalTime::new_with_parts(1);
+        let t = time + MusicalTime::new_with_parts(1);
         assert_eq!(t.parts(), 0);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
-        let t = time.clone() + MusicalTime::new_with_units(1);
+        let t = time + MusicalTime::new_with_units(1);
         assert_eq!(t.units(), 0);
         assert_eq!(t.parts(), 0);
         assert_eq!(t.beats(&ts), 0);
