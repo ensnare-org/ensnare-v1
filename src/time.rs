@@ -235,7 +235,7 @@ impl Default for TimeSignature {
 
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
-/// Thus, beats are divided into 65,536 parts.
+/// Thus, beats are divided into 65,536 units.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
@@ -479,15 +479,6 @@ impl Sub<Self> for MusicalTime {
         }
     }
 }
-// impl From<PerfectTimeUnit> for MusicalTime {
-//     fn from(value: PerfectTimeUnit) -> Self {
-//         // TODO: this is not exactly right, but we need it just long enough to
-//         // complete the refactor that kills PerfectTimeUnit completely.
-//         Self {
-//             units: (value.0 * 65536.0) as usize,
-//         }
-//     }
-// }
 
 /// Samples per second. Always a positive integer; cannot be zero.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Display, PartialEq, Eq)]
