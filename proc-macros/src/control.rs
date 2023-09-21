@@ -130,23 +130,18 @@ pub(crate) fn impl_control_derive(input: TokenStream, primitives: &HashSet<Ident
         });
 
         let main_const_body = quote! {
-            #[allow(missing_docs)]
             #( pub const #index_const_ids: usize = #index_const_values; )*
-            #[allow(missing_docs)]
-            #( pub const #name_const_ids: &str = #name_const_values; )*
+            #( pub const #name_const_ids: &'static str = #name_const_values; )*
         };
         let range_const_body = quote! {
-            #[allow(missing_docs)]
             #( pub const #index_const_range_end_ids: usize = #index_const_values + #size_const_values - 1; )*
         };
         let struct_size_const_body = if size_const_ids.is_empty() {
             quote! {
-                #[allow(missing_docs)]
                 pub const STRUCT_SIZE: usize = 0;
             }
         } else {
             quote! {
-                #[allow(missing_docs)]
                 pub const STRUCT_SIZE: usize = 0 + #( Self::#size_const_ids )+* ;
             }
         };
@@ -208,7 +203,7 @@ pub(crate) fn impl_control_derive(input: TokenStream, primitives: &HashSet<Ident
             }
         });
         let control_index_for_name_body = quote! {
-            fn control_index_for_name(&self, name: &str) -> Option<#core_crate::control::ControlIndex> {
+            fn control_index_for_name(&self, name: &'static str) -> Option<#core_crate::control::ControlIndex> {
                 match name {
                     #( #leaf_names => Some(#core_crate::control::ControlIndex(#leaf_indexes)), )*
                     _ => {
@@ -227,6 +222,7 @@ pub(crate) fn impl_control_derive(input: TokenStream, primitives: &HashSet<Ident
 
         let quote = quote! {
             #[automatically_derived]
+            #[allow(missing_docs)]
             impl #generics #struct_name #ty_generics {
                 #size_const_body
                 #main_const_body
@@ -236,7 +232,7 @@ pub(crate) fn impl_control_derive(input: TokenStream, primitives: &HashSet<Ident
             #[automatically_derived]
             impl #generics #core_crate::traits::Controllable for #struct_name #ty_generics {
                 fn control_index_count(&self) -> usize { Self::STRUCT_SIZE }
-                fn control_set_param_by_name(&mut self, name: &str, value: #core_crate::control::ControlValue) {
+                fn control_set_param_by_name(&mut self, name: &'static str, value: #core_crate::control::ControlValue) {
                     if let Some(index) = self.control_index_for_name(name) {
                         self.control_set_param_by_index(index, value);
                     } else {

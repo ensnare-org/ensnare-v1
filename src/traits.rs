@@ -131,7 +131,7 @@ pub trait Controllable {
         unimplemented!()
     }
     /// Given a parameter name, return the corresponding index.
-    fn control_index_for_name(&self, name: &str) -> Option<ControlIndex> {
+    fn control_index_for_name(&self, name: &'static str) -> Option<ControlIndex> {
         unimplemented!("Controllable trait methods are implemented by the Control #derive macro")
     }
     /// Given a parameter index, return the corresponding name.
@@ -140,7 +140,7 @@ pub trait Controllable {
     }
     /// Given a parameter name and a new value for it, set that parameter's
     /// value.
-    fn control_set_param_by_name(&mut self, name: &str, value: ControlValue) {
+    fn control_set_param_by_name(&mut self, name: &'static str, value: ControlValue) {
         unimplemented!()
     }
     /// Given a parameter index and a new value for it, set that parameter's

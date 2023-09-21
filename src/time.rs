@@ -13,6 +13,7 @@ use eframe::{
     egui::{Frame, Margin, Ui},
     epaint::{Color32, Stroke, Vec2},
 };
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::{
@@ -139,43 +140,35 @@ impl BeatValue {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[allow(missing_docs)]
+/// [TimeSignature] represents a music [time
+/// signature](https://en.wikipedia.org/wiki/Time_signature).
+///
+/// The top number of a time signature tells how many beats are in a measure.
+/// The bottom number tells the value of a beat. For example, if the bottom
+/// number is 4, then a beat is a quarter-note. And if the top number is 4, then
+/// you should expect to see four beats in a measure, or four quarter-notes in a
+/// measure.
+///
+/// If your song is playing at 60 beats per minute, and it's 4/4, then a
+/// measure's worth of the song should complete in four seconds. That's because
+/// each beat takes a second (60 beats/minute, 60 seconds/minute -> 60/60
+/// beats/second = 60/60 seconds/beat), and a measure takes four beats (4
+/// beats/measure * 1 second/beat = 4/1 seconds/measure).
+///
+/// If your song is playing at 120 beats per minute, and it's 4/4, then a
+/// measure's worth of the song should complete in two seconds. That's because
+/// each beat takes a half-second (120 beats/minute, 60 seconds/minute -> 120/60
+/// beats/second = 60/120 seconds/beat), and a measure takes four beats (4
+/// beats/measure * 1/2 seconds/beat = 4/2 seconds/measure).
+#[derive(Clone, Control, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TimeSignature {
-    // The top number of a time signature tells how many beats are in a measure.
-    // The bottom number tells the value of a beat. For example, if the bottom
-    // number is 4, then a beat is a quarter-note. And if the top number is 4,
-    // then you should expect to see four beats in a measure, or four
-    // quarter-notes in a measure.
-    //
-    // If your song is playing at 60 beats per minute, and it's 4/4, then a
-    // measure's worth of the song should complete in four seconds. That's
-    // because each beat takes a second (60 beats/minute, 60 seconds/minute ->
-    // 60/60 beats/second = 60/60 seconds/beat), and a measure takes four beats
-    // (4 beats/measure * 1 second/beat = 4/1 seconds/measure).
-    //
-    // If your song is playing at 120 beats per minute, and it's 4/4, then a
-    // measure's worth of the song should complete in two seconds. That's
-    // because each beat takes a half-second (120 beats/minute, 60
-    // seconds/minute -> 120/60 beats/second = 60/120 seconds/beat), and a
-    // measure takes four beats (4 beats/measure * 1/2 seconds/beat = 4/2
-    // seconds/measure).
-    //
-    // The relevance in this project is...
-    //
-    // - BPM tells how fast a beat should last in time
-    // - bottom number tells what the default denomination is of a slot in a
-    // pattern
-    // - top number tells how many slots should be in a pattern. But we might
-    //   not want to enforce this, as it seems redundant... if you want a 5/4
-    //   pattern, it seems like you can just go ahead and include 5 slots in it.
-    //   The only relevance seems to be whether we'd round a 5-slot pattern in a
-    //   4/4 song to the next even measure, or just tack the next pattern
-    //   directly onto the sixth beat.
-    //    #[control]
+    /// The number of beats in a measure.
+    #[control]
     pub top: usize,
 
-    //    #[control]
+    /// The value of a beat. Expressed as a reciprocal; for example, if it's 4,
+    /// then the beat value is 1/4 or a quarter note.
+    #[control]
     pub bottom: usize,
 }
 #[allow(missing_docs)]
@@ -211,18 +204,23 @@ impl TimeSignature {
         BeatValue::from_divisor(self.bottom as f32).unwrap()
     }
 
+    /// Sets the top value.
     pub fn set_top(&mut self, top: usize) {
         self.top = top;
     }
 
+    /// Sets the bottom value. Must be a power of two. Does not check for
+    /// validity.
     pub fn set_bottom(&mut self, bottom: usize) {
         self.bottom = bottom;
     }
 
+    /// The top value.
     pub fn top(&self) -> usize {
         self.top
     }
 
+    /// The bottom value.
     pub fn bottom(&self) -> usize {
         self.bottom
     }
