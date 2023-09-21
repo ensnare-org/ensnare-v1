@@ -1,7 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::{
+    core::{BipolarNormal, FrequencyHz, Normal, Ratio},
+    prelude::Tempo,
+};
 use serde::{Deserialize, Serialize};
-use crate::{core::{Normal, BipolarNormal, FrequencyHz, Ratio}, prelude::Tempo};
 
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.

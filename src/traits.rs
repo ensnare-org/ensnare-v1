@@ -6,16 +6,17 @@
 // Are you making a change to this file? Consider enforcing new trait behavior
 // in tests/entity_validator.rs.
 
-pub use crate::midi::HandlesMidi;
-
+use crate::prelude::*;
+use crate::time::TimeSignature;
 use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiMessage},
-    time::{MusicalTime, PerfectTimeUnit, SampleRate, Tempo, TimeSignature},
-    Normal, Sample, StereoSample, Uid,
+    time::{MusicalTime, SampleRate},
 };
 use eframe::egui;
 use std::ops::Range;
+
+pub use crate::midi::HandlesMidi;
 
 pub trait MessageBounds: std::fmt::Debug + Send {}
 
@@ -235,21 +236,6 @@ pub trait Controls: Configurable + Send + std::fmt::Debug {
     /// that implementers don't have to leak their internal state to unit test
     /// code.
     fn is_performing(&self) -> bool;
-
-    /// Sets the loop range. Parents should propagate to children. We provide a
-    /// default implementation for this set of methods because looping doesn't
-    /// apply to many devices.
-    #[allow(unused_variables)]
-    fn set_loop(&mut self, range: &Range<PerfectTimeUnit>) {}
-
-    /// Clears the loop range, restoring normal cursor behavior.
-    fn clear_loop(&mut self) {}
-
-    /// Enables or disables loop behavior. When looping is enabled, if the
-    /// cursor is outside the range on the right side (i.e., after), it sets
-    /// itself to the start point.
-    #[allow(unused_variables)]
-    fn set_loop_enabled(&mut self, is_enabled: bool) {}
 }
 
 /// A [TransformsAudio] takes input audio, which is typically produced by
