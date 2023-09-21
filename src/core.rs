@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::midi::{u7, MidiNote};
 use eframe::egui::{DragValue, Ui};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -593,6 +594,20 @@ impl From<usize> for FrequencyHz {
 impl From<FrequencyHz> for usize {
     fn from(value: FrequencyHz) -> Self {
         value.0 as usize
+    }
+}
+impl From<MidiNote> for FrequencyHz {
+    fn from(value: MidiNote) -> Self {
+        let key = value as u8;
+        Self::from(2.0_f64.powf((key as f64 - 69.0) / 12.0) * 440.0)
+    }
+}
+// Beware: u7 is understood to represent a MIDI key ranging from 0..128. This
+// method will return very strange answers if you're expecting it to hand back
+// FrequencyHz(42) from a u7(42).
+impl From<u7> for FrequencyHz {
+    fn from(value: u7) -> Self {
+        Self::from(MidiNote::from_repr(value.as_int() as usize).unwrap())
     }
 }
 impl Display for FrequencyHz {

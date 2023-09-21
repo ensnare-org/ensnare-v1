@@ -7,9 +7,11 @@
 /// Handles automation, or real-time automatic control of one entity's
 /// parameters by another entity's output.
 pub mod control;
-/// Contains common structures and constants used across the library.
+/// Common structures and constants used across the library.
 pub mod core;
-/// Contains MIDI-related functionality.
+/// Scaffolding for implementing instruments.
+pub mod instruments;
+/// MIDI-related functionality.
 pub mod midi;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
@@ -17,10 +19,11 @@ pub mod time;
 pub mod traits;
 /// Unique identifiers.
 pub mod uid;
+/// Scaffolding for managing multiple voices.
+pub mod voices;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    //    pub use crate::control::{ControlIndex, ControlName, ControlValue};
     pub use crate::control::{ControlIndex, ControlName, ControlValue};
     pub use crate::core::{
         BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,

@@ -2,7 +2,8 @@
 
 use crate::{
     core::ParameterType,
-    traits::{Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Serializable},
+    midi::HandlesMidi,
+    traits::{Configurable, ControlEventsFn, Controls, Displays, Serializable},
     uid::Uid,
 };
 use anyhow::{anyhow, Error};
@@ -132,6 +133,7 @@ impl BeatValue {
             });
     }
 
+    #[allow(missing_docs)]
     pub fn show_inherited(ui: &mut Ui) {
         Self::show_beat_value(ui, "inherited");
     }

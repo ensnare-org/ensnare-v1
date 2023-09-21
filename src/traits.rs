@@ -6,18 +6,28 @@
 // Are you making a change to this file? Consider enforcing new trait behavior
 // in tests/entity_validator.rs.
 
-use crate::prelude::*;
-use crate::time::TimeSignature;
 use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiMessage},
-    time::{MusicalTime, SampleRate},
+    prelude::*,
+    time::{MusicalTime, SampleRate, TimeSignature},
 };
 use eframe::egui;
 use std::ops::Range;
 
+/// Quick import of all important traits.
+pub mod prelude {
+    pub use super::{
+        Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HasSettings, HasUid,
+        IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, PlaysNotes,
+        Serializable, StoresVoices, Ticks, TransformsAudio,
+    };
+    pub use crate::midi::HandlesMidi;
+}
 pub use crate::midi::HandlesMidi;
 
+#[allow(missing_docs)]
 pub trait MessageBounds: std::fmt::Debug + Send {}
 
 /// [Entities](Entity) produce these events to communicate with other Entities.
@@ -115,18 +125,26 @@ pub trait Controllable {
     // have made these functions rather than methods (no self). But then we'd
     // lose the ability to query an object without knowing its struct, which is
     // important for the loose binding that the automation system provides.
+
+    /// The number of controllable parameters.
     fn control_index_count(&self) -> usize {
         unimplemented!()
     }
+    /// Given a parameter name, return the corresponding index.
     fn control_index_for_name(&self, name: &str) -> Option<ControlIndex> {
         unimplemented!("Controllable trait methods are implemented by the Control #derive macro")
     }
+    /// Given a parameter index, return the corresponding name.
     fn control_name_for_index(&self, index: ControlIndex) -> Option<String> {
         unimplemented!()
     }
+    /// Given a parameter name and a new value for it, set that parameter's
+    /// value.
     fn control_set_param_by_name(&mut self, name: &str, value: ControlValue) {
         unimplemented!()
     }
+    /// Given a parameter index and a new value for it, set that parameter's
+    /// value.
     fn control_set_param_by_index(&mut self, index: ControlIndex, value: ControlValue) {
         unimplemented!()
     }
@@ -138,6 +156,7 @@ pub trait Controllable {
 /// [Uid]s work similarly to how they do in an ECS.
 ///
 /// TODO: name() is hitchhiking along with Uid for now.
+#[allow(missing_docs)]
 pub trait HasUid {
     fn uid(&self) -> Uid;
     fn set_uid(&mut self, uid: Uid);
@@ -147,6 +166,7 @@ pub trait HasUid {
 /// Something that is [Configurable] is interested in staying in sync with
 /// global configuration.
 pub trait Configurable {
+    /// Returns the Entity's sample rate.
     fn sample_rate(&self) -> SampleRate {
         // I was too lazy to add this everywhere when I added this to the trait,
         // but I didn't want unexpected usage to go undetected.
@@ -169,6 +189,7 @@ pub trait Configurable {
     fn update_time_signature(&mut self, time_signature: TimeSignature) {}
 }
 
+/// A way for an [Entity] to do work corresponding to one or more frames.
 pub trait Ticks: Configurable + Send + std::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.
@@ -203,6 +224,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 /// knows how to respond to requests to start, stop, restart, and seek within
 /// the performance.
 pub trait Controls: Configurable + Send + std::fmt::Debug {
+    /// Sets the range of [MusicalTime] to which the next work() method applies.
     #[allow(unused_variables)]
     fn update_time(&mut self, range: &Range<MusicalTime>);
 
@@ -242,6 +264,7 @@ pub trait Controls: Configurable + Send + std::fmt::Debug {
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
 /// do.
 pub trait TransformsAudio: std::fmt::Debug {
+    #[allow(missing_docs)]
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
         // Beware: converting from mono to stereo isn't just doing the work
         // twice! You'll also have to double whatever state you maintain from
@@ -290,20 +313,21 @@ pub trait PlaysNotes {
     /// Initiates a note-on event. Depending on implementation, might initiate a
     /// steal (tell envelope to go to shutdown state, then do note-on when
     /// that's done).
-    fn note_on(&mut self, key: u8, velocity: u8);
+    fn note_on(&mut self, key: u7, velocity: u7);
 
     /// Initiates an aftertouch event.
-    fn aftertouch(&mut self, velocity: u8);
+    fn aftertouch(&mut self, velocity: u7);
 
     /// Initiates a note-off event, which can take a long time to complete,
     /// depending on how long the envelope's release is.
-    fn note_off(&mut self, velocity: u8);
+    fn note_off(&mut self, velocity: u7);
 }
 
 /// A [StoresVoices] provides access to a collection of voices for a polyphonic
 /// synthesizer. Different implementers provide different policies for how to
 /// handle voice-stealing.
 pub trait StoresVoices: Generates<StereoSample> + Send + std::fmt::Debug {
+    /// The associated type of sample generator for this voice store.
     type Voice;
 
     /// Generally, this value won't change after initialization, because we try
@@ -328,10 +352,17 @@ pub trait StoresVoices: Generates<StereoSample> + Send + std::fmt::Debug {
 /// Something that is [Serializable] might need to do work right before
 /// serialization, or right after deserialization. These are the hooks.
 pub trait Serializable {
+    /// Called just before saving to disk.
     fn before_ser(&mut self) {}
+    /// Called just after loading from disk.
     fn after_deser(&mut self) {}
 }
 
+/// [Entity] is a generic type of thing that can have various discoverable
+/// capabilities. Almost everything in this system is an Entity of some kind.
+/// The implementation of these trait methods is usually generated by the Is
+/// proc macros ([IsController], [IsEffect], [IsInstrument], etc.)
+#[allow(missing_docs)]
 #[typetag::serde(tag = "type")]
 pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::Debug + Send {
     fn as_controller(&self) -> Option<&dyn IsController> {
@@ -369,6 +400,7 @@ pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::De
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
 /// construct Voices, and then handle all the MIDI events properly for them.
 pub trait IsVoice<V>: Generates<V> + PlaysNotes + Send {}
+/// Same as IsVoice, but stereo.
 pub trait IsStereoSampleVoice: IsVoice<StereoSample> {}
 
 /// Each app should have a Settings struct that is composed of subsystems having
@@ -388,6 +420,7 @@ pub trait HasSettings {
 //
 // Adapted from egui_demo_lib/src/demo/mod.rs
 pub trait Displays {
+    /// Renders this Entity. Returns a [Response](egui::Response).
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.label("Coming soon!")
     }
@@ -396,12 +429,15 @@ pub trait Displays {
 /// Similar to Displays, but doesn't return a Response.
 #[deprecated]
 pub trait DisplaysWithoutResponse {
+    /// Renders this Entity with no return value.
     fn ui(&mut self, ui: &mut egui::Ui);
 }
 
 /// Something that can display a portion of itself in a timeline view.
 pub trait DisplaysInTimeline: Displays {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<crate::time::MusicalTime>);
+    /// Sets the range of time on the track timeline that the next ui() call
+    /// should visualize.
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>);
 }
 
 #[cfg(test)]

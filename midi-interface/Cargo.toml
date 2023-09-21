@@ -1,0 +1,15 @@
+[package]
+name = "ensnare-midi-interface"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+crossbeam = "0.8"
+crossbeam-channel = "0.5"
+crossbeam-utils = "0.8"
+ensnare = { path = ".." }
+midir = "0.9"
+midly = "0.5"
+serde = { version = "1.0", features = ["derive", "rc"] }
