@@ -1,0 +1,13 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+#
+[package]
+name = "hello-world"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.4.4", features = ["derive"] }
+ensnare = { path = "../.." }
+ensnare-toys = { path = "../../toys" }

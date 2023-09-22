@@ -9,10 +9,20 @@
 pub mod control;
 /// Common structures and constants used across the library.
 pub mod core;
+/// Management of [Entities](Entity).
+pub mod entities;
+/// Building blocks for signal generation.
+pub mod generators;
 /// Scaffolding for implementing instruments.
 pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
+/// Building blocks for signal modulation.
+pub mod modulators;
+/// Coordinates entities.
+pub mod orchestration;
+/// Provides a random-number generator for debugging and testing.
+pub mod rng;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
 /// Describes major system interfaces.

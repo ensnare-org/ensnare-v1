@@ -1,0 +1,17 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+#
+[package]
+name = "ensnare-toys"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+eframe = { version = "0.22" }
+ensnare = { path = ".." }
+ensnare-proc-macros = { path = "../proc-macros" }
+oorandom = "11.1"
+serde = { version = "1.0", features = ["derive"] }
+strum = "0.25.0"
+strum_macros = "0.25.2"
+typetag = "0.2.13"
