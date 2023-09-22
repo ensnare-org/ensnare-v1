@@ -82,3 +82,37 @@ impl Displays for Dca {
         gain_response | pan_response
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dca_mainline() {
+        let mut dca = Dca::new_with(&DcaParams {
+            gain: 1.0.into(),
+            pan: BipolarNormal::zero(),
+        });
+        const VALUE_IN: Sample = Sample(0.5);
+        const VALUE: Sample = Sample(0.5);
+        assert_eq!(
+            dca.transform_audio_to_stereo(VALUE_IN),
+            StereoSample::new(VALUE * 0.75, VALUE * 0.75),
+            "Pan center should give 75% equally to each channel"
+        );
+
+        dca.set_pan(BipolarNormal::new(-1.0));
+        assert_eq!(
+            dca.transform_audio_to_stereo(VALUE_IN),
+            StereoSample::new(VALUE, 0.0.into()),
+            "Pan left should give 100% to left channel"
+        );
+
+        dca.set_pan(BipolarNormal::new(1.0));
+        assert_eq!(
+            dca.transform_audio_to_stereo(VALUE_IN),
+            StereoSample::new(0.0.into(), VALUE),
+            "Pan right should give 100% to right channel"
+        );
+    }
+}

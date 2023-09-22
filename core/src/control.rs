@@ -7,8 +7,9 @@ use eframe::egui::Ui;
 use ensnare_proc_macros::{IsController, Uid};
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     ops::{Range, RangeInclusive},
-    vec::Vec, collections::HashMap,
+    vec::Vec,
 };
 
 /// A human-readable description of the parameter being controlled. Not suitable
@@ -594,8 +595,6 @@ impl ControlRouter {
 
 #[cfg(test)]
 mod tests {
-    use crate::entities::EntityStore;
-
     use super::*;
     use ensnare_proc_macros::{IsInstrument, Uid};
     use std::sync::{Arc, RwLock};
@@ -940,24 +939,24 @@ mod tests {
             "new ControlRouter should be empty"
         );
 
-        let source_uid = Uid(1);
+        let source_1_uid = Uid(1);
         let source_2_uid = Uid(2);
-        let target_uid = Uid(3);
+        let target_1_uid = Uid(3);
         let target_2_uid = Uid(4);
 
-        cr.link_control(source_uid, target_uid, ControlIndex(0));
+        cr.link_control(source_1_uid, target_1_uid, ControlIndex(0));
         assert_eq!(
             cr.uid_to_control.len(),
             1,
             "there should be one vec after inserting one link"
         );
-        cr.link_control(source_uid, target_2_uid, ControlIndex(1));
+        cr.link_control(source_1_uid, target_2_uid, ControlIndex(1));
         assert_eq!(
             cr.uid_to_control.len(),
             1,
             "there should still be one vec after inserting a second link for same source_uid"
         );
-        cr.link_control(source_2_uid, target_uid, ControlIndex(0));
+        cr.link_control(source_2_uid, target_1_uid, ControlIndex(0));
         assert_eq!(
             cr.uid_to_control.len(),
             2,
@@ -965,7 +964,7 @@ mod tests {
         );
 
         assert_eq!(
-            cr.control_links(source_uid).unwrap().len(),
+            cr.control_links(source_1_uid).unwrap().len(),
             2,
             "the first source's vec should have two entries"
         );
@@ -975,22 +974,24 @@ mod tests {
             "the second source's vec should have one entry"
         );
 
-        let mut es = EntityStore::default();
         let tracker = Arc::new(RwLock::new(Vec::default()));
-        let controllable = TestControllable::new_with(target_uid, Arc::clone(&tracker));
-        let _ = es.add(Box::new(controllable));
-        let controllable = TestControllable::new_with(target_2_uid, Arc::clone(&tracker));
-        let _ = es.add(Box::new(controllable));
+        let mut controllable_1 = TestControllable::new_with(target_1_uid, Arc::clone(&tracker));
+        let mut controllable_2 = TestControllable::new_with(target_2_uid, Arc::clone(&tracker));
 
+        // The closures are wooden and repetitive because we don't have access
+        // to EntityStore in this crate, so we hardwired a simple version of it
+        // here.
         let _ = cr.route(
-            &mut |target_uid, index, value| {
-                if let Some(e) = es.get_mut(target_uid) {
-                    if let Some(e) = e.as_controllable_mut() {
-                        e.control_set_param_by_index(index, value);
-                    }
+            &mut |target_uid, index, value| match *target_uid {
+                Uid(3) => {
+                    controllable_1.control_set_param_by_index(index, value);
                 }
+                Uid(4) => {
+                    controllable_2.control_set_param_by_index(index, value);
+                }
+                _ => panic!("Shouldn't have received target_uid {target_uid}"),
             },
-            source_uid,
+            source_1_uid,
             ControlValue(0.5),
         );
         if let Ok(t) = tracker.read() {
@@ -1000,7 +1001,7 @@ mod tests {
                 "there should be expected number of control events after the route {:#?}",
                 t
             );
-            assert_eq!(t[0], (target_uid, ControlIndex(0), ControlValue(0.5)));
+            assert_eq!(t[0], (target_1_uid, ControlIndex(0), ControlValue(0.5)));
             assert_eq!(t[1], (target_2_uid, ControlIndex(1), ControlValue(0.5)));
         };
 
@@ -1008,16 +1009,18 @@ mod tests {
         if let Ok(mut t) = tracker.write() {
             t.clear();
         }
-        cr.unlink_control(source_uid, target_uid, ControlIndex(99));
+        cr.unlink_control(source_1_uid, target_1_uid, ControlIndex(99));
         let _ = cr.route(
-            &mut |target_uid, index, value| {
-                if let Some(e) = es.get_mut(target_uid) {
-                    if let Some(e) = e.as_controllable_mut() {
-                        e.control_set_param_by_index(index, value);
-                    }
+            &mut |target_uid, index, value| match *target_uid {
+                Uid(3) => {
+                    controllable_1.control_set_param_by_index(index, value);
                 }
+                Uid(4) => {
+                    controllable_2.control_set_param_by_index(index, value);
+                }
+                _ => panic!("Shouldn't have received target_uid {target_uid}"),
             },
-            source_uid,
+            source_1_uid,
             ControlValue(0.5),
         );
         if let Ok(t) = tracker.read() {
@@ -1032,16 +1035,18 @@ mod tests {
         if let Ok(mut t) = tracker.write() {
             t.clear();
         }
-        cr.unlink_control(source_uid, target_uid, ControlIndex(0));
+        cr.unlink_control(source_1_uid, target_1_uid, ControlIndex(0));
         let _ = cr.route(
-            &mut |target_uid, index, value| {
-                if let Some(e) = es.get_mut(target_uid) {
-                    if let Some(e) = e.as_controllable_mut() {
-                        e.control_set_param_by_index(index, value);
-                    }
+            &mut |target_uid, index, value| match *target_uid {
+                Uid(3) => {
+                    controllable_1.control_set_param_by_index(index, value);
                 }
+                Uid(4) => {
+                    controllable_2.control_set_param_by_index(index, value);
+                }
+                _ => panic!("Shouldn't have received target_uid {target_uid}"),
             },
-            source_uid,
+            source_1_uid,
             ControlValue(0.5),
         );
         if let Ok(t) = tracker.read() {

@@ -85,15 +85,17 @@ pub trait IsInstrument:
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [crate::BipolarNormal] signal.
-pub trait Generates<V>: Send + std::fmt::Debug + Ticks {
+pub trait Generates<V: Default>: Send + std::fmt::Debug + Ticks {
     /// The value for the current frame. Advance the frame by calling
     /// [Ticks::tick()].
-    fn value(&self) -> V;
+    fn value(&self) -> V {
+        V::default()
+    }
 
     /// The batch version of value(). To deliver each value, this method will
     /// typically call tick() internally. If you don't want this, then call
     /// value() on your own.
-    fn generate_batch_values(&mut self, values: &mut [V]);
+    fn generate_batch_values(&mut self, values: &mut [V]) {}
 }
 
 /// [GeneratesToInternalBuffer] is like [Generates], except that the implementer
@@ -205,7 +207,7 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
     /// state is correct for the first frame after entity construction, so
     /// tick() must be careful not to update state on the first frame, because
     /// that would cause the state to represent the second frame, not the first.
-    fn tick(&mut self, tick_count: usize);
+    fn tick(&mut self, tick_count: usize) {}
 }
 
 /// TODO: The [Uid] argument is a little weird. The ones actually producing the
@@ -226,7 +228,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 pub trait Controls: Configurable + Send + std::fmt::Debug {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
     #[allow(unused_variables)]
-    fn update_time(&mut self, range: &Range<MusicalTime>);
+    fn update_time(&mut self, range: &Range<MusicalTime>) {}
 
     /// The entity should perform work for the time range specified in the
     /// previous [update_time()]. If the work produces any events, use
@@ -235,29 +237,33 @@ pub trait Controls: Configurable + Send + std::fmt::Debug {
     ///
     /// Returns the number of requested ticks handled before terminating (TODO:
     /// no it doesn't).
-    fn work(&mut self, control_events_fn: &mut ControlEventsFn);
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {}
 
     /// Returns true if the entity is done with all its scheduled work. An
     /// entity that performs work only on command should always return true, as
     /// the framework ends the piece being performed only when all things
     /// implementing [Controls] indicate that they're finished.
-    fn is_finished(&self) -> bool;
+    fn is_finished(&self) -> bool {
+        true
+    }
 
     /// Tells the device to play its performance from the current location. A
     /// device *must* refresh is_finished() during this method.
-    fn play(&mut self);
+    fn play(&mut self) {}
 
     /// Tells the device to stop playing its performance. It shouldn't change
     /// its cursor location, so that a play() after a stop() acts like a resume.
-    fn stop(&mut self);
+    fn stop(&mut self) {}
 
     /// Resets cursors to the beginning. This is set_cursor Lite (TODO).
-    fn skip_to_start(&mut self);
+    fn skip_to_start(&mut self) {}
 
     /// Whether the device is currently playing. This is part of the trait so
     /// that implementers don't have to leak their internal state to unit test
     /// code.
-    fn is_performing(&self) -> bool;
+    fn is_performing(&self) -> bool {
+        false
+    }
 }
 
 /// A [TransformsAudio] takes input audio, which is typically produced by
@@ -276,7 +282,9 @@ pub trait TransformsAudio: std::fmt::Debug {
     }
 
     /// channel: 0 is left, 1 is right. Use the value as an index into arrays.
-    fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample;
+    fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
+        input_sample
+    }
 }
 
 /// Describes the public interface of an envelope generator, which provides a
@@ -399,7 +407,7 @@ pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::De
 
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
 /// construct Voices, and then handle all the MIDI events properly for them.
-pub trait IsVoice<V>: Generates<V> + PlaysNotes + Send {}
+pub trait IsVoice<V: Default>: Generates<V> + PlaysNotes + Send {}
 /// Same as IsVoice, but stereo.
 pub trait IsStereoSampleVoice: IsVoice<StereoSample> {}
 
@@ -430,14 +438,14 @@ pub trait Displays {
 #[deprecated]
 pub trait DisplaysWithoutResponse {
     /// Renders this Entity with no return value.
-    fn ui(&mut self, ui: &mut egui::Ui);
+    fn ui(&mut self, ui: &mut egui::Ui) {}
 }
 
 /// Something that can display a portion of itself in a timeline view.
 pub trait DisplaysInTimeline: Displays {
     /// Sets the range of time on the track timeline that the next ui() call
     /// should visualize.
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>);
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {}
 }
 
 #[cfg(test)]

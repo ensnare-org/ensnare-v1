@@ -4,8 +4,8 @@
 // `cargo run --example hello_world -- -v`.
 
 use clap::Parser;
-use ensnare::{prelude::*, traits::prelude::*};
-use ensnare_toys::{ToyInstrument, ToyEffect};
+use ensnare::{orchestration::Orchestrator, prelude::*, traits::prelude::*};
+use ensnare_toys::{ToyEffect, ToyInstrument};
 use std::path::PathBuf;
 
 /// The program's command-line arguments.
@@ -52,9 +52,8 @@ fn main() -> anyhow::Result<()> {
     // The sequencer sends MIDI commands to the synth. Each MIDI track
     // automatically includes one. There are lots of different ways to populate
     // the sequencer with notes.
-    let mut sequencer = track.sequencer_mut();
-
     // TODO - not working yet
+    // let mut sequencer = track.sequencer_mut();
     // sequencer.append_note(&Note::new_with_midi_note(
     //     MidiNote::A4,
     //     MusicalTime::START,

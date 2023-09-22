@@ -1,22 +1,22 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{
+use crate::{
     control::ControlRouter,
+    core::AudioQueue,
+    midi::prelude::*,
     piano_roll::PianoRoll,
+    prelude::*,
     selection_set::SelectionSet,
-    track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid},
-    transport::{Transport, TransportBuilder},
+    time::{Transport, TransportBuilder},
+    traits::prelude::*,
     widgets::timeline,
-    Key,
 };
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
 use anyhow::anyhow;
 use derive_builder::Builder;
 use eframe::{
     egui::{self, ScrollArea},
     epaint::vec2,
 };
-use groove_audio::AudioQueue;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -26,6 +26,10 @@ use std::{
     path::PathBuf,
     sync::{Arc, RwLock, RwLockWriteGuard},
     vec::Vec,
+};
+
+use crate::track::{
+    Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid,
 };
 
 /// Actions that [Orchestrator]'s UI might need the parent to perform.
@@ -57,13 +61,13 @@ pub struct OrchestratorEphemerals {
 /// relationships among them to create an audio performance.
 ///
 /// ```
-/// use groove::prelude::*;
-/// use groove_toys::ToySynth;
+/// use ensnare_core::prelude::*;
+/// use ensnare_core::orchestration::Orchestrator;
 ///
 /// let mut orchestrator = Orchestrator::default();
 /// let track_uid = orchestrator.new_midi_track().unwrap();
 /// let track = orchestrator.get_track_mut(&track_uid).unwrap();
-/// let uid = track.append_entity(Box::new(ToySynth::default())).unwrap();
+/// // TODO let uid = track.append_entity(Box::new(ToyInstrument::default())).unwrap();
 ///
 /// let mut samples = [StereoSample::SILENCE; Orchestrator::SAMPLE_BUFFER_SIZE];
 /// orchestrator.render_and_ignore_events(&mut samples);
@@ -761,9 +765,12 @@ impl Displays for Orchestrator {
     }
 }
 
+/// A [BusRoute] represents a signal connection between two tracks.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BusRoute {
+    /// The [TrackUid] of the receiving track.
     pub aux_track_uid: TrackUid,
+    /// How much gain should be applied to this connection.
     pub amount: Normal,
 }
 
@@ -812,7 +819,16 @@ impl BusStation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::midi::{MidiChannel, MidiMessage};
+    use crate::{
+        entities::{
+            test_entities::{
+                TestAudioSource, TestAudioSourceParams, TestControllerAlwaysSendsMidiMessage,
+                TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
+            },
+            Timer,
+        },
+        midi::{MidiChannel, MidiMessage},
+    };
     use std::{collections::HashSet, sync::Arc};
 
     #[test]
@@ -969,6 +985,7 @@ mod tests {
 
     #[test]
     fn sends_send() {
+        const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
         let mut o = Orchestrator::default();
         let track_uid = o.new_midi_track().unwrap();
         let aux_uid = o.new_aux_track().unwrap();
@@ -976,12 +993,16 @@ mod tests {
         {
             let track = o.get_track_mut(&track_uid).unwrap();
             assert!(track
-                .append_entity(Box::new(ToyAudioSource::new_always_medium()))
+                .append_entity(Box::new(TestAudioSource::new_with(
+                    &TestAudioSourceParams {
+                        level: EXPECTED_LEVEL
+                    }
+                )))
                 .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
-        let expected_sample = StereoSample::from(ToyAudioSource::MEDIUM);
+        let expected_sample = StereoSample::from(EXPECTED_LEVEL);
         assert!(
             samples.iter().all(|s| *s == expected_sample),
             "Without a send, original signal should pass through unchanged."
@@ -1000,17 +1021,15 @@ mod tests {
         {
             let track = o.get_track_mut(&aux_uid).unwrap();
             assert!(track
-                .append_entity(Box::new(Gain::new_with(&GainParams {
-                    ceiling: Normal::from(0.5)
-                })))
+                .append_entity(Box::new(TestEffectNegatesInput::default()))
                 .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
-        let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * 0.5);
+        let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * -1.0);
         assert!(
             samples.iter().all(|s| *s == expected_sample),
-            "With a 50% send to an aux with 50% gain, we should see the original 0.5 plus 50% of 50% of 0.5 = 0.625"
+            "With a 50% send to an aux with a negating effect, we should see the original 0.5 plus a negation of 50% of 0.5 = 0.250"
         );
     }
 
@@ -1020,11 +1039,8 @@ mod tests {
         let track_uid = o.new_midi_track().unwrap();
 
         let track = o.get_track_mut(&track_uid).unwrap();
-        let instrument = ToyInstrument::new_with(&ToyInstrumentParams {
-            fake_value: Normal::default(),
-            dca: DcaParams::default(),
-        });
-        let midi_messages_received = Arc::clone(instrument.received_count_mutex());
+        let instrument = TestInstrumentCountsMidiMessages::default();
+        let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
         let _ = track.append_entity(Box::new(instrument)).unwrap();
 
         let test_message = MidiMessage::NoteOn {
@@ -1055,24 +1071,24 @@ mod tests {
         let track_b_uid = o.new_midi_track().unwrap();
 
         // On Track 1, put a sender and receiver.
-        let mut sender = ToyControllerAlwaysSendsMidiMessage::default();
+        let mut sender = TestControllerAlwaysSendsMidiMessage::default();
         sender.set_uid(Uid(10001));
         let _ = o
             .get_track_mut(&track_a_uid)
             .unwrap()
             .append_entity(Box::new(sender));
-        let mut receiver_1 = ToyInstrument::new_with(&ToyInstrumentParams::default());
+        let mut receiver_1 = TestInstrumentCountsMidiMessages::default();
         receiver_1.set_uid(Uid(10002));
-        let counter_1 = Arc::clone(receiver_1.received_count_mutex());
+        let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
         let _ = o
             .get_track_mut(&track_a_uid)
             .unwrap()
             .append_entity(Box::new(receiver_1));
 
         // On Track 2, put another receiver.
-        let mut receiver_2 = ToyInstrument::new_with(&ToyInstrumentParams::default());
+        let mut receiver_2 = TestInstrumentCountsMidiMessages::default();
         receiver_2.set_uid(Uid(20001));
-        let counter_2 = Arc::clone(receiver_2.received_count_mutex());
+        let counter_2 = Arc::clone(receiver_2.received_midi_message_count_mutex());
         let _ = o
             .get_track_mut(&track_b_uid)
             .unwrap()

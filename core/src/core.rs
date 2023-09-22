@@ -1,12 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::midi::{u7, MidiNote};
+use crossbeam::{
+    channel::{Receiver, Sender},
+    queue::ArrayQueue,
+};
 use eframe::egui::{DragValue, Ui};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, RangeInclusive, Sub},
+    sync::Arc,
 };
 
 /// [SampleType] is the underlying primitive that makes up [StereoSample].
@@ -710,6 +715,32 @@ impl Div<Ratio> for ParameterType {
 
     fn div(self, rhs: Ratio) -> Self::Output {
         self / rhs.0
+    }
+}
+
+/// The producer-consumer queue of stereo samples that the audio stream consumes.
+//
+// TODO: why isn't this a ring buffer?
+pub type AudioQueue = Arc<ArrayQueue<StereoSample>>;
+
+/// A convenience struct to bundle both halves of a [crossbeam_channel]
+/// together.
+///
+/// This is actually for more than just convenience: because Serde needs to be
+/// able to assign defaults to individual fields on a struct by calling
+/// stateless functions, we have to create both sender and receiver at once in a
+/// single field.
+#[derive(Debug)]
+pub struct ChannelPair<T> {
+    #[allow(missing_docs)]
+    pub sender: Sender<T>,
+    #[allow(missing_docs)]
+    pub receiver: Receiver<T>,
+}
+impl<T> Default for ChannelPair<T> {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        Self { sender, receiver }
     }
 }
 

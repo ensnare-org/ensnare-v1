@@ -5,7 +5,7 @@
 //! to exchange [MidiHandlerInput] and [MidiHandlerEvent] messages.
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use ensnare::midi::{MidiChannel, MidiMessage};
+use ensnare_core::midi::{MidiChannel, MidiMessage};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection, SendError};
 use midly::{live::LiveEvent, num::u4};
 use serde::{Deserialize, Serialize};

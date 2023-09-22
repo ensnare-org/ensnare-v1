@@ -10,4 +10,5 @@ publish = false
 anyhow = "1.0.75"
 clap = { version = "4.4.4", features = ["derive"] }
 ensnare = { path = "../.." }
+ensnare-orchestration = { path = "../../orchestration" }
 ensnare-toys = { path = "../../toys" }

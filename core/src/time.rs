@@ -13,7 +13,7 @@ use eframe::{
     egui::{Frame, Margin, Ui},
     epaint::{Color32, Stroke, Vec2},
 };
-use ensnare_proc_macros::Control;
+use ensnare_proc_macros::{Control, IsController, Uid};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::{
@@ -478,6 +478,42 @@ impl Sub<Self> for MusicalTime {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+pub struct Seconds(pub f64);
+impl Seconds {
+    pub fn zero() -> Seconds {
+        Seconds(0.0)
+    }
+
+    pub fn infinite() -> Seconds {
+        Seconds(-1.0)
+    }
+}
+impl From<f64> for Seconds {
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
+impl From<f32> for Seconds {
+    fn from(value: f32) -> Self {
+        Self(value as f64)
+    }
+}
+impl Add<f64> for Seconds {
+    type Output = Seconds;
+
+    fn add(self, rhs: f64) -> Self::Output {
+        Seconds(self.0 + rhs)
+    }
+}
+impl Add<Seconds> for Seconds {
+    type Output = Seconds;
+
+    fn add(self, rhs: Seconds) -> Self::Output {
+        Seconds(self.0 + rhs.0)
+    }
+}
+
 /// Samples per second. Always a positive integer; cannot be zero.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Display, PartialEq, Eq)]
 pub struct SampleRate(pub usize);
@@ -542,13 +578,10 @@ pub struct TransportEphemerals {
     is_performing: bool,
 }
 
-// TODO restore all these
-//#[derive(Serialize, Deserialize, Clone, Control, IsController, Debug, Default, Uid, Builder)]
-
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Builder)]
+#[derive(Serialize, Deserialize, Clone, Control, IsController, Debug, Default, Uid, Builder)]
 pub struct Transport {
     /// The entity's uid.
     uid: Uid,

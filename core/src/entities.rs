@@ -1,19 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    prelude::*,
-    traits::{Configurable, ControlEventsFn, Controls, Entity, Serializable, Ticks},
-    uid::Uid,
-};
+use crate::{prelude::*, traits::prelude::*, uid::Uid};
 use anyhow::anyhow;
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use derive_more::Display;
+use ensnare_proc_macros::{Control, IsController, Uid};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
     fmt::Debug,
     hash::Hash,
+    ops::Range,
     option::Option,
 };
 
@@ -204,7 +202,7 @@ impl EntityStore {
     /// Calculates the highest [Uid] of owned [Entities](Entity). This is used
     /// when after deserializing to make sure that newly generated [Uid]s don't
     /// collide with existing ones.
-    pub(crate) fn calculate_max_entity_uid(&self) -> Option<Uid> {
+    pub fn calculate_max_entity_uid(&self) -> Option<Uid> {
         // TODO: keep an eye on this in case it gets expensive. It's currently
         // used only after loading from disk, and it's O(number of things in
         // system), so it's unlikely to matter.
@@ -315,12 +313,335 @@ impl Serializable for EntityStore {
     }
 }
 
+/// [Timer] runs for a specified amount of time, then indicates that it's done.
+/// It is useful when you need something to happen after a certain amount of
+/// wall-clock time, rather than musical time.
+#[derive(Debug, Control, IsController, Uid, Serialize, Deserialize)]
+pub struct Timer {
+    uid: Uid,
+
+    duration: MusicalTime,
+
+    #[serde(skip)]
+    is_performing: bool,
+
+    #[serde(skip)]
+    is_finished: bool,
+
+    #[serde(skip)]
+    end_time: Option<MusicalTime>,
+}
+impl Serializable for Timer {}
+#[allow(missing_docs)]
+impl Timer {
+    pub fn new_with(duration: MusicalTime) -> Self {
+        Self {
+            uid: Default::default(),
+            duration,
+            is_performing: false,
+            is_finished: false,
+            end_time: Default::default(),
+        }
+    }
+
+    pub fn duration(&self) -> MusicalTime {
+        self.duration
+    }
+
+    pub fn set_duration(&mut self, duration: MusicalTime) {
+        self.duration = duration;
+    }
+}
+impl HandlesMidi for Timer {}
+impl Configurable for Timer {}
+impl Controls for Timer {
+    fn update_time(&mut self, range: &Range<MusicalTime>) {
+        if self.is_performing {
+            if self.duration == MusicalTime::default() {
+                // Zero-length timers fire immediately.
+                self.is_finished = true;
+            } else {
+                if let Some(end_time) = self.end_time {
+                    if range.contains(&end_time) {
+                        self.is_finished = true;
+                    }
+                } else {
+                    // The first time we're called with an update_time() while
+                    // performing, we take that as the start of the timer.
+                    self.end_time = Some(range.start + self.duration);
+                }
+            }
+        }
+    }
+
+    fn is_finished(&self) -> bool {
+        self.is_finished
+    }
+
+    fn play(&mut self) {
+        self.is_performing = true;
+    }
+
+    fn stop(&mut self) {
+        self.is_performing = false;
+    }
+
+    fn is_performing(&self) -> bool {
+        self.is_performing
+    }
+}
+impl Displays for Timer {}
+
+#[cfg(test)]
+pub(crate) mod test_entities {
+    use std::sync::{Arc, Mutex};
+
+    use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+    use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
+    use serde::{Deserialize, Serialize};
+
+    /// The smallest possible [IsController].
+    #[derive(Debug, Default, IsController, Serialize, Deserialize, Uid)]
+    pub struct TestController {
+        uid: Uid,
+    }
+    impl Displays for TestController {}
+    impl HandlesMidi for TestController {}
+    impl Controls for TestController {}
+    impl Configurable for TestController {}
+    impl Serializable for TestController {}
+
+    /// The smallest possible [IsInstrument].
+    #[derive(Debug, Default, IsInstrument, Serialize, Deserialize, Uid)]
+    pub struct TestInstrument {
+        uid: Uid,
+        sample_rate: SampleRate,
+    }
+    impl Displays for TestInstrument {}
+    impl HandlesMidi for TestInstrument {}
+    impl Controllable for TestInstrument {}
+    impl Configurable for TestInstrument {
+        fn sample_rate(&self) -> SampleRate {
+            self.sample_rate
+        }
+
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.sample_rate = sample_rate;
+        }
+    }
+    impl Serializable for TestInstrument {}
+    impl Generates<StereoSample> for TestInstrument {
+        fn value(&self) -> StereoSample {
+            StereoSample::default()
+        }
+
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            values.fill(StereoSample::default())
+        }
+    }
+    impl Ticks for TestInstrument {}
+
+    /// Produces a constant audio signal. Used for ensuring that a known signal
+    /// value gets all the way through the pipeline.
+    #[derive(Debug, Default, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+    pub struct TestAudioSource {
+        uid: Uid,
+
+        // This should be a Normal, but we use this audio source for testing edge
+        // conditions. Thus we need to let it go out of range.
+        #[control]
+        #[params]
+        level: ParameterType,
+
+        #[serde(skip)]
+        sample_rate: SampleRate,
+    }
+    impl Serializable for TestAudioSource {}
+    impl Generates<StereoSample> for TestAudioSource {
+        fn value(&self) -> StereoSample {
+            StereoSample::from(self.level)
+        }
+
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            values.fill(self.value());
+        }
+    }
+    impl Configurable for TestAudioSource {}
+    impl Ticks for TestAudioSource {}
+    impl HandlesMidi for TestAudioSource {}
+    #[allow(dead_code)]
+    impl TestAudioSource {
+        pub const TOO_LOUD: SampleType = 1.1;
+        pub const LOUD: SampleType = 1.0;
+        pub const MEDIUM: SampleType = 0.5;
+        pub const SILENT: SampleType = 0.0;
+        pub const QUIET: SampleType = -1.0;
+        pub const TOO_QUIET: SampleType = -1.1;
+
+        pub fn new_with(params: &TestAudioSourceParams) -> Self {
+            Self {
+                level: params.level(),
+                ..Default::default()
+            }
+        }
+
+        pub fn level(&self) -> f64 {
+            self.level
+        }
+
+        pub fn set_level(&mut self, level: ParameterType) {
+            self.level = level;
+        }
+    }
+    impl Displays for TestAudioSource {}
+
+    /// The smallest possible [IsEffect].
+    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Uid)]
+    pub struct TestEffect {
+        uid: Uid,
+    }
+    impl Displays for TestEffect {}
+    impl Configurable for TestEffect {}
+    impl Controllable for TestEffect {}
+    impl Serializable for TestEffect {}
+    impl TransformsAudio for TestEffect {}
+
+    /// An effect that negates the input.
+    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Uid)]
+    pub struct TestEffectNegatesInput {
+        uid: Uid,
+    }
+    impl Displays for TestEffectNegatesInput {}
+    impl Configurable for TestEffectNegatesInput {}
+    impl Controllable for TestEffectNegatesInput {}
+    impl Serializable for TestEffectNegatesInput {}
+    impl TransformsAudio for TestEffectNegatesInput {
+        fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
+            -input_sample
+        }
+    }
+
+    #[derive(Debug, Default, Uid, IsController, Serialize, Deserialize)]
+    pub struct TestControllerAlwaysSendsMidiMessage {
+        uid: Uid,
+
+        #[serde(skip)]
+        midi_note: u8,
+
+        #[serde(skip)]
+        is_performing: bool,
+    }
+    impl Displays for TestControllerAlwaysSendsMidiMessage {}
+    impl HandlesMidi for TestControllerAlwaysSendsMidiMessage {}
+    impl Controls for TestControllerAlwaysSendsMidiMessage {
+        fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+            if self.is_performing {
+                control_events_fn(
+                    self.uid,
+                    EntityEvent::Midi(
+                        MidiChannel(0),
+                        MidiMessage::NoteOn {
+                            key: u7::from(self.midi_note),
+                            vel: u7::from(127),
+                        },
+                    ),
+                );
+                self.midi_note += 1;
+                if self.midi_note > 127 {
+                    self.midi_note = 1;
+                }
+            }
+        }
+
+        fn is_finished(&self) -> bool {
+            false
+        }
+
+        fn play(&mut self) {
+            self.is_performing = true;
+        }
+
+        fn stop(&mut self) {
+            self.is_performing = false;
+        }
+
+        fn is_performing(&self) -> bool {
+            self.is_performing
+        }
+    }
+    impl Configurable for TestControllerAlwaysSendsMidiMessage {}
+    impl Serializable for TestControllerAlwaysSendsMidiMessage {}
+
+    /// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many MIDI messages it has received.
+    #[derive(Debug, Default, IsInstrument, Uid, Serialize, Deserialize)]
+    pub struct TestInstrumentCountsMidiMessages {
+        uid: Uid,
+        pub received_midi_message_count: Arc<Mutex<usize>>,
+    }
+    impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
+        fn value(&self) -> StereoSample {
+            StereoSample::default()
+        }
+
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            values.fill(StereoSample::default())
+        }
+    }
+    impl Configurable for TestInstrumentCountsMidiMessages {}
+    impl Controllable for TestInstrumentCountsMidiMessages {}
+    impl Ticks for TestInstrumentCountsMidiMessages {}
+    impl HandlesMidi for TestInstrumentCountsMidiMessages {
+        fn handle_midi_message(
+            &mut self,
+            _action: MidiChannel,
+            _: MidiMessage,
+            _: &mut MidiMessagesFn,
+        ) {
+            if let Ok(mut received_count) = self.received_midi_message_count.lock() {
+                *received_count += 1;
+            }
+        }
+    }
+    impl Serializable for TestInstrumentCountsMidiMessages {}
+    impl TestInstrumentCountsMidiMessages {
+        pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
+            &self.received_midi_message_count
+        }
+    }
+    impl Displays for TestInstrumentCountsMidiMessages {}
+}
+
 #[cfg(test)]
 mod tests {
+    use super::test_entities::{TestController, TestEffect, TestInstrument};
     use super::EntityStore;
-    use crate::mini::{register_test_factory_entities, EntityFactory, Key};
+    use crate::entities::{EntityFactory, Key};
     use crate::{prelude::*, traits::prelude::*};
     use std::collections::HashSet;
+
+    /// Registers all [EntityFactory]'s entities. Note that the function returns an
+    /// &EntityFactory. This encourages usage like this:
+    ///
+    /// ```
+    /// let mut factory = EntityFactory::default();
+    /// let factory = register_test_factory_entities(&mut factory);
+    /// ```
+    ///
+    /// This makes the factory immutable once it's set up.
+    #[must_use]
+    pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
+        factory.register_entity(Key::from("instrument"), || {
+            Box::new(TestInstrument::default())
+        });
+        factory.register_entity(Key::from("controller"), || {
+            Box::new(TestController::default())
+        });
+        factory.register_entity(Key::from("effect"), || Box::new(TestEffect::default()));
+
+        factory.complete_registration();
+
+        factory
+    }
 
     #[test]
     fn entity_creation() {
@@ -403,19 +724,19 @@ mod tests {
         let mut t = EntityStore::default();
         assert_eq!(t.calculate_max_entity_uid(), None);
 
-        let mut one = Box::new(ToySynth::default());
+        let mut one = Box::new(TestInstrument::default());
         one.set_uid(Uid(9999));
         assert!(t.add(one).is_ok(), "adding a unique UID should succeed");
         assert_eq!(t.calculate_max_entity_uid(), Some(Uid(9999)));
 
-        let mut two = Box::new(ToySynth::default());
+        let mut two = Box::new(TestInstrument::default());
         two.set_uid(Uid(9999));
         assert!(t.add(two).is_err(), "adding a duplicate UID should fail");
 
         let max_uid = t.calculate_max_entity_uid().unwrap();
         // Though the add() was sure to fail, it's still considered mutably
         // borrowed at compile time.
-        let mut two = Box::new(ToySynth::default());
+        let mut two = Box::new(TestInstrument::default());
         two.set_uid(Uid(max_uid.0 + 1));
         assert!(
             t.add(two).is_ok(),

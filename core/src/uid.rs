@@ -32,3 +32,15 @@ impl IsUid for Uid {
         self
     }
 }
+
+/// Generates unique [Uid]s. This factory is not threadsafe.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct UidFactory<U: IsUid + Clone> {
+    previous_uid: U,
+}
+impl<U: IsUid + Clone> UidFactory<U> {
+    /// Generates the next unique [Uid].
+    pub fn mint_next(&mut self) -> U {
+        *self.previous_uid.increment()
+    }
+}
