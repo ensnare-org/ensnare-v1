@@ -38,4 +38,7 @@ hound = "3.5.0"
 crossbeam = "0.8.2"
 
 [workspace]
-members = ["midi-interface", "toys", "examples/*"]
+members = ["midi-interface", "toys"]
+
+[dev-dependencies]
+clap = { version = "4.4.4", features = ["derive"] }

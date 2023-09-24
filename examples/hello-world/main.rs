@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-// Shows how to use basic crate functionality. To see it print its version, try
-// `cargo run --example hello_world -- -v`.
+//! Shows how to use basic crate functionality.
 
 use clap::Parser;
 use ensnare::prelude::*;
