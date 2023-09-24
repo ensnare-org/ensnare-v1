@@ -78,13 +78,13 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         Box::new(ToySynth::new_with(&ToySynthParams::default()))
     });
     factory.register_entity(EntityKey::from("toy-instrument"), || {
-        Box::new(ToyInstrument::default())
+        Box::<ToyInstrument>::default()
     });
     factory.register_entity(EntityKey::from("toy-controller"), || {
-        Box::new(ToyController::default())
+        Box::<ToyController>::default()
     });
     factory.register_entity(EntityKey::from("toy-effect"), || {
-        Box::new(ToyEffect::default())
+        Box::<ToyEffect>::default()
     });
     // factory.register_entity(Key::from("toy-controller-noisy"), || {
     //     Box::new(ToyControllerAlwaysSendsMidiMessage::default())
@@ -108,7 +108,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     //     Box::new(ControlTrip::default())
     // });
     factory.register_entity(EntityKey::from("signal-passthrough"), || {
-        Box::new(SignalPassthroughController::default())
+        Box::<SignalPassthroughController>::default()
     });
     factory.register_entity(EntityKey::from("signal-amplitude-passthrough"), || {
         Box::new(SignalPassthroughController::new_amplitude_passthrough_type())
