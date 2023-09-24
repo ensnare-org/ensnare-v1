@@ -510,6 +510,40 @@ impl ToySynth {
     }
 }
 
+/// Registers all [EntityFactory]'s entities. Note that the function returns a
+/// EntityFactory, rather than operating on an &mut. This encourages
+/// one-and-done creation, after which the factory is immutable:
+///
+/// ```ignore
+/// let factory = register_factory_entities(EntityFactory::default());
+/// ```
+///
+/// TODO: maybe a Builder pattern is better, so that people can compose
+/// factories out of any entities they want, and still get the benefits of
+/// immutability.
+#[must_use]
+pub fn register_toy_factory_entities(mut factory: EntityFactory) -> EntityFactory {
+    factory.register_entity(EntityKey::from("toy-synth"), || {
+        Box::new(ToySynth::new_with(&ToySynthParams::default()))
+    });
+    factory.register_entity(EntityKey::from("toy-instrument"), || {
+        Box::<ToyInstrument>::default()
+    });
+    factory.register_entity(EntityKey::from("toy-controller"), || {
+        Box::<ToyController>::default()
+    });
+    factory.register_entity(EntityKey::from("toy-effect"), || {
+        Box::<ToyEffect>::default()
+    });
+    // factory.register_entity(Key::from("toy-controller-noisy"), || {
+    //     Box::new(ToyControllerAlwaysSendsMidiMessage::default())
+    // });
+
+    factory.complete_registration();
+
+    factory
+}
+
 #[cfg(test)]
 pub mod tests {
     use crate::ToyInstrument;

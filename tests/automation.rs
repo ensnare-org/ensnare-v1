@@ -37,7 +37,7 @@ fn demo_automation() {
 
     // Add a synth to play the pattern.
     let synth_uid = track
-        .append_entity(factory.new_entity(&EntityKey::from("toy-synth")).unwrap())
+        .append_entity(factory.new_entity(&EntityKey::from("welsh-synth")).unwrap())
         .unwrap();
 
     // Add an LFO that will control a synth parameter.
@@ -55,7 +55,7 @@ fn demo_automation() {
         // way to query param names, but I'm not sure how often that will
         // happen.
         factory
-            .new_entity(&EntityKey::from("toy-synth"))
+            .new_entity(&EntityKey::from("welsh-synth"))
             .unwrap()
             .as_controllable()
             .unwrap()
@@ -108,13 +108,13 @@ fn demo_control_trips() {
 
     // Add a synth to play the pattern.
     let synth_uid = track
-        .append_entity(factory.new_entity(&EntityKey::from("toy-synth")).unwrap())
+        .append_entity(factory.new_entity(&EntityKey::from("welsh-synth")).unwrap())
         .unwrap();
 
     // Figure how out to identify the parameter we want to control.
     let pan_param_index = {
         factory
-            .new_entity(&EntityKey::from("toy-synth"))
+            .new_entity(&EntityKey::from("welsh-synth"))
             .unwrap()
             .as_controllable()
             .unwrap()

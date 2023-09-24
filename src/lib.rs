@@ -1,9 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-mod entities;
+/// Core instruments, controllers, and effects.
+pub mod entities;
 
+/// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::entities::register_factory_entities;
+    pub use crate::entities::register_factory_entities;
     pub use ensnare_core::{
         control::{
             ControlIndex, ControlStepBuilder, ControlTripBuilder, ControlTripPath, ControlValue,

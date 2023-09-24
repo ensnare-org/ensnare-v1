@@ -1,34 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    midi::MidiChannel,
-    prelude::*,
-    temp_impls::{
-        controllers::{
-            arpeggiator::{Arpeggiator, ArpeggiatorParams},
-            mini_sequencer::SequencerBuilder,
-            SignalPassthroughController,
-        },
-        effects::{
-            filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
-            gain::{Gain, GainParams},
-            reverb::{Reverb, ReverbParams},
-        },
-    },
-    traits::prelude::*,
-    uid::Uid,
-};
+use crate::{prelude::*, traits::prelude::*, uid::Uid};
 use anyhow::anyhow;
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use derive_more::Display;
-use ensnare_proc_macros::{Control, IsController, Uid};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
-    fmt::Debug,
-    hash::Hash,
-    ops::Range,
     option::Option,
 };
 
@@ -332,11 +311,10 @@ impl Serializable for EntityStore {
 
 #[cfg(test)]
 pub(crate) mod test_entities {
-    use std::sync::{Arc, Mutex};
-
     use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
     use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
     use serde::{Deserialize, Serialize};
+    use std::sync::{Arc, Mutex};
 
     /// The smallest possible [IsController].
     #[derive(Debug, Default, IsController, Serialize, Deserialize, Uid)]
@@ -404,7 +382,15 @@ pub(crate) mod test_entities {
             values.fill(self.value());
         }
     }
-    impl Configurable for TestAudioSource {}
+    impl Configurable for TestAudioSource {
+        fn sample_rate(&self) -> SampleRate {
+            self.sample_rate
+        }
+
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.sample_rate = sample_rate;
+        }
+    }
     impl Ticks for TestAudioSource {}
     impl HandlesMidi for TestAudioSource {}
     #[allow(dead_code)]
@@ -454,7 +440,7 @@ pub(crate) mod test_entities {
     impl Controllable for TestEffectNegatesInput {}
     impl Serializable for TestEffectNegatesInput {}
     impl TransformsAudio for TestEffectNegatesInput {
-        fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
+        fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
             -input_sample
         }
     }

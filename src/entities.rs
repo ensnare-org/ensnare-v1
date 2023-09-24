@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{
-    entities::{EntityFactory, EntityKey},
-    midi::MidiChannel,
+    midi::prelude::*,
     prelude::*,
     temp_impls::{
         controllers::{
@@ -15,6 +14,7 @@ use ensnare_core::{
             gain::{Gain, GainParams},
             reverb::{Reverb, ReverbParams},
         },
+        instruments::welsh::{WelshSynth, WelshSynthParams},
     },
 };
 use ensnare_toys::{ToyController, ToyEffect, ToyInstrument, ToySynth, ToySynthParams};
@@ -74,6 +74,9 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     factory.register_entity(EntityKey::from("timer"), || {
         Box::new(Timer::new_with(MusicalTime::DURATION_QUARTER))
     });
+    // factory.register_entity(Key::from("toy-controller-noisy"), || {
+    //     Box::new(ToyControllerAlwaysSendsMidiMessage::default())
+    // });
     factory.register_entity(EntityKey::from("toy-synth"), || {
         Box::new(ToySynth::new_with(&ToySynthParams::default()))
     });
@@ -86,12 +89,9 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     factory.register_entity(EntityKey::from("toy-effect"), || {
         Box::<ToyEffect>::default()
     });
-    // factory.register_entity(Key::from("toy-controller-noisy"), || {
-    //     Box::new(ToyControllerAlwaysSendsMidiMessage::default())
-    // });
-    // factory.register_entity(Key::from("welsh-synth"), || {
-    //     Box::new(WelshSynth::new_with(&WelshSynthParams::default()))
-    // });
+    factory.register_entity(EntityKey::from("welsh-synth"), || {
+        Box::new(WelshSynth::new_with(&WelshSynthParams::default()))
+    });
     // factory.register_entity(Key::from("drumkit"), || {
     //     Box::new(Drumkit::new_with(
     //         &DrumkitParams::default(),
