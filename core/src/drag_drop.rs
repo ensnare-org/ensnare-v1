@@ -15,7 +15,7 @@ static DD_MANAGER: OnceCell<Mutex<DragDropManager>> = OnceCell::new();
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Display, PartialEq, Eq)]
 pub enum DragDropSource {
-    NewDevice(Key),
+    NewDevice(EntityKey),
     Pattern(PatternUid),
     ControlTrip(Uid),
 }
@@ -23,7 +23,7 @@ pub enum DragDropSource {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Display)]
 pub enum DragDropEvent {
-    AddDeviceToTrack(Key, TrackUid),
+    AddDeviceToTrack(EntityKey, TrackUid),
     AddPatternToTrack(PatternUid, TrackUid, MusicalTime),
 }
 

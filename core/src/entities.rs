@@ -1,6 +1,23 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*, uid::Uid};
+use crate::{
+    midi::MidiChannel,
+    prelude::*,
+    temp_impls::{
+        controllers::{
+            arpeggiator::{Arpeggiator, ArpeggiatorParams},
+            mini_sequencer::SequencerBuilder,
+            SignalPassthroughController,
+        },
+        effects::{
+            filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
+            gain::{Gain, GainParams},
+            reverb::{Reverb, ReverbParams},
+        },
+    },
+    traits::prelude::*,
+    uid::Uid,
+};
 use anyhow::anyhow;
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use derive_more::Display;
@@ -18,15 +35,15 @@ use std::{
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct Key(String);
-impl From<&String> for Key {
+pub struct EntityKey(String);
+impl From<&String> for EntityKey {
     fn from(value: &String) -> Self {
-        Key(value.to_string())
+        EntityKey(value.to_string())
     }
 }
-impl From<&str> for Key {
+impl From<&str> for EntityKey {
     fn from(value: &str) -> Self {
-        Key(value.to_string())
+        EntityKey(value.to_string())
     }
 }
 
@@ -40,11 +57,11 @@ static FACTORY: OnceCell<EntityFactory> = OnceCell::new();
 #[derive(Debug)]
 pub struct EntityFactory {
     next_uid: RelaxedCounter,
-    entities: HashMap<Key, EntityFactoryFn>,
-    keys: HashSet<Key>,
+    entities: HashMap<EntityKey, EntityFactoryFn>,
+    keys: HashSet<EntityKey>,
 
     is_registration_complete: bool,
-    sorted_keys: Vec<Key>,
+    sorted_keys: Vec<EntityKey>,
 }
 impl Default for EntityFactory {
     fn default() -> Self {
@@ -83,7 +100,7 @@ impl EntityFactory {
     }
 
     /// Registers a new type for the given [Key] using the given closure.
-    pub fn register_entity(&mut self, key: Key, f: EntityFactoryFn) {
+    pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn) {
         if self.is_registration_complete {
             panic!("attempt to register an entity after registration completed");
         }
@@ -103,7 +120,7 @@ impl EntityFactory {
     }
 
     /// Creates a new entity of the type corresponding to the given [Key].
-    pub fn new_entity(&self, key: &Key) -> Option<Box<dyn Entity>> {
+    pub fn new_entity(&self, key: &EntityKey) -> Option<Box<dyn Entity>> {
         if let Some(f) = self.entities.get(key) {
             let mut r = f();
             r.set_uid(self.mint_uid());
@@ -114,12 +131,12 @@ impl EntityFactory {
     }
 
     /// Returns the [HashSet] of all [Key]s.
-    pub fn keys(&self) -> &HashSet<Key> {
+    pub fn keys(&self) -> &HashSet<EntityKey> {
         &self.keys
     }
 
     /// Returns the [HashMap] for all [Key] and entity pairs.
-    pub fn entities(&self) -> &HashMap<Key, EntityFactoryFn> {
+    pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn> {
         &self.entities
     }
 
@@ -133,7 +150,7 @@ impl EntityFactory {
     }
 
     /// Returns all the [Key]s in sorted order for consistent display in the UI.
-    pub fn sorted_keys(&self) -> &[Key] {
+    pub fn sorted_keys(&self) -> &[EntityKey] {
         if !self.is_registration_complete {
             panic!("sorted_keys() can be called only after registration is complete.")
         }
@@ -312,85 +329,6 @@ impl Serializable for EntityStore {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
-
-/// [Timer] runs for a specified amount of time, then indicates that it's done.
-/// It is useful when you need something to happen after a certain amount of
-/// wall-clock time, rather than musical time.
-#[derive(Debug, Control, IsController, Uid, Serialize, Deserialize)]
-pub struct Timer {
-    uid: Uid,
-
-    duration: MusicalTime,
-
-    #[serde(skip)]
-    is_performing: bool,
-
-    #[serde(skip)]
-    is_finished: bool,
-
-    #[serde(skip)]
-    end_time: Option<MusicalTime>,
-}
-impl Serializable for Timer {}
-#[allow(missing_docs)]
-impl Timer {
-    pub fn new_with(duration: MusicalTime) -> Self {
-        Self {
-            uid: Default::default(),
-            duration,
-            is_performing: false,
-            is_finished: false,
-            end_time: Default::default(),
-        }
-    }
-
-    pub fn duration(&self) -> MusicalTime {
-        self.duration
-    }
-
-    pub fn set_duration(&mut self, duration: MusicalTime) {
-        self.duration = duration;
-    }
-}
-impl HandlesMidi for Timer {}
-impl Configurable for Timer {}
-impl Controls for Timer {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
-        if self.is_performing {
-            if self.duration == MusicalTime::default() {
-                // Zero-length timers fire immediately.
-                self.is_finished = true;
-            } else {
-                if let Some(end_time) = self.end_time {
-                    if range.contains(&end_time) {
-                        self.is_finished = true;
-                    }
-                } else {
-                    // The first time we're called with an update_time() while
-                    // performing, we take that as the start of the timer.
-                    self.end_time = Some(range.start + self.duration);
-                }
-            }
-        }
-    }
-
-    fn is_finished(&self) -> bool {
-        self.is_finished
-    }
-
-    fn play(&mut self) {
-        self.is_performing = true;
-    }
-
-    fn stop(&mut self) {
-        self.is_performing = false;
-    }
-
-    fn is_performing(&self) -> bool {
-        self.is_performing
-    }
-}
-impl Displays for Timer {}
 
 #[cfg(test)]
 pub(crate) mod test_entities {
@@ -615,7 +553,7 @@ pub(crate) mod test_entities {
 mod tests {
     use super::test_entities::{TestController, TestEffect, TestInstrument};
     use super::EntityStore;
-    use crate::entities::{EntityFactory, Key};
+    use crate::entities::{EntityFactory, EntityKey};
     use crate::{prelude::*, traits::prelude::*};
     use std::collections::HashSet;
 
@@ -630,13 +568,16 @@ mod tests {
     /// This makes the factory immutable once it's set up.
     #[must_use]
     pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-        factory.register_entity(Key::from("instrument"), || {
+        factory.register_entity(EntityKey::from("instrument"), || {
             Box::new(TestInstrument::default())
         });
-        factory.register_entity(Key::from("controller"), || {
+        factory.register_entity(EntityKey::from("controller"), || {
             Box::new(TestController::default())
         });
-        factory.register_entity(Key::from("effect"), || Box::new(TestEffect::default()));
+        factory.register_entity(
+            EntityKey::from("effect"),
+            || Box::new(TestEffect::default()),
+        );
 
         factory.complete_registration();
 
@@ -659,7 +600,7 @@ mod tests {
         // After registration, rebind as immutable
         let factory = factory;
 
-        assert!(factory.new_entity(&Key::from(".9-#$%)@#)")).is_none());
+        assert!(factory.new_entity(&EntityKey::from(".9-#$%)@#)")).is_none());
 
         let mut ids: HashSet<Uid> = HashSet::default();
         for key in factory.keys().iter() {
@@ -703,7 +644,7 @@ mod tests {
         t.update_sample_rate(SampleRate(44444));
         let factory = register_test_factory_entities(EntityFactory::default());
 
-        let entity = factory.new_entity(&Key::from("instrument")).unwrap();
+        let entity = factory.new_entity(&EntityKey::from("instrument")).unwrap();
         assert_eq!(
             entity.sample_rate(),
             SampleRate::DEFAULT,

@@ -4,6 +4,9 @@
 
 //! Ensnare is a library for generating digital audio.
 
+/// Wraps the [cpal] audio interface and makes it easy to address with a
+/// crossbeam channel.
+pub mod audio;
 /// Handles automation, or real-time automatic control of one entity's
 /// parameters by another entity's output.
 pub mod control;
@@ -37,21 +40,25 @@ pub mod uid;
 pub mod voices;
 
 // TEMP
-mod drag_drop;
-mod even_smaller_sequencer;
-mod humidifier;
-mod midi_router;
-mod piano_roll;
-mod widgets;
+pub mod drag_drop;
+pub mod humidifier;
+pub mod midi_router;
+pub mod piano_roll;
+pub mod widgets;
+
+pub mod temp_impls;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::control::{ControlIndex, ControlName, ControlValue};
-    pub use crate::core::{
-        BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
-        StereoSample,
+    pub use crate::{
+        control::{ControlIndex, ControlName, ControlValue},
+        core::{
+            BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType,
+            SignalType, StereoSample,
+        },
+        entities::{EntityFactory, EntityKey},
+        orchestration::{Orchestrator, OrchestratorBuilder},
+        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
+        uid::Uid,
     };
-    pub use crate::entities::Key;
-    pub use crate::time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature};
-    pub use crate::uid::Uid;
 }

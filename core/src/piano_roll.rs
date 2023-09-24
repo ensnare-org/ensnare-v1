@@ -302,7 +302,7 @@ impl Pattern {
         self.refresh_internals();
     }
 
-    pub(crate) fn make_note_shapes(
+    pub fn make_note_shapes(
         &self,
         note: &Note,
         to_screen: &RectTransform,
@@ -491,6 +491,60 @@ impl Displays for PianoRoll {
     }
 }
 
+// TODO: move back to tests mod when everything is integrated
+impl PianoRoll {
+    /// For testing only; adds simple patterns.
+    pub fn populate_pattern(&mut self, pattern_number: usize) -> (PatternUid, usize, MusicalTime) {
+        let pattern = match pattern_number {
+            0 => PatternBuilder::default()
+                .notes(vec![
+                    Note::new_with_midi_note(
+                        MidiNote::C4,
+                        MusicalTime::TIME_ZERO,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                    Note::new_with_midi_note(
+                        MidiNote::D4,
+                        MusicalTime::TIME_END_OF_FIRST_BEAT,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                    Note::new_with_midi_note(
+                        MidiNote::E4,
+                        MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                ])
+                .build(),
+            1 => PatternBuilder::default()
+                .notes(vec![
+                    Note::new_with_midi_note(
+                        MidiNote::C5,
+                        MusicalTime::TIME_ZERO,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                    Note::new_with_midi_note(
+                        MidiNote::D5,
+                        MusicalTime::TIME_END_OF_FIRST_BEAT,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                    Note::new_with_midi_note(
+                        MidiNote::E5,
+                        MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
+                        MusicalTime::DURATION_WHOLE,
+                    ),
+                ])
+                .build(),
+            _ => panic!(),
+        }
+        .unwrap();
+
+        // Optimize this. I dare you.
+        let len = pattern.notes().len();
+        let duration = pattern.duration();
+        (self.insert(pattern), len, duration)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -511,62 +565,6 @@ mod tests {
             key: MidiNote::E4 as u8,
             range: MusicalTime::START..MusicalTime::DURATION_BREVE,
         };
-    }
-
-    impl PianoRoll {
-        /// For testing only; adds simple patterns.
-        pub fn populate_pattern(
-            &mut self,
-            pattern_number: usize,
-        ) -> (PatternUid, usize, MusicalTime) {
-            let pattern = match pattern_number {
-                0 => PatternBuilder::default()
-                    .notes(vec![
-                        Note::new_with_midi_note(
-                            MidiNote::C4,
-                            MusicalTime::TIME_ZERO,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                        Note::new_with_midi_note(
-                            MidiNote::D4,
-                            MusicalTime::TIME_END_OF_FIRST_BEAT,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                        Note::new_with_midi_note(
-                            MidiNote::E4,
-                            MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                    ])
-                    .build(),
-                1 => PatternBuilder::default()
-                    .notes(vec![
-                        Note::new_with_midi_note(
-                            MidiNote::C5,
-                            MusicalTime::TIME_ZERO,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                        Note::new_with_midi_note(
-                            MidiNote::D5,
-                            MusicalTime::TIME_END_OF_FIRST_BEAT,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                        Note::new_with_midi_note(
-                            MidiNote::E5,
-                            MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
-                            MusicalTime::DURATION_WHOLE,
-                        ),
-                    ])
-                    .build(),
-                _ => panic!(),
-            }
-            .unwrap();
-
-            // Optimize this. I dare you.
-            let len = pattern.notes().len();
-            let duration = pattern.duration();
-            (self.insert(pattern), len, duration)
-        }
     }
 
     #[test]

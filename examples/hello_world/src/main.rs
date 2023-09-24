@@ -4,8 +4,7 @@
 // `cargo run --example hello_world -- -v`.
 
 use clap::Parser;
-use ensnare::{orchestration::Orchestrator, prelude::*, traits::prelude::*};
-use ensnare_toys::{ToyEffect, ToyInstrument};
+use ensnare::prelude::*;
 use std::path::PathBuf;
 
 /// The program's command-line arguments.

@@ -3,9 +3,9 @@
 use crate::{
     control::{ControlAtlas, ControlRouter},
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
-    even_smaller_sequencer::ESSequencer,
     prelude::*,
     rng::Rng,
+    temp_impls::controllers::even_smaller_sequencer::ESSequencer,
     track::TrackUid,
     traits::prelude::*,
 };

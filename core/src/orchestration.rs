@@ -40,7 +40,7 @@ pub enum OrchestratorAction {
     /// A [Track] was double-clicked in the UI.
     DoubleClickTrack(TrackUid),
     /// A [Track] wants a new device of type [Key].
-    NewDeviceForTrack(TrackUid, Key),
+    NewDeviceForTrack(TrackUid, EntityKey),
 }
 
 /// A grouping mechanism to declare parts of [Orchestrator] that Serde
@@ -820,14 +820,12 @@ impl BusStation {
 mod tests {
     use super::*;
     use crate::{
-        entities::{
-            test_entities::{
-                TestAudioSource, TestAudioSourceParams, TestControllerAlwaysSendsMidiMessage,
-                TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
-            },
-            Timer,
+        entities::test_entities::{
+            TestAudioSource, TestAudioSourceParams, TestControllerAlwaysSendsMidiMessage,
+            TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
         },
         midi::{MidiChannel, MidiMessage},
+        temp_impls::controllers::Timer,
     };
     use std::{collections::HashSet, sync::Arc};
 

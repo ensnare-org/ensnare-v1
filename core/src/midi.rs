@@ -434,7 +434,7 @@ pub trait HandlesMidi {
 
 #[cfg(test)]
 mod tests {
-    use crate::{midi::MidiNote, prelude::FrequencyHz};
+    use crate::{midi::prelude::*, prelude::*};
 
     #[test]
     fn midi_note_is_complete() {

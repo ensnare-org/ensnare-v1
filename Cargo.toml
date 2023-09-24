@@ -16,9 +16,11 @@ anyhow = "1.0.75"
 derive_builder = "0.12.0"
 derive_more = "0.99.17"
 ensnare-core = { path = "core" }
+ensnare-midi-interface = { path = "midi-interface" }
 ensnare-not-core = { path = "not-core" }
 ensnare-entities = { path = "entities" }
 ensnare-proc-macros = { path = "proc-macros" }
+ensnare-toys = { path = "toys" }
 eframe = "0.22"
 midly = "0.5.3"
 more-asserts = "0.3.1"

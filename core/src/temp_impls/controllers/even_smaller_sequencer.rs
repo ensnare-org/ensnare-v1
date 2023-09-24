@@ -1,7 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{piano_roll::Pattern, rng::Rng};
-use crate::{midi::prelude::*, piano_roll::Note, prelude::*, traits::prelude::*};
+use crate::{
+    midi::prelude::*,
+    piano_roll::{Note, Pattern},
+    prelude::*,
+    rng::Rng,
+    traits::prelude::*,
+};
 use btreemultimap::BTreeMultiMap;
 use derive_builder::Builder;
 use eframe::egui::Ui;
@@ -38,6 +43,7 @@ impl ESSequencerBuilder {
     }
 }
 
+/// Parts of [ESSequencer] that shouldn't be persisted.
 #[derive(Debug, Default)]
 pub struct ESSequencerEphemerals {
     // The sequencer should be performing work for this time slice.
@@ -230,7 +236,7 @@ impl Serializable for ESSequencer {
 
 #[cfg(test)]
 mod tests {
-    use crate::{piano_roll::PatternBuilder, prelude::MusicalTime};
+    use crate::piano_roll::PatternBuilder;
 
     use super::*;
 

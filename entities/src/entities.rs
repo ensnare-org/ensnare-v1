@@ -19,7 +19,7 @@ use std::{
 
 #[cfg(test)]
 use ensnare_core::{
-    entities::{EntityFactory, Key},
+    entities::{EntityFactory, EntityKey},
     midi::MidiChannel,
 };
 #[cfg(test)]
@@ -39,16 +39,16 @@ use ensnare_toys::{
 #[cfg(test)]
 #[must_use]
 pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-    factory.register_entity(Key::from("instrument"), || {
+    factory.register_entity(EntityKey::from("instrument"), || {
         Box::new(ToyInstrument::new_with(&ToyInstrumentParams::default()))
     });
-    factory.register_entity(Key::from("controller"), || {
+    factory.register_entity(EntityKey::from("controller"), || {
         Box::new(ToyController::new_with(
             &ToyControllerParams::default(),
             MidiChannel::from(0),
         ))
     });
-    factory.register_entity(Key::from("effect"), || Box::new(ToyEffect::default()));
+    factory.register_entity(EntityKey::from("effect"), || Box::new(ToyEffect::default()));
 
     factory.complete_registration();
 

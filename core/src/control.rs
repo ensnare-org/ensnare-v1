@@ -599,6 +599,14 @@ mod tests {
     use ensnare_proc_macros::{IsInstrument, Uid};
     use std::sync::{Arc, RwLock};
 
+    impl ControlTrip {
+        // Causes the next work() to emit a Control event, even if the value
+        // matches the last event's value.
+        fn debug_reset_last_value(&mut self) {
+            self.e.last_published_value = f64::MAX;
+        }
+    }
+
     #[test]
     fn usize_ok() {
         let a = usize::MAX;
@@ -697,14 +705,6 @@ mod tests {
         assert_eq!(BipolarNormal::from(Ratio::from(0.125)).value(), -1.0);
         assert_eq!(BipolarNormal::from(Ratio::from(1.0)).value(), 0.0);
         assert_eq!(BipolarNormal::from(Ratio::from(8.0)).value(), 1.0);
-    }
-
-    impl ControlTrip {
-        // Causes the next work() to emit a Control event, even if the value
-        // matches the last event's value.
-        fn debug_reset_last_value(&mut self) {
-            self.e.last_published_value = f64::MAX;
-        }
     }
 
     #[test]

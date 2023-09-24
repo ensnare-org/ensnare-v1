@@ -9,13 +9,14 @@ use crate::{
     midi_router::MidiRouter,
     piano_roll::PianoRoll,
     prelude::*,
+    temp_impls::controllers::mini_sequencer::Sequencer,
     traits::prelude::*,
     uid::IsUid,
     widgets::{control, placeholder, track},
 };
 use anyhow::anyhow;
 use eframe::{
-    egui::{self, Frame, Layout, Margin, Response, Ui},
+    egui::{self, Frame, Layout, Margin, Ui},
     emath::Align,
     epaint::{vec2, Color32, Stroke, Vec2},
 };
@@ -62,7 +63,7 @@ pub enum TrackDetailAction {}
 pub enum TrackAction {
     SetTitle(TrackTitle),
     ToggleDisclosure,
-    NewDevice(TrackUid, Key),
+    NewDevice(TrackUid, EntityKey),
 }
 
 #[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
@@ -148,27 +149,27 @@ pub enum TrackUiState {
     Expanded,
 }
 
-/// I am fake! Replace after big move
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Sequencer {}
-impl Sequencer {
-    fn ui(&self, ui: &mut Ui) -> Response {
-        todo!()
-    }
+// /// I am fake! Replace after big move
+// #[derive(Debug, Default, Serialize, Deserialize)]
+// pub struct Sequencer {}
+// impl Sequencer {
+//     fn ui(&self, ui: &mut Ui) -> Response {
+//         todo!()
+//     }
 
-    fn ui_arrangement(&self, ui: &mut Ui, uid: TrackUid) -> (u8, u8) {
-        todo!()
-    }
+//     pub fn ui_arrangement(&self, ui: &mut Ui, uid: TrackUid) -> (u8, u8) {
+//         todo!()
+//     }
 
-    fn set_piano_roll(&self, _piano_roll: Arc<RwLock<PianoRoll>>) {
-        eprintln!("totally fake!");
-    }
-}
-impl Configurable for Sequencer {}
-impl Controls for Sequencer {}
-impl Serializable for Sequencer {}
-impl Displays for Sequencer {}
-impl DisplaysInTimeline for Sequencer {}
+//     pub fn set_piano_roll(&self, _piano_roll: Arc<RwLock<PianoRoll>>) {
+//         eprintln!("totally fake!");
+//     }
+// }
+// impl Configurable for Sequencer {}
+// impl Controls for Sequencer {}
+// impl Serializable for Sequencer {}
+// impl Displays for Sequencer {}
+// impl DisplaysInTimeline for Sequencer {}
 
 #[derive(Debug, Default)]
 pub struct TrackEphemerals {
