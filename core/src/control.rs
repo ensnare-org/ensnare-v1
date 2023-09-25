@@ -180,6 +180,7 @@ impl ControlTripPath {
     }
 }
 
+/// Parts of [ControlTrip] that shouldn't be serialized.
 #[derive(Debug)]
 pub struct ControlTripEphemerals {
     /// The time range for this work slice. This is a copy of the value passed
