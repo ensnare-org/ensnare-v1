@@ -47,3 +47,10 @@ egui-toast = { version = "0.8" }
 regex = "1.7"
 env_logger = "0.10"
 serde_json = "1.0"
+
+[[bin]]
+name = "ensnare-daw"
+
+[lib]
+name = "ensnare"
+path = "src/lib.rs"
