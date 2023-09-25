@@ -19,12 +19,12 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     if args.version {
-        eprintln!("0.0");
+        eprintln!("{}", ensnare::version::app_version());
         return Ok(());
     }
 
     // The system needs a working buffer for audio.
-    let mut buffer = [StereoSample::SILENCE; 64];
+    let _buffer = [StereoSample::SILENCE; 64];
 
     // ToyInstrument is a MIDI instrument that makes simple sounds.
     let mut synth = ToyInstrument::default();
@@ -60,8 +60,8 @@ fn main() -> anyhow::Result<()> {
 
     // Adding an entity to a track forms a chain that sends MIDI, control, and
     // audio data appropriately.
-    let synth_id = track.append_entity(Box::new(synth)).unwrap();
-    let compressor_id = track.append_entity(Box::new(effect)).unwrap();
+    let _synth_id = track.append_entity(Box::new(synth)).unwrap();
+    let _compressor_id = track.append_entity(Box::new(effect)).unwrap();
 
     // Once everything is set up, the orchestrator renders an audio stream.
     let _ = orchestrator.write_to_file(&PathBuf::from("output.wav"));
