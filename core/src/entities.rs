@@ -309,8 +309,7 @@ impl Serializable for EntityStore {
     }
 }
 
-#[cfg(test)]
-pub(crate) mod test_entities {
+pub mod test_entities {
     use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
     use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
     use serde::{Deserialize, Serialize};

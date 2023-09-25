@@ -4,7 +4,10 @@
     "channel_count": 2
   },
   "midi_settings": {
-    "selected_input": null,
+    "selected_input": {
+      "index": 1,
+      "name": "MPK mini play:MPK mini play MIDI 1 20:0"
+    },
     "selected_output": null
   }
 }

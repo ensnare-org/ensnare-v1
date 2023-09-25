@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::{control::atlas, controllers::es_sequencer};
 use crate::{
     control::{ControlAtlas, ControlRouter},
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
+    even_smaller_sequencer::ESSequencer,
     prelude::*,
-    rng::Rng,
-    temp_impls::controllers::even_smaller_sequencer::ESSequencer,
     track::TrackUid,
     traits::prelude::*,
 };
@@ -17,8 +17,6 @@ use eframe::{
 use std::ops::Range;
 use strum::EnumCount;
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
-
-use super::{control::atlas, controllers::es_sequencer};
 
 /// Wraps a [Timeline] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
 pub fn timeline<'a>(

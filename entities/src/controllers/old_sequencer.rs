@@ -1,13 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use bit_vec::BitVec;
+use btreemultimap::BTreeMultiMap;
+use eframe::egui::{RichText, Ui};
+use ensnare_core::{
     midi::{u7, MidiChannel, MidiMessage, MidiMessagesFn},
     prelude::*,
     traits::prelude::*,
 };
-use bit_vec::BitVec;
-use btreemultimap::BTreeMultiMap;
-use eframe::egui::{RichText, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -530,7 +530,7 @@ mod tired {
 
 #[cfg(test)]
 mod tests {
-    use crate::midi::MidiChannel;
+    use ensnare_core::midi::MidiChannel;
 
     #[cfg(tired)]
     use super::{MidiTickEventsMap, MidiTickSequencer};

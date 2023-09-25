@@ -1,12 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::old_sequencer::{Sequencer, SequencerParams};
-use crate::{
+use eframe::egui::{self, ComboBox, Ui};
+use ensnare_core::{
     midi::{new_note_off, new_note_on, MidiChannel, MidiMessage, MidiMessagesFn},
     prelude::*,
     traits::prelude::*,
 };
-use eframe::egui::{self, ComboBox, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, option::Option};

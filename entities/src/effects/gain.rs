@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
 use eframe::egui::{DragValue, Ui};
+use ensnare_core::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -54,7 +54,7 @@ impl Displays for Gain {
 
 #[cfg(test)]
 mod tests {
-    use crate::entities::test_entities::{TestAudioSource, TestAudioSourceParams};
+    use ensnare_core::entities::test_entities::{TestAudioSource, TestAudioSourceParams};
 
     use super::*;
 

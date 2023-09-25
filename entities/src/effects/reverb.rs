@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::temp_impls::effects::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
-use crate::{prelude::*, traits::prelude::*};
+use crate::effects::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
 use eframe::egui::Ui;
+use ensnare_core::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -176,7 +176,7 @@ impl Displays for Reverb {
 #[cfg(test)]
 mod tests {
     use super::{Reverb, ReverbParams};
-    use crate::{prelude::*, traits::prelude::*};
+    use ensnare_core::{prelude::*, traits::prelude::*};
 
     const DEFAULT_SAMPLE_RATE: usize = 44100;
 

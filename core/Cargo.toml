@@ -8,9 +8,8 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.75"
+app_dirs2 = "2.5"
 atomic-counter = "1.0.1"
-bit-vec = "0.6.3"
-bitvec = "1.0.1"
 btreemultimap = "0.1.1"
 cpal = "0.15.2"
 crossbeam = "0.8.2"

@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    piano_roll::Note, prelude::*, temp_impls::controllers::even_smaller_sequencer::ESSequencer,
-    traits::prelude::*,
+    even_smaller_sequencer::ESSequencer, piano_roll::Note, prelude::*, traits::prelude::*,
 };
 use eframe::{
     egui::{style::WidgetVisuals, Sense},

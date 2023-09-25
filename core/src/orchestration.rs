@@ -820,12 +820,12 @@ impl BusStation {
 mod tests {
     use super::*;
     use crate::{
+        controllers::Timer,
         entities::test_entities::{
             TestAudioSource, TestAudioSourceParams, TestControllerAlwaysSendsMidiMessage,
             TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
         },
         midi::{MidiChannel, MidiMessage},
-        temp_impls::controllers::Timer,
     };
     use std::{collections::HashSet, sync::Arc};
 

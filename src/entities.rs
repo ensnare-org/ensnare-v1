@@ -1,22 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{
-    midi::prelude::*,
-    prelude::*,
-    temp_impls::{
-        controllers::{
-            arpeggiator::{Arpeggiator, ArpeggiatorParams},
-            mini_sequencer::SequencerBuilder,
-            SignalPassthroughController, Timer,
-        },
-        effects::{
-            filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
-            gain::{Gain, GainParams},
-            reverb::{Reverb, ReverbParams},
-        },
-        instruments::welsh::{WelshSynth, WelshSynthParams},
-    },
+    controllers::Timer, midi::prelude::*, mini_sequencer::SequencerBuilder, prelude::*,
 };
+use ensnare_entities::prelude::*;
 use ensnare_toys::{ToyController, ToyEffect, ToyInstrument, ToySynth, ToySynthParams};
 
 /// Registers all [EntityFactory]'s entities. Note that the function returns a

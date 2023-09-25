@@ -10,20 +10,32 @@ pub mod audio;
 /// Handles automation, or real-time automatic control of one entity's
 /// parameters by another entity's output.
 pub mod control;
+/// Core controllers.
+pub mod controllers;
 /// Common structures and constants used across the library.
 pub mod core;
+/// Helps coodrinate systemwide drag-and-drop activity.
+pub mod drag_drop;
 /// Infrastructure for managing [Entities](Entity).
 pub mod entities;
+/// A very simple sequencer.
+pub mod even_smaller_sequencer;
 /// Building blocks for signal generation.
 pub mod generators;
+mod humidifier;
 /// Scaffolding for implementing instruments.
 pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
+mod midi_router;
+/// Yet another sequencer.
+pub mod mini_sequencer;
 /// Building blocks for signal modulation.
 pub mod modulators;
 /// Infrastructure that coordinates [Entities](Entity).
 pub mod orchestration;
+/// Visual composition of patterns.
+pub mod piano_roll;
 /// Provides a random-number generator for debugging and testing.
 pub mod rng;
 /// A set of things that the user can select.
@@ -36,17 +48,12 @@ pub mod track;
 pub mod traits;
 /// Unique identifiers.
 pub mod uid;
+/// Helper functions.
+pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
-
-// TEMP
-pub mod drag_drop;
-pub mod humidifier;
-pub mod midi_router;
-pub mod piano_roll;
+/// Drawing components.
 pub mod widgets;
-
-pub mod temp_impls;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

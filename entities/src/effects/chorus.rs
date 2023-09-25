@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::delay::{DelayLine, Delays};
-use crate::{prelude::*, traits::prelude::*};
 use eframe::egui::Ui;
+use ensnare_core::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 

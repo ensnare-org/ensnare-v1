@@ -19,7 +19,6 @@ pub mod prelude {
         midi::{u4, u7, MidiChannel, MidiMessage, MidiMessagesFn, MidiNote},
         orchestration::{Orchestrator, OrchestratorBuilder},
         piano_roll::{Note, PatternBuilder},
-        temp_impls::controllers::{LfoController, LfoControllerParams},
         time::{MusicalTime, SampleRate, Tempo, TimeSignature},
         traits::{
             Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,

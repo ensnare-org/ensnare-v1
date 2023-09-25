@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
+use ensnare_entities::prelude::*;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
