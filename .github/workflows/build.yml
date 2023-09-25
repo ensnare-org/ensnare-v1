@@ -1,0 +1,110 @@
+name: Build and test for win/osx/linux; build for ARM
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  fmt:
+    name: cargo-fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Update toolchain & add rustfmt
+        run: |
+          rustup update
+          rustup component add rustfmt
+      - name: Run rustfmt
+        run: cargo fmt --all --check
+
+  test-x86_64:
+    name: Test x86_64
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-20.04
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+        # Set up the build machine
+      - name: Install Linux x86_64 build dependencies
+        run: |
+          sudo apt -qq update
+          # iced
+          sudo apt -y install pkg-config libfontconfig-dev librust-alsa-sys-dev gcc
+          # egui
+          sudo apt -y install libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+        if: startsWith(matrix.os, 'ubuntu')
+      - name: Install latest Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          target: ${{ matrix.target }}
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+        # Get the source
+      - name: Check out source
+        uses: actions/checkout@v3
+
+        # Build and test
+      - name: Set version environment variable
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
+        # https://stackoverflow.com/a/65972328/344467
+        run: |
+          echo 'GIT_REV_PARSE<<QQEOFQQ' >> $GITHUB_ENV
+          git rev-parse --short HEAD    >> $GITHUB_ENV
+          echo 'QQEOFQQ'                >> $GITHUB_ENV
+      - name: Build debug
+        run: cargo build --target ${{ matrix.target }}
+      - name: Build and test release
+        run: cargo test --workspace --release --target ${{ matrix.target }}
+
+        # Upload build products. Unstripped binaries are > 0.5GB, so we skip.
+      - name: Upload test suite artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: "perf-output-${{ matrix.target }}-${{github.sha}}"
+          path: |
+            target/perf-1.wav
+            target/perf-output.txt
+
+  build-cross:
+    name: Build (but don't test) ${{matrix.target}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-unknown-linux-gnu # ARM Chromebooks & 64-bit RPi
+          - armv7-unknown-linux-gnueabihf # Raspberry Pi 3/4 32-bit
+          # - riscv64gc-unknown-linux-gnu # The future!
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{matrix.target}}
+          override: true
+      - name: Set version environment variable
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
+        # https://stackoverflow.com/a/65972328/344467
+        run: |
+          echo 'GIT_REV_PARSE<<QQEOFQQ' >> $GITHUB_ENV
+          git rev-parse --short HEAD    >> $GITHUB_ENV
+          echo 'QQEOFQQ'                >> $GITHUB_ENV
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target ${{matrix.target}}

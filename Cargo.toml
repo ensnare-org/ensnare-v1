@@ -1,6 +1,7 @@
 # Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 [package]
+default-run = "ensnare-daw"
 description = "Audio tools"
 documentation = "https://docs.rs/ensnare/"
 edition = "2021"
@@ -60,3 +61,43 @@ name = "ensnare-daw"
 [lib]
 name = "ensnare"
 path = "src/lib.rs"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.cross.target.aarch64-unknown-linux-gnu]
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt -qq update",
+    "apt -y install pkg-config libfontconfig-dev:$CROSS_DEB_ARCH libasound2-dev:$CROSS_DEB_ARCH"
+]
+# See https://github.com/iced-rs/iced/blob/master/Cross.toml
+image = "ghcr.io/iced-rs/aarch64:latest"
+xargo = false
+
+[package.metadata.cross.target.armv7-unknown-linux-gnueabihf]
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt -qq update",
+    "apt -y install pkg-config libfontconfig-dev:$CROSS_DEB_ARCH libasound2-dev:$CROSS_DEB_ARCH"
+]
+# See https://github.com/iced-rs/iced/blob/master/Cross.toml
+image = "ghcr.io/iced-rs/armv7:latest"
+xargo = false
+
+[package.metadata.deb]
+assets = [
+    # "You can use target/release/ in asset paths, even if Cargo is configured
+    # to cross-compile or use custom CARGO_TARGET_DIR. The target dir paths will
+    # be automatically corrected." https://github.com/kornelski/cargo-deb
+    ["LICENSE.txt", "usr/share/doc/ensnare/LICENSE.txt", "644"],
+    ["README.md", "usr/share/doc/ensnare/README.md", "644"],
+    ["assets-nodist/os/ensnare.desktop", "usr/share/applications/", "644"],
+    ["assets/patches/**/*.yaml", "usr/share/ensnare/patches/", "644"],
+    ["assets/samples/**/*.wav", "usr/share/ensnare/samples/", "644"],
+    ["projects/**/*.yaml", "usr/share/ensnare/projects/", "644"],
+    ["target/release/ensnare-daw", "usr/bin/", "755"],
+]

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Ensnare
+Comment=Make music
+Exec=/usr/bin/ensnare-daw
+Icon=audio-speakers
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;AudioVideo;Education;
+Name[en_US]=Ensnare
