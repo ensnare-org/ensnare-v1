@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{piano_roll::PatternUid, prelude::*, track::TrackUid};
+use crate::{entities::EntityKey, piano_roll::PatternUid, prelude::*, track::TrackUid};
 use eframe::{
     egui::{CursorIcon, Id as EguiId, InnerResponse, LayerId, Order, Sense, Ui},
     epaint::{self, Color32, Rect, Shape, Stroke, Vec2},

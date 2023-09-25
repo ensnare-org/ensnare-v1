@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::rng::Rng;
-use crate::{prelude::*, traits::prelude::*};
+use super::{midi::prelude::*, prelude::*, rng::Rng, traits::prelude::*};
 use derive_builder::Builder;
 use eframe::egui::Ui;
 use ensnare_proc_macros::{IsController, Uid};

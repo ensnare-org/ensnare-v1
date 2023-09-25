@@ -3,6 +3,7 @@
 use crate::{
     control::ControlRouter,
     core::AudioQueue,
+    entities::EntityKey,
     midi::prelude::*,
     piano_roll::PianoRoll,
     prelude::*,
@@ -61,8 +62,8 @@ pub struct OrchestratorEphemerals {
 /// relationships among them to create an audio performance.
 ///
 /// ```
-/// use ensnare_core::prelude::*;
-/// use ensnare_core::orchestration::Orchestrator;
+/// use crate::prelude::*;
+/// use crate::orchestration::Orchestrator;
 ///
 /// let mut orchestrator = Orchestrator::default();
 /// let track_uid = orchestrator.new_midi_track().unwrap();

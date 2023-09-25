@@ -1,7 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-#![warn(missing_docs)]
-
 //! Ensnare is a library for generating digital audio.
 
 /// Wraps the [cpal] audio interface and makes it easy to address with a
@@ -16,18 +14,18 @@ pub mod controllers;
 pub mod core;
 /// Helps coodrinate systemwide drag-and-drop activity.
 pub mod drag_drop;
-/// Infrastructure for managing [Entities](Entity).
-pub mod entities;
+// /// Infrastructure for managing [Entities](Entity).
+// pub mod entities;
 /// A very simple sequencer.
 pub mod even_smaller_sequencer;
 /// Building blocks for signal generation.
 pub mod generators;
-mod humidifier;
 /// Scaffolding for implementing instruments.
 pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
-mod midi_router;
+/// Talking to external MIDI devices.
+pub mod midi_interface;
 /// Yet another sequencer.
 pub mod mini_sequencer;
 /// Building blocks for signal modulation.
@@ -52,20 +50,26 @@ pub mod uid;
 pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
+
+/// Large GUI components;
+pub mod panels;
 /// Drawing components.
 pub mod widgets;
 
+mod humidifier;
+mod midi_router;
+
+pub mod entities;
+
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::{
-        control::{ControlIndex, ControlName, ControlValue},
-        core::{
-            BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType,
-            SignalType, StereoSample,
-        },
-        entities::{EntityFactory, EntityKey},
-        orchestration::{Orchestrator, OrchestratorBuilder},
-        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
-        uid::Uid,
+    pub use super::control::{ControlIndex, ControlName, ControlValue};
+    pub use super::core::{
+        BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
+        StereoSample,
     };
+    // pub use super::entities::{EntityFactory, EntityKey};
+    // pub use super::orchestration::{Orchestrator, OrchestratorBuilder};
+    pub use super::time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature};
+    pub use super::uid::Uid;
 }

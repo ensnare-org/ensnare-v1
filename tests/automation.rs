@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
-use ensnare_entities::prelude::*;
+use ensnare_core::entities::controllers::lfo::{LfoController, LfoControllerParams};
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.

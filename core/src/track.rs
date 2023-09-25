@@ -3,7 +3,7 @@
 use crate::{
     control::{ControlAtlas, ControlRouter},
     drag_drop::{DragDropManager, DragDropSource},
-    entities::EntityStore,
+    entities::{EntityKey, EntityStore},
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
