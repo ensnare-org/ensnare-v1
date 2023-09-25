@@ -2,14 +2,14 @@
 
 use crate::{
     control::ControlRouter,
-    core::AudioQueue,
-    entities::EntityKey,
+    entities::prelude::*,
     midi::prelude::*,
     piano_roll::PianoRoll,
     prelude::*,
     selection_set::SelectionSet,
     time::{Transport, TransportBuilder},
     traits::prelude::*,
+    types::AudioQueue,
     widgets::timeline,
 };
 use anyhow::anyhow;
@@ -822,9 +822,9 @@ mod tests {
     use super::*;
     use crate::{
         controllers::Timer,
-        entities::test_entities::{
-            TestAudioSource, TestAudioSourceParams, TestControllerAlwaysSendsMidiMessage,
-            TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
+        entities::factory::test_entities::{
+            TestAudioSource, TestAudioSourceParams, TestEffectNegatesInput,
+            TestInstrumentCountsMidiMessages,
         },
         midi::{MidiChannel, MidiMessage},
     };
@@ -1070,7 +1070,7 @@ mod tests {
         let track_b_uid = o.new_midi_track().unwrap();
 
         // On Track 1, put a sender and receiver.
-        let mut sender = TestControllerAlwaysSendsMidiMessage::default();
+        let mut sender = ToyControllerAlwaysSendsMidiMessage::default();
         sender.set_uid(Uid(10001));
         let _ = o
             .get_track_mut(&track_a_uid)

@@ -2,9 +2,9 @@
 
 use crate::{
     audio::{AudioInterfaceEvent, AudioInterfaceInput, AudioStreamService},
-    core::AudioQueue,
     prelude::*,
     traits::{Displays, HasSettings},
+    types::AudioQueue,
 };
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CollapsingHeader, Ui};

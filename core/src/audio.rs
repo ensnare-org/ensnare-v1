@@ -3,7 +3,7 @@
 //! Wraps the [cpal] audio interface and makes it easy to address with a
 //! crossbeam channel.
 
-use super::{core::AudioQueue, time::SampleRate};
+use super::{time::SampleRate, types::AudioQueue};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, Sample, SizedSample, Stream, SupportedStreamConfig,

@@ -2,8 +2,7 @@
 
 use crate::{
     drag_drop::{DragDropManager, DragDropSource},
-    entities::{EntityFactory, EntityKey},
-    prelude::*,
+    entities::prelude::*,
     traits::prelude::*,
 };
 use eframe::egui::{Id as EguiId, Ui};

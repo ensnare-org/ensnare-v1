@@ -4,10 +4,9 @@
 
 use clap::Parser;
 use ensnare::prelude::*;
-use std::path::PathBuf;
 
 /// The program's command-line arguments.
-#[derive(Parser, Debug, Default)]
+#[derive(clap::Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
 struct Args {
     /// Print version and exit
@@ -64,7 +63,7 @@ fn main() -> anyhow::Result<()> {
     let _compressor_id = track.append_entity(Box::new(effect)).unwrap();
 
     // Once everything is set up, the orchestrator renders an audio stream.
-    let _ = orchestrator.write_to_file(&PathBuf::from("output.wav"));
+    let _ = orchestrator.write_to_file(&std::path::PathBuf::from("output.wav"));
 
     Ok(())
 }

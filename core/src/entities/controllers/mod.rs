@@ -12,6 +12,7 @@ use std::ops::Range;
 
 pub mod arpeggiator;
 pub mod calculator;
+pub mod control;
 pub mod lfo;
 pub mod old_sequencer;
 

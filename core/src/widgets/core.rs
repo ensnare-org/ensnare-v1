@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng, time::Transport, traits::prelude::*};
+use crate::{time::Transport, traits::prelude::*};
 use eframe::{
     egui::{Label, Layout, RichText, TextStyle},
     emath::Align,

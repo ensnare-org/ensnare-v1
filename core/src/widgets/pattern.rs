@@ -5,7 +5,6 @@ use crate::{
     midi::MidiNote,
     piano_roll::{Note, Pattern, PatternUid},
     prelude::*,
-    rng::Rng,
     selection_set::SelectionSet,
     traits::prelude::*,
 };

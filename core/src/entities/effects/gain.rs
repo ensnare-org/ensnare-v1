@@ -54,9 +54,8 @@ impl Displays for Gain {
 
 #[cfg(test)]
 mod tests {
-    use crate::entities::test_entities::{TestAudioSource, TestAudioSourceParams};
-
     use super::*;
+    use crate::entities::factory::test_entities::{TestAudioSource, TestAudioSourceParams};
 
     #[test]
     fn gain_mainline() {

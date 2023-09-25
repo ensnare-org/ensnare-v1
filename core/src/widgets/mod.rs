@@ -1,12 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::types::Normal;
 use eframe::{
-    egui::{self, Layout, Ui},
-    emath::Align,
+    egui::{self},
     epaint::{pos2, Color32, Rect, Rounding, Stroke},
 };
-
-use crate::core::Normal;
 
 pub mod prelude {
     pub use super::{audio, control, controllers, core, pattern, placeholder, timeline, track};

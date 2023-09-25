@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    entities::EntityStore,
-    midi::{MidiChannel, MidiMessage},
-    prelude::*,
-};
+use crate::{entities::prelude::*, midi::prelude::*, prelude::*};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -87,7 +83,7 @@ impl MidiRouter {
 #[cfg(test)]
 mod tests {
     use super::MidiRouter;
-    use crate::{entities::EntityStore, midi::prelude::*, prelude::*, traits::prelude::*};
+    use crate::{entities::prelude::*, midi::prelude::*, prelude::*, traits::prelude::*};
     use ensnare_proc_macros::{Control, IsInstrument, Uid};
     use serde::{Deserialize, Serialize};
     use std::sync::{Arc, RwLock};

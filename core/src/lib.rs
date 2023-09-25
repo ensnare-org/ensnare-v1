@@ -10,10 +10,10 @@ pub mod audio;
 pub mod control;
 /// Core controllers.
 pub mod controllers;
-/// Common structures and constants used across the library.
-pub mod core;
 /// Helps coodrinate systemwide drag-and-drop activity.
 pub mod drag_drop;
+/// Common structures and constants used across the library.
+pub mod types;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
 /// A very simple sequencer.
@@ -64,7 +64,7 @@ pub mod entities;
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::control::{ControlIndex, ControlName, ControlValue};
-    pub use super::core::{
+    pub use super::types::{
         BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
         StereoSample,
     };

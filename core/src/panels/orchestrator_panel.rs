@@ -1,14 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    core::ChannelPair,
-    entities::{EntityFactory, EntityKey},
+    entities::prelude::*,
     midi::{MidiChannel, MidiMessage},
     orchestration::{Orchestrator, OrchestratorAction, OrchestratorBuilder},
     prelude::*,
     selection_set::SelectionSet,
     track::TrackUid,
     traits::prelude::*,
+    types::ChannelPair,
 };
 use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};

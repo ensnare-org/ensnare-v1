@@ -1,9 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    control::{ControlAtlas, ControlRouter},
+    control::ControlRouter,
+    controllers::ControlAtlas,
     drag_drop::{DragDropManager, DragDropSource},
-    entities::{EntityKey, EntityStore},
+    entities::prelude::*,
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
@@ -927,9 +928,8 @@ impl Displays for Track {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::test_entities::{
-        TestControllerAlwaysSendsMidiMessage, TestEffect, TestInstrument,
-        TestInstrumentCountsMidiMessages,
+    use crate::entities::factory::test_entities::{
+        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
     };
 
     #[test]
@@ -1002,7 +1002,7 @@ mod tests {
     fn midi_messages_sent_to_caller_and_sending_track_instruments() {
         let mut t = Track::default();
 
-        let mut sender = TestControllerAlwaysSendsMidiMessage::default();
+        let mut sender = ToyControllerAlwaysSendsMidiMessage::default();
         sender.set_uid(Uid(2001));
         let _sender_id = t.append_entity(Box::new(sender)).unwrap();
 

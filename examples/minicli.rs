@@ -5,8 +5,6 @@
 
 use clap::Parser;
 use ensnare::prelude::*;
-use regex::Regex;
-use std::{fs::File, io::BufReader, path::PathBuf};
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -31,16 +29,16 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     for input_filename in args.input {
-        match File::open(input_filename.clone()) {
-            Ok(f) => match serde_json::from_reader::<_, Orchestrator>(BufReader::new(f)) {
+        match std::fs::File::open(input_filename.clone()) {
+            Ok(f) => match serde_json::from_reader::<_, Orchestrator>(std::io::BufReader::new(f)) {
                 Ok(mut o) => {
                     if args.wav {
-                        let re = Regex::new(r"\.json$").unwrap();
+                        let re = regex::Regex::new(r"\.json$").unwrap();
                         let output_filename = re.replace(&input_filename, ".wav");
                         if input_filename == output_filename {
                             panic!("would overwrite input file; couldn't generate output filename");
                         }
-                        let output_path = PathBuf::from(output_filename.to_string());
+                        let output_path = std::path::PathBuf::from(output_filename.to_string());
                         if let Err(e) = o.write_to_file(&output_path) {
                             eprintln!(
                                 "error while writing {input_filename} render to {}: {e:?}",

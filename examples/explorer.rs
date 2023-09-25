@@ -12,16 +12,12 @@ use eframe::{
     epaint::vec2,
     CreationContext,
 };
-use ensnare::{prelude::*, version::app_version};
-use ensnare_core::{
-    control::{ControlAtlas, ControlRouter},
-    drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
-    entities::EntityStore,
-    even_smaller_sequencer::{ESSequencer, ESSequencerBuilder},
-    mini_sequencer::Sequencer,
-    piano_roll::{Note, PatternUid, PianoRoll},
-    track::{TrackTitle, TrackUid},
-    widgets::{audio::CircularSampleBuffer, prelude::*},
+use ensnare::{
+    prelude::*,
+    version::app_version,
+    widgets::{
+        audio, control, controllers, pattern, placeholder, timeline, track, CircularSampleBuffer,
+    },
 };
 use std::ops::Range;
 

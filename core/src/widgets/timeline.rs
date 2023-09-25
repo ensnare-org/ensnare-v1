@@ -2,7 +2,8 @@
 
 use super::{control::atlas, controllers::es_sequencer};
 use crate::{
-    control::{ControlAtlas, ControlRouter},
+    control::ControlRouter,
+    controllers::ControlAtlas,
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
     even_smaller_sequencer::ESSequencer,
     prelude::*,

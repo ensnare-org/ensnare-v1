@@ -18,17 +18,11 @@ use eframe::{
     CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::prelude::*;
-use ensnare::version::app_version;
-use ensnare_core::{
-    drag_drop::DragDropManager,
-    midi_interface::{MidiInterfaceInput, MidiPortDescriptor},
-    panels::{
-        audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
-        ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn,
-        OrchestratorEvent, OrchestratorInput, OrchestratorPanel, PaletteAction, PalettePanel,
-    },
-    traits::prelude::*,
+use ensnare::{prelude::*, version::app_version};
+use ensnare_core::panels::{
+    audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
+    ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
+    OrchestratorInput, OrchestratorPanel, PaletteAction, PalettePanel,
 };
 use serde::{Deserialize, Serialize};
 use std::{

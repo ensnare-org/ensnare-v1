@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    core::ParameterType,
     midi::HandlesMidi,
     traits::{Configurable, ControlEventsFn, Controls, Displays, Serializable},
+    types::ParameterType,
     uid::Uid,
 };
 use anyhow::{anyhow, Error};
