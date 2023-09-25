@@ -1,0 +1,10 @@
+{
+  "audio_settings": {
+    "sample_rate": 44100,
+    "channel_count": 2
+  },
+  "midi_settings": {
+    "selected_input": null,
+    "selected_output": null
+  }
+}

@@ -3,6 +3,9 @@
 /// Core instruments, controllers, and effects.
 pub mod entities;
 
+/// Provides a version string that crates/apps can use.
+pub mod version;
+
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use crate::entities::register_factory_entities;
