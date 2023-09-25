@@ -530,7 +530,7 @@ mod tired {
 
 #[cfg(test)]
 mod tests {
-    use crate::midi::prelude::*;
+    use crate::{entities::controllers::old_sequencer::MidiNoteMinder, midi::prelude::*};
 
     #[test]
     fn midi_note_minder() {
@@ -584,8 +584,6 @@ mod tests {
         mnm.watch_message(&new_note_on(42, 0));
         assert_eq!(mnm.generate_off_messages().len(), 0);
     }
-
-    use crate::controllers::old_sequencer::MidiNoteMinder;
 
     #[cfg(tired)]
     use super::{MidiTickEventsMap, MidiTickSequencer};

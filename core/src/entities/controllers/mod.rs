@@ -6,7 +6,7 @@ use eframe::{
     emath,
     epaint::{self, pos2, vec2, Color32, Pos2, Rect, Stroke},
 };
-use ensnare_proc_macros::{Control, IsController, IsControllerEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
 

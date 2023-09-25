@@ -156,11 +156,7 @@ impl Displays for Compressor {
 
 #[cfg(test)]
 mod tests {
-    use crate::effects::compressor::{Compressor, CompressorParams};
-    use crate::{
-        core::{Normal, Sample, SampleType},
-        traits::prelude::*,
-    };
+    use super::*;
 
     #[test]
     fn basic_compressor() {

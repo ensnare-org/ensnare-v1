@@ -62,8 +62,8 @@ pub struct OrchestratorEphemerals {
 /// relationships among them to create an audio performance.
 ///
 /// ```
-/// use crate::prelude::*;
-/// use crate::orchestration::Orchestrator;
+/// use ensnare_core::prelude::*;
+/// use ensnare_core::orchestration::Orchestrator;
 ///
 /// let mut orchestrator = Orchestrator::default();
 /// let track_uid = orchestrator.new_midi_track().unwrap();

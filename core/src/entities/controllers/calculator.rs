@@ -1385,9 +1385,7 @@ impl Displays for Calculator {
 
 #[cfg(test)]
 mod tests {
-    use super::{Engine, Pattern, Step};
-    use crate::controllers::calculator::{CalculatorTempo, Percentage, TempoValue};
-    use crate::traits::prelude::*;
+    use super::*;
 
     impl Engine {
         fn chain_active_pattern(&mut self) {

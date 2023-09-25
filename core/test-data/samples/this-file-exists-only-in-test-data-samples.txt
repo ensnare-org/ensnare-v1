@@ -1,0 +1,2 @@
+This file is used by the utils/file_loading() unit test. There should be one
+copy of it in test-data/samples of the core crate directory, and nowhere else. 

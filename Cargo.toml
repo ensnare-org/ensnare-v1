@@ -43,8 +43,8 @@ strum = "0.25.0"
 strum_macros = "0.25.2"
 typetag = "0.2.13"
 
-# [workspace]
-# members = ["core", "proc-macros"]
+[workspace]
+members = ["core", "proc-macros"]
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
