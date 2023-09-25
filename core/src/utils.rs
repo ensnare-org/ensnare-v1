@@ -62,7 +62,7 @@ impl Default for Paths {
                     // We put this directory just before the incorrect System
                     // hive (before = the search order), so that if it is
                     // invalid, we'll still have something at the system level.
-                    PathBuf::from("/usr/share/groove"),
+                    PathBuf::from("/usr/share/ensnare"),
                     Self::hive(PathType::User),
                     Self::hive(PathType::Local),
                 ],

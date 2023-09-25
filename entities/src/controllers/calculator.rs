@@ -434,7 +434,7 @@ pub enum CalculatorTempo {
 /// audio. It draws the GUI and handles user input.
 #[derive(Control, IsControllerInstrument, Debug, Uid, Serialize, Deserialize)]
 pub struct Calculator {
-    /// Required for the [groove_core::traits::HasUid] trait.
+    /// Required for the [ensnare_core::traits::HasUid] trait.
     uid: Uid,
 
     /// Keeps the music data (notes, sequences, tempo).

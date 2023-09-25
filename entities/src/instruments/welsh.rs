@@ -525,7 +525,7 @@ impl WelshVoice {
 #[cfg(test)]
 mod tests {
     // use convert_case::{Case, Casing};
-    // use groove_core::util::tests::TestOnlyPaths;
+    // use ensnare_core::util::tests::TestOnlyPaths;
 
     // // TODO dedup
     // pub fn canonicalize_output_filename_and_path(filename: &str) -> String {

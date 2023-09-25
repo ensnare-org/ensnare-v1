@@ -159,7 +159,7 @@ enum TestControllerAction {
     NoteOff,
 }
 
-/// An [IsController](groove_core::traits::IsController) that emits a MIDI
+/// An [IsController](ensnare_core::traits::IsController) that emits a MIDI
 /// note-on event on each beat, and a note-off event on each half-beat.
 #[derive(Debug, Default, Control, IsController, Params, Uid, Serialize, Deserialize)]
 pub struct ToyController {

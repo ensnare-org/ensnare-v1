@@ -590,7 +590,7 @@ mod tests {
     #[cfg(tired)]
     use super::{MidiTickEventsMap, MidiTickSequencer};
     #[cfg(tired)]
-    use groove_core::time::MidiTicks;
+    use ensnare_core::time::MidiTicks;
 
     #[cfg(tired)]
     impl MidiTickSequencer {

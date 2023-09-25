@@ -166,7 +166,7 @@ struct MidiInputHandler {
 }
 impl MidiInputHandler {
     pub fn new_with(sender: Sender<MidiInterfaceEvent>) -> anyhow::Result<Self> {
-        if let Ok(midi_input) = MidiInput::new("Groove MIDI input") {
+        if let Ok(midi_input) = MidiInput::new("Ensnare MIDI input") {
             Ok(Self {
                 midi: Some(midi_input),
                 active_port: Default::default(),
@@ -259,7 +259,7 @@ impl MidiInputHandler {
             // bounds checker is being pretty smart.
             match self.midi.take().unwrap().connect(
                 selected_port,
-                "Groove input",
+                "Ensnare MIDI input",
                 move |_, event, _| {
                     if let Ok(LiveEvent::Midi { channel, message }) = LiveEvent::parse(event) {
                         let _ = sender_clone.try_send(MidiInterfaceEvent::Midi(
@@ -334,7 +334,7 @@ impl std::fmt::Debug for MidiOutputHandler {
 }
 impl MidiOutputHandler {
     fn new_with(sender: Sender<MidiInterfaceEvent>) -> anyhow::Result<Self> {
-        if let Ok(midi_out) = MidiOutput::new("Groove MIDI output") {
+        if let Ok(midi_out) = MidiOutput::new("Ensnare MIDI output") {
             Ok(Self {
                 midi: Some(midi_out),
                 active_port: Default::default(),
@@ -405,7 +405,7 @@ impl MidiOutputHandler {
                 .midi
                 .take()
                 .unwrap()
-                .connect(selected_port, "Groove output")
+                .connect(selected_port, "Ensnare MIDI output")
             {
                 Ok(conn) => {
                     self.connection = Some(conn);

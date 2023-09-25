@@ -340,9 +340,8 @@ impl Displays for Sampler {
 
 #[cfg(test)]
 mod tests {
-    use ensnare_core::utils::FileType;
-
     use super::*;
+    use ensnare_core::utils::FileType;
     use std::path::PathBuf;
 
     fn paths_with_test_data_dir() -> Paths {

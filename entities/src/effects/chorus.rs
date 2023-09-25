@@ -12,10 +12,12 @@ use serde::{Deserialize, Serialize};
 pub struct Chorus {
     uid: Uid,
 
+    /// The number of voices in the chorus.
     #[control]
     #[params]
     voices: usize,
 
+    /// The number of seconds to delay.
     #[control]
     #[params]
     delay_seconds: ParameterType,
