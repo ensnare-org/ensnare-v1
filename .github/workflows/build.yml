@@ -42,7 +42,7 @@ jobs:
           # iced
           sudo apt -y install pkg-config libfontconfig-dev librust-alsa-sys-dev gcc
           # egui
-          sudo apt -y install libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+          sudo apt -y install libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev mold
         if: startsWith(matrix.os, 'ubuntu')
       - name: Install latest Rust nightly
         uses: actions-rs/toolchain@v1
