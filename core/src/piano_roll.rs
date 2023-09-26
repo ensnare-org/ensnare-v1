@@ -19,7 +19,7 @@ use eframe::{
     epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Range};
+use std::{collections::HashMap, fmt::Display};
 
 /// Identifies a [Pattern].
 #[derive(

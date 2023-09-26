@@ -13,7 +13,6 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Rect, Stroke},
 };
-use std::ops::Range;
 
 /// Wraps a [ControlAtlas] as a [Widget](eframe::egui::Widget).
 pub fn atlas<'a>(

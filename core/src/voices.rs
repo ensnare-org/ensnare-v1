@@ -336,6 +336,7 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::entities::factory::test_entities::TestVoice;

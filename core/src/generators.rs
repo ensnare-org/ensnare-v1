@@ -14,7 +14,7 @@ use ensnare_proc_macros::{Control, Params};
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
-use std::{f64::consts::PI, fmt::Debug, ops::Range};
+use std::{f64::consts::PI, fmt::Debug};
 use strum::{EnumCount, IntoEnumIterator};
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
 
