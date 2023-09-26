@@ -46,7 +46,7 @@ pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
     /// The range of time when this note should play.
-    pub range: Range<MusicalTime>,
+    pub range: std::ops::Range<MusicalTime>,
 }
 impl Note {
     /// Creates a [Note] from a u8.
@@ -268,7 +268,7 @@ impl Pattern {
             .max()
             .unwrap_or_default();
 
-        // This is how we deal with Range<> being inclusive start, exclusive
+        // This is how we deal with std::ops::Range<> being inclusive start, exclusive
         // end. It matters because we want the calculated duration to be rounded
         // up to the next measure, but we don't want a note-off event right on
         // the edge to extend that calculation to include another bar.

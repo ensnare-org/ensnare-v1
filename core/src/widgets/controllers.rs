@@ -8,12 +8,11 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Rect, RectShape, Shape},
 };
-use std::ops::Range;
 
 /// Wraps an [ESSequencer] as a [Widget](eframe::egui::Widget).
 pub fn es_sequencer(
     sequencer: &mut ESSequencer,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| SequencerWidget::new(sequencer, view_range).ui(ui)
 }
@@ -21,10 +20,10 @@ pub fn es_sequencer(
 #[derive(Debug)]
 struct SequencerWidget<'a> {
     sequencer: &'a mut ESSequencer,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl<'a> SequencerWidget<'a> {
-    fn new(sequencer: &'a mut ESSequencer, view_range: Range<MusicalTime>) -> Self {
+    fn new(sequencer: &'a mut ESSequencer, view_range: std::ops::Range<MusicalTime>) -> Self {
         Self {
             sequencer,
             view_range,

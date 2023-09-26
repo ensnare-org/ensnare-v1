@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, Mul, Range, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 use strum_macros::{FromRepr, IntoStaticStr};
 
@@ -391,8 +391,8 @@ impl MusicalTime {
     }
 
     /// Returns a [Range] that contains nothing.
-    pub fn empty_range() -> Range<Self> {
-        Range {
+    pub fn empty_range() -> std::ops::Range<Self> {
+        std::ops::Range {
             start: Self::TIME_MAX,
             end: Self::TIME_MAX,
         }
@@ -612,7 +612,7 @@ impl Transport {
 
     /// Advances the clock by the given number of frames. Returns the time range
     /// from the prior time to now.
-    pub fn advance(&mut self, frames: usize) -> Range<MusicalTime> {
+    pub fn advance(&mut self, frames: usize) -> std::ops::Range<MusicalTime> {
         // Calculate the work time range. Note that the range can be zero, which
         // will happen if frames advance faster than MusicalTime units.
         let new_frames = self.e.current_frame + frames;
@@ -671,7 +671,7 @@ impl Configurable for Transport {
     }
 }
 impl Controls for Transport {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
         // Nothing - we calculated the range, so we don't need to do anything with it.
         debug_assert!(
             self.e.current_time == range.end,

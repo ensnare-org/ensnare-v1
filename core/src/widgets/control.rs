@@ -19,7 +19,7 @@ use std::ops::Range;
 pub fn atlas<'a>(
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| Atlas::new(control_atlas, control_router, view_range).ui(ui)
 }
@@ -28,13 +28,13 @@ pub fn atlas<'a>(
 struct Atlas<'a> {
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl<'a> Atlas<'a> {
     fn new(
         control_atlas: &'a mut ControlAtlas,
         control_router: &'a mut ControlRouter,
-        view_range: Range<MusicalTime>,
+        view_range: std::ops::Range<MusicalTime>,
     ) -> Self {
         Self {
             control_atlas,
@@ -128,7 +128,7 @@ impl<'a> Displays for Atlas<'a> {
 fn trip<'a>(
     trip: &'a mut ControlTrip,
     control_router: &'a mut ControlRouter,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| Trip::new(trip, control_router, view_range).ui(ui)
 }
@@ -137,13 +137,13 @@ fn trip<'a>(
 struct Trip<'a> {
     control_trip: &'a mut ControlTrip,
     control_router: &'a mut ControlRouter,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl<'a> Trip<'a> {
     fn new(
         control_trip: &'a mut ControlTrip,
         control_router: &'a mut ControlRouter,
-        view_range: Range<MusicalTime>,
+        view_range: std::ops::Range<MusicalTime>,
     ) -> Self {
         Self {
             control_trip,

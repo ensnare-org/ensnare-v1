@@ -8,7 +8,6 @@ use eframe::{
 };
 use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
 
 pub mod arpeggiator;
 pub mod calculator;
@@ -54,7 +53,7 @@ pub struct SignalPassthroughController {
 impl Serializable for SignalPassthroughController {}
 impl Configurable for SignalPassthroughController {}
 impl Controls for SignalPassthroughController {
-    fn update_time(&mut self, _range: &Range<MusicalTime>) {
+    fn update_time(&mut self, _range: &std::ops::Range<MusicalTime>) {
         // We can ignore because we already have our own de-duplicating logic.
     }
 

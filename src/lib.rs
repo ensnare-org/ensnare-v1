@@ -114,9 +114,15 @@ pub mod midi_interface {
     };
 }
 
+pub mod arrangement {
+    //! `arrangement` helps organize devices musically.
+    pub use ensnare_core::orchestration::{Orchestrator, OrchestratorBuilder};
+    pub use ensnare_core::track::{Track, TrackTitle, TrackUid};
+}
+
 pub mod composition {
     //! `composition` contains components useful for composing music.
-    pub use ensnare_core::piano_roll::{Note, PatternBuilder};
+    pub use ensnare_core::piano_roll::{Note, PatternBuilder, PatternUid, PianoRoll};
 }
 
 pub mod modulation {
@@ -124,12 +130,16 @@ pub mod modulation {
     pub use ensnare_core::modulators::{Dca, DcaParams};
 }
 
-pub mod widgets {
-    //! `widgets` are egui `Widget`s that help draw things.
+pub mod ui {
+    //! `ui` contains components that help provide the user interface.
+    pub use ensnare_core::drag_drop::{DragDropEvent, DragDropManager, DragDropSource};
     pub use ensnare_core::widgets::audio::CircularSampleBuffer;
-    pub use ensnare_core::widgets::{
-        audio, control, controllers, pattern, placeholder, timeline, track,
-    };
+    pub mod widgets {
+        //! `widgets` contains egui `Widget`s that help draw things.
+        pub use ensnare_core::widgets::{
+            audio, control, controllers, pattern, placeholder, timeline, track,
+        };
+    }
 }
 
 pub mod util {
@@ -141,7 +151,8 @@ pub mod version;
 /// `use ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        composition::{Note, PatternBuilder},
+        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid},
+        composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{
             lfo::{LfoController, LfoControllerParams},
@@ -164,16 +175,6 @@ pub mod prelude {
             BipolarNormal, FrequencyHz, MusicalTime, Normal, Ratio, Sample, SampleRate,
             StereoSample, Tempo, TimeSignature, Uid,
         },
-        DragDropEvent, DragDropManager, DragDropSource, Orchestrator, OrchestratorBuilder,
-        PatternUid, PianoRoll, TrackTitle, TrackUid,
+        ui::DragDropManager,
     };
 }
-
-pub use ensnare_core::orchestration::{Orchestrator, OrchestratorBuilder};
-
-pub use ensnare_core::{
-    drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
-    entities::factory::{EntityFactory, EntityKey, EntityStore},
-    piano_roll::{Note, PatternUid, PianoRoll},
-    track::{Track, TrackTitle, TrackUid},
-};

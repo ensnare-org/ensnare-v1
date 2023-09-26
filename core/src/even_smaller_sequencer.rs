@@ -10,10 +10,8 @@ use crate::{
 use btreemultimap::BTreeMultiMap;
 use derive_builder::Builder;
 use eframe::egui::Ui;
-
 use ensnare_proc_macros::{Control, IsController, Uid};
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
 
 impl ESSequencerBuilder {
     /// Builds the [ESSequencer].
@@ -28,7 +26,7 @@ impl ESSequencerBuilder {
     }
 
     /// Produces a random sequence of quarter-note notes. For debugging.
-    pub fn random(&mut self, range: Range<MusicalTime>) -> &mut Self {
+    pub fn random(&mut self, range: std::ops::Range<MusicalTime>) -> &mut Self {
         let mut rng = Rng::default();
 
         for _ in 0..32 {
@@ -47,7 +45,7 @@ impl ESSequencerBuilder {
 #[derive(Debug, Default)]
 pub struct ESSequencerEphemerals {
     // The sequencer should be performing work for this time slice.
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
     // The actual events that the sequencer emits.
     events: BTreeMultiMap<MusicalTime, MidiMessage>,
     // The latest end time (exclusive) of all the events.

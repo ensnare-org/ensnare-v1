@@ -12,10 +12,7 @@ use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
-    ops::{
-        Bound::{Excluded, Included},
-        Range,
-    },
+    ops::Bound::{Excluded, Included},
 };
 
 pub(crate) type BeatEventsMap = BTreeMultiMap<MusicalTime, (MidiChannel, MidiMessage)>;
@@ -41,7 +38,7 @@ pub struct Sequencer {
     active_notes: [MidiNoteMinder; 16],
 
     #[serde(skip)]
-    time_range: Range<MusicalTime>,
+    time_range: std::ops::Range<MusicalTime>,
     #[serde(skip)]
     time_range_handled: bool,
 }
@@ -117,7 +114,7 @@ impl Sequencer {
 
     fn generate_midi_messages_for_interval(
         &mut self,
-        range: &Range<MusicalTime>,
+        range: &std::ops::Range<MusicalTime>,
         midi_messages_fn: &mut MidiMessagesFn,
     ) {
         let range = (Included(range.start), Excluded(range.end));
@@ -163,7 +160,7 @@ impl Configurable for Sequencer {
     }
 }
 impl Controls for Sequencer {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
         if &self.time_range != range {
             self.time_range = range.clone();
             self.time_range_handled = false;

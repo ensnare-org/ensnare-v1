@@ -109,7 +109,7 @@ pub enum SequencerAction {
 #[derive(Debug, Default)]
 pub struct SequencerEphemerals {
     // The sequencer should be performing work for this time slice.
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
     // The actual events that the sequencer emits. These are composed of arranged patterns.
     events: BTreeMultiMap<MusicalTime, MidiMessage>,
     // The latest end time (exclusive) of all the events.
@@ -121,7 +121,7 @@ pub struct SequencerEphemerals {
     // The source of [Pattern]s.
     piano_roll: Arc<RwLock<PianoRoll>>,
 
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 
 /// [Sequencer] converts a chain of [Pattern]s into MIDI notes according to a

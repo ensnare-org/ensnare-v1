@@ -1107,7 +1107,7 @@ pub enum SteppedEnvelopeFunction {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SteppedEnvelopeStep {
-    pub interval: Range<SignalType>,
+    pub interval: std::ops::Range<SignalType>,
     pub start_value: SignalType,
     pub end_value: SignalType,
     pub step_function: SteppedEnvelopeFunction,
@@ -1119,7 +1119,7 @@ pub struct SteppedEnvelope {
 }
 impl SteppedEnvelope {
     const EMPTY_STEP: SteppedEnvelopeStep = SteppedEnvelopeStep {
-        interval: Range {
+        interval: std::ops::Range {
             start: 0.0,
             end: 0.0,
         },
@@ -2231,7 +2231,7 @@ mod tests {
             step_function: SteppedEnvelopeFunction,
         ) -> Self {
             Self {
-                interval: Range {
+                interval: std::ops::Range {
                     start: start_time,
                     end: if duration == f64::MAX {
                         duration

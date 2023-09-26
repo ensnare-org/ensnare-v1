@@ -178,7 +178,7 @@ pub struct ToyController {
     is_performing: bool,
 
     #[serde(skip)]
-    time_range: Range<MusicalTime>,
+    time_range: std::ops::Range<MusicalTime>,
 
     #[serde(skip)]
     last_time_handled: MusicalTime,

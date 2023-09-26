@@ -18,7 +18,7 @@ use eframe::{
     CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{prelude::*, version::app_version};
+use ensnare::{prelude::*, ui::DragDropManager, version::app_version};
 use ensnare_core::panels::{
     audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
     ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,

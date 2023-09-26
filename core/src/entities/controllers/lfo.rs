@@ -10,7 +10,6 @@ use crate::{
 use eframe::egui::{Response, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
-use std::ops::{Range, RangeInclusive};
 
 /// Uses an internal LFO as a control source.
 #[derive(Debug, Control, IsController, Params, Uid, Serialize, Deserialize)]
@@ -33,7 +32,7 @@ pub struct LfoController {
     waveform_widget: WaveformWidget,
 
     #[serde(skip)]
-    time_range: Range<MusicalTime>,
+    time_range: std::ops::Range<MusicalTime>,
 
     #[serde(skip)]
     last_frame: usize,
@@ -48,7 +47,7 @@ impl Configurable for LfoController {
     }
 }
 impl Controls for LfoController {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
         self.time_range = range.clone();
     }
 
@@ -123,7 +122,7 @@ impl LfoController {
         }
     }
 
-    pub const fn frequency_range() -> RangeInclusive<ParameterType> {
+    pub const fn frequency_range() -> std::ops::RangeInclusive<ParameterType> {
         0.0..=100.0
     }
 

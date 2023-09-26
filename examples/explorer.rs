@@ -14,17 +14,17 @@ use eframe::{
 };
 use ensnare::{
     prelude::*,
-    version::app_version,
-    widgets::{
-        audio, control, controllers, pattern, placeholder, timeline, track, CircularSampleBuffer,
+    ui::{
+        widgets::{audio, control, controllers, pattern, placeholder, timeline, track},
+        CircularSampleBuffer, DragDropEvent, DragDropSource,
     },
+    version::app_version,
 };
-use std::ops::Range;
 
 #[derive(Debug)]
 struct LegendSettings {
     hide: bool,
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
 }
 impl LegendSettings {
     const NAME: &'static str = "Legend";
@@ -65,8 +65,8 @@ impl Displays for LegendSettings {
 struct TimelineSettings {
     hide: bool,
     track_uid: TrackUid,
-    range: Range<MusicalTime>,
-    view_range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
     control_atlas: ControlAtlas,
     control_router: ControlRouter,
     sequencer: ESSequencer,
@@ -340,8 +340,8 @@ impl Displays for DeviceChainSettings {
 #[derive(Debug)]
 struct GridSettings {
     hide: bool,
-    range: Range<MusicalTime>,
-    view_range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl GridSettings {
     const NAME: &'static str = "Grid";
@@ -435,7 +435,7 @@ struct ControlAtlasSettings {
     hide: bool,
     control_atlas: ControlAtlas,
     control_router: ControlRouter,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl Displays for ControlAtlasSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
@@ -490,7 +490,7 @@ impl SequencerSettings {
 struct ESSequencerSettings {
     hide: bool,
     sequencer: ESSequencer,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl Default for ESSequencerSettings {
     fn default() -> Self {

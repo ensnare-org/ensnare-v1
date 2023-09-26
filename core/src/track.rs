@@ -178,7 +178,7 @@ pub struct TrackEphemerals {
     is_sequencer_open: bool,
     piano_roll: Arc<RwLock<PianoRoll>>,
     action: Option<TrackAction>,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
     is_selected: bool,
     ui_state: TrackUiState,
 }

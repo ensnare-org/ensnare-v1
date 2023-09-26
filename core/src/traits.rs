@@ -13,7 +13,6 @@ use crate::{
     time::{MusicalTime, SampleRate, TimeSignature},
 };
 use eframe::egui;
-use std::ops::Range;
 
 /// Quick import of all important traits.
 pub mod prelude {
@@ -230,7 +229,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 #[allow(unused_variables)]
 pub trait Controls: Configurable + Send + std::fmt::Debug {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
-    fn update_time(&mut self, range: &Range<MusicalTime>) {}
+    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
 
     /// The entity should perform work for the time range specified in the
     /// previous [update_time()]. If the work produces any events, use

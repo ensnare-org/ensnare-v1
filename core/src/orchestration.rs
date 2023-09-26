@@ -49,12 +49,12 @@ pub enum OrchestratorAction {
 /// all over the place.
 #[derive(Debug, Default)]
 pub struct OrchestratorEphemerals {
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
     events: Vec<(Uid, EntityEvent)>,
     is_finished: bool,
     is_performing: bool,
     action: Option<OrchestratorAction>,
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
     track_selection_set: SelectionSet<TrackUid>,
 }
 

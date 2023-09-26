@@ -15,7 +15,6 @@ use eframe::{
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId, Rect, RectShape, Shape},
 };
-use std::ops::Range;
 use strum::EnumCount;
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
@@ -25,8 +24,8 @@ pub fn timeline<'a>(
     sequencer: &'a mut ESSequencer,
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
-    range: Range<MusicalTime>,
-    view_range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
     focused: FocusedComponent,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
@@ -64,14 +63,16 @@ pub fn empty_space(
 #[derive(Debug)]
 pub struct Legend<'a> {
     /// The GUI view's time range.
-    view_range: &'a mut Range<MusicalTime>,
+    view_range: &'a mut std::ops::Range<MusicalTime>,
 }
 impl<'a> Legend<'a> {
     fn new(view_range: &'a mut std::ops::Range<MusicalTime>) -> Self {
         Self { view_range }
     }
 
-    fn steps(view_range: &std::ops::Range<MusicalTime>) -> std::iter::StepBy<Range<usize>> {
+    fn steps(
+        view_range: &std::ops::Range<MusicalTime>,
+    ) -> std::iter::StepBy<std::ops::Range<usize>> {
         let beat_count = view_range.end.total_beats() - view_range.start.total_beats();
         let step = (beat_count as f32).log10().round() as usize;
         (view_range.start.total_beats()..view_range.end.total_beats()).step_by(step * 2)
@@ -128,10 +129,10 @@ impl<'a> Displays for Legend<'a> {
 #[derive(Debug, Default)]
 pub struct Grid {
     /// The timeline's full time range.
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
 
     /// The GUI view's time range.
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl Grid {
     fn range(mut self, range: std::ops::Range<MusicalTime>) -> Self {
@@ -187,19 +188,19 @@ impl Displays for Grid {
 /// a DnD target.
 #[derive(Debug, Default)]
 pub struct EmptySpace {
-    view_range: Range<MusicalTime>,
-    range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
 }
 #[allow(missing_docs)]
 impl EmptySpace {
     pub fn new() -> Self {
         Default::default()
     }
-    pub fn view_range(mut self, view_range: Range<MusicalTime>) -> Self {
+    pub fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
         self.set_view_range(&view_range);
         self
     }
-    pub fn range(mut self, range: Range<MusicalTime>) -> Self {
+    pub fn range(mut self, range: std::ops::Range<MusicalTime>) -> Self {
         self.range = range;
         self
     }
@@ -259,10 +260,10 @@ struct Timeline<'a> {
     track_uid: TrackUid,
 
     /// The full timespan of the project.
-    range: Range<MusicalTime>,
+    range: std::ops::Range<MusicalTime>,
 
     /// The part of the timeline that is viewable.
-    view_range: Range<MusicalTime>,
+    view_range: std::ops::Range<MusicalTime>,
 
     /// Which component is currently enabled,
     focused: FocusedComponent,
@@ -347,12 +348,12 @@ impl<'a> Timeline<'a> {
             control_router,
         }
     }
-    fn range(mut self, range: Range<MusicalTime>) -> Self {
+    fn range(mut self, range: std::ops::Range<MusicalTime>) -> Self {
         self.range = range;
         self
     }
 
-    fn view_range(mut self, view_range: Range<MusicalTime>) -> Self {
+    fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
         self.set_view_range(&view_range);
         self
     }
