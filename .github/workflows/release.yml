@@ -49,9 +49,9 @@ jobs:
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
         # https://stackoverflow.com/a/65972328/344467
         run: |
-          echo 'GIT_REV_PARSE<<QQEOFQQ' >> $GITHUB_ENV
-          git rev-parse --short HEAD    >> $GITHUB_ENV
-          echo 'QQEOFQQ'
+          echo 'GIT_DESCRIBE<<QQEOFQQ' >> $GITHUB_ENV
+          git describe --tags          >> $GITHUB_ENV
+          echo 'QQEOFQQ'               >> $GITHUB_ENV
       - name: Build release
         run: cargo build --workspace --release --target ${{ matrix.target }}
       - name: Test release
