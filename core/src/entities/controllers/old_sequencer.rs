@@ -102,7 +102,7 @@ impl Sequencer {
     // no-op if it's already later than requested).
     pub fn set_min_end_time(&mut self, when: &MusicalTime) {
         if &self.last_event_time < when {
-            self.last_event_time = when.clone();
+            self.last_event_time = *when;
         }
     }
 
@@ -179,16 +179,14 @@ impl Controls for Sequencer {
             self.stop_pending_notes(control_events_fn);
         }
 
-        if self.is_enabled() {
-            if !self.time_range_handled {
-                self.time_range_handled = true;
-                let time_range = self.time_range.clone();
-                let uid = self.uid;
-                self.generate_midi_messages_for_interval(&time_range, &mut |channel, message| {
-                    control_events_fn(uid, EntityEvent::Midi(channel, message))
-                });
-            }
-        };
+        if self.is_enabled() && !self.time_range_handled {
+            self.time_range_handled = true;
+            let time_range = self.time_range.clone();
+            let uid = self.uid;
+            self.generate_midi_messages_for_interval(&time_range, &mut |channel, message| {
+                control_events_fn(uid, EntityEvent::Midi(channel, message))
+            });
+        }
     }
 
     fn is_finished(&self) -> bool {

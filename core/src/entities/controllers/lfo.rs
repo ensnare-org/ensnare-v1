@@ -53,10 +53,10 @@ impl Controls for LfoController {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        let frames = self.time_range.start.as_frames(
-            Tempo::from(120),
-            SampleRate::from(self.oscillator.sample_rate()),
-        );
+        let frames = self
+            .time_range
+            .start
+            .as_frames(Tempo::from(120), self.oscillator.sample_rate());
 
         if frames != self.last_frame {
             let tick_count = if frames >= self.last_frame {

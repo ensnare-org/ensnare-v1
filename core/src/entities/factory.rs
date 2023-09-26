@@ -44,7 +44,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         ))
     });
     factory.register_entity(EntityKey::from("control-trip"), || {
-        Box::new(ControlTrip::default())
+        Box::<ControlTrip>::default()
     });
     factory.register_entity(EntityKey::from("lfo"), || {
         Box::new(LfoController::new_with(&LfoControllerParams {
@@ -83,15 +83,15 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         Box::<ToyController>::default()
     });
     factory.register_entity(EntityKey::from("toy-controller-noisy"), || {
-        Box::new(ToyControllerAlwaysSendsMidiMessage::default())
+        Box::<ToyControllerAlwaysSendsMidiMessage>::default()
     });
 
     // Effects
     factory.register_entity(EntityKey::from("bitcrusher"), || {
-        Box::new(Bitcrusher::default())
+        Box::<Bitcrusher>::default()
     });
     factory.register_entity(EntityKey::from("compressor"), || {
-        Box::new(Compressor::default())
+        Box::<Compressor>::default()
     });
     factory.register_entity(EntityKey::from("filter-low-pass-24db"), || {
         Box::new(BiQuadFilterLowPass24db::new_with(
@@ -103,8 +103,8 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             ceiling: Normal::from(0.5),
         }))
     });
-    factory.register_entity(EntityKey::from("limiter"), || Box::new(Limiter::default()));
-    factory.register_entity(EntityKey::from("mixer"), || Box::new(Mixer::default()));
+    factory.register_entity(EntityKey::from("limiter"), || Box::<Limiter>::default());
+    factory.register_entity(EntityKey::from("mixer"), || Box::<Mixer>::default());
     // TODO: this is lazy. It's too hard right now to adjust parameters within
     // code, so I'm creating a special instrument with the parameters I want.
     factory.register_entity(EntityKey::from("mute"), || {
@@ -455,7 +455,12 @@ impl Serializable for EntityStore {
 }
 
 pub mod test_entities {
-    use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+    use crate::{
+        generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+        midi::prelude::*,
+        prelude::*,
+        traits::{prelude::*, GeneratesEnvelope},
+    };
     use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
     use serde::{Deserialize, Serialize};
     use std::sync::{Arc, Mutex};
@@ -667,6 +672,115 @@ pub mod test_entities {
     impl Serializable for TestControllable {}
     impl Configurable for TestControllable {}
     impl Displays for TestControllable {}
+
+    #[derive(Debug)]
+    pub struct TestVoice {
+        sample_rate: SampleRate,
+        oscillator: Oscillator,
+        envelope: Envelope,
+
+        sample: StereoSample,
+
+        note_on_key: u7,
+        note_on_velocity: u7,
+        steal_is_underway: bool,
+    }
+    impl IsStereoSampleVoice for TestVoice {}
+    impl IsVoice<StereoSample> for TestVoice {}
+    impl PlaysNotes for TestVoice {
+        fn is_playing(&self) -> bool {
+            !self.envelope.is_idle()
+        }
+
+        fn note_on(&mut self, key: u7, velocity: u7) {
+            if self.is_playing() {
+                self.steal_is_underway = true;
+                self.note_on_key = key;
+                self.note_on_velocity = velocity;
+                self.envelope.trigger_shutdown();
+            } else {
+                self.set_frequency_hz(key.into());
+                self.envelope.trigger_attack();
+            }
+        }
+
+        fn aftertouch(&mut self, _velocity: u7) {
+            todo!()
+        }
+
+        fn note_off(&mut self, _velocity: u7) {
+            self.envelope.trigger_release();
+        }
+    }
+    impl Generates<StereoSample> for TestVoice {
+        fn value(&self) -> StereoSample {
+            self.sample
+        }
+
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            for sample in values {
+                self.tick(1);
+                *sample = self.value();
+            }
+        }
+    }
+    impl Configurable for TestVoice {
+        fn sample_rate(&self) -> SampleRate {
+            self.sample_rate
+        }
+
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.sample_rate = sample_rate;
+            self.oscillator.update_sample_rate(sample_rate);
+            self.envelope.update_sample_rate(sample_rate);
+        }
+    }
+    impl Ticks for TestVoice {
+        fn tick(&mut self, tick_count: usize) {
+            for _ in 0..tick_count {
+                if self.is_playing() {
+                    self.oscillator.tick(1);
+                    self.envelope.tick(1);
+                    if !self.is_playing() && self.steal_is_underway {
+                        self.steal_is_underway = false;
+                        self.note_on(self.note_on_key, self.note_on_velocity);
+                    }
+                }
+            }
+            self.sample = if self.is_playing() {
+                StereoSample::from(self.oscillator.value() * self.envelope.value())
+            } else {
+                StereoSample::from(StereoSample::SILENCE)
+            };
+        }
+    }
+
+    impl TestVoice {
+        pub(crate) fn new() -> Self {
+            Self {
+                sample_rate: Default::default(),
+                oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
+                    Waveform::Sine,
+                )),
+                envelope: Envelope::new_with(&EnvelopeParams::safe_default()),
+                sample: Default::default(),
+                note_on_key: Default::default(),
+                note_on_velocity: Default::default(),
+                steal_is_underway: Default::default(),
+            }
+        }
+        fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
+            self.oscillator.set_frequency(frequency_hz);
+        }
+
+        pub fn debug_is_shutting_down(&self) -> bool {
+            self.envelope.debug_is_shutting_down()
+        }
+
+        pub fn debug_oscillator_frequency(&self) -> FrequencyHz {
+            self.oscillator.frequency()
+        }
+    }
 }
 
 #[cfg(test)]

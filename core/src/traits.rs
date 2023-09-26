@@ -85,6 +85,7 @@ pub trait IsInstrument:
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [crate::BipolarNormal] signal.
+#[allow(unused_variables)]
 pub trait Generates<V: Default>: Send + std::fmt::Debug + Ticks {
     /// The value for the current frame. Advance the frame by calling
     /// [Ticks::tick()].
@@ -192,6 +193,7 @@ pub trait Configurable {
 }
 
 /// A way for an [Entity] to do work corresponding to one or more frames.
+#[allow(unused_variables)]
 pub trait Ticks: Configurable + Send + std::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.
@@ -225,9 +227,9 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 /// It also has a concept of a performance that has a beginning and an end. It
 /// knows how to respond to requests to start, stop, restart, and seek within
 /// the performance.
+#[allow(unused_variables)]
 pub trait Controls: Configurable + Send + std::fmt::Debug {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
-    #[allow(unused_variables)]
     fn update_time(&mut self, range: &Range<MusicalTime>) {}
 
     /// The entity should perform work for the time range specified in the
@@ -269,6 +271,7 @@ pub trait Controls: Configurable + Send + std::fmt::Debug {
 /// A [TransformsAudio] takes input audio, which is typically produced by
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
 /// do.
+#[allow(unused_variables)]
 pub trait TransformsAudio: std::fmt::Debug {
     #[allow(missing_docs)]
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
@@ -434,14 +437,8 @@ pub trait Displays {
     }
 }
 
-/// Similar to Displays, but doesn't return a Response.
-#[deprecated]
-pub trait DisplaysWithoutResponse {
-    /// Renders this Entity with no return value.
-    fn ui(&mut self, ui: &mut egui::Ui) {}
-}
-
 /// Something that can display a portion of itself in a timeline view.
+#[allow(unused_variables)]
 pub trait DisplaysInTimeline: Displays {
     /// Sets the range of time on the track timeline that the next ui() call
     /// should visualize.

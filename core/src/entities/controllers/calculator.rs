@@ -38,12 +38,11 @@ impl From<f32> for TempoValue {
         Self((value * 180.0).floor() as u8 + 60)
     }
 }
-impl Into<f32> for TempoValue {
-    fn into(self) -> f32 {
-        ((self.0 as f32) - 60.0) / 180.0
+impl From<TempoValue> for f32 {
+    fn from(val: TempoValue) -> Self {
+        ((val.0 as f32) - 60.0) / 180.0
     }
 }
-
 /// Percentage is a u8 that ranges from 0..=100
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 struct Percentage(u8);
@@ -57,9 +56,9 @@ impl From<f32> for Percentage {
         Self((value * 100.0) as u8)
     }
 }
-impl Into<f32> for Percentage {
-    fn into(self) -> f32 {
-        (self.0 as f32) / 100.0
+impl From<Percentage> for f32 {
+    fn from(val: Percentage) -> Self {
+        (val.0 as f32) / 100.0
     }
 }
 impl Default for Percentage {
@@ -745,12 +744,12 @@ impl Calculator {
                 return;
             }
             self.last_handled_step = total_steps;
-            let step = self.engine.next_step().clone(); // TODO: this is costly
+            let step = *self.engine.next_step(); // TODO: this is costly
             for i in 0..16 {
                 if step.is_sound_active(i)
                     && (self.ui_state != UiState::Solo || self.engine.is_solo(i))
                 {
-                    self.trigger_note(i.into());
+                    self.trigger_note(i);
                 }
             }
         }
@@ -1199,14 +1198,14 @@ impl Calculator {
 
     fn create_dashboard(&self, ui: &mut Ui) {
         ui.add(
-            SegmentedDisplayWidget::sixteen_segment(&format!(
+            SegmentedDisplayWidget::sixteen_segment(format!(
                 "W: {}",
                 if self.is_write_enabled { "+" } else { "-" }
             ))
             .digit_height(14.0),
         );
         ui.add(
-            SegmentedDisplayWidget::sixteen_segment(&format!(
+            SegmentedDisplayWidget::sixteen_segment(format!(
                 "A {:<3} B {:<3} SW {:<3} BPM {:<3}",
                 self.engine.a().0,
                 self.engine.b().0,
@@ -1219,10 +1218,10 @@ impl Calculator {
 
     fn create_knob_a(&mut self, ui: &mut Ui) {
         ui.set_min_size(Self::CELL_SIZE);
-        let mut value = if self.ui_state == UiState::Bpm {
-            self.engine.swing().clone().into()
+        let mut value: f32 = if self.ui_state == UiState::Bpm {
+            (*self.engine.swing()).into()
         } else {
-            self.engine.a().clone().into()
+            (*self.engine.a()).into()
         };
         if Self::create_knob(ui, &mut value).changed() {
             self.handle_knob_a_change(value);
@@ -1234,7 +1233,7 @@ impl Calculator {
         let mut value = if self.ui_state == UiState::Bpm {
             self.engine.tempo_by_value().into()
         } else {
-            self.engine.b().clone().into()
+            (*self.engine.b()).into()
         };
         if Self::create_knob(ui, &mut value).changed() {
             self.handle_knob_b_change(value);
@@ -1299,12 +1298,10 @@ impl Calculator {
                 UiState::Pattern => {
                     if self.engine.is_pattern_active(pad_index) {
                         ButtonState::Blinking
+                    } else if self.pattern_usages[pad_index as usize] {
+                        ButtonState::Active
                     } else {
-                        if self.pattern_usages[pad_index as usize] {
-                            ButtonState::Active
-                        } else {
-                            ButtonState::Indicated
-                        }
+                        ButtonState::Indicated
                     }
                 }
                 UiState::Bpm => {

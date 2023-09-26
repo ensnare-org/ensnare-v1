@@ -250,7 +250,7 @@ impl WelshVoice {
             lfo: Oscillator::new_with(&params.lfo),
             lfo_routing: params.lfo_routing(),
             lfo_depth: params.lfo_depth(),
-            filter: BiQuadFilterLowPass24db::new_with(&params.filter()),
+            filter: BiQuadFilterLowPass24db::new_with(params.filter()),
             filter_cutoff_start: params.filter_cutoff_start(),
             filter_cutoff_end: params.filter_cutoff_end(),
             filter_envelope: Envelope::new_with(&params.filter_envelope),

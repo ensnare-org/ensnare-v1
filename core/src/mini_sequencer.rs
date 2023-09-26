@@ -187,6 +187,8 @@ impl Sequencer {
         }
     }
 
+    // This is used in test code
+    #[allow(dead_code)]
     fn arrange_pattern_append(&mut self, uid: &PatternUid) -> anyhow::Result<ArrangedPatternUid> {
         if let Ok(apuid) = self.arrange_pattern(
             uid,
@@ -225,10 +227,6 @@ impl Sequencer {
         } else {
             Err(anyhow!("Pattern {uid} not found during arrangement"))
         }
-    }
-
-    fn populate_pattern(&mut self, which: usize) {
-        // TODO: I have no idea where this method came from or why it disappeared.
     }
 
     #[allow(dead_code)]

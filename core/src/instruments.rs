@@ -167,9 +167,12 @@ impl<V: IsStereoSampleVoice> HandlesMidi for Synthesizer<V> {
     }
 }
 
-#[cfg(test_I_AM_DISABLED_FOR_NOW)]
 mod tests {
     use super::*;
+    use crate::{
+        entities::factory::test_entities::TestVoice,
+        voices::{VoiceCount, VoiceStore},
+    };
 
     #[derive(Debug)]
     pub struct TestSynthesizer {

@@ -128,7 +128,7 @@ impl Displays for Compressor {
                 .prefix("Ratio: "),
         );
         if ratio_response.changed() {
-            self.set_ratio(ratio.into());
+            self.set_ratio(ratio);
         };
         let attack_response = ui.add(
             DragValue::new(&mut attack)
@@ -138,7 +138,7 @@ impl Displays for Compressor {
                 .prefix("Attack: "),
         );
         if attack_response.changed() {
-            self.set_attack(attack.into());
+            self.set_attack(attack);
         };
         let release_response = ui.add(
             DragValue::new(&mut release)
@@ -148,7 +148,7 @@ impl Displays for Compressor {
                 .prefix("Release: "),
         );
         if release_response.changed() {
-            self.set_release(release.into());
+            self.set_release(release);
         };
         threshold_response | ratio_response | attack_response | release_response
     }

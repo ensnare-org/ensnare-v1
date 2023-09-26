@@ -267,7 +267,7 @@ impl FmSynth {
     pub fn new_with(params: &FmSynthParams) -> Self {
         const VOICE_CAPACITY: usize = 8;
         let voice_store = StealingVoiceStore::<FmVoice>::new_with_voice(VOICE_CAPACITY, || {
-            FmVoice::new_with(&params)
+            FmVoice::new_with(params)
         });
 
         Self {

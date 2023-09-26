@@ -61,7 +61,7 @@ impl Waveform {
                         return true;
                     }
                 }
-                return false;
+                false
             })
     }
 }
@@ -903,9 +903,29 @@ impl Envelope {
         self.set_sustain(params.sustain());
         self.set_release(params.release());
     }
-}
 
-impl Envelope {
+    /// The current value of the envelope generator. Note that this value is
+    /// often not the one you want if you really care about getting the
+    /// amplitude at specific interesting time points in the envelope's
+    /// lifecycle. If you call it before the current time slice's tick(), then
+    /// you get the value before any pending events (which is probably bad), and
+    /// if you call it after the tick(), then you get the value for the *next*
+    /// time slice (which is probably bad). It's better to use the value
+    /// returned by tick(), which is in between pending events but after
+    /// updating for the time slice.
+    #[allow(dead_code)]
+    fn debug_amplitude(&self) -> Normal {
+        Normal::new(self.uncorrected_amplitude.sum())
+    }
+
+    fn debug_state(&self) -> &State {
+        &self.state
+    }
+
+    pub(crate) fn debug_is_shutting_down(&self) -> bool {
+        matches!(self.debug_state(), State::Shutdown)
+    }
+
     pub fn ui_content(&mut self, ui: &mut Ui) -> eframe::egui::Response {
         let (mut response, painter) =
             ui.allocate_painter(Vec2::new(ui.available_width(), 64.0), Sense::hover());
@@ -924,7 +944,7 @@ impl Envelope {
         let decay_x_scaled = self.decay.0 as f32 * x_max / 4.0;
         let sustain_y_scaled = (1.0 - self.sustain.value() as f32) * y_max;
         let release_x_scaled = self.release.0 as f32 * x_max / 4.0;
-        let mut control_points = vec![
+        let mut control_points = [
             pos2(attack_x_scaled, 0.0),
             pos2(attack_x_scaled + decay_x_scaled, sustain_y_scaled),
             pos2(
@@ -993,7 +1013,7 @@ impl Envelope {
             }
         }
 
-        let control_points = vec![
+        let control_points = [
             pos2(0.0, y_max),
             control_points[0],
             control_points[1],
@@ -1200,6 +1220,8 @@ mod tests {
     }
 
     impl SteppedEnvelope {
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         fn debug_validate_steps(&self) {
             debug_assert!(!self.steps.is_empty());
             debug_assert_eq!(self.steps.first().unwrap().interval.start, 0.0);
@@ -1657,29 +1679,6 @@ mod tests {
             }
         }
         assert_eq!(cycles, usize::from(FREQUENCY));
-    }
-
-    impl Envelope {
-        fn debug_state(&self) -> &State {
-            &self.state
-        }
-
-        pub fn debug_is_shutting_down(&self) -> bool {
-            matches!(self.debug_state(), State::Shutdown)
-        }
-
-        /// The current value of the envelope generator. Note that this value is
-        /// often not the one you want if you really care about getting the
-        /// amplitude at specific interesting time points in the envelope's
-        /// lifecycle. If you call it before the current time slice's tick(), then
-        /// you get the value before any pending events (which is probably bad), and
-        /// if you call it after the tick(), then you get the value for the *next*
-        /// time slice (which is probably bad). It's better to use the value
-        /// returned by tick(), which is in between pending events but after
-        /// updating for the time slice.
-        fn debug_amplitude(&self) -> Normal {
-            Normal::new(self.uncorrected_amplitude.sum())
-        }
     }
 
     // Where possible, we'll erase the envelope type and work only with the

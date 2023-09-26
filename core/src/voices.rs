@@ -1,11 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::collections::HashMap;
-
 use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Newtype for the number of voices in a multi-voice instrument.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, From, Into, Add, Display, Serialize, Deserialize)]
@@ -337,121 +336,11 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
     }
 }
 
-#[cfg(test_I_AM_DISABLED_FOR_NOW)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
+    use crate::entities::factory::test_entities::TestVoice;
     use float_cmp::approx_eq;
     use more_asserts::assert_gt;
-
-    #[derive(Debug)]
-    pub struct TestVoice {
-        sample_rate: SampleRate,
-        oscillator: Oscillator,
-        envelope: Envelope,
-
-        sample: StereoSample,
-
-        note_on_key: u8,
-        note_on_velocity: u8,
-        steal_is_underway: bool,
-    }
-    impl IsStereoSampleVoice for TestVoice {}
-    impl IsVoice<StereoSample> for TestVoice {}
-    impl PlaysNotes for TestVoice {
-        fn is_playing(&self) -> bool {
-            !self.envelope.is_idle()
-        }
-
-        fn note_on(&mut self, key: u7, velocity: u7) {
-            if self.is_playing() {
-                self.steal_is_underway = true;
-                self.note_on_key = key;
-                self.note_on_velocity = velocity;
-            } else {
-                self.set_frequency_hz(key.into());
-                self.envelope.trigger_attack();
-            }
-        }
-
-        fn aftertouch(&mut self, _velocity: u8) {
-            todo!()
-        }
-
-        fn note_off(&mut self, _velocity: u8) {
-            self.envelope.trigger_release();
-        }
-    }
-    impl Generates<StereoSample> for TestVoice {
-        fn value(&self) -> StereoSample {
-            self.sample
-        }
-
-        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-            for sample in values {
-                self.tick(1);
-                *sample = self.value();
-            }
-        }
-    }
-    impl Configurable for TestVoice {
-        fn sample_rate(&self) -> SampleRate {
-            self.sample_rate
-        }
-
-        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-            self.sample_rate = sample_rate;
-            self.oscillator.update_sample_rate(sample_rate);
-            self.envelope.update_sample_rate(sample_rate);
-        }
-    }
-    impl Ticks for TestVoice {
-        fn tick(&mut self, tick_count: usize) {
-            for _ in 0..tick_count {
-                if self.is_playing() {
-                    self.oscillator.tick(1);
-                    self.envelope.tick(1);
-                    if !self.is_playing() && self.steal_is_underway {
-                        self.steal_is_underway = false;
-                        self.note_on(self.note_on_key, self.note_on_velocity);
-                    }
-                }
-            }
-            self.sample = if self.is_playing() {
-                StereoSample::from(self.oscillator.value() * self.envelope.value())
-            } else {
-                StereoSample::from(StereoSample::SILENCE)
-            };
-        }
-    }
-
-    impl TestVoice {
-        pub(crate) fn new() -> Self {
-            Self {
-                sample_rate: Default::default(),
-                oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
-                    Waveform::Sine,
-                )),
-                envelope: Envelope::new_with(&EnvelopeParams::safe_default()),
-                sample: Default::default(),
-                note_on_key: Default::default(),
-                note_on_velocity: Default::default(),
-                steal_is_underway: Default::default(),
-            }
-        }
-        fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
-            self.oscillator.set_frequency(frequency_hz);
-        }
-
-        fn debug_is_shutting_down(&self) -> bool {
-            true
-            // TODO bring back when this moves elsewhere
-            //     self.envelope.debug_is_shutting_down()
-        }
-
-        fn debug_oscillator_frequency(&self) -> FrequencyHz {
-            self.oscillator.frequency()
-        }
-    }
 
     #[test]
     fn simple_voice_store_mainline() {
@@ -463,12 +352,12 @@ pub(crate) mod tests {
         // Request and start the maximum number of voices.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
             assert!(!voice.is_playing());
-            voice.note_on(60, 127);
+            voice.note_on(u7::from(60), u7::from(127));
             voice.tick(1); // We must tick() register the trigger.
             assert!(voice.is_playing());
         }
         if let Ok(voice) = voice_store.get_voice(&u7::from(61)) {
-            voice.note_on(61, 127);
+            voice.note_on(u7::from(61), u7::from(127));
             voice.tick(1);
         }
 
@@ -479,7 +368,7 @@ pub(crate) mod tests {
         // Request to get back a voice that's already playing.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
             assert!(voice.is_playing());
-            voice.note_off(127);
+            voice.note_off(u7::from(127));
 
             // All TestVoice envelope times are instantaneous, so we know the
             // release completes after asking for the next sample.
@@ -498,14 +387,15 @@ pub(crate) mod tests {
         // Request and start the full number of voices.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
             assert!(!voice.is_playing());
-            voice.note_on(60, 127);
+            voice.note_on(u7::from(60), u7::from(127));
             voice.tick(1); // We must tick() register the trigger.
             assert!(voice.is_playing());
         }
         if let Ok(voice) = voice_store.get_voice(&u7::from(61)) {
             assert!(!voice.is_playing());
-            voice.note_on(61, 127);
+            voice.note_on(u7::from(61), u7::from(127));
             voice.tick(1);
+            assert!(voice.is_playing());
         }
 
         // Request a voice for a new note that would exceed the count. It should
@@ -515,7 +405,7 @@ pub(crate) mod tests {
 
             // This is testing the shutdown state, rather than the voice store,
             // but I'm feeling lazy today.
-            voice.note_on(62, 127);
+            voice.note_on(u7::from(62), u7::from(127));
             voice.tick(1);
             assert!(voice.debug_is_shutting_down());
         } else {
@@ -532,14 +422,14 @@ pub(crate) mod tests {
 
         // Request multiple voices during the same tick.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
-            voice.note_on(60, 127);
+            voice.note_on(u7::from(60), u7::from(127));
             assert!(
                 voice.is_playing(),
                 "New voice should be marked is_playing() immediately after attack()"
             );
         }
         if let Ok(voice) = voice_store.get_voice(&u7::from(61)) {
-            voice.note_on(61, 127);
+            voice.note_on(u7::from(62), u7::from(127));
             assert!(
                 voice.is_playing(),
                 "New voice should be marked is_playing() immediately after attack()"
@@ -595,7 +485,7 @@ pub(crate) mod tests {
                 ),
                 "we should have gotten back the same voice for the requested note"
             );
-            voice.note_off(127);
+            voice.note_off(u7::from(127));
         }
         voice_store.tick(1);
         if let Ok(voice) = voice_store.get_voice(&u7::from(62)) {

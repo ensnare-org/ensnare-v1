@@ -149,7 +149,7 @@ impl Arpeggiator {
     fn rebuild_sequence(&mut self, key: u8, vel: u8) {
         self.sequencer.clear();
 
-        let start_beat = self.sequencer.cursor().clone();
+        let start_beat = *self.sequencer.cursor();
         let duration = MusicalTime::new_with_parts(4); // TODO: we're ignoring time signature!
         let scale_notes = [0, 2, 4, 5, 7, 9, 11];
         for (index, offset) in scale_notes.iter().enumerate() {

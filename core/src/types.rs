@@ -746,6 +746,8 @@ impl<T> Default for ChannelPair<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::control::ControlValue;
+
     use super::*;
 
     #[test]
@@ -878,14 +880,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn ratio_control_ok() {
-        // assert_eq!(Ratio::from(ControlValue(0.0)).value(), 0.125);
-        // assert_eq!(Ratio::from(ControlValue(0.5)).value(), 1.0);
-        // assert_eq!(Ratio::from(ControlValue(1.0)).value(), 8.0);
+        assert_eq!(Ratio::from(ControlValue(0.0)).value(), 0.125);
+        assert_eq!(Ratio::from(ControlValue(0.5)).value(), 1.0);
+        assert_eq!(Ratio::from(ControlValue(1.0)).value(), 8.0);
 
-        // assert_eq!(ControlValue::from(Ratio::from(0.125)).0, 0.0);
-        // assert_eq!(ControlValue::from(Ratio::from(1.0)).0, 0.5);
-        // assert_eq!(ControlValue::from(Ratio::from(8.0)).0, 1.0);
+        assert_eq!(ControlValue::from(Ratio::from(0.125)).0, 0.0);
+        assert_eq!(ControlValue::from(Ratio::from(1.0)).0, 0.5);
+        assert_eq!(ControlValue::from(Ratio::from(8.0)).0, 1.0);
     }
 }

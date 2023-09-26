@@ -220,7 +220,7 @@ impl AudioStream {
             cpal::SampleFormat::U32 => todo!(),
             cpal::SampleFormat::U64 => todo!(),
             cpal::SampleFormat::F32 => {
-                Self::stream_make::<f32>(&config.into(), &device, queue, audio_stream_event_sender)
+                Self::stream_make::<f32>(&config.into(), device, queue, audio_stream_event_sender)
             }
             cpal::SampleFormat::F64 => todo!(),
             _ => todo!(),
@@ -239,7 +239,7 @@ impl AudioStream {
     {
         let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-        let queue = Arc::clone(&queue);
+        let queue = Arc::clone(queue);
         let channel_count = config.channels as usize;
         let stream = device.build_output_stream(
             config,

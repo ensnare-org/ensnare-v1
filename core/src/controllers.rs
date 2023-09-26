@@ -53,16 +53,14 @@ impl Controls for Timer {
             if self.duration == MusicalTime::default() {
                 // Zero-length timers fire immediately.
                 self.is_finished = true;
-            } else {
-                if let Some(end_time) = self.end_time {
-                    if range.contains(&end_time) {
-                        self.is_finished = true;
-                    }
-                } else {
-                    // The first time we're called with an update_time() while
-                    // performing, we take that as the start of the timer.
-                    self.end_time = Some(range.start + self.duration);
+            } else if let Some(end_time) = self.end_time {
+                if range.contains(&end_time) {
+                    self.is_finished = true;
                 }
+            } else {
+                // The first time we're called with an update_time() while
+                // performing, we take that as the start of the timer.
+                self.end_time = Some(range.start + self.duration);
             }
         }
     }

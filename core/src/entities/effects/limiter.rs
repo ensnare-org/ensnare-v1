@@ -84,7 +84,7 @@ impl Displays for Limiter {
                 .fixed_decimals(2),
         );
         if max_response.changed() {
-            self.set_maximum(Normal::from_percentage(max).into());
+            self.set_maximum(Normal::from_percentage(max));
         };
         min_response | max_response
     }
@@ -94,43 +94,43 @@ impl Displays for Limiter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::entities::factory::test_entities::{TestAudioSource, TestAudioSourceParams};
     use more_asserts::{assert_gt, assert_lt};
 
-    #[cfg(test_I_AM_DISABLED)]
     #[test]
     fn limiter_mainline() {
         // audio sources are at or past boundaries
         assert_gt!(
-            ToyAudioSource::new_with(&ToyAudioSourceParams {
-                level: ToyAudioSource::TOO_LOUD
+            TestAudioSource::new_with(&TestAudioSourceParams {
+                level: TestAudioSource::TOO_LOUD
             })
             .value(),
             StereoSample::MAX
         );
         assert_eq!(
-            ToyAudioSource::new_with(&ToyAudioSourceParams {
-                level: ToyAudioSource::LOUD
+            TestAudioSource::new_with(&TestAudioSourceParams {
+                level: TestAudioSource::LOUD
             })
             .value(),
             StereoSample::MAX
         );
         assert_eq!(
-            ToyAudioSource::new_with(&ToyAudioSourceParams {
-                level: ToyAudioSource::SILENT
+            TestAudioSource::new_with(&TestAudioSourceParams {
+                level: TestAudioSource::SILENT
             })
             .value(),
             StereoSample::SILENCE
         );
         assert_eq!(
-            ToyAudioSource::new_with(&ToyAudioSourceParams {
-                level: ToyAudioSource::QUIET
+            TestAudioSource::new_with(&TestAudioSourceParams {
+                level: TestAudioSource::QUIET
             })
             .value(),
             StereoSample::MIN
         );
         assert_lt!(
-            ToyAudioSource::new_with(&ToyAudioSourceParams {
-                level: ToyAudioSource::TOO_QUIET
+            TestAudioSource::new_with(&TestAudioSourceParams {
+                level: TestAudioSource::TOO_QUIET
             })
             .value(),
             StereoSample::MIN
@@ -140,8 +140,8 @@ mod tests {
         let mut limiter = Limiter::default();
         assert_eq!(
             limiter.transform_audio(
-                ToyAudioSource::new_with(&ToyAudioSourceParams {
-                    level: ToyAudioSource::TOO_LOUD
+                TestAudioSource::new_with(&TestAudioSourceParams {
+                    level: TestAudioSource::TOO_LOUD
                 })
                 .value()
             ),
@@ -149,8 +149,8 @@ mod tests {
         );
         assert_eq!(
             limiter.transform_audio(
-                ToyAudioSource::new_with(&ToyAudioSourceParams {
-                    level: ToyAudioSource::LOUD
+                TestAudioSource::new_with(&TestAudioSourceParams {
+                    level: TestAudioSource::LOUD
                 })
                 .value()
             ),
@@ -158,8 +158,8 @@ mod tests {
         );
         assert_eq!(
             limiter.transform_audio(
-                ToyAudioSource::new_with(&ToyAudioSourceParams {
-                    level: ToyAudioSource::SILENT
+                TestAudioSource::new_with(&TestAudioSourceParams {
+                    level: TestAudioSource::SILENT
                 })
                 .value()
             ),
@@ -167,8 +167,8 @@ mod tests {
         );
         assert_eq!(
             limiter.transform_audio(
-                ToyAudioSource::new_with(&ToyAudioSourceParams {
-                    level: ToyAudioSource::QUIET
+                TestAudioSource::new_with(&TestAudioSourceParams {
+                    level: TestAudioSource::QUIET
                 })
                 .value()
             ),
@@ -176,8 +176,8 @@ mod tests {
         );
         assert_eq!(
             limiter.transform_audio(
-                ToyAudioSource::new_with(&ToyAudioSourceParams {
-                    level: ToyAudioSource::TOO_QUIET
+                TestAudioSource::new_with(&TestAudioSourceParams {
+                    level: TestAudioSource::TOO_QUIET
                 })
                 .value()
             ),
