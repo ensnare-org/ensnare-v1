@@ -1,8 +1,12 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
 [package]
-name = "ensnare-proc-macros"
-version = "0.1.0"
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "Proc macros supporting the ensnare crate"
 edition = "2021"
+name = "ensnare-proc-macros"
 publish = false
+version = "0.1.0"
 
 [lib]
 proc-macro = true

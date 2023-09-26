@@ -1,6 +1,7 @@
 # Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 [package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
 default-run = "ensnare-daw"
 description = "Audio tools"
 documentation = "https://docs.rs/ensnare/"
@@ -71,8 +72,8 @@ assets = [
     ["LICENSE.txt", "usr/share/doc/ensnare/LICENSE.txt", "644"],
     ["README.md", "usr/share/doc/ensnare/README.md", "644"],
     ["assets-nodist/os/ensnare.desktop", "usr/share/applications/", "644"],
-    ["assets/patches/**/*.yaml", "usr/share/ensnare/patches/", "644"],
+    ["assets/patches/**/*.json", "usr/share/ensnare/patches/", "644"],
     ["assets/samples/**/*.wav", "usr/share/ensnare/samples/", "644"],
-    ["projects/**/*.yaml", "usr/share/ensnare/projects/", "644"],
+    ["projects/**/*.json", "usr/share/ensnare/projects/", "644"],
     ["target/release/ensnare-daw", "usr/bin/", "755"],
 ]

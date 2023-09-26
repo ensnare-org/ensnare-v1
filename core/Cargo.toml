@@ -1,10 +1,12 @@
 # Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 [package]
-name = "ensnare-core"
-version = "0.1.0"
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "Core functionality supporting the ensnare crate"
 edition = "2021"
+name = "ensnare-core"
 publish = false
+version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.75"
