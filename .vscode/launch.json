@@ -7,6 +7,25 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Launch Ensnare DAW",
+            "cargo": {
+                "args": [
+                  "build",
+                  "--bin=ensnare-daw",
+                  "--package=ensnare",
+                  "--features=",
+                ],
+                "filter": {
+                  "name": "ensnare-daw",
+                  "kind": "bin"
+                }
+              },
+              "args": [],
+              "cwd": "${workspaceFolder}"
+                },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'ensnare'",
             "cargo": {
                 "args": [
