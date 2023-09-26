@@ -1,2 +1,10 @@
 **/target
-/Cargo.lock
+/*.json
+/*.json5
+/*.wav
+/out/
+/projects/**/*.mp3
+/projects/**/*.wav
+/settings.json
+/target
+Cargo.lock
