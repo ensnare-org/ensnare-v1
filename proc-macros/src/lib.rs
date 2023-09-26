@@ -119,8 +119,8 @@ pub fn derive_control(input: TokenStream) -> TokenStream {
 // ensnare also uses this proc-macro lib. So we need to correct the
 // reference to ensnare to sometimes be just `crate`.
 fn core_crate_name() -> String {
-    const CORE_CRATE_NAME: &str = "ensnare-core"; // if you named it with dashes -- my-crate
-    const CORE_CRATE_NAME_FOR_USE: &str = "ensnare_core"; // substitute underscores for dashes -- my_crate
+    const CORE_CRATE_NAME: &'static str = "ensnare-core"; // if you named it with dashes -- my-crate
+    const CORE_CRATE_NAME_FOR_USE: &'static str = "ensnare_core"; // substitute underscores for dashes -- my_crate
 
     if let Ok(found_crate) = crate_name(CORE_CRATE_NAME) {
         match found_crate {

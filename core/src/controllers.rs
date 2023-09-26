@@ -638,7 +638,7 @@ mod tests {
 
         let range = MusicalTime::START..MusicalTime::DURATION_QUARTER;
         ct.update_time(&range);
-        const MESSAGE: &str = "If there is only one control step, then the trip should remain at that step's level at all times.";
+        const MESSAGE: &'static str = "If there is only one control step, then the trip should remain at that step's level at all times.";
         let mut received_event = None;
         ct.work(&mut |_uid, event| {
             assert!(received_event.is_none());

@@ -662,7 +662,7 @@ mod tests {
         //     DEVICE_MIDI_CHANNEL,
         //     new_note_off(MidiNote::C4 as u8, 0),
         // );
-        // const SEQUENCER_ID: &str = "seq";
+        // const SEQUENCER_ID: &'static str = "seq";
         // let _sequencer_uid = o.add(Some(SEQUENCER_ID), Entity::MidiTickSequencer(sequencer));
         // o.connect_midi_downstream(device_uid, DEVICE_MIDI_CHANNEL);
 

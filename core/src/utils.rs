@@ -80,22 +80,22 @@ impl Default for Paths {
 }
 impl Paths {
     /// WAV, AIFF, etc.
-    const SAMPLES: &str = "samples";
+    const SAMPLES: &'static str = "samples";
 
     /// Project files (.json5, .ens, etc.).
-    const PROJECTS: &str = "projects";
+    const PROJECTS: &'static str = "projects";
 
     /// Instrument patch files.
-    const PATCHES: &str = "patches";
+    const PATCHES: &'static str = "patches";
 
     /// The directory containing assets like samples, patches, and demo projects.
-    const ASSETS: &str = "assets";
+    const ASSETS: &'static str = "assets";
 
     /// The directory containing data used by unit tests.
-    const TEST_DATA: &str = "test-data";
+    const TEST_DATA: &'static str = "test-data";
 
     /// The name of the app's preferences file.
-    const PREFERENCES: &str = "preferences.json";
+    const PREFERENCES: &'static str = "preferences.json";
 
     pub fn clear_hives(&mut self) {
         self.hives.clear();

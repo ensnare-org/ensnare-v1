@@ -37,7 +37,7 @@ struct Settings {
     midi_settings: Arc<Mutex<MidiSettings>>,
 }
 impl Settings {
-    const FILENAME: &str = "settings.json";
+    const FILENAME: &'static str = "settings.json";
 
     fn load() -> anyhow::Result<Self> {
         let settings_path = PathBuf::from(Self::FILENAME);
@@ -367,11 +367,11 @@ struct MiniDaw {
     toasts: Toasts,
 }
 impl MiniDaw {
-    pub const FONT_REGULAR: &str = "font-regular";
-    pub const FONT_BOLD: &str = "font-bold";
-    pub const FONT_MONO: &str = "font-mono";
-    pub const APP_NAME: &str = "MiniDAW";
-    pub const DEFAULT_PROJECT_NAME: &str = "Untitled";
+    pub const FONT_REGULAR: &'static str = "font-regular";
+    pub const FONT_BOLD: &'static str = "font-bold";
+    pub const FONT_MONO: &'static str = "font-mono";
+    pub const APP_NAME: &'static str = "MiniDAW";
+    pub const DEFAULT_PROJECT_NAME: &'static str = "Untitled";
 
     pub fn new(cc: &CreationContext) -> Self {
         Self::initialize_fonts(cc);

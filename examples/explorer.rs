@@ -27,7 +27,7 @@ struct LegendSettings {
     range: Range<MusicalTime>,
 }
 impl LegendSettings {
-    const NAME: &str = "Legend";
+    const NAME: &'static str = "Legend";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -78,7 +78,7 @@ impl DisplaysInTimeline for TimelineSettings {
     }
 }
 impl TimelineSettings {
-    const NAME: &str = "Timeline";
+    const NAME: &'static str = "Timeline";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -174,7 +174,7 @@ struct DevicePaletteSettings {
     hide: bool,
 }
 impl DevicePaletteSettings {
-    const NAME: &str = "Device Palette";
+    const NAME: &'static str = "Device Palette";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -297,7 +297,7 @@ struct DeviceChainSettings {
     action: Option<DeviceChainAction>,
 }
 impl DeviceChainSettings {
-    const NAME: &str = "Device Chain";
+    const NAME: &'static str = "Device Chain";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -344,7 +344,7 @@ struct GridSettings {
     view_range: Range<MusicalTime>,
 }
 impl GridSettings {
-    const NAME: &str = "Grid";
+    const NAME: &'static str = "Grid";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -407,7 +407,7 @@ impl Displays for PatternIconSettings {
     }
 }
 impl PatternIconSettings {
-    const NAME: &str = "Pattern Icon";
+    const NAME: &'static str = "Pattern Icon";
     fn note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Note {
         Note {
             key: key as u8,
@@ -448,7 +448,7 @@ impl DisplaysInTimeline for ControlAtlasSettings {
     }
 }
 impl ControlAtlasSettings {
-    const NAME: &str = "Control Atlas";
+    const NAME: &'static str = "Control Atlas";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -477,7 +477,7 @@ impl DisplaysInTimeline for SequencerSettings {
     }
 }
 impl SequencerSettings {
-    const NAME: &str = "Sequencer";
+    const NAME: &'static str = "Sequencer";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -516,7 +516,7 @@ impl DisplaysInTimeline for ESSequencerSettings {
     }
 }
 impl ESSequencerSettings {
-    const NAME: &str = "Even Smaller Sequencer";
+    const NAME: &'static str = "Even Smaller Sequencer";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -541,7 +541,7 @@ impl Displays for TitleBarSettings {
     }
 }
 impl TitleBarSettings {
-    const NAME: &str = "Title Bar";
+    const NAME: &'static str = "Title Bar";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -561,7 +561,7 @@ impl Displays for PianoRollSettings {
     }
 }
 impl PianoRollSettings {
-    const NAME: &str = "Piano Roll";
+    const NAME: &'static str = "Piano Roll";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -581,7 +581,7 @@ impl Displays for WigglerSettings {
     }
 }
 impl WigglerSettings {
-    const NAME: &str = "Wiggler";
+    const NAME: &'static str = "Wiggler";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -616,7 +616,7 @@ impl Displays for TimeDomainSettings {
     }
 }
 impl TimeDomainSettings {
-    const NAME: &str = "Audio Time Domain";
+    const NAME: &'static str = "Audio Time Domain";
 
     fn show(&mut self, ui: &mut Ui) {
         self.buffer.add_some_noise();
@@ -661,7 +661,7 @@ impl Displays for FrequencyDomainSettings {
     }
 }
 impl FrequencyDomainSettings {
-    const NAME: &str = "Audio Frequency Domain";
+    const NAME: &'static str = "Audio Frequency Domain";
 
     fn show(&mut self, ui: &mut Ui) {
         self.buffer.add_some_noise();
@@ -711,7 +711,7 @@ struct Explorer {
     frequency_domain: FrequencyDomainSettings,
 }
 impl Explorer {
-    pub const NAME: &str = "Explorer";
+    pub const NAME: &'static str = "Explorer";
 
     pub fn new(_cc: &CreationContext) -> Self {
         Self {

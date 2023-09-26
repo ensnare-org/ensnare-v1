@@ -2367,7 +2367,7 @@ mod tests {
         }
 
         pub fn data_path() -> PathBuf {
-            const TEST_DATA: &str = "test-data";
+            const TEST_DATA: &'static str = "test-data";
             let mut path_buf = Self::cwd();
             path_buf.push(TEST_DATA);
             path_buf
@@ -2376,7 +2376,7 @@ mod tests {
         /// Returns a [PathBuf] representing the target/ build directory, creating
         /// it if necessary.
         pub fn writable_out_path() -> PathBuf {
-            const OUT_DATA: &str = "target";
+            const OUT_DATA: &'static str = "target";
             let mut path_buf = Self::cwd();
             path_buf.push(OUT_DATA);
             if fs::create_dir_all(&path_buf).is_ok() {
