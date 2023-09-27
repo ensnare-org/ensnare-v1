@@ -3,31 +3,76 @@
 //! A digital audio workstation.
 
 use anyhow::anyhow;
+use crossbeam_channel::Select;
 use eframe::{
-    egui::{CentralPanel, Context, FontData, FontDefinitions, ScrollArea, TextStyle},
+    egui::{
+        CentralPanel, Context, FontData, FontDefinitions, Layout, ScrollArea, SidePanel, TextStyle,
+        TopBottomPanel, Ui,
+    },
+    emath::Align,
     epaint::{Color32, FontFamily, FontId},
     App, CreationContext,
 };
-use ensnare::prelude::*;
+use egui_toast::{Toast, ToastOptions, Toasts};
+use ensnare::{panels::prelude::*, prelude::*, version::app_version};
 use env_logger;
+use settings::{Settings, SettingsPanel};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Default)]
-struct Application {}
+mod settings;
+
+struct Application {
+    orchestrator: Arc<Mutex<Orchestrator>>,
+
+    control_panel: ControlPanel,
+    orchestrator_panel: NewOrchestratorPanel,
+    settings_panel: SettingsPanel,
+    palette_panel: PalettePanel,
+
+    toasts: Toasts,
+
+    exit_requested: bool,
+}
 impl Application {
+    /// The user-visible name of the application.
     const NAME: &'static str = "Ensnare";
 
-    pub const FONT_REGULAR: &'static str = "font-regular";
-    pub const FONT_BOLD: &'static str = "font-bold";
-    pub const FONT_MONO: &'static str = "font-mono";
+    /// The default name of a new project.
+    const DEFAULT_PROJECT_NAME: &'static str = "Untitled";
+
+    /// internal-only key for regular font.
+    const FONT_REGULAR: &'static str = "font-regular";
+    /// internal-only key for bold font.
+    const FONT_BOLD: &'static str = "font-bold";
+    /// internal-only key for monospaced font.
+    const FONT_MONO: &'static str = "font-mono";
 
     fn new(cc: &CreationContext) -> Self {
-        Self::initialize_fonts(cc);
+        Self::initialize_fonts(&cc.egui_ctx);
         Self::initialize_visuals(&cc.egui_ctx);
         Self::initialize_style(&cc.egui_ctx);
-        Self {}
+
+        let settings = Settings::load().unwrap_or_default();
+        let orchestrator_panel = NewOrchestratorPanel::default();
+        let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
+        let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
+
+        let mut r = Self {
+            orchestrator,
+            control_panel: ControlPanel::default(),
+            orchestrator_panel,
+            settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
+            palette_panel: PalettePanel::default(),
+            toasts: Toasts::new()
+                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
+                .direction(eframe::egui::Direction::BottomUp),
+            exit_requested: Default::default(),
+        };
+        r.spawn_channel_watcher(cc.egui_ctx.clone());
+        r
     }
 
-    fn initialize_fonts(cc: &CreationContext) {
+    fn initialize_fonts(ctx: &Context) {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             Self::FONT_REGULAR.to_owned(),
@@ -47,6 +92,8 @@ impl Application {
                 "../../../res/fonts/cousine/Cousine-Regular.ttf"
             )),
         );
+
+        // Make these fonts the highest priority.
         fonts
             .families
             .get_mut(&FontFamily::Proportional)
@@ -63,7 +110,7 @@ impl Application {
             .or_default()
             .insert(0, Self::FONT_BOLD.to_owned());
 
-        cc.egui_ctx.set_fonts(fonts);
+        ctx.set_fonts(fonts);
     }
 
     /// Sets the default visuals.
@@ -103,15 +150,270 @@ impl Application {
 
         ctx.set_style(style);
     }
+
+    /// Watches certain channels and asks for a repaint, which triggers the
+    /// actual channel receiver logic, when any of them has something
+    /// receivable.
+    ///
+    /// https://docs.rs/crossbeam-channel/latest/crossbeam_channel/struct.Select.html#method.ready
+    ///
+    /// We call ready() rather than select() because select() requires us to
+    /// complete the operation that is ready, while ready() just tells us that a
+    /// recv() would not block.
+    fn spawn_channel_watcher(&mut self, ctx: Context) {
+        let r1 = self.settings_panel.midi_panel().receiver().clone();
+        let r2 = self.settings_panel.audio_panel().receiver().clone();
+        let r3 = self.orchestrator_panel.receiver().clone();
+
+        let _ = std::thread::spawn(move || loop {
+            let mut sel = Select::new();
+            let _ = sel.recv(&r1);
+            let _ = sel.recv(&r2);
+            let _ = sel.recv(&r3);
+
+            let _ = sel.ready();
+            ctx.request_repaint();
+        });
+    }
+
+    fn handle_message_channels(&mut self) {
+        // As long as any channel had a message in it, we'll keep handling them.
+        // We don't expect a giant number of messages; otherwise we'd worry
+        // about blocking the UI.
+        loop {
+            if !(self.handle_midi_panel_channel()
+                || self.handle_audio_panel_channel()
+                || self.handle_orchestrator_channel())
+            {
+                break;
+            }
+        }
+    }
+
+    fn handle_midi_panel_channel(&mut self) -> bool {
+        if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
+            match m {
+                MidiPanelEvent::Midi(channel, message) => {
+                    self.orchestrator_panel
+                        .send_to_service(OrchestratorInput::Midi(channel, message));
+                }
+                MidiPanelEvent::SelectInput(_) => {
+                    // TODO: save selection in prefs
+                }
+                MidiPanelEvent::SelectOutput(_) => {
+                    // TODO: save selection in prefs
+                }
+                MidiPanelEvent::PortsRefreshed => {
+                    // TODO: remap any saved preferences to ports that we've found
+                    self.settings_panel.handle_midi_port_refresh();
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn handle_audio_panel_channel(&mut self) -> bool {
+        if let Ok(m) = self.settings_panel.audio_panel().receiver().try_recv() {
+            match m {
+                AudioPanelEvent::InterfaceChanged => {
+                    self.update_orchestrator_audio_interface_config();
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn update_orchestrator_audio_interface_config(&mut self) {
+        let sample_rate = self.settings_panel.audio_panel().sample_rate();
+        if let Ok(mut o) = self.orchestrator.lock() {
+            o.update_sample_rate(sample_rate);
+        }
+    }
+
+    fn handle_orchestrator_channel(&mut self) -> bool {
+        if let Ok(m) = self.orchestrator_panel.receiver().try_recv() {
+            match m {
+                OrchestratorEvent::Tempo(_tempo) => {
+                    // This is (usually) an acknowledgement that Orchestrator
+                    // got our request to change, so we don't need to do
+                    // anything.
+                }
+                OrchestratorEvent::Quit => {
+                    eprintln!("OrchestratorEvent::Quit")
+                }
+                OrchestratorEvent::Loaded(path, title) => {
+                    self.orchestrator_panel.update_entity_factory_uid();
+                    let title = title.unwrap_or(String::from(Self::DEFAULT_PROJECT_NAME));
+                    self.toasts.add(Toast {
+                        kind: egui_toast::ToastKind::Success,
+                        text: format!("Loaded {} from {}", title, path.display()).into(),
+                        options: ToastOptions::default()
+                            .duration_in_seconds(2.0)
+                            .show_progress(false),
+                    });
+                }
+                OrchestratorEvent::LoadError(path, error) => {
+                    self.toasts.add(Toast {
+                        kind: egui_toast::ToastKind::Error,
+                        text: format!("Error loading {}: {}", path.display(), error).into(),
+                        options: ToastOptions::default().duration_in_seconds(5.0),
+                    });
+                }
+                OrchestratorEvent::Saved(path) => {
+                    // TODO: this should happen only if the save operation was
+                    // explicit. Autosaves should be invisible.
+                    self.toasts.add(Toast {
+                        kind: egui_toast::ToastKind::Success,
+                        text: format!("Saved to {}", path.display()).into(),
+                        options: ToastOptions::default()
+                            .duration_in_seconds(1.0)
+                            .show_progress(false),
+                    });
+                }
+                OrchestratorEvent::SaveError(path, error) => {
+                    self.toasts.add(Toast {
+                        kind: egui_toast::ToastKind::Error,
+                        text: format!("Error saving {}: {}", path.display(), error).into(),
+                        options: ToastOptions::default().duration_in_seconds(5.0),
+                    });
+                }
+                OrchestratorEvent::New => {
+                    // No special UI needed for this.
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn show_top(&mut self, ui: &mut Ui) {
+        // if let Some(action) = self
+        //     .menu_bar
+        //     .show_with_action(ui, self.orchestrator_panel.is_any_track_selected())
+        // {
+        //     self.handle_menu_bar_action(action);
+        // }
+        // ui.separator();
+        self.control_panel.ui(ui);
+        if let Some(action) = self.control_panel.take_action() {
+            self.handle_control_panel_action(action);
+        }
+    }
+
+    fn handle_control_panel_action(&mut self, action: ControlPanelAction) {
+        let input = match action {
+            ControlPanelAction::Play => Some(OrchestratorInput::ProjectPlay),
+            ControlPanelAction::Stop => Some(OrchestratorInput::ProjectStop),
+            ControlPanelAction::New => Some(OrchestratorInput::ProjectNew),
+            ControlPanelAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
+            ControlPanelAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
+            ControlPanelAction::ToggleSettings => {
+                self.settings_panel.toggle();
+                None
+            }
+        };
+        if let Some(input) = input {
+            self.orchestrator_panel.send_to_service(input);
+        }
+    }
+
+    fn show_bottom(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            eframe::egui::warn_if_debug_build(ui);
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.label(app_version())
+            });
+        });
+    }
+
+    fn show_left(&mut self, ui: &mut Ui) {
+        ScrollArea::vertical().show(ui, |ui| {
+            if let Some(_action) = self.palette_panel.show_with_action(ui) {
+                // these are inactive for now because we're skipping the drag/drop stuff.
+                //self.handle_palette_action(action);
+            }
+        });
+    }
+
+    fn show_right(&mut self, ui: &mut Ui) {
+        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
+    }
+
+    fn show_center(&mut self, ui: &mut Ui) {
+        ScrollArea::vertical().show(ui, |ui| {
+            self.orchestrator_panel.ui(ui);
+        });
+        self.toasts.show(ui.ctx());
+    }
+
+    fn show_settings_panel(&mut self, ctx: &Context) {
+        let mut is_settings_open = self.settings_panel.is_open();
+        eframe::egui::Window::new("Settings")
+            .open(&mut is_settings_open)
+            .show(ctx, |ui| self.settings_panel.ui(ui));
+        if self.settings_panel.is_open() && !is_settings_open {
+            self.settings_panel.toggle();
+        }
+    }
 }
 impl App for Application {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+        self.handle_message_channels();
+
+        let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
+        self.orchestrator_panel
+            .set_control_only_down(is_control_only_down);
+
+        let top = TopBottomPanel::top("top-panel")
+            .resizable(false)
+            .exact_height(64.0);
+        let bottom = TopBottomPanel::bottom("bottom-panel")
+            .resizable(false)
+            .exact_height(24.0);
+        let left = SidePanel::left("left-panel")
+            .resizable(true)
+            .default_width(160.0)
+            .width_range(160.0..=480.0);
+        let right = SidePanel::right("right-panel")
+            .resizable(true)
+            .default_width(160.0)
+            .width_range(160.0..=480.0);
         let center = CentralPanel::default();
-        center.show(ctx, |ui| {
-            ScrollArea::vertical().show(ui, |ui| {
-                ui.label("Ensnare");
-            });
+
+        top.show(ctx, |ui| {
+            self.show_top(ui);
         });
+        bottom.show(ctx, |ui| {
+            self.show_bottom(ui);
+        });
+        left.show(ctx, |ui| {
+            self.show_left(ui);
+        });
+        right.show(ctx, |ui| {
+            self.show_right(ui);
+        });
+        center.show(ctx, |ui| {
+            self.show_center(ui);
+        });
+
+        self.show_settings_panel(ctx);
+
+        if self.exit_requested {
+            frame.close();
+        }
+    }
+
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        if !self.settings_panel.settings().has_been_saved() {
+            let _ = self.settings_panel.settings_mut().save();
+        }
+        self.settings_panel.exit();
+        self.orchestrator_panel.exit();
     }
 }
 

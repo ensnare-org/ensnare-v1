@@ -471,7 +471,7 @@ impl MiniDaw {
         loop {
             if !(self.handle_midi_panel_channel()
                 || self.handle_audio_panel_channel()
-                || self.handle_mini_orchestrator_channel())
+                || self.handle_orchestrator_channel())
             {
                 break;
             }
@@ -515,7 +515,7 @@ impl MiniDaw {
         }
     }
 
-    fn handle_mini_orchestrator_channel(&mut self) -> bool {
+    fn handle_orchestrator_channel(&mut self) -> bool {
         if let Ok(m) = self.orchestrator_panel.receiver().try_recv() {
             match m {
                 OrchestratorEvent::Tempo(_tempo) => {
@@ -692,7 +692,8 @@ impl MiniDaw {
             self.handle_menu_bar_action(action);
         }
         ui.separator();
-        if let Some(action) = self.control_panel.show_with_action(ui) {
+        self.control_panel.ui(ui);
+        if let Some(action) = self.control_panel.take_action() {
             self.handle_control_panel_action(action);
         }
     }

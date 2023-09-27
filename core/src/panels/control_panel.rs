@@ -1,10 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{time::Transport, traits::Displays, widgets::core::transport};
-use eframe::egui::Ui;
+use eframe::egui::{Response, Ui};
 use std::path::PathBuf;
 
 /// Actions the user might take via the control panel.
+#[derive(Debug)]
 pub enum ControlPanelAction {
     /// Play button pressed.
     Play,
@@ -33,47 +34,45 @@ pub struct ControlPanel {
     // TODO: this is awful. I think it goes away when we factor out ui() and
     // make it into a temp reference
     transport_copy: Transport,
+
+    action: Option<ControlPanelAction>,
 }
-impl ControlPanel {
-    /// Renders the control bar and maybe returns a UI action.
-    pub fn show_with_action(&mut self, ui: &mut Ui) -> Option<ControlPanelAction> {
-        let mut action = None;
+impl Displays for ControlPanel {
+    fn ui(&mut self, ui: &mut Ui) -> Response {
         ui.horizontal_centered(|ui| {
             ui.add(transport(&mut self.transport_copy));
             if ui.button("play").clicked() {
-                action = Some(ControlPanelAction::Play);
+                self.action = Some(ControlPanelAction::Play);
             }
             if ui.button("stop").clicked() {
-                action = Some(ControlPanelAction::Stop);
+                self.action = Some(ControlPanelAction::Stop);
             }
             ui.separator();
             if ui.button("new").clicked() {
-                action = Some(ControlPanelAction::New);
+                self.action = Some(ControlPanelAction::New);
             }
             if ui.button("open").clicked() {
-                action = Some(ControlPanelAction::Open(PathBuf::from("minidaw.json")));
+                self.action = Some(ControlPanelAction::Open(PathBuf::from("minidaw.json")));
             }
             if ui.button("save").clicked() {
-                action = Some(ControlPanelAction::Save(PathBuf::from("minidaw.json")));
+                self.action = Some(ControlPanelAction::Save(PathBuf::from("minidaw.json")));
             }
             ui.separator();
             if ui.button("settings").clicked() {
-                action = Some(ControlPanelAction::ToggleSettings);
+                self.action = Some(ControlPanelAction::ToggleSettings);
             }
-        });
-
-        action
+        })
+        .response
     }
-
+}
+impl ControlPanel {
     /// Updates the copy of [Transport] with a fresh one.
     pub fn set_transport(&mut self, transport: Transport) {
         self.transport_copy = transport;
     }
-}
-impl Displays for ControlPanel {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        let _ = self.show_with_action(ui);
-        ui.label("TODO")
+
+    pub fn take_action(&mut self) -> Option<ControlPanelAction> {
+        self.action.take()
     }
 }
 

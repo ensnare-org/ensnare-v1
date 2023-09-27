@@ -15,21 +15,21 @@ version = "0.0.2"
 
 [dependencies]
 anyhow = "1.0.75"
+crossbeam-channel = "0.5.8"
 eframe = "0.22"
+egui-toast = { version = "0.8" }
 ensnare-core = { path = "core" }
 ensnare-proc-macros = { path = "proc-macros" }
 env_logger = "0.10"
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
 
 [workspace]
 members = ["core", "proc-macros"]
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
-crossbeam-channel = "0.5.8"
-egui-toast = { version = "0.8" }
 regex = "1.7"
-serde_json = "1.0"
 
 [[bin]]
 name = "ensnare-daw"

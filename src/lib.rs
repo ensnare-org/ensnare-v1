@@ -142,6 +142,28 @@ pub mod ui {
     }
 }
 
+pub mod panels {
+    //! `panels` are subsystems that typically run in their own thread and use
+    //! crossbeam channels for communication. They also generally implement
+    //! [Displays](crate::traits::Displays), so they also provide a UI panel
+    //! that helps visualize and manage the subsystem.
+
+    /// `use ensnare::panels::prelude::*;` when working with panels.
+    pub mod prelude {
+        pub use super::{
+            AudioPanel, AudioPanelEvent, ControlPanel, ControlPanelAction, MidiPanel,
+            MidiPanelEvent, NewOrchestratorPanel, OrchestratorEvent, OrchestratorInput,
+            OrchestratorPanel, PalettePanel,
+        };
+    }
+    pub use ensnare_core::panels::{
+        audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
+        ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn,
+        NewOrchestratorPanel, OrchestratorEvent, OrchestratorInput, OrchestratorPanel,
+        PalettePanel,
+    };
+}
+
 pub mod util {
     //! Various helpers.
 }

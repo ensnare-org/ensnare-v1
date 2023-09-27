@@ -81,6 +81,80 @@ pub enum OrchestratorEvent {
 
 /// An egui panel that renders a [Orchestrator].
 #[derive(Debug)]
+pub struct NewOrchestratorPanel {
+    orchestrator: Arc<Mutex<Orchestrator>>,
+    track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
+    input_channel_pair: ChannelPair<OrchestratorInput>,
+    event_channel_pair: ChannelPair<OrchestratorEvent>,
+
+    is_control_only_down: bool,
+}
+impl NewOrchestratorPanel {
+    pub fn set_control_only_down(&mut self, is_control_only_down: bool) {
+        self.is_control_only_down = is_control_only_down;
+    }
+
+    pub fn orchestrator(&self) -> &Arc<Mutex<Orchestrator>> {
+        &self.orchestrator
+    }
+
+    /// The sending side of the [OrchestratorInput] channel.
+    pub fn sender(&self) -> &Sender<OrchestratorInput> {
+        &self.input_channel_pair.sender
+    }
+
+    /// The receiving side of the [OrchestratorEvent] channel.
+    pub fn receiver(&self) -> &Receiver<OrchestratorEvent> {
+        &self.event_channel_pair.receiver
+    }
+
+    /// Sends the given [OrchestratorInput] to the [Orchestrator].
+    pub fn send_to_service(&self, input: OrchestratorInput) {
+        match self.sender().send(input) {
+            Ok(_) => {}
+            Err(err) => eprintln!("sending OrchestratorInput failed with {:?}", err),
+        }
+    }
+
+    /// Lets the [EntityFactory] know of the highest [Uid] that the current
+    /// Orchestrator has seen, so that it won't generate duplicates.
+    pub fn update_entity_factory_uid(&self) {
+        let uid = self
+            .orchestrator
+            .lock()
+            .unwrap()
+            .calculate_max_entity_uid()
+            .0;
+        EntityFactory::global().set_next_uid(uid + 1);
+    }
+
+    /// Requests that the [Orchestrator] prepare to exit.
+    pub fn exit(&self) {
+        eprintln!("OrchestratorInput::Quit");
+        self.send_to_service(OrchestratorInput::Quit);
+    }
+}
+impl Displays for NewOrchestratorPanel {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.label("Coming soon!")
+    }
+}
+impl Default for NewOrchestratorPanel {
+    fn default() -> Self {
+        let mut orchestrator = OrchestratorBuilder::default().build().unwrap();
+        let _ = orchestrator.create_starter_tracks();
+        Self {
+            orchestrator: Arc::new(Mutex::new(orchestrator)),
+            track_selection_set: Default::default(),
+            input_channel_pair: Default::default(),
+            event_channel_pair: Default::default(),
+            is_control_only_down: Default::default(),
+        }
+    }
+}
+
+/// An egui panel that renders a [Orchestrator].
+#[derive(Debug)]
 pub struct OrchestratorPanel {
     orchestrator: Arc<Mutex<Orchestrator>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
