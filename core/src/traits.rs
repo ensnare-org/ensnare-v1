@@ -17,7 +17,7 @@ use eframe::egui;
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
+        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HasSettings, HasUid,
         IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, PlaysNotes,
         Serializable, StoresVoices, Ticks, TransformsAudio,
@@ -442,6 +442,14 @@ pub trait DisplaysInTimeline: Displays {
     /// Sets the range of time on the track timeline that the next ui() call
     /// should visualize.
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {}
+}
+
+/// Reports an action requested during [Displays::ui()].
+pub trait Acts: Displays {
+    type Action;
+
+    /// Returns the pending action, if any, and resets it to None.
+    fn take_action(&mut self) -> Option<Self::Action>;
 }
 
 #[cfg(test)]

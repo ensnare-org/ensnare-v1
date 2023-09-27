@@ -189,9 +189,9 @@ pub mod prelude {
         midi_interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
         modulation::{Dca, DcaParams},
         traits::{
-            Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-            Entity, EntityEvent, HandlesMidi, HasSettings, HasUid, IsController, IsEffect,
-            IsInstrument,
+            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
+            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid,
+            IsController, IsEffect, IsInstrument,
         },
         types::{
             BipolarNormal, FrequencyHz, MusicalTime, Normal, Ratio, Sample, SampleRate,

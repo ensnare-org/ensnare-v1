@@ -11,7 +11,7 @@ use crate::{
     mini_sequencer::Sequencer,
     piano_roll::PianoRoll,
     prelude::*,
-    traits::prelude::*,
+    traits::{prelude::*, Acts},
     uid::IsUid,
     widgets::{control, placeholder, track},
 };
@@ -641,11 +641,6 @@ impl Track {
     }
 
     #[allow(missing_docs)]
-    pub fn action(&self) -> Option<TrackAction> {
-        self.e.action.clone()
-    }
-
-    #[allow(missing_docs)]
     pub fn set_is_selected(&mut self, selected: bool) {
         self.e.is_selected = selected;
     }
@@ -653,6 +648,13 @@ impl Track {
     #[allow(missing_docs)]
     pub fn set_ui_state(&mut self, ui_state: TrackUiState) {
         self.e.ui_state = ui_state;
+    }
+}
+impl Acts for Track {
+    type Action = TrackAction;
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.e.action.take()
     }
 }
 impl GeneratesToInternalBuffer<StereoSample> for Track {

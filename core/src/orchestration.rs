@@ -10,7 +10,7 @@ use crate::{
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid},
     traits::{
-        Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
+        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid, Serializable,
         Ticks,
     },
@@ -117,8 +117,8 @@ impl Default for Orchestrator {
             .uid(Self::TRANSPORT_UID)
             .build()
             .unwrap();
-        let view_range = MusicalTime::START
-                ..MusicalTime::new_with_beats(transport.time_signature().top);
+        let view_range =
+            MusicalTime::START..MusicalTime::new_with_beats(transport.time_signature().top);
         Self {
             title: None,
             transport,
@@ -468,15 +468,16 @@ impl Orchestrator {
         )
     }
 
-    /// Returns any [OrchestratorAction] set during the prior [Displays::ui()],
-    /// and resets it to None.
-    pub fn take_action(&mut self) -> Option<OrchestratorAction> {
-        self.e.action.take()
-    }
-
     #[allow(missing_docs)]
     pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
         self.e.track_selection_set = track_selection_set;
+    }
+}
+impl Acts for Orchestrator {
+    type Action = OrchestratorAction;
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.e.action.take()
     }
 }
 impl HasUid for Orchestrator {
@@ -739,7 +740,7 @@ impl Displays for Orchestrator {
                                     );
                                     track.set_ui_state(track_ui_state);
                                     let response = track.ui(ui);
-                                    let action = track.action();
+                                    let action = track.take_action();
 
                                     if let Some(action) = action {
                                         match action {
