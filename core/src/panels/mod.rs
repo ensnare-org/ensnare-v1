@@ -4,7 +4,7 @@ pub use audio_panel::{audio_settings, AudioPanel, AudioPanelEvent, AudioSettings
 pub use control_panel::{ControlPanel, ControlPanelAction};
 pub use midi_panel::{midi_settings, MidiPanel, MidiPanelEvent, MidiSettings};
 pub use orchestrator_panel::{
-    NewOrchestratorPanel, OrchestratorEvent, OrchestratorInput, OrchestratorPanel,
+    OrchestratorPanel, OrchestratorEvent, OrchestratorInput, OldOrchestratorPanel,
 };
 pub use palette_panel::{PaletteAction, PalettePanel};
 

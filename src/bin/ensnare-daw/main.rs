@@ -25,7 +25,7 @@ struct Application {
     orchestrator: Arc<Mutex<Orchestrator>>,
 
     control_panel: ControlPanel,
-    orchestrator_panel: NewOrchestratorPanel,
+    orchestrator_panel: OrchestratorPanel,
     settings_panel: SettingsPanel,
     palette_panel: PalettePanel,
 
@@ -53,7 +53,7 @@ impl Application {
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = NewOrchestratorPanel::default();
+        let orchestrator_panel = OrchestratorPanel::default();
         let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
 

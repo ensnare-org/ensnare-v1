@@ -12,8 +12,8 @@ pub mod control;
 pub mod controllers;
 /// Helps coodrinate systemwide drag-and-drop activity.
 pub mod drag_drop;
-/// Common structures and constants used across the library.
-pub mod types;
+/// Built-in musical devices.
+pub mod entities;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
 /// A very simple sequencer.
@@ -44,6 +44,8 @@ pub mod time;
 pub mod track;
 /// Describes major system interfaces.
 pub mod traits;
+/// Common structures and constants used across the library.
+pub mod types;
 /// Unique identifiers.
 pub mod uid;
 /// Helper functions.
@@ -56,20 +58,19 @@ pub mod panels;
 /// Drawing components.
 pub mod widgets;
 
+mod bus_route;
 mod humidifier;
 mod midi_router;
 
-pub mod entities;
-
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::control::{ControlIndex, ControlName, ControlValue};
-    pub use super::types::{
-        BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType, SignalType,
-        StereoSample,
+    pub use super::{
+        control::{ControlIndex, ControlName, ControlValue},
+        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
+        types::{
+            BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType,
+            SignalType, StereoSample,
+        },
+        uid::Uid,
     };
-    // pub use super::entities::{EntityFactory, EntityKey};
-    // pub use super::orchestration::{Orchestrator, OrchestratorBuilder};
-    pub use super::time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature};
-    pub use super::uid::Uid;
 }

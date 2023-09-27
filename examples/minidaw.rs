@@ -22,7 +22,7 @@ use ensnare::{prelude::*, ui::DragDropManager, version::app_version};
 use ensnare_core::panels::{
     audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
     ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
-    OrchestratorInput, OrchestratorPanel, PaletteAction, PalettePanel,
+    OrchestratorInput, OldOrchestratorPanel, PaletteAction, PalettePanel,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -358,7 +358,7 @@ struct MiniDaw {
 
     menu_bar: MenuBar,
     control_panel: ControlPanel,
-    orchestrator_panel: OrchestratorPanel,
+    orchestrator_panel: OldOrchestratorPanel,
     palette_panel: PalettePanel,
     settings_panel: SettingsPanel,
 
@@ -378,7 +378,7 @@ impl MiniDaw {
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OrchestratorPanel::default();
+        let orchestrator_panel = OldOrchestratorPanel::default();
         let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
