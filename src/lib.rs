@@ -152,14 +152,14 @@ pub mod panels {
     pub mod prelude {
         pub use super::{
             AudioPanel, AudioPanelEvent, ControlPanel, ControlPanelAction, MidiPanel,
-            MidiPanelEvent, OrchestratorPanel, OrchestratorEvent, OrchestratorInput,
-            OldOrchestratorPanel, PalettePanel,
+            MidiPanelEvent, OldOrchestratorPanel, OrchestratorEvent, OrchestratorInput,
+            OrchestratorPanel, PalettePanel,
         };
     }
     pub use ensnare_core::panels::{
         audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
         ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn,
-        OrchestratorPanel, OrchestratorEvent, OrchestratorInput, OldOrchestratorPanel,
+        OldOrchestratorPanel, OrchestratorEvent, OrchestratorInput, OrchestratorPanel,
         PalettePanel,
     };
 }
