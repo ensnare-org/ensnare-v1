@@ -56,7 +56,6 @@ pub struct OrchestratorEphemerals {
     is_finished: bool,
     is_performing: bool,
     action: Option<OrchestratorAction>,
-    view_range: std::ops::Range<MusicalTime>,
     track_selection_set: SelectionSet<TrackUid>,
 }
 
@@ -99,6 +98,12 @@ pub struct Orchestrator {
 
     bus_station: BusStation,
 
+    // We do want this serialized, unlike many other entities that implement
+    // DisplaysInTimeline, because this field determines the timeline view
+    // range, and it's nicer to remember it when the project is loaded and
+    // saved.
+    view_range: std::ops::Range<MusicalTime>,
+
     //////////////////////////////////////////////////////
     // Nothing below this comment should be serialized. //
     //////////////////////////////////////////////////////
@@ -108,12 +113,15 @@ pub struct Orchestrator {
 }
 impl Default for Orchestrator {
     fn default() -> Self {
+        let transport = TransportBuilder::default()
+            .uid(Self::TRANSPORT_UID)
+            .build()
+            .unwrap();
+        let view_range = MusicalTime::START
+                ..MusicalTime::new_with_beats(transport.time_signature().top);
         Self {
             title: None,
-            transport: TransportBuilder::default()
-                .uid(Self::TRANSPORT_UID)
-                .build()
-                .unwrap(),
+            transport,
             control_router: Default::default(),
             track_factory: Default::default(),
             tracks: Default::default(),
@@ -121,6 +129,7 @@ impl Default for Orchestrator {
             track_ui_states: Default::default(),
             piano_roll: Default::default(),
             bus_station: Default::default(),
+            view_range,
 
             e: Default::default(),
         }
@@ -694,12 +703,11 @@ impl Serializable for Orchestrator {
 }
 impl DisplaysInTimeline for Orchestrator {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.e.view_range = view_range.clone();
+        self.view_range = view_range.clone();
     }
 }
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        let mut view_range = MusicalTime::new_with_beats(0)..MusicalTime::new_with_beats(128);
         let total_height = ui.available_height();
 
         egui::TopBottomPanel::bottom("orchestrator-piano-roll")
@@ -714,7 +722,7 @@ impl Displays for Orchestrator {
                 ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
                     .show(ui, |ui| {
-                        ui.add(timeline::legend(&mut view_range));
+                        ui.add(timeline::legend(&mut self.view_range));
                         for track_uid in self.track_uids.iter() {
                             if let Some(track) = self.tracks.get_mut(track_uid) {
                                 let track_ui_state = self

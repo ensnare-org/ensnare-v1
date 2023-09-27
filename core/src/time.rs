@@ -646,6 +646,10 @@ impl Transport {
     pub fn current_time(&self) -> MusicalTime {
         self.e.current_time
     }
+
+    pub fn time_signature(&self) -> TimeSignature {
+        self.time_signature
+    }
 }
 impl Displays for Transport {
     fn ui(&mut self, _ui: &mut Ui) -> eframe::egui::Response {
