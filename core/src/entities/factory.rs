@@ -138,9 +138,9 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     });
     factory.register_entity(EntityKey::from("fm-synth"), || {
         Box::new(FmSynth::new_with(&FmSynthParams {
-            depth: 0.5.into(),
-            ratio: 2.5.into(),
-            beta: 0.25.into(),
+            depth: 1.0.into(),
+            ratio: 16.0.into(),
+            beta: 10.0.into(),
             carrier_envelope: EnvelopeParams::safe_default(),
             modulator_envelope: EnvelopeParams::default(),
             dca: DcaParams::default(),
