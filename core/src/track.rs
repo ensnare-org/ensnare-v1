@@ -15,10 +15,7 @@ use crate::{
     uid::IsUid,
 };
 use anyhow::anyhow;
-use eframe::{
-    egui::{self, Ui},
-    epaint::vec2,
-};
+use eframe::epaint::vec2;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -84,11 +81,11 @@ impl TrackFactory {
         uid
     }
 
-    pub fn midi(&mut self, piano_roll: &Arc<RwLock<PianoRoll>>) -> Track {
+    pub fn midi(&mut self, _piano_roll: &Arc<RwLock<PianoRoll>>) -> Track {
         let uid = self.next_uid();
         let title = TrackTitle(format!("MIDI {}", uid));
 
-        let mut t = Track {
+        let t = Track {
             uid,
             title,
             ty: TrackType::Midi,
@@ -630,7 +627,7 @@ impl<'a> DeviceChain<'a> {
     }
 }
 impl<'a> Displays for DeviceChain<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = if self.is_large_size {
             vec2(ui.available_width(), 256.0)
         } else {
@@ -647,7 +644,7 @@ impl<'a> Displays for DeviceChain<'a> {
                         }
                     });
                 let response =
-                    DragDropManager::drop_target(ui, self.can_accept(), |ui| ui.label("+"))
+                    DragDropManager::drop_target(ui, self.can_accept(), |ui| ui.label("[+]"))
                         .response;
                 if DragDropManager::is_dropped(ui, &response) {
                     self.check_drop();
