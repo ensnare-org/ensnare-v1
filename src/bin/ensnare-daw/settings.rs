@@ -6,11 +6,9 @@
 use ensnare::{
     arrangement::Orchestrator,
     midi_interface::{MidiInterfaceInput, MidiPortDescriptor},
-    panels::{
-        audio_settings, midi_settings, AudioPanel, AudioSettings, MidiPanel, MidiSettings,
-        NeedsAudioFn,
-    },
+    panels::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
     traits::{Displays, EntityEvent, HasSettings},
+    ui::widgets::{audio_settings, midi_settings},
 };
 use serde::{Deserialize, Serialize};
 use std::{

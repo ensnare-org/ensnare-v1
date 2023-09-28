@@ -18,11 +18,12 @@ use eframe::{
     CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{prelude::*, ui::DragDropManager, version::app_version};
-use ensnare_core::panels::{
-    audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
-    ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn,
-    OldOrchestratorPanel, OrchestratorEvent, OrchestratorInput, PaletteAction, PalettePanel,
+use ensnare::{
+    panels::prelude::*,
+    prelude::*,
+    ui::widgets::{audio_settings, midi_settings},
+    ui::DragDropManager,
+    version::app_version,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -358,7 +359,7 @@ struct MiniDaw {
 
     menu_bar: MenuBar,
     control_panel: ControlPanel,
-    orchestrator_panel: OldOrchestratorPanel,
+    orchestrator_panel: OrchestratorPanel,
     palette_panel: PalettePanel,
     settings_panel: SettingsPanel,
 
@@ -378,7 +379,7 @@ impl MiniDaw {
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OldOrchestratorPanel::default();
+        let orchestrator_panel = OrchestratorPanel::default();
         let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
@@ -669,21 +670,6 @@ impl MiniDaw {
         }
     }
 
-    #[allow(dead_code)]
-    #[allow(unused_mut)]
-    #[allow(unused_variables)]
-    fn handle_palette_action(&mut self, action: PaletteAction) {
-        if let Ok(mut o) = self.orchestrator.lock() {
-            match action {
-                PaletteAction::NewEntity(_key) => {
-                    // if let Some(track) = o.get_single_selected_track_uid() {
-                    //     //                        let _ = o.add_thing_by_key(&key, track);
-                    // }
-                }
-            }
-        }
-    }
-
     fn show_top(&mut self, ui: &mut Ui) {
         if let Some(action) = self
             .menu_bar
@@ -720,9 +706,11 @@ impl MiniDaw {
         ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
-    fn show_center(&mut self, ui: &mut Ui, is_shift_only_down: bool) {
+    fn show_center(&mut self, ui: &mut Ui, is_control_only_down: bool) {
         ScrollArea::vertical().show(ui, |ui| {
-            self.orchestrator_panel.show(ui, is_shift_only_down);
+            self.orchestrator_panel
+                .set_control_only_down(is_control_only_down);
+            self.orchestrator_panel.ui(ui);
         });
     }
 

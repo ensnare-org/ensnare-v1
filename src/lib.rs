@@ -138,6 +138,7 @@ pub mod ui {
     pub use ensnare_core::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
+        pub use ensnare_core::panels::{audio_settings, midi_settings};
         pub use ensnare_core::widgets::{
             audio, control, controllers, pattern, placeholder, timeline, track,
         };
@@ -153,16 +154,15 @@ pub mod panels {
     /// `use ensnare::panels::prelude::*;` when working with panels.
     pub mod prelude {
         pub use super::{
-            AudioPanel, AudioPanelEvent, ControlPanel, ControlPanelAction, MidiPanel,
-            MidiPanelEvent, OldOrchestratorPanel, OrchestratorEvent, OrchestratorInput,
-            OrchestratorPanel, PalettePanel,
+            AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction,
+            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
+            OrchestratorInput, OrchestratorPanel, PalettePanel,
         };
     }
     pub use ensnare_core::panels::{
-        audio_settings, midi_settings, AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel,
-        ControlPanelAction, MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn,
-        OldOrchestratorPanel, OrchestratorEvent, OrchestratorInput, OrchestratorPanel,
-        PalettePanel,
+        AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction, MidiPanel,
+        MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput,
+        OrchestratorPanel, PalettePanel,
     };
 }
 
