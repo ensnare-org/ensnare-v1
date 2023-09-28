@@ -69,7 +69,7 @@ assets = [
     # "You can use target/release/ in asset paths, even if Cargo is configured
     # to cross-compile or use custom CARGO_TARGET_DIR. The target dir paths will
     # be automatically corrected." https://github.com/kornelski/cargo-deb
-    ["LICENSE.txt", "usr/share/doc/ensnare/LICENSE.md", "644"],
+    ["LICENSE.md", "usr/share/doc/ensnare/LICENSE.md", "644"],
     ["README.md", "usr/share/doc/ensnare/README.md", "644"],
     ["assets-nodist/os/ensnare.desktop", "usr/share/applications/", "644"],
     ["assets/patches/**/*.json", "usr/share/ensnare/patches/", "644"],
