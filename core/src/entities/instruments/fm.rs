@@ -9,7 +9,7 @@ use crate::{
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
-use eframe::egui::Ui;
+use eframe::egui::{CollapsingHeader, DragValue, Ui};
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -346,6 +346,67 @@ impl FmSynth {
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        ui.label(self.name())
+        ui.heading(self.name());
+        let mut depth = self.depth.to_percentage();
+        let depth_response = ui.add(
+            DragValue::new(&mut depth)
+                .prefix("Depth: ")
+                .speed(0.1)
+                .fixed_decimals(2)
+                .clamp_range(0.0..=100.0),
+        );
+        if depth_response.changed() {
+            self.set_depth((depth / 100.0).into());
+        }
+        let mut ratio = self.ratio.value();
+        let ratio_response = ui.add(
+            DragValue::new(&mut ratio)
+                .prefix("Ratio: ")
+                .speed(0.1)
+                .fixed_decimals(1)
+                .clamp_range(0.1..=32.0),
+        );
+        if ratio_response.changed() {
+            self.set_ratio(ratio.into());
+        }
+        let mut beta = self.beta;
+        let beta_response = ui.add(
+            DragValue::new(&mut beta)
+                .prefix("Beta: ")
+                .speed(0.1)
+                .fixed_decimals(1)
+                .clamp_range(0.1..=100.0),
+        );
+        if beta_response.changed() {
+            self.set_beta(beta);
+        }
+
+        CollapsingHeader::new("Carrier")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if self.carrier_envelope.ui(ui).changed() {
+                    self.inner_synth.voices_mut().for_each(|v| {
+                        v.set_carrier_envelope(Envelope::new_with(
+                            &self.carrier_envelope.to_params(),
+                        ));
+                    });
+                }
+            });
+
+        CollapsingHeader::new("Modulator")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if self.modulator_envelope.ui(ui).changed() {
+                    self.inner_synth.voices_mut().for_each(|v| {
+                        v.set_modulator_envelope(Envelope::new_with(
+                            &self.modulator_envelope.to_params(),
+                        ));
+                    });
+                }
+            });
+
+        depth_response | ratio_response | beta_response
     }
 }
