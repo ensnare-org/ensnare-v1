@@ -137,6 +137,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         ))
     });
     factory.register_entity(EntityKey::from("fm-synth"), || {
+        // A crisp, classic FM sound that brings me back to 1985.
         Box::new(FmSynth::new_with(&FmSynthParams {
             depth: 1.0.into(),
             ratio: 16.0.into(),
