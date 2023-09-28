@@ -3,9 +3,10 @@
 use crate::{
     controllers::{ControlTrip, Timer, Trigger},
     entities::prelude::*,
-    generators::Waveform,
+    generators::{EnvelopeParams, Waveform},
     midi::MidiChannel,
     mini_sequencer::SequencerBuilder,
+    modulators::DcaParams,
     prelude::*,
     traits::prelude::*,
     uid::Uid,
@@ -136,7 +137,14 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         ))
     });
     factory.register_entity(EntityKey::from("fm-synth"), || {
-        Box::new(FmSynth::new_with(&FmSynthParams::default()))
+        Box::new(FmSynth::new_with(&FmSynthParams {
+            depth: 0.5.into(),
+            ratio: 2.5.into(),
+            beta: 0.25.into(),
+            carrier_envelope: EnvelopeParams::safe_default(),
+            modulator_envelope: EnvelopeParams::default(),
+            dca: DcaParams::default(),
+        }))
     });
     factory.register_entity(EntityKey::from("sampler"), || {
         Box::new(Sampler::new_with(
