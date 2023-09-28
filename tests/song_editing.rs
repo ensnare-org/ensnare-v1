@@ -26,7 +26,7 @@ fn edit_song() {
         let mut piano_roll = orchestrator.piano_roll_mut();
         piano_roll.insert(drum_pattern)
     };
-    {
+    let drum_pattern = {
         let mut piano_roll = orchestrator.piano_roll_mut();
         let drum_pattern = piano_roll.get_pattern_mut(&drum_pattern_uid).unwrap();
 
@@ -58,7 +58,10 @@ fn edit_song() {
                 MusicalTime::DURATION_SIXTEENTH,
             )
             .unwrap();
-    }
+        drum_pattern.clone()
+    };
+
+    // TEMP while we decide if patterns or notes are the basic sequencer unit
 
     // Pattern is good; add an instrument to the track.
     let rhythm_track = orchestrator.get_track_mut(&rhythm_track_uid).unwrap();
@@ -73,7 +76,7 @@ fn edit_song() {
     // Arrange the drum pattern.
     let _ = rhythm_track
         .sequencer_mut()
-        .arrange_pattern(&drum_pattern_uid, 0);
+        .insert_pattern(&drum_pattern, MusicalTime::START);
 
     // Now set up the lead track. We need a pattern; we'll whip up something
     // quickly because we already showed the editing process while making the
@@ -87,9 +90,9 @@ fn edit_song() {
         )
         .build()
         .unwrap();
-    let lead_pattern_uid = {
+    let _ = {
         let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(lead_pattern)
+        piano_roll.insert(lead_pattern.clone())
     };
 
     let lead_track = orchestrator.get_track_mut(&lead_track_uid).unwrap();
@@ -117,7 +120,7 @@ fn edit_song() {
     // Arrange the lead pattern.
     let _ = lead_track
         .sequencer_mut()
-        .arrange_pattern(&lead_pattern_uid, 0);
+        .insert_pattern(&lead_pattern, MusicalTime::START);
 
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
     let output_path: std::path::PathBuf =

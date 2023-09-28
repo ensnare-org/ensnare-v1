@@ -314,6 +314,13 @@ impl Displays for OrchestratorPanel {
         if let Some(action) = o.take_action() {
             self.handle_action(&mut o, action);
         }
+
+        // If we're performing, then we know the screen is updating, so we
+        // should draw it..
+        if o.is_performing() {
+            ui.ctx().request_repaint();
+        }
+
         response
     }
 }

@@ -15,25 +15,20 @@ fn demo_sidechaining() {
     let factory = register_factory_entities(EntityFactory::default());
 
     // Add the sidechain source track.
-    let sidechain_pattern_uid = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    let sidechain_pattern = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
+            ],
+            None,
         )
-    };
+        .build()
+        .unwrap();
     let sidechain_track_uid = orchestrator.new_midi_track().unwrap();
     let track = orchestrator.get_track_mut(&sidechain_track_uid).unwrap();
     let _ = track
         .sequencer_mut()
-        .arrange_pattern(&sidechain_pattern_uid, 0);
+        .insert_pattern(&sidechain_pattern, MusicalTime::START);
     let _drumkit_uid = track
         .append_entity(factory.new_entity(&EntityKey::from("toy-synth")).unwrap())
         .unwrap();
@@ -51,21 +46,18 @@ fn demo_sidechaining() {
         .unwrap();
 
     // Add the lead track that we want to duck.
-    let lead_pattern_uid = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note(Note {
-                    key: MidiNote::C4 as u8,
-                    range: MusicalTime::START..MusicalTime::new_with_beats(4),
-                })
-                .build()
-                .unwrap(),
-        )
-    };
+    let lead_pattern = PatternBuilder::default()
+        .note(Note {
+            key: MidiNote::C4 as u8,
+            range: MusicalTime::START..MusicalTime::new_with_beats(4),
+        })
+        .build()
+        .unwrap();
     let lead_track_uid = orchestrator.new_midi_track().unwrap();
     let track = orchestrator.get_track_mut(&lead_track_uid).unwrap();
-    let _ = track.sequencer_mut().arrange_pattern(&lead_pattern_uid, 0);
+    let _ = track
+        .sequencer_mut()
+        .insert_pattern(&lead_pattern, MusicalTime::START);
     let _synth_uid = track
         .append_entity(factory.new_entity(&EntityKey::from("toy-synth")).unwrap())
         .unwrap();

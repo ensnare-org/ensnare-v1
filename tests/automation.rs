@@ -32,8 +32,14 @@ fn demo_automation() {
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = orchestrator.new_midi_track().unwrap();
+    let pattern = {
+        let piano_roll = orchestrator.piano_roll();
+        piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone()
+    };
     let track = orchestrator.get_track_mut(&track_uid).unwrap();
-    let _ = track.sequencer_mut().arrange_pattern(&scale_pattern_uid, 0);
+    let _ = track
+        .sequencer_mut()
+        .insert_pattern(&pattern, MusicalTime::new_with_beats(0));
 
     // Add a synth to play the pattern.
     let synth_uid = track
@@ -85,26 +91,23 @@ fn demo_control_trips() {
 
     let factory = register_factory_entities(EntityFactory::default());
 
-    // Add the lead pattern to the PianoRoll.
-    let scale_pattern_uid = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    // Create the lead pattern.
+    let scale_pattern = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+            ],
+            None,
         )
-    };
+        .build()
+        .unwrap();
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = orchestrator.new_midi_track().unwrap();
     let track = orchestrator.get_track_mut(&track_uid).unwrap();
-    let _ = track.sequencer_mut().arrange_pattern(&scale_pattern_uid, 0);
+    let _ = track
+        .sequencer_mut()
+        .insert_pattern(&scale_pattern, MusicalTime::new_with_beats(0));
 
     // Add a synth to play the pattern.
     let synth_uid = track

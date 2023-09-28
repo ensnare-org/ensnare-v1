@@ -89,6 +89,7 @@ impl TimelineSettings {
                 &mut self.control_router,
                 self.range.clone(),
                 self.view_range.clone(),
+                None,
                 self.focused,
             ));
         }
@@ -188,103 +189,6 @@ impl Displays for DevicePaletteSettings {
     }
 }
 
-/// Wraps a [DeviceChain] as a [Widget](eframe::egui::Widget). Mutates many things.
-pub fn device_chain<'a>(
-    track_uid: TrackUid,
-    store: &'a mut EntityStore,
-    controllers: &'a mut Vec<Uid>,
-    instruments: &'a mut Vec<Uid>,
-    effects: &'a mut Vec<Uid>,
-    action: &'a mut Option<DeviceChainAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        DeviceChain::new(track_uid, store, controllers, instruments, effects, action).ui(ui)
-    }
-}
-
-#[derive(Debug)]
-pub enum DeviceChainAction {
-    NewDevice(EntityKey),
-}
-
-#[derive(Debug)]
-struct DeviceChain<'a> {
-    #[allow(dead_code)]
-    track_uid: TrackUid,
-    store: &'a mut EntityStore,
-    controllers: &'a mut Vec<Uid>,
-    instruments: &'a mut Vec<Uid>,
-    effects: &'a mut Vec<Uid>,
-
-    action: &'a mut Option<DeviceChainAction>,
-
-    is_large_size: bool,
-}
-impl<'a> DeviceChain<'a> {
-    fn new(
-        track_uid: TrackUid,
-        store: &'a mut EntityStore,
-        controllers: &'a mut Vec<Uid>,
-        instruments: &'a mut Vec<Uid>,
-        effects: &'a mut Vec<Uid>,
-        action: &'a mut Option<DeviceChainAction>,
-    ) -> Self {
-        Self {
-            track_uid,
-            store,
-            controllers,
-            instruments,
-            effects,
-            action,
-            is_large_size: false,
-        }
-    }
-
-    fn can_accept(&self) -> bool {
-        if let Some(source) = DragDropManager::source() {
-            matches!(source, DragDropSource::NewDevice(_))
-        } else {
-            false
-        }
-    }
-
-    fn check_drop(&mut self) {
-        if let Some(source) = DragDropManager::source() {
-            if let DragDropSource::NewDevice(key) = source {
-                *self.action = Some(DeviceChainAction::NewDevice(key))
-            }
-        }
-    }
-}
-impl<'a> Displays for DeviceChain<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        let desired_size = if self.is_large_size {
-            vec2(ui.available_width(), 256.0)
-        } else {
-            vec2(ui.available_width(), 32.0)
-        };
-        ui.allocate_ui(desired_size, |ui| {
-            ui.horizontal_top(|ui| {
-                self.controllers
-                    .iter()
-                    .chain(self.instruments.iter().chain(self.effects.iter()))
-                    .for_each(|uid| {
-                        if let Some(entity) = self.store.get_mut(uid) {
-                            entity.ui(ui);
-                        }
-                    });
-                let response =
-                    DragDropManager::drop_target(ui, self.can_accept(), |ui| ui.label("+"))
-                        .response;
-                if DragDropManager::is_dropped(ui, &response) {
-                    self.check_drop();
-                }
-            })
-        })
-        .response
-    }
-}
-
 #[derive(Debug, Default)]
 struct DeviceChainSettings {
     hide: bool,
@@ -301,7 +205,7 @@ impl DeviceChainSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(device_chain(
+            ui.add(track::device_chain(
                 self.track_uid,
                 &mut self.store,
                 &mut self.controllers,
@@ -310,10 +214,6 @@ impl DeviceChainSettings {
                 &mut self.action,
             ));
         }
-    }
-
-    fn check_and_reset_action(&mut self) -> Option<DeviceChainAction> {
-        self.action.take()
     }
 
     // This duplicates some code in Orchestrator.
@@ -334,6 +234,13 @@ impl DeviceChainSettings {
 impl Displays for DeviceChainSettings {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
+    }
+}
+impl Acts for DeviceChainSettings {
+    type Action = DeviceChainAction;
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.action.take()
     }
 }
 
@@ -545,7 +452,7 @@ impl TitleBarSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(track::title_bar(&mut self.title.0));
+            ui.add(track::title_bar(&mut self.title));
         }
     }
 }
@@ -873,7 +780,7 @@ impl eframe::App for Explorer {
         // TODO: this is bad design because it does non-GUI processing during
         // the update() method. It's OK here because this is a widget explorer,
         // not a time-critical app.
-        if let Some(action) = self.device_chain.check_and_reset_action() {
+        if let Some(action) = self.device_chain.take_action() {
             match action {
                 DeviceChainAction::NewDevice(key) => {
                     eprintln!("DeviceChainAction::NewDevice({key})");

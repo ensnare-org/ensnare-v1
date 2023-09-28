@@ -26,12 +26,14 @@ pub fn timeline<'a>(
     control_router: &'a mut ControlRouter,
     range: std::ops::Range<MusicalTime>,
     view_range: std::ops::Range<MusicalTime>,
+    cursor: Option<MusicalTime>,
     focused: FocusedComponent,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
         Timeline::new(track_uid, sequencer, control_atlas, control_router)
             .range(range)
             .view_range(view_range)
+            .cursor(cursor)
             .focused(focused)
             .ui(ui)
     }
@@ -48,6 +50,19 @@ pub fn grid(
     view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget {
     move |ui: &mut eframe::egui::Ui| Grid::default().range(range).view_range(view_range).ui(ui)
+}
+
+/// Wraps a [Cursor] as a [Widget](eframe::egui::Widget).
+pub fn cursor(
+    position: MusicalTime,
+    view_range: std::ops::Range<MusicalTime>,
+) -> impl eframe::egui::Widget {
+    move |ui: &mut eframe::egui::Ui| {
+        Cursor::default()
+            .position(position)
+            .view_range(view_range)
+            .ui(ui)
+    }
 }
 
 /// Wraps an [EmptySpace] as a [Widget](eframe::egui::Widget).
@@ -184,6 +199,50 @@ impl Displays for Grid {
     }
 }
 
+/// An egui widget that draws a representation of the playback cursor.
+#[derive(Debug, Default)]
+pub struct Cursor {
+    /// The cursor position.
+    position: MusicalTime,
+
+    /// The GUI view's time range.
+    view_range: std::ops::Range<MusicalTime>,
+}
+impl Cursor {
+    fn position(mut self, position: MusicalTime) -> Self {
+        self.position = position;
+        self
+    }
+    fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
+        self.set_view_range(&view_range);
+        self
+    }
+}
+impl DisplaysInTimeline for Cursor {
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.view_range = view_range.clone();
+    }
+}
+impl Displays for Cursor {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let desired_size = vec2(ui.available_width(), 64.0);
+        let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
+        let to_screen = RectTransform::from_to(
+            eframe::epaint::Rect::from_x_y_ranges(
+                self.view_range.start.total_units() as f32
+                    ..=self.view_range.end.total_units() as f32,
+                0.0..=1.0,
+            ),
+            rect,
+        );
+        let visuals = ui.ctx().style().visuals.widgets.noninteractive;
+        let start = to_screen * pos2(self.position.total_units() as f32, 0.0);
+        let end = to_screen * pos2(self.position.total_units() as f32, 1.0);
+        ui.painter().line_segment([start, end], visuals.fg_stroke);
+        response
+    }
+}
+
 /// An egui widget that displays nothing in the timeline view. This is useful as
 /// a DnD target.
 #[derive(Debug, Default)]
@@ -265,6 +324,9 @@ struct Timeline<'a> {
     /// The part of the timeline that is viewable.
     view_range: std::ops::Range<MusicalTime>,
 
+    /// If present, then the moment that's currently playing.
+    cursor: Option<MusicalTime>,
+
     /// Which component is currently enabled,
     focused: FocusedComponent,
 
@@ -342,14 +404,21 @@ impl<'a> Timeline<'a> {
             track_uid,
             range: Default::default(),
             view_range: Default::default(),
+            cursor: None,
             focused: Default::default(),
             sequencer,
             control_atlas,
             control_router,
         }
     }
+
     fn range(mut self, range: std::ops::Range<MusicalTime>) -> Self {
         self.range = range;
+        self
+    }
+
+    fn cursor(mut self, cursor: Option<MusicalTime>) -> Self {
+        self.cursor = cursor;
         self
     }
 
@@ -423,6 +492,17 @@ impl<'a> Timeline<'a> {
                     ui.add(es_sequencer(self.sequencer, self.view_range.clone()))
                 })
                 .inner;
+        }
+
+        // Finally, if it's present, draw the cursor.
+        if let Some(position) = self.cursor {
+            if self.view_range.contains(&position) {
+                response |= ui
+                    .allocate_ui_at_rect(rect, |ui| {
+                        ui.add(cursor(position, self.view_range.clone()))
+                    })
+                    .inner;
+            }
         }
         response
     }

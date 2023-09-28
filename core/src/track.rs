@@ -5,15 +5,15 @@ use crate::{
     controllers::ControlAtlas,
     drag_drop::{DragDropManager, DragDropSource},
     entities::prelude::*,
+    even_smaller_sequencer::ESSequencer,
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
-    mini_sequencer::Sequencer,
     piano_roll::PianoRoll,
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
-    widgets::{control, placeholder, track},
+    widgets::{control, placeholder},
 };
 use anyhow::anyhow;
 use eframe::{
@@ -96,7 +96,7 @@ impl TrackFactory {
             ty: TrackType::Midi,
             ..Default::default()
         };
-        t.sequencer_mut().set_piano_roll(Arc::clone(piano_roll));
+        //        t.sequencer_mut().set_piano_roll(Arc::clone(piano_roll));
 
         t
     }
@@ -150,37 +150,13 @@ pub enum TrackUiState {
     Expanded,
 }
 
-// /// I am fake! Replace after big move
-// #[derive(Debug, Default, Serialize, Deserialize)]
-// pub struct Sequencer {}
-// impl Sequencer {
-//     fn ui(&self, ui: &mut Ui) -> Response {
-//         todo!()
-//     }
-
-//     pub fn ui_arrangement(&self, ui: &mut Ui, uid: TrackUid) -> (u8, u8) {
-//         todo!()
-//     }
-
-//     pub fn set_piano_roll(&self, _piano_roll: Arc<RwLock<PianoRoll>>) {
-//         eprintln!("totally fake!");
-//     }
-// }
-// impl Configurable for Sequencer {}
-// impl Controls for Sequencer {}
-// impl Serializable for Sequencer {}
-// impl Displays for Sequencer {}
-// impl DisplaysInTimeline for Sequencer {}
-
 #[derive(Debug, Default)]
 pub struct TrackEphemerals {
     buffer: TrackBuffer,
     is_sequencer_open: bool,
     piano_roll: Arc<RwLock<PianoRoll>>,
-    action: Option<TrackAction>,
+    pub(crate) action: Option<TrackAction>,
     view_range: std::ops::Range<MusicalTime>,
-    is_selected: bool,
-    ui_state: TrackUiState,
 }
 
 /// A collection of instruments, effects, and controllers that combine to
@@ -191,27 +167,27 @@ pub struct Track {
     title: TrackTitle,
     ty: TrackType,
 
-    entity_store: EntityStore,
+    pub(crate) entity_store: EntityStore,
 
-    sequencer: Sequencer,
+    pub(crate) sequencer: ESSequencer,
     midi_router: MidiRouter,
 
     /// [ControlAtlas] manages the sources of Control events. It generates
     /// events but does not handle their routing.
-    control_atlas: ControlAtlas,
+    pub(crate) control_atlas: ControlAtlas,
     /// [ControlRouter] manages the destinations of Control events. It does not
     /// generate events, but when events are generated, it knows where to route
     /// them.
-    control_router: ControlRouter,
+    pub(crate) control_router: ControlRouter,
 
-    controllers: Vec<Uid>,
-    instruments: Vec<Uid>,
-    effects: Vec<Uid>,
+    pub(crate) controllers: Vec<Uid>,
+    pub(crate) instruments: Vec<Uid>,
+    pub(crate) effects: Vec<Uid>,
 
     humidifier: Humidifier,
 
     #[serde(skip)]
-    e: TrackEphemerals,
+    pub(crate) e: TrackEphemerals,
 }
 impl Track {
     #[allow(missing_docs)]
@@ -415,11 +391,11 @@ impl Track {
         if matches!(track_type, TrackType::Aux) {
             Self::device_view_height(ui_state)
         } else {
-            Self::arrangement_view_height(ui_state) + Self::device_view_height(ui_state)
+            Self::timeline_view_height(ui_state) + Self::device_view_height(ui_state)
         }
     }
 
-    const fn arrangement_view_height(_ui_state: TrackUiState) -> f32 {
+    pub(crate) const fn timeline_view_height(_ui_state: TrackUiState) -> f32 {
         64.0
     }
 
@@ -433,7 +409,7 @@ impl Track {
     /// Renders a MIDI [Track]'s arrangement view, which is an overview of some or
     /// all of the track's project timeline.
     fn ui_contents_midi(&mut self, ui: &mut Ui) {
-        let (_response, _action) = self.sequencer.ui_arrangement(ui, self.uid);
+        //        let (_response, _action) = self.sequencer.ui_arrangement(ui, self.uid);
     }
 
     /// Renders an audio [Track]'s arrangement view, which is an overview of some or
@@ -446,7 +422,7 @@ impl Track {
     fn ui_device_view(&mut self, ui: &mut Ui) -> Option<TrackAction> {
         let mut action = None;
         let mut drag_and_drop_action = None;
-        let desired_size = vec2(128.0, Self::device_view_height(self.e.ui_state));
+        let desired_size = vec2(128.0, Self::device_view_height(TrackUiState::Expanded)); // TODO self.e.ui_state
 
         ui.horizontal(|ui| {
             if self.e.is_sequencer_open {
@@ -581,7 +557,7 @@ impl Track {
     }
 
     #[allow(missing_docs)]
-    pub fn sequencer_mut(&mut self) -> &mut Sequencer {
+    pub fn sequencer_mut(&mut self) -> &mut ESSequencer {
         &mut self.sequencer
     }
 
@@ -640,14 +616,12 @@ impl Track {
         &mut self.control_atlas
     }
 
-    #[allow(missing_docs)]
-    pub fn set_is_selected(&mut self, selected: bool) {
-        self.e.is_selected = selected;
+    pub fn title_mut(&mut self) -> &mut TrackTitle {
+        &mut self.title
     }
 
-    #[allow(missing_docs)]
-    pub fn set_ui_state(&mut self, ui_state: TrackUiState) {
-        self.e.ui_state = ui_state;
+    pub fn view_range(&self) -> &std::ops::Range<MusicalTime> {
+        &self.e.view_range
     }
 }
 impl Acts for Track {
@@ -837,7 +811,7 @@ impl Serializable for Track {
 }
 impl DisplaysInTimeline for Track {
     fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
-        self.sequencer.set_view_range(view_range);
+        //  self.sequencer.set_view_range(view_range);
         self.e.view_range = view_range.clone();
     }
 }
@@ -845,85 +819,128 @@ impl Displays for Track {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         self.e.action = None;
 
-        // The inner_margin() should be half of the Frame stroke width to leave
-        // room for it. Thanks vikrinox on the egui Discord.
+        {
+            // Draw the arrangement view.
+            Frame::default()
+                .inner_margin(Margin::same(0.5))
+                .outer_margin(Margin::same(0.5))
+                .stroke(Stroke {
+                    width: 1.0,
+                    color: Color32::DARK_GRAY,
+                })
+                .show(ui, |ui| {
+                    ui.set_min_size(ui.available_size());
+                    match self.ty {
+                        TrackType::Midi => self.ui_contents_midi(ui),
+                        TrackType::Audio => self.ui_contents_audio(ui),
+                        _ => panic!(),
+                    }
+                    ui.add(control::atlas(
+                        &mut self.control_atlas,
+                        &mut self.control_router,
+                        self.e.view_range.clone(),
+                    ));
+                });
+        }
+
+        // Now the device view.
         Frame::default()
             .inner_margin(Margin::same(0.5))
+            .outer_margin(Margin::same(0.5))
             .stroke(Stroke {
                 width: 1.0,
-                color: {
-                    if self.e.is_selected {
-                        Color32::YELLOW
-                    } else {
-                        Color32::DARK_GRAY
-                    }
-                },
+                color: Color32::DARK_GRAY,
             })
             .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.set_min_height(Self::track_view_height(self.ty, self.e.ui_state));
+                if let Some(track_action) = self.ui_device_view(ui) {
+                    self.e.action = Some(track_action);
+                }
+            });
 
-                    // The `Response` is based on the title bar, so
-                    // clicking/dragging on the title bar affects the `Track` as a
-                    // whole.
-                    let response = ui.add(track::title_bar(&mut self.title.0));
+        ui.label("I'm the response")
+    }
+}
 
-                    // Take up all the space we're given, even if we can't fill
-                    // it with widget content.
-                    ui.set_min_size(ui.available_size());
+#[derive(Debug)]
+pub enum DeviceChainAction {
+    NewDevice(EntityKey),
+}
 
-                    // The frames shouldn't have space between them.
-                    ui.style_mut().spacing.item_spacing = Vec2::ZERO;
+#[derive(Debug)]
+pub struct DeviceChain<'a> {
+    #[allow(dead_code)]
+    track_uid: TrackUid,
+    store: &'a mut EntityStore,
+    controllers: &'a mut Vec<Uid>,
+    instruments: &'a mut Vec<Uid>,
+    effects: &'a mut Vec<Uid>,
 
-                    // Build the track content with the device view beneath it.
-                    ui.vertical(|ui| {
-                        // Only MIDI/audio tracks have content.
-                        if !matches!(self.ty, TrackType::Aux) {
-                            // Reserve space for the device view.
-                            ui.set_max_height(Self::arrangement_view_height(self.e.ui_state));
+    action: &'a mut Option<DeviceChainAction>,
 
-                            // Draw the arrangement view.
-                            Frame::default()
-                                .inner_margin(Margin::same(0.5))
-                                .outer_margin(Margin::same(0.5))
-                                .stroke(Stroke {
-                                    width: 1.0,
-                                    color: Color32::DARK_GRAY,
-                                })
-                                .show(ui, |ui| {
-                                    ui.set_min_size(ui.available_size());
-                                    match self.ty {
-                                        TrackType::Midi => self.ui_contents_midi(ui),
-                                        TrackType::Audio => self.ui_contents_audio(ui),
-                                        _ => panic!(),
-                                    }
-                                    ui.add(control::atlas(
-                                        &mut self.control_atlas,
-                                        &mut self.control_router,
-                                        self.e.view_range.clone(),
-                                    ));
-                                });
+    is_large_size: bool,
+}
+impl<'a> DeviceChain<'a> {
+    pub fn new(
+        track_uid: TrackUid,
+        store: &'a mut EntityStore,
+        controllers: &'a mut Vec<Uid>,
+        instruments: &'a mut Vec<Uid>,
+        effects: &'a mut Vec<Uid>,
+        action: &'a mut Option<DeviceChainAction>,
+    ) -> Self {
+        Self {
+            track_uid,
+            store,
+            controllers,
+            instruments,
+            effects,
+            action,
+            is_large_size: false,
+        }
+    }
+
+    fn can_accept(&self) -> bool {
+        if let Some(source) = DragDropManager::source() {
+            matches!(source, DragDropSource::NewDevice(_))
+        } else {
+            false
+        }
+    }
+
+    fn check_drop(&mut self) {
+        if let Some(source) = DragDropManager::source() {
+            if let DragDropSource::NewDevice(key) = source {
+                *self.action = Some(DeviceChainAction::NewDevice(key))
+            }
+        }
+    }
+}
+impl<'a> Displays for DeviceChain<'a> {
+    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+        let desired_size = if self.is_large_size {
+            vec2(ui.available_width(), 256.0)
+        } else {
+            vec2(ui.available_width(), 32.0)
+        };
+        ui.allocate_ui(desired_size, |ui| {
+            ui.horizontal_top(|ui| {
+                self.controllers
+                    .iter()
+                    .chain(self.instruments.iter().chain(self.effects.iter()))
+                    .for_each(|uid| {
+                        if let Some(entity) = self.store.get_mut(uid) {
+                            entity.ui(ui);
                         }
-
-                        // Now the device view.
-                        Frame::default()
-                            .inner_margin(Margin::same(0.5))
-                            .outer_margin(Margin::same(0.5))
-                            .stroke(Stroke {
-                                width: 1.0,
-                                color: Color32::DARK_GRAY,
-                            })
-                            .show(ui, |ui| {
-                                if let Some(track_action) = self.ui_device_view(ui) {
-                                    self.e.action = Some(track_action);
-                                }
-                            });
                     });
-                    response
-                })
-                .inner
+                let response =
+                    DragDropManager::drop_target(ui, self.can_accept(), |ui| ui.label("+"))
+                        .response;
+                if DragDropManager::is_dropped(ui, &response) {
+                    self.check_drop();
+                }
             })
-            .inner
+        })
+        .response
     }
 }
 

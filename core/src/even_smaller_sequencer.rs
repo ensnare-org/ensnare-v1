@@ -2,7 +2,7 @@
 
 use crate::{
     midi::prelude::*,
-    piano_roll::{Note, Pattern},
+    piano_roll::{Note, Pattern, PatternUid, PianoRoll},
     prelude::*,
     rng::Rng,
     traits::prelude::*,

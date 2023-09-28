@@ -16,7 +16,7 @@ use crate::{
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::Uid,
-    widgets::timeline,
+    widgets::{timeline, track},
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
@@ -31,7 +31,7 @@ use std::{
     fmt::Debug,
     ops::Range,
     path::PathBuf,
-    sync::{Arc, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec::Vec,
 };
 
@@ -94,7 +94,7 @@ pub struct Orchestrator {
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
     // feature enabled for Serde.
-    piano_roll: Arc<RwLock<PianoRoll>>,
+    pub piano_roll: Arc<RwLock<PianoRoll>>,
 
     bus_station: BusStation,
 
@@ -118,7 +118,7 @@ impl Default for Orchestrator {
             .build()
             .unwrap();
         let view_range =
-            MusicalTime::START..MusicalTime::new_with_beats(transport.time_signature().top);
+            MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4);
         Self {
             title: None,
             transport,
@@ -415,6 +415,11 @@ impl Orchestrator {
     }
 
     /// Returns the one and only [PianoRoll].
+    pub fn piano_roll(&self) -> RwLockReadGuard<'_, PianoRoll> {
+        self.piano_roll.read().unwrap()
+    }
+
+    /// Returns the one and only [PianoRoll] (mutable).
     pub fn piano_roll_mut(&self) -> RwLockWriteGuard<'_, PianoRoll> {
         self.piano_roll.write().unwrap()
     }
@@ -471,6 +476,22 @@ impl Orchestrator {
     #[allow(missing_docs)]
     pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
         self.e.track_selection_set = track_selection_set;
+    }
+
+    fn handle_track_action(&mut self, uid: TrackUid, action: TrackAction) {
+        if let Some(track) = self.get_track_mut(&uid) {
+            match action {
+                TrackAction::SetTitle(t) => {
+                    track.set_title(t);
+                }
+                TrackAction::ToggleDisclosure => {
+                    self.e.action = Some(OrchestratorAction::DoubleClickTrack(track.uid()));
+                }
+                TrackAction::NewDevice(track_uid, key) => {
+                    self.e.action = Some(OrchestratorAction::NewDeviceForTrack(track_uid, key))
+                }
+            }
+        }
     }
 }
 impl Acts for Orchestrator {
@@ -705,6 +726,9 @@ impl Serializable for Orchestrator {
 impl DisplaysInTimeline for Orchestrator {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.view_range = view_range.clone();
+        self.tracks
+            .values_mut()
+            .for_each(|t| t.set_view_range(&view_range));
     }
 }
 impl Displays for Orchestrator {
@@ -723,41 +747,54 @@ impl Displays for Orchestrator {
                 ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
                     .show(ui, |ui| {
-                        ui.add(timeline::legend(&mut self.view_range));
+                        // The timeline needs to be aligned with the track
+                        // content, so we create an empty track title bar to
+                        // match with the real ones.
+                        ui.horizontal(|ui| {
+                            let mut dummy_track_title = TrackTitle::default();
+                            ui.add_enabled(false, track::title_bar(&mut dummy_track_title));
+                            ui.add(timeline::legend(&mut self.view_range));
+                        });
+
+                        let mut track_action = None;
+                        let mut track_action_track_uid = None;
                         for track_uid in self.track_uids.iter() {
                             if let Some(track) = self.tracks.get_mut(track_uid) {
+                                track.set_view_range(&self.view_range);
                                 let track_ui_state = self
                                     .track_ui_states
                                     .get(track_uid)
                                     .cloned()
                                     .unwrap_or_default();
-                                let height = Track::track_view_height(track.ty(), track_ui_state);
-                                let desired_size = vec2(ui.available_width(), height);
+                                let is_selected = self.e.track_selection_set.contains(track_uid);
+                                let desired_size = vec2(
+                                    ui.available_width(),
+                                    Track::track_view_height(track.ty(), track_ui_state),
+                                );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);
-                                    track.set_is_selected(
-                                        self.e.track_selection_set.contains(track_uid),
-                                    );
-                                    track.set_ui_state(track_ui_state);
-                                    let response = track.ui(ui);
-                                    let action = track.take_action();
-
-                                    if let Some(action) = action {
-                                        match action {
-                                            TrackAction::SetTitle(t) => {
-                                                track.set_title(t);
-                                            }
-                                            TrackAction::ToggleDisclosure => {
-                                                self.e.action =
-                                                    Some(OrchestratorAction::DoubleClickTrack(
-                                                        *track_uid,
-                                                    ));
-                                            }
+                                    let mut track_action = None;
+                                    let cursor = if self.transport.is_performing() {
+                                        Some(self.transport.current_time())
+                                    } else {
+                                        None
+                                    };
+                                    let response = ui.add(track::track(
+                                        track,
+                                        is_selected,
+                                        track_ui_state,
+                                        cursor,
+                                        &mut track_action,
+                                    ));
+                                    if let Some(track_action) = track_action {
+                                        match track_action {
+                                            TrackAction::SetTitle(_) => todo!(),
+                                            TrackAction::ToggleDisclosure => todo!(),
                                             TrackAction::NewDevice(track_uid, key) => {
                                                 self.e.action =
                                                     Some(OrchestratorAction::NewDeviceForTrack(
                                                         track_uid, key,
-                                                    ))
+                                                    ));
                                             }
                                         }
                                     }
@@ -769,6 +806,15 @@ impl Displays for Orchestrator {
                                             Some(OrchestratorAction::ClickTrack(*track_uid));
                                     }
                                 });
+                                if let Some(action) = track.take_action() {
+                                    track_action = Some(action);
+                                    track_action_track_uid = Some(*track_uid);
+                                }
+                            }
+                        }
+                        if let Some(action) = track_action {
+                            if let Some(track_uid) = track_action_track_uid {
+                                self.handle_track_action(track_uid, action);
                             }
                         }
                     });

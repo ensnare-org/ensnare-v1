@@ -15,6 +15,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{panels::prelude::*, prelude::*, version::app_version};
+use ensnare_core::widgets::core::transport;
 use env_logger;
 use settings::{Settings, SettingsPanel};
 use std::sync::{Arc, Mutex};
@@ -299,7 +300,12 @@ impl Application {
         //     self.handle_menu_bar_action(action);
         // }
         // ui.separator();
-        self.control_panel.ui(ui);
+        ui.horizontal_centered(|ui| {
+            if let Ok(mut o) = self.orchestrator.lock() {
+                ui.add(transport(o.transport_mut()));
+            }
+            self.control_panel.ui(ui);
+        });
         if let Some(action) = self.control_panel.take_action() {
             self.handle_control_panel_action(action);
         }

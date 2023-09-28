@@ -116,8 +116,10 @@ pub mod midi_interface {
 
 pub mod arrangement {
     //! `arrangement` helps organize devices musically.
-    pub use ensnare_core::orchestration::{Orchestrator, OrchestratorBuilder};
-    pub use ensnare_core::track::{Track, TrackTitle, TrackUid};
+    pub use ensnare_core::{
+        orchestration::{Orchestrator, OrchestratorBuilder},
+        track::{DeviceChain, DeviceChainAction, Track, TrackTitle, TrackUid},
+    };
 }
 
 pub mod composition {
@@ -173,7 +175,10 @@ pub mod version;
 /// `use ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid},
+        arrangement::{
+            DeviceChain, DeviceChainAction, Orchestrator, OrchestratorBuilder, Track, TrackTitle,
+            TrackUid,
+        },
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{

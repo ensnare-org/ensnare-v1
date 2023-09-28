@@ -5,40 +5,36 @@ use ensnare::prelude::*;
 fn set_up_drum_track(o: &mut Orchestrator, factory: &EntityFactory) {
     // Add the drum pattern to the PianoRoll.
     // We need to scope piano_roll to satisfy the borrow checker.
-    let drum_pattern_uid = {
-        let mut piano_roll = o.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
-                    ],
-                    None,
-                )
-                .note_sequence(
-                    vec![
-                        255, 255, 255, 255, 39, 255, 255, 255, 255, 255, 255, 255, 39, 255, 255,
-                        255,
-                    ],
-                    None,
-                )
-                .note_sequence(
-                    vec![
-                        // Bug: if we do note on every 16th, we get only the first one
-                        42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    let drum_pattern = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
+            ],
+            None,
         )
-    };
+        .note_sequence(
+            vec![
+                255, 255, 255, 255, 39, 255, 255, 255, 255, 255, 255, 255, 39, 255, 255, 255,
+            ],
+            None,
+        )
+        .note_sequence(
+            vec![
+                // Bug: if we do note on every 16th, we get only the first one
+                42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255,
+            ],
+            None,
+        )
+        .build()
+        .unwrap();
 
     // Arrange the drum pattern in a new MIDI track's Sequencer. By default, the
     // Sequencer emits events on MIDI channel 0.
     let track_uid = o.new_midi_track().unwrap();
     let track = o.get_track_mut(&track_uid).unwrap();
-    let _ = track.sequencer_mut().arrange_pattern(&drum_pattern_uid, 0);
+    let _ = track
+        .sequencer_mut()
+        .insert_pattern(&drum_pattern, MusicalTime::START);
 
     // Add the drumkit instrument to the track. By default, it listens on MIDI channel 0.
     let _drumkit_uid = track
@@ -62,25 +58,22 @@ fn set_up_drum_track(o: &mut Orchestrator, factory: &EntityFactory) {
 
 fn set_up_lead_track(o: &mut Orchestrator, factory: &EntityFactory) {
     // Add the lead pattern to the PianoRoll.
-    let scale_pattern_uid = {
-        let mut piano_roll = o.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    let scale_pattern = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+            ],
+            None,
         )
-    };
+        .build()
+        .unwrap();
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = o.new_midi_track().unwrap();
     let track = o.get_track_mut(&track_uid).unwrap();
-    let _ = track.sequencer_mut().arrange_pattern(&scale_pattern_uid, 0);
+    let _ = track
+        .sequencer_mut()
+        .insert_pattern(&scale_pattern, MusicalTime::START);
 
     // Add a synth to play the pattern.
     let _synth_uid = track

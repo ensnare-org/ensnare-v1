@@ -15,41 +15,31 @@ fn aux_bus() {
     let track_uid_2 = orchestrator.new_midi_track().unwrap();
     let aux_track_uid = orchestrator.new_aux_track().unwrap();
 
-    let synth_pattern_uid_1 = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    let synth_pattern_1 = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+            ],
+            None,
         )
-    };
+        .build()
+        .unwrap();
 
-    let synth_pattern_uid_2 = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        84, 255, 83, 255, 81, 255, 79, 255, 77, 255, 76, 255, 74, 255, 72, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
+    let synth_pattern_2 = PatternBuilder::default()
+        .note_sequence(
+            vec![
+                84, 255, 83, 255, 81, 255, 79, 255, 77, 255, 76, 255, 74, 255, 72, 255,
+            ],
+            None,
         )
-    };
+        .build()
+        .unwrap();
 
     let _synth_uid_1 = {
         let track = orchestrator.get_track_mut(&track_uid_1).unwrap();
         let _ = track
             .sequencer_mut()
-            .arrange_pattern(&synth_pattern_uid_1, 0);
+            .insert_pattern(&synth_pattern_1, MusicalTime::START);
 
         // Even though we want the effect to be placed after the instrument in
         // the audio chain, we can add the effect before we add the instrument.
@@ -66,7 +56,7 @@ fn aux_bus() {
         let track = orchestrator.get_track_mut(&track_uid_2).unwrap();
         let _ = track
             .sequencer_mut()
-            .arrange_pattern(&synth_pattern_uid_2, 0);
+            .insert_pattern(&synth_pattern_2, MusicalTime::START);
         track
             .append_entity(factory.new_entity(&EntityKey::from("gain")).unwrap())
             .unwrap();
