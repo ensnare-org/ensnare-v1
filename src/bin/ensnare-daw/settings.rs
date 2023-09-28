@@ -29,6 +29,15 @@ impl Settings {
     pub(crate) fn load() -> anyhow::Result<Self> {
         let settings_path = PathBuf::from(Self::FILENAME);
         let mut contents = String::new();
+
+        // https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations
+        match std::env::current_dir() {
+            Ok(cwd) => eprintln!(
+                "Loading preferences from {settings_path:?}, current working directory {cwd:?}..."
+            ),
+            Err(e) => eprintln!("Couldn't get current working directory: {e:?}"),
+        }
+
         let mut file = File::open(settings_path.clone())
             .map_err(|e| anyhow::format_err!("Couldn't open {settings_path:?}: {}", e))?;
         file.read_to_string(&mut contents)
