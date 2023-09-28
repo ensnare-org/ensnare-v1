@@ -1,12 +1,15 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng, traits::prelude::*};
+use crate::{
+    generators::Waveform, prelude::*, rng::Rng, traits::prelude::*, types::FrequencyRange,
+};
 use eframe::{
-    egui::{self, Sense},
+    egui::{self, ComboBox, DragValue, Sense},
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, RectShape, Rounding, Stroke},
 };
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
+use strum::IntoEnumIterator;
 
 /// A fixed-size circular buffer for use by audio widgets.
 #[derive(Debug, Default)]
@@ -221,5 +224,65 @@ impl<'a> Displays for FrequencyDomain<'a> {
 
         painter.extend(shapes);
         response
+    }
+}
+
+/// A [Widget](eframe::egui::Widget) for picking an oscillator waveform.
+pub fn waveform<'a>(waveform: &'a mut Waveform) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| WaveformWidget::new(waveform).ui(ui)
+}
+
+#[derive(Debug)]
+struct WaveformWidget<'a> {
+    waveform: &'a mut Waveform,
+}
+impl<'a> WaveformWidget<'a> {
+    pub fn new(waveform: &'a mut Waveform) -> Self {
+        Self { waveform }
+    }
+}
+impl<'a> Displays for WaveformWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ComboBox::from_label("Waveform")
+            .selected_text(self.waveform.to_string())
+            .show_ui(ui, |ui| {
+                for w in Waveform::iter() {
+                    let s: &'static str = w.into();
+                    ui.selectable_value(self.waveform, w, s);
+                }
+            });
+
+        // TODO: I'm not sure how to return a Response from a ComboBox.
+        ui.separator()
+    }
+}
+
+/// A [Widget](eframe::egui::Widget) for picking a frequency.
+pub fn frequency<'a>(
+    range: FrequencyRange,
+    frequency: &'a mut FrequencyHz,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| FrequencyWidget::new(range, frequency).ui(ui)
+}
+
+#[derive(Debug)]
+struct FrequencyWidget<'a> {
+    range: FrequencyRange,
+    frequency: &'a mut FrequencyHz,
+}
+impl<'a> FrequencyWidget<'a> {
+    pub fn new(range: FrequencyRange, frequency: &'a mut FrequencyHz) -> Self {
+        Self { range, frequency }
+    }
+}
+impl<'a> Displays for FrequencyWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(
+            DragValue::new(self.frequency)
+                .clamp_range(self.range.as_range())
+                .fixed_decimals(self.range.fixed_digit_count())
+                .suffix("Hz")
+                .prefix("Frequency: "),
+        )
     }
 }

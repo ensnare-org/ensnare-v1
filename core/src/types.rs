@@ -5,7 +5,7 @@ use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
 };
-use eframe::egui::{DragValue, Ui};
+use eframe::emath::Numeric;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -505,10 +505,6 @@ impl FrequencyHz {
     pub const FREQUENCY_TO_LINEAR_BASE: ParameterType = 800.0;
     pub const FREQUENCY_TO_LINEAR_COEFFICIENT: ParameterType = 25.0;
 
-    pub const fn range() -> RangeInclusive<ParameterType> {
-        0.0..=20500.0
-    }
-
     // https://docs.google.com/spreadsheets/d/1uQylh2h77-fuJ6OM0vjF7yjRXflLFP0yQEnv5wbaP2c/edit#gid=0
     // =LOGEST(Sheet1!B2:B23, Sheet1!A2:A23,true, false)
     //
@@ -620,23 +616,49 @@ impl Display for FrequencyHz {
         f.write_fmt(format_args!("{}", self.0))
     }
 }
-impl FrequencyHz {
-    #[allow(missing_docs)]
-    pub fn show(&mut self, ui: &mut Ui, range: RangeInclusive<f64>) -> bool {
-        let mut frequency = self.0;
-        if ui
-            .add(
-                DragValue::new(&mut frequency)
-                    .clamp_range(range)
-                    .speed(0.1)
-                    .suffix(" Hz"),
-            )
-            .changed()
-        {
-            self.0 = frequency;
-            true
-        } else {
-            false
+impl Numeric for FrequencyHz {
+    const INTEGRAL: bool = true;
+
+    const MIN: Self = FrequencyHz(0.0);
+
+    const MAX: Self = FrequencyHz(256.0 * 1024.0);
+
+    fn to_f64(self) -> f64 {
+        self.0
+    }
+
+    fn from_f64(num: f64) -> Self {
+        Self(num)
+    }
+}
+
+/// Useful ranges of frequencies. Originally designed for picking egui widget
+/// boundaries.
+#[derive(Debug, Default)]
+pub enum FrequencyRange {
+    /// Most humans can hear (with a little extra on the high end).
+    #[default]
+    Audible,
+    /// Most humans can feel but not hear (with a little extra on either end).
+    Subaudible,
+    /// Typical digital-audio sampling rates.
+    Processing,
+}
+impl FrequencyRange {
+    pub fn as_range(&self) -> RangeInclusive<ParameterType> {
+        match self {
+            FrequencyRange::Subaudible => 0.01..=64.0,
+            FrequencyRange::Audible => 20.0..=22500.0,
+            FrequencyRange::Processing => (22500.0 / 8.0)..=(1024.0 * 256.0),
+        }
+    }
+
+    /// The recommended number of digits after the decimal point for this range.
+    pub fn fixed_digit_count(&self) -> usize {
+        match self {
+            FrequencyRange::Subaudible => 2,
+            FrequencyRange::Audible => 1,
+            FrequencyRange::Processing => 0,
         }
     }
 }

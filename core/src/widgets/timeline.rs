@@ -120,7 +120,7 @@ impl<'a> Displays for Legend<'a> {
         }
         ui.painter().line_segment(
             [rect.left_bottom(), rect.right_bottom()],
-            ui.style().noninteractive().fg_stroke,
+            ui.style().noninteractive().bg_stroke,
         );
 
         response.context_menu(|ui| {

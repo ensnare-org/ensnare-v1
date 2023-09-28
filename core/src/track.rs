@@ -13,13 +13,11 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
-    widgets::{control, placeholder},
 };
 use anyhow::anyhow;
 use eframe::{
-    egui::{self, Frame, Layout, Margin, Ui},
-    emath::Align,
-    epaint::{vec2, Color32, Stroke, Vec2},
+    egui::{self, Ui},
+    epaint::vec2,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -153,7 +151,6 @@ pub enum TrackUiState {
 #[derive(Debug, Default)]
 pub struct TrackEphemerals {
     buffer: TrackBuffer,
-    is_sequencer_open: bool,
     piano_roll: Arc<RwLock<PianoRoll>>,
     pub(crate) action: Option<TrackAction>,
     view_range: std::ops::Range<MusicalTime>,
@@ -247,146 +244,6 @@ impl Track {
         self.entity_store.get_mut(uid)
     }
 
-    fn button_states(index: usize, len: usize) -> (bool, bool) {
-        let left = index != 0;
-        let right = len > 1 && index != len - 1;
-        (left, right)
-    }
-
-    /// Shows the detail view for the selected track.
-    // TODO: ordering should be controllers, instruments, then effects. Within
-    // those groups, the user can reorder as desired (but instrument order
-    // doesn't matter because they're all simultaneous)
-    #[must_use]
-    pub fn ui_detail(&mut self, ui: &mut Ui) -> Option<TrackDetailAction> {
-        let style = ui.visuals().widgets.inactive;
-        let action = None;
-
-        ui.with_layout(
-            egui::Layout::top_down(egui::Align::LEFT).with_cross_justify(true),
-            |ui| {
-                let desired_size = Vec2::new(ui.available_width(), 256.0 - style.fg_stroke.width);
-                ui.set_min_size(desired_size);
-                ui.set_max_size(desired_size);
-
-                ui.horizontal_centered(|ui| {
-                    let desired_size = Vec2::new(384.0, ui.available_height());
-
-                    let mut action = None;
-
-                    if let Some(a) = Self::add_track_element(ui, 0, false, false, false, |ui| {
-                        ui.allocate_ui(vec2(256.0, ui.available_height()), |ui| {
-                            self.sequencer.ui(ui);
-                        });
-                    }) {
-                        action = Some(a);
-                    };
-
-                    let len = self.controllers.len();
-                    for (index, uid) in self.controllers.iter().enumerate() {
-                        let index = index + 1;
-                        ui.allocate_ui(desired_size, |ui| {
-                            let (show_left, show_right) = Self::button_states(index, len);
-                            if let Some(a) = Self::add_track_element(
-                                ui,
-                                index,
-                                show_left,
-                                show_right,
-                                true,
-                                |ui| {
-                                    if let Some(e) = self.entity_store.get_mut(uid) {
-                                        e.ui(ui);
-                                    }
-                                },
-                            ) {
-                                action = Some(a);
-                            };
-                        });
-                    }
-                    let len = self.instruments.len();
-                    for (index, uid) in self.instruments.iter().enumerate() {
-                        let index = index + 1;
-                        ui.allocate_ui(desired_size, |ui| {
-                            let (show_left, show_right) = Self::button_states(index, len);
-                            if let Some(a) = Self::add_track_element(
-                                ui,
-                                index,
-                                show_left,
-                                show_right,
-                                true,
-                                |ui| {
-                                    if let Some(e) = self.entity_store.get_mut(uid) {
-                                        e.ui(ui);
-                                    }
-                                },
-                            ) {
-                                action = Some(a);
-                            };
-                        });
-                    }
-                    let len = self.effects.len();
-                    for (index, uid) in self.effects.iter().enumerate() {
-                        let index = index + 1;
-                        ui.allocate_ui(desired_size, |ui| {
-                            let (show_left, show_right) = Self::button_states(index, len);
-                            if let Some(a) = Self::add_track_element(
-                                ui,
-                                index,
-                                show_left,
-                                show_right,
-                                true,
-                                |ui| {
-                                    if let Some(e) = self.entity_store.get_mut(uid) {
-                                        e.ui(ui);
-                                    }
-                                },
-                            ) {
-                                action = Some(a);
-                            };
-                        });
-                    }
-                });
-            },
-        );
-        action
-    }
-
-    fn add_track_element(
-        ui: &mut Ui,
-        index: usize,
-        show_left_button: bool,
-        show_right_button: bool,
-        show_delete_button: bool,
-        add_contents: impl FnOnce(&mut Ui),
-    ) -> Option<TrackElementAction> {
-        let mut action = None;
-        let style = ui.visuals().widgets.inactive;
-        Frame::none()
-            .stroke(style.fg_stroke)
-            .inner_margin(Margin::same(2.0))
-            .show(ui, |ui| {
-                ui.vertical(|ui| {
-                    ui.allocate_ui(vec2(384.0, ui.available_height()), |ui| {
-                        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            if show_left_button && ui.button("<").clicked() {
-                                action = Some(TrackElementAction::MoveDeviceLeft(index));
-                            }
-                            if show_right_button && ui.button(">").clicked() {
-                                action = Some(TrackElementAction::MoveDeviceRight(index));
-                            }
-                            if show_delete_button && ui.button("x").clicked() {
-                                action = Some(TrackElementAction::RemoveDevice(index));
-                            }
-                        });
-                        ui.vertical(|ui| {
-                            add_contents(ui);
-                        });
-                    });
-                });
-            });
-        action
-    }
-
     pub(crate) fn track_view_height(track_type: TrackType, ui_state: TrackUiState) -> f32 {
         if matches!(track_type, TrackType::Aux) {
             Self::device_view_height(ui_state)
@@ -404,105 +261,6 @@ impl Track {
             TrackUiState::Collapsed => 32.0,
             TrackUiState::Expanded => 96.0,
         }
-    }
-
-    /// Renders a MIDI [Track]'s arrangement view, which is an overview of some or
-    /// all of the track's project timeline.
-    fn ui_contents_midi(&mut self, ui: &mut Ui) {
-        //        let (_response, _action) = self.sequencer.ui_arrangement(ui, self.uid);
-    }
-
-    /// Renders an audio [Track]'s arrangement view, which is an overview of some or
-    /// all of the track's project timeline.
-    fn ui_contents_audio(&mut self, ui: &mut Ui) {
-        ui.add(placeholder::wiggler());
-    }
-
-    #[must_use]
-    fn ui_device_view(&mut self, ui: &mut Ui) -> Option<TrackAction> {
-        let mut action = None;
-        let mut drag_and_drop_action = None;
-        let desired_size = vec2(128.0, Self::device_view_height(TrackUiState::Expanded)); // TODO self.e.ui_state
-
-        ui.horizontal(|ui| {
-            if self.e.is_sequencer_open {
-                egui::Window::new("Sequencer")
-                    .open(&mut self.e.is_sequencer_open)
-                    .show(ui.ctx(), |ui| {
-                        self.sequencer.ui(ui);
-                    });
-            } else {
-                // TODO                Self::ui_device(ui, &mut self.sequencer, desired_size);
-                if ui.button("open").clicked() {
-                    self.e.is_sequencer_open = !self.e.is_sequencer_open;
-                }
-            }
-            self.entity_store.iter_mut().for_each(|e| {
-                Self::ui_device(ui, e.as_mut(), desired_size);
-            });
-
-            let can_accept = if let Some(source) = DragDropManager::source() {
-                match source {
-                    DragDropSource::NewDevice(_) => true,
-                    DragDropSource::Pattern(_) => false,
-                    DragDropSource::ControlTrip(_) => false,
-                }
-            } else {
-                false
-            };
-            let r = DragDropManager::drop_target(ui, can_accept, |ui| {
-                ui.allocate_ui_with_layout(
-                    desired_size,
-                    Layout::centered_and_justified(egui::Direction::LeftToRight),
-                    |ui| {
-                        ui.label(if self.entity_store.is_empty() {
-                            "Drag stuff here"
-                        } else {
-                            "+"
-                        })
-                    },
-                );
-            });
-
-            // super::drag_drop::DragDropTarget::Track(self.uid),
-
-            if DragDropManager::is_dropped(ui, &r.response) {
-                if let Some(source) = DragDropManager::source() {
-                    match source {
-                        DragDropSource::NewDevice(key) => {
-                            drag_and_drop_action = Some(DragDropSource::NewDevice(key.clone()));
-                            action = Some(TrackAction::NewDevice(self.uid, key.clone()));
-                            DragDropManager::reset();
-                        }
-                        DragDropSource::Pattern(_) => eprintln!(
-                            "nope - I'm a device drop target, not a pattern target {:?}",
-                            source
-                        ),
-                        DragDropSource::ControlTrip(_) => {
-                            eprintln!("NOPE!")
-                        }
-                    }
-                }
-            }
-        });
-
-        action
-    }
-
-    fn ui_device(ui: &mut Ui, entity: &mut dyn Entity, desired_size: Vec2) {
-        ui.allocate_ui(desired_size, |ui| {
-            ui.set_min_size(desired_size);
-            ui.set_max_size(desired_size);
-            Frame::default()
-                .stroke(Stroke {
-                    width: 0.5,
-                    color: Color32::DARK_GRAY,
-                })
-                .inner_margin(2.0)
-                .show(ui, |ui| {
-                    entity.ui(ui);
-                });
-        });
     }
 
     #[allow(missing_docs)]
@@ -815,51 +573,7 @@ impl DisplaysInTimeline for Track {
         self.e.view_range = view_range.clone();
     }
 }
-impl Displays for Track {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        self.e.action = None;
-
-        {
-            // Draw the arrangement view.
-            Frame::default()
-                .inner_margin(Margin::same(0.5))
-                .outer_margin(Margin::same(0.5))
-                .stroke(Stroke {
-                    width: 1.0,
-                    color: Color32::DARK_GRAY,
-                })
-                .show(ui, |ui| {
-                    ui.set_min_size(ui.available_size());
-                    match self.ty {
-                        TrackType::Midi => self.ui_contents_midi(ui),
-                        TrackType::Audio => self.ui_contents_audio(ui),
-                        _ => panic!(),
-                    }
-                    ui.add(control::atlas(
-                        &mut self.control_atlas,
-                        &mut self.control_router,
-                        self.e.view_range.clone(),
-                    ));
-                });
-        }
-
-        // Now the device view.
-        Frame::default()
-            .inner_margin(Margin::same(0.5))
-            .outer_margin(Margin::same(0.5))
-            .stroke(Stroke {
-                width: 1.0,
-                color: Color32::DARK_GRAY,
-            })
-            .show(ui, |ui| {
-                if let Some(track_action) = self.ui_device_view(ui) {
-                    self.e.action = Some(track_action);
-                }
-            });
-
-        ui.label("I'm the response")
-    }
-}
+impl Displays for Track {}
 
 #[derive(Debug)]
 pub enum DeviceChainAction {

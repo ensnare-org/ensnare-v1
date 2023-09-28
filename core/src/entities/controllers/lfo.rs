@@ -1,11 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::WaveformWidget;
 use crate::{
     generators::{Oscillator, OscillatorParams, Waveform},
     midi::prelude::*,
     prelude::*,
     traits::prelude::*,
+    types::FrequencyRange,
+    widgets::audio::{frequency, waveform},
 };
 use eframe::egui::{Response, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
@@ -27,9 +28,6 @@ pub struct LfoController {
 
     #[serde(skip)]
     is_performing: bool,
-
-    #[serde(skip)]
-    waveform_widget: WaveformWidget,
 
     #[serde(skip)]
     time_range: std::ops::Range<MusicalTime>,
@@ -116,7 +114,6 @@ impl LfoController {
             frequency: params.frequency(),
             is_performing: false,
 
-            waveform_widget: Default::default(),
             time_range: Default::default(),
             last_frame: Default::default(),
         }
@@ -147,14 +144,41 @@ impl LfoController {
 
 impl Displays for LfoController {
     fn ui(&mut self, ui: &mut Ui) -> Response {
-        // TODO: come up with a better pattern for .changed() to happen at
-        // the same level as whoever called show().
-        if self.frequency.show(ui, Self::frequency_range()) {
-            self.set_frequency(self.frequency);
+        let mut waveform = self.waveform;
+        let mut frequency = self.frequency;
+        let response = ui.add(lfo_controller(&mut waveform, &mut frequency));
+        if response.changed() {
+            self.set_waveform(waveform);
+            self.set_frequency(frequency);
         }
-        if self.waveform.show(ui).inner.is_some() {
-            self.set_waveform(self.waveform);
+        response
+    }
+}
+
+/// Wraps an [LfoControllerWidget] as a [Widget](eframe::egui::Widget).
+pub fn lfo_controller<'a>(
+    waveform: &'a mut Waveform,
+    frequency: &'a mut FrequencyHz,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| LfoControllerWidget::new(waveform, frequency).ui(ui)
+}
+
+#[derive(Debug)]
+struct LfoControllerWidget<'a> {
+    waveform: &'a mut Waveform,
+    frequency: &'a mut FrequencyHz,
+}
+impl<'a> Displays for LfoControllerWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
+            | ui.add(waveform(self.waveform))
+    }
+}
+impl<'a> LfoControllerWidget<'a> {
+    pub fn new(waveform: &'a mut Waveform, frequency: &'a mut FrequencyHz) -> Self {
+        Self {
+            waveform,
+            frequency,
         }
-        self.waveform_widget.ui(ui)
     }
 }

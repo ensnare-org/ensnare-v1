@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
+use crate::{prelude::*, traits::prelude::*, types::FrequencyRange};
 use eframe::egui::{Slider, Ui};
 use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
@@ -1211,7 +1211,8 @@ impl Displays for BiQuadFilterLowPass24db {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
         let mut cutoff = self.cutoff().value();
         let mut pbr = self.passband_ripple();
-        let cutoff_response = ui.add(Slider::new(&mut cutoff, FrequencyHz::range()).text("Cutoff"));
+        let cutoff_response =
+            ui.add(Slider::new(&mut cutoff, FrequencyRange::Audible.as_range()).text("Cutoff"));
         if cutoff_response.changed() {
             self.set_cutoff(cutoff.into());
         };

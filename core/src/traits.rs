@@ -12,7 +12,6 @@ use crate::{
     prelude::*,
     time::{MusicalTime, SampleRate, TimeSignature},
 };
-use eframe::egui;
 
 /// Quick import of all important traits.
 pub mod prelude {
@@ -431,7 +430,7 @@ pub trait HasSettings {
 // Adapted from egui_demo_lib/src/demo/mod.rs
 pub trait Displays {
     /// Renders this Entity. Returns a [Response](egui::Response).
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label("Coming soon!")
     }
 }
