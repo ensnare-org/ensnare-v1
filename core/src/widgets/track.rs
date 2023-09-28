@@ -184,9 +184,8 @@ impl<'a> Displays for TrackWidget<'a> {
                             &mut action,
                         ));
                         if let Some(action) = action {
-                            if let DeviceChainAction::NewDevice(key) = action {
-                                *self.action = Some(TrackAction::NewDevice(self.track.uid(), key));
-                            }
+                            let DeviceChainAction::NewDevice(key) = action;
+                            *self.action = Some(TrackAction::NewDevice(self.track.uid(), key));
                         }
                         response
                     })
