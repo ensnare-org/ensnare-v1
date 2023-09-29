@@ -647,22 +647,31 @@ impl<'a> Displays for DeviceChain<'a> {
             eframe::epaint::vec2(ui.available_width(), 32.0)
         };
         ui.allocate_ui(desired_size, |ui| {
-            ui.horizontal_top(|ui| {
-                self.controllers
-                    .iter()
-                    .chain(self.instruments.iter().chain(self.effects.iter()))
-                    .for_each(|uid| {
-                        if let Some(entity) = self.store.get_mut(uid) {
-                            entity.ui(ui);
-                        }
-                    });
-                let response =
-                    DragDropManager::drop_target(ui, self.can_accept(), |ui| ui.label("[+]"))
+            let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
+            eframe::egui::Frame::default()
+                .stroke(stroke)
+                .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
+                .show(ui, |ui| {
+                    ui.set_min_size(desired_size);
+                    ui.horizontal_top(|ui| {
+                        self.controllers
+                            .iter()
+                            .chain(self.instruments.iter().chain(self.effects.iter()))
+                            .for_each(|uid| {
+                                if let Some(entity) = self.store.get_mut(uid) {
+                                    entity.ui(ui);
+                                }
+                            });
+                        let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
+                            ui.label("[+]")
+                        })
                         .response;
-                if DragDropManager::is_dropped(ui, &response) {
-                    self.check_drop();
-                }
-            })
+                        if DragDropManager::is_dropped(ui, &response) {
+                            self.check_drop();
+                        }
+                    })
+                    .inner
+                });
         })
         .response
     }

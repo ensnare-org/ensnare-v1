@@ -190,7 +190,7 @@ impl Displays for Grid {
                     to_screen * pos2(x as f32, 0.0),
                     to_screen * pos2(x as f32, 1.0),
                 ],
-                stroke: visuals.fg_stroke,
+                stroke: visuals.bg_stroke,
             });
         }
         ui.painter().extend(shapes);
