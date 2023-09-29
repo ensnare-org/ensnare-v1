@@ -13,9 +13,9 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
+    widgets::track::TitleBar,
 };
 use anyhow::anyhow;
-use eframe::epaint::vec2;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -151,6 +151,7 @@ pub struct TrackEphemerals {
     piano_roll: Arc<RwLock<PianoRoll>>,
     pub(crate) action: Option<TrackAction>,
     view_range: std::ops::Range<MusicalTime>,
+    pub(crate) title_font_galley: Option<Arc<eframe::epaint::Galley>>,
 }
 
 /// A collection of instruments, effects, and controllers that combine to
@@ -377,6 +378,18 @@ impl Track {
 
     pub fn view_range(&self) -> &std::ops::Range<MusicalTime> {
         &self.e.view_range
+    }
+
+    /// The [TitleBar] widget needs a Galley so that it can display the title
+    /// sideways. But widgets live for only a frame, so it can't cache anything.
+    /// Caller to the rescue! We generate the Galley and save it.
+    ///
+    /// TODO: when we allow title editing, we should set the galley to None so
+    /// it can be rebuilt on the next frame.
+    pub(crate) fn update_font_galley(&mut self, ui: &mut eframe::egui::Ui) {
+        if self.e.title_font_galley.is_none() && !self.title.0.is_empty() {
+            self.e.title_font_galley = Some(TitleBar::make_galley(ui, &self.title));
+        }
     }
 }
 impl Acts for Track {
@@ -629,9 +642,9 @@ impl<'a> DeviceChain<'a> {
 impl<'a> Displays for DeviceChain<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = if self.is_large_size {
-            vec2(ui.available_width(), 256.0)
+            eframe::epaint::vec2(ui.available_width(), 256.0)
         } else {
-            vec2(ui.available_width(), 32.0)
+            eframe::epaint::vec2(ui.available_width(), 32.0)
         };
         ui.allocate_ui(desired_size, |ui| {
             ui.horizontal_top(|ui| {

@@ -728,7 +728,7 @@ impl DisplaysInTimeline for Orchestrator {
         self.view_range = view_range.clone();
         self.tracks
             .values_mut()
-            .for_each(|t| t.set_view_range(&view_range));
+            .for_each(|t| t.set_view_range(view_range));
     }
 }
 impl Displays for Orchestrator {
@@ -751,8 +751,7 @@ impl Displays for Orchestrator {
                         // content, so we create an empty track title bar to
                         // match with the real ones.
                         ui.horizontal(|ui| {
-                            let mut dummy_track_title = TrackTitle::default();
-                            ui.add_enabled(false, track::title_bar(&mut dummy_track_title));
+                            ui.add_enabled(false, track::title_bar(None));
                             ui.add(timeline::legend(&mut self.view_range));
                         });
 
@@ -779,6 +778,7 @@ impl Displays for Orchestrator {
                                     } else {
                                         None
                                     };
+                                    track.update_font_galley(ui);
                                     let response = ui.add(track::track(
                                         track,
                                         is_selected,

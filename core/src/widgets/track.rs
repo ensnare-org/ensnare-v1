@@ -14,13 +14,14 @@ use crate::{
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat},
     emath::Align,
-    epaint::{text::LayoutJob, vec2, Color32, FontId, Shape, Stroke, TextShape, Vec2},
+    epaint::{text::LayoutJob, vec2, Color32, FontId, Galley, Shape, Stroke, TextShape, Vec2},
 };
-use std::f32::consts::PI;
+use std::{f32::consts::PI, sync::Arc};
 
-/// Wraps a [TitleBar] as a [Widget](eframe::egui::Widget).
-pub fn title_bar(title: &mut TrackTitle) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| TitleBar::new(title).ui(ui)
+/// Wraps a [TitleBar] as a [Widget](eframe::egui::Widget). Don't have a
+/// font_galley? Check out [TitleBar::make_galley()].
+pub fn title_bar(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget {
+    move |ui: &mut eframe::egui::Ui| TitleBar::new(font_galley).ui(ui)
 }
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
@@ -55,18 +56,19 @@ pub fn device_chain<'a>(
 
 /// An egui widget that draws a [Track]'s sideways title bar.
 #[derive(Debug)]
-pub struct TitleBar<'a> {
-    title: &'a mut TrackTitle,
+pub struct TitleBar {
+    font_galley: Option<Arc<Galley>>,
 }
-impl<'a> Displays for TitleBar<'a> {
+impl Displays for TitleBar {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let available_size = vec2(16.0, ui.available_height());
         ui.set_min_size(available_size);
 
-        // We use ui.is_enabled() as a signal whether to draw anything. When
-        // drawing the timeline legend, we need to offset a titlebar-sized space
-        // to align with track content.
-        let fill_color = if ui.is_enabled() {
+        // When drawing the timeline legend, we need to offset a titlebar-sized
+        // space to align with track content. That's one reason why font_galley
+        // is optional; we use None as a signal to draw just the empty space
+        // that the titlebar would have occupied.
+        let fill_color = if self.font_galley.is_some() {
             ui.style().visuals.faint_bg_color
         } else {
             ui.style().visuals.window_fill
@@ -78,23 +80,11 @@ impl<'a> Displays for TitleBar<'a> {
             .fill(fill_color)
             .show(ui, |ui| {
                 ui.allocate_ui(available_size, |ui| {
-                    let mut job = LayoutJob::default();
-                    job.append(
-                        self.title.0.as_str(),
-                        1.0,
-                        TextFormat {
-                            color: Color32::YELLOW,
-                            font_id: FontId::proportional(12.0),
-                            valign: Align::Center,
-                            ..Default::default()
-                        },
-                    );
-                    let galley = ui.ctx().fonts(|f| f.layout_job(job));
                     let (response, painter) = ui.allocate_painter(available_size, Sense::click());
-                    if ui.is_enabled() {
+                    if let Some(font_galley) = self.font_galley.take() {
                         let t = Shape::Text(TextShape {
                             pos: response.rect.left_bottom(),
-                            galley,
+                            galley: font_galley,
                             underline: Stroke::default(),
                             override_text_color: None,
                             angle: 2.0 * PI * 0.75,
@@ -108,9 +98,26 @@ impl<'a> Displays for TitleBar<'a> {
             .inner
     }
 }
-impl<'a> TitleBar<'a> {
-    fn new(title: &'a mut TrackTitle) -> Self {
-        Self { title }
+impl TitleBar {
+    fn new(font_galley: Option<Arc<Galley>>) -> Self {
+        Self { font_galley }
+    }
+
+    /// Call this once for the TrackTitle, and then provide it on each frame to
+    /// the widget.
+    pub fn make_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> Arc<Galley> {
+        let mut job = LayoutJob::default();
+        job.append(
+            title.0.as_str(),
+            1.0,
+            TextFormat {
+                color: Color32::YELLOW,
+                font_id: FontId::proportional(12.0),
+                valign: Align::Center,
+                ..Default::default()
+            },
+        );
+        ui.ctx().fonts(|f| f.layout_job(job))
     }
 }
 
@@ -146,7 +153,13 @@ impl<'a> Displays for TrackWidget<'a> {
                     // The `Response` is based on the title bar, so
                     // clicking/dragging on the title bar affects the `Track` as a
                     // whole.
-                    let response = ui.add(title_bar(self.track.title_mut()));
+                    let font_galley = self
+                        .track
+                        .e
+                        .title_font_galley
+                        .as_ref()
+                        .map(|fg| Arc::clone(&fg));
+                    let response = ui.add(title_bar(font_galley));
 
                     // Take up all the space we're given, even if we can't fill
                     // it with widget content.

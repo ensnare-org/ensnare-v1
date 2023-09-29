@@ -9,7 +9,7 @@ use eframe::{
         Style, Ui,
     },
     emath::Align,
-    epaint::vec2,
+    epaint::{vec2, Galley},
     CreationContext,
 };
 use ensnare::{
@@ -20,6 +20,7 @@ use ensnare::{
     },
     version::app_version,
 };
+use ensnare_core::widgets::track::TitleBar;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -439,12 +440,20 @@ impl ESSequencerSettings {
 struct TitleBarSettings {
     hide: bool,
     title: TrackTitle,
+    font_galley: Option<std::sync::Arc<Galley>>,
 }
 
 impl Displays for TitleBarSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        if self.font_galley.is_none() {
+            self.font_galley = Some(TitleBar::make_galley(ui, &self.title));
+        }
         ui.checkbox(&mut self.hide, "Hide");
-        ui.text_edit_singleline(&mut self.title.0)
+        let response = ui.text_edit_singleline(&mut self.title.0);
+        if response.changed() {
+            self.font_galley = None;
+        }
+        response
     }
 }
 impl TitleBarSettings {
@@ -452,7 +461,9 @@ impl TitleBarSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(track::title_bar(&mut self.title));
+            if let Some(font_galley) = &self.font_galley {
+                ui.add(track::title_bar(Some(std::sync::Arc::clone(font_galley))));
+            }
         }
     }
 }
