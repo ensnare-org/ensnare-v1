@@ -9,7 +9,6 @@ use crate::{
 };
 use btreemultimap::BTreeMultiMap;
 use derive_builder::Builder;
-use eframe::egui::Ui;
 use ensnare_proc_macros::{Control, IsController, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -189,7 +188,7 @@ impl ESSequencer {
     }
 }
 impl Displays for ESSequencer {
-    fn ui(&mut self, _ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         unimplemented!("use es_sequencer widget instead")
     }
 }

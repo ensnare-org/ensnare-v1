@@ -2,7 +2,6 @@
 
 use crate::{prelude::*, rng::Rng, traits::prelude::*};
 use derive_builder::Builder;
-use eframe::egui::Ui;
 use ensnare_proc_macros::{Control, IsController, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -499,7 +498,7 @@ impl Default for ControlAtlas {
     }
 }
 impl Displays for ControlAtlas {
-    fn ui(&mut self, _ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         unimplemented!("Use the atlas widget rather than calling this directly")
     }
 }
