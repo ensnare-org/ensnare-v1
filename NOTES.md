@@ -10,3 +10,10 @@
   https://github.com/sowbug/groove/issues/130
 - For any given physical parameter, make sure it's correctly represented as
   linear or logarithmic. https://github.com/sowbug/groove/issues/44
+
+# Ideas
+
+- Get in the habit of defining traits for major functional components, like
+  Orchestrator. This leads to naturally thinking in terms of contracts, testable
+  behavior, etc. It also makes it easier to swap in experiments or outright
+  overhauls.
