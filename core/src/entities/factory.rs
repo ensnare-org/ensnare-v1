@@ -759,7 +759,7 @@ pub mod test_entities {
             self.sample = if self.is_playing() {
                 StereoSample::from(self.oscillator.value() * self.envelope.value())
             } else {
-                StereoSample::from(StereoSample::SILENCE)
+                StereoSample::SILENCE
             };
         }
     }
