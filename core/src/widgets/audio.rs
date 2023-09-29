@@ -243,7 +243,7 @@ impl<'a> WaveformWidget<'a> {
 }
 impl<'a> Displays for WaveformWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ComboBox::from_label("Waveform")
+        ComboBox::new(ui.next_auto_id(), "Waveform")
             .selected_text(self.waveform.to_string())
             .show_ui(ui, |ui| {
                 for w in Waveform::iter() {

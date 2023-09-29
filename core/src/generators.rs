@@ -4,9 +4,10 @@ use crate::{
     prelude::*,
     time::Seconds,
     traits::{prelude::*, GeneratesEnvelope},
+    widgets::generators::envelope,
 };
 use eframe::{
-    egui::{ComboBox, DragValue, Frame, InnerResponse, Sense, Ui},
+    egui::{Sense, Ui},
     emath,
     epaint::{pos2, Color32, PathShape, Pos2, Rect, Shape, Stroke, Vec2},
 };
@@ -15,7 +16,7 @@ use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
 use std::{f64::consts::PI, fmt::Debug};
-use strum::{EnumCount, IntoEnumIterator};
+use strum::EnumCount;
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
 
 #[derive(
@@ -47,23 +48,6 @@ pub enum Waveform {
     DebugMin,
 
     TriangleSine, // TODO
-}
-impl Waveform {
-    pub fn show(&mut self, ui: &mut Ui) -> InnerResponse<Option<bool>> {
-        let mut waveform = *self;
-        ComboBox::new(ui.next_auto_id(), "Waveform")
-            .selected_text(waveform.to_string())
-            .show_ui(ui, |ui| {
-                for w in Waveform::iter() {
-                    let s: &'static str = w.into();
-                    if ui.selectable_value(&mut waveform, w, s).clicked() {
-                        *self = waveform;
-                        return true;
-                    }
-                }
-                false
-            })
-    }
 }
 
 // TODO: the existence of this conversion is bad. PWM is just different. Come up
@@ -111,7 +95,7 @@ impl OscillatorParams {
 pub struct Oscillator {
     #[control]
     #[params]
-    waveform: Waveform,
+    pub(crate) waveform: Waveform,
 
     /// Hertz. Any positive number. 440 = A4
     #[control]
@@ -263,10 +247,6 @@ impl Oscillator {
             frequency_modulation: params.frequency_modulation(),
             ..Default::default()
         }
-    }
-
-    pub fn show(&mut self, ui: &mut Ui) -> eframe::egui::InnerResponse<Option<bool>> {
-        self.waveform.show(ui)
     }
 
     fn adjusted_frequency(&self) -> FrequencyHz {
@@ -1040,60 +1020,7 @@ impl Envelope {
 }
 impl Displays for Envelope {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut attack = self.attack();
-        let mut decay = self.decay();
-        let mut sustain = self.sustain().to_percentage();
-        let mut release = self.release();
-
-        let canvas_response = Frame::canvas(ui.style())
-            .show(ui, |ui| self.ui_content(ui))
-            .inner;
-        let attack_response = ui.add(
-            DragValue::new(&mut attack.0)
-                .speed(0.1)
-                .prefix("Attack: ")
-                .clamp_range(0.0..=100.0)
-                .suffix(" s"),
-        );
-        if attack_response.changed() {
-            self.set_attack(attack);
-        }
-        ui.end_row();
-        let decay_response = ui.add(
-            DragValue::new(&mut decay.0)
-                .speed(0.1)
-                .prefix("Decay: ")
-                .clamp_range(0.0..=100.0)
-                .suffix(" s"),
-        );
-        if decay_response.changed() {
-            self.set_decay(decay);
-        }
-        ui.end_row();
-        let sustain_response = ui.add(
-            DragValue::new(&mut sustain)
-                .speed(0.1)
-                .prefix("Sustain: ")
-                .clamp_range(0.0..=100.0)
-                .fixed_decimals(2)
-                .suffix("%"),
-        );
-        if sustain_response.changed() {
-            self.set_sustain((sustain / 100.0).into());
-        }
-        ui.end_row();
-        let release_response = ui.add(
-            DragValue::new(&mut release.0)
-                .speed(0.1)
-                .prefix("Release: ")
-                .clamp_range(0.0..=100.0)
-                .suffix(" s"),
-        );
-        if release_response.changed() {
-            self.set_release(release);
-        }
-        ui.end_row();
-        canvas_response | attack_response | decay_response | sustain_response | release_response
+        ui.add(envelope(self))
     }
 }
 

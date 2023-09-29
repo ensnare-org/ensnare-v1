@@ -7,7 +7,9 @@ use eframe::{
 };
 
 pub mod prelude {
-    pub use super::{audio, control, controllers, core, pattern, placeholder, timeline, track};
+    pub use super::{
+        audio, control, controllers, core, generators, pattern, placeholder, timeline, track,
+    };
 }
 
 /// Contains widgets that help visualize audio.
@@ -21,6 +23,9 @@ pub mod controllers;
 
 /// Various widgets used throughout the system.
 pub mod core;
+
+/// Widgets that help render generators ([Envelope], [Oscillator], etc.)
+pub mod generators;
 
 /// Contains widgets related to [Pattern](crate::mini::piano_roll::Pattern)s and
 /// [PianoRoll](crate::mini::piano_roll::PianoRoll).
