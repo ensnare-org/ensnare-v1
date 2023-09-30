@@ -164,10 +164,6 @@ impl DragDropManager {
             },
         );
 
-        if is_anything_dragged && !can_accept_what_is_being_dragged {
-            ui.ctx().set_cursor_icon(CursorIcon::NotAllowed);
-        }
-
         InnerResponse::new(ret, response)
     }
 
