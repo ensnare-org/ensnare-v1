@@ -13,7 +13,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
-    widgets::track::TitleBar,
+    widgets::{track::TitleBar, UiSize},
 };
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -601,7 +601,7 @@ pub struct DeviceChain<'a> {
 
     action: &'a mut Option<DeviceChainAction>,
 
-    is_large_size: bool,
+    ui_size: UiSize,
 }
 impl<'a> DeviceChain<'a> {
     pub fn new(
@@ -619,7 +619,7 @@ impl<'a> DeviceChain<'a> {
             instruments,
             effects,
             action,
-            is_large_size: false,
+            ui_size: Default::default(),
         }
     }
 
@@ -641,11 +641,9 @@ impl<'a> DeviceChain<'a> {
 }
 impl<'a> Displays for DeviceChain<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let desired_size = if self.is_large_size {
-            eframe::epaint::vec2(ui.available_width(), 256.0)
-        } else {
-            eframe::epaint::vec2(ui.available_width(), 32.0)
-        };
+        self.ui_size = UiSize::from_height(ui.available_height());
+        let desired_size = ui.available_size();
+
         ui.allocate_ui(desired_size, |ui| {
             let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
             eframe::egui::Frame::default()

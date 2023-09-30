@@ -8,7 +8,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
-    widgets::{audio::waveform, indicator},
+    widgets::{audio::waveform, indicator, UiSize},
 };
 use eframe::{
     egui::{self, Layout, Ui},
@@ -308,6 +308,9 @@ pub struct ToySynth {
 
     #[serde(skip)]
     max_signal: Normal,
+
+    #[serde(skip)]
+    ui_size: UiSize,
 }
 impl Serializable for ToySynth {}
 impl Generates<StereoSample> for ToySynth {
@@ -364,6 +367,7 @@ impl ToySynth {
             dca: Dca::new_with(&params.dca),
             inner: Synthesizer::<ToyVoice>::new_with(Box::new(voice_store)),
             max_signal: Normal::minimum(),
+            ui_size: Default::default(),
         }
     }
 
@@ -474,27 +478,30 @@ impl Displays for ToySynth {
         let height = ui.available_height();
         ui.set_min_size(ui.available_size());
         ui.set_max_size(ui.available_size());
-        if height <= 32.0 {
-            self.show_small(ui)
-        } else if height <= 128.0 {
-            self.show_medium(ui)
-        } else {
-            self.show_full(ui)
+        self.ui_size = UiSize::from_height(height);
+        match self.ui_size {
+            UiSize::Small => self.show_small(ui),
+            UiSize::Medium => self.show_medium(ui),
+            UiSize::Large => self.show_full(ui),
         }
     }
 }
 impl ToySynth {
+    fn handle_ui_waveform(&mut self, ui: &mut Ui) -> egui::Response {
+        let response = ui.add(waveform(&mut self.waveform));
+        if response.changed() {
+            self.inner
+                .voices_mut()
+                .for_each(|v| v.oscillator.set_waveform(self.waveform));
+        }
+        response
+    }
+
     fn show_small(&mut self, ui: &mut Ui) -> egui::Response {
         let response = ui
             .horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    let response = ui.add(waveform(&mut self.waveform));
-                    if response.changed() {
-                        self.inner
-                            .voices_mut()
-                            .for_each(|v| v.oscillator.set_waveform(self.waveform));
-                    }
-                    response
+                    self.handle_ui_waveform(ui)
                 })
                 .inner
                     | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -507,12 +514,14 @@ impl ToySynth {
         response
     }
     fn show_medium(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.label("ToySynth MEDIUM!");
-        let value = Normal::from(0.5);
-        ui.add(indicator(value))
+        ui.vertical(|ui| {
+            ui.heading("ToySynth");
+            self.handle_ui_waveform(ui)
+        })
+        .inner
     }
     fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.label("ToySynth LARGE!!!!");
+        ui.heading("ToySynth LARGE!!!!");
         let value = Normal::from(0.8);
         ui.add(indicator(value))
     }

@@ -50,6 +50,25 @@ pub const MIDI_NOTE_F32_RANGE: std::ops::RangeInclusive<f32> =
 pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
     crate::midi::MidiNote::MIN as u8..=crate::midi::MidiNote::MAX as u8;
 
+#[derive(Debug, Default)]
+pub enum UiSize {
+    #[default]
+    Small,
+    Medium,
+    Large,
+}
+impl UiSize {
+    pub fn from_height(height: f32) -> UiSize {
+        if height <= 32.0 {
+            UiSize::Small
+        } else if height <= 128.0 {
+            UiSize::Medium
+        } else {
+            UiSize::Large
+        }
+    }
+}
+
 pub fn indicator(value: Normal) -> impl egui::Widget + 'static {
     move |ui: &mut egui::Ui| indicator_ui(ui, value)
 }

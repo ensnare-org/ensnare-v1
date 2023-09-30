@@ -173,7 +173,10 @@ impl<'a> Displays for TrackWidget<'a> {
                         // Only MIDI/audio tracks have content.
                         if !matches!(self.track.ty(), TrackType::Aux) {
                             // Reserve space for the device view.
-                            ui.set_max_height(Track::timeline_view_height(self.ui_state));
+                            ui.set_max_height(Track::track_view_height(
+                                self.track.ty(),
+                                self.ui_state,
+                            ));
 
                             let view_range = self.track.view_range().clone();
                             ui.add(timeline(
