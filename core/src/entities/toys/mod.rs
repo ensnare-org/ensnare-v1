@@ -8,7 +8,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
-    widgets::indicator,
+    widgets::{audio::waveform, indicator},
 };
 use eframe::{
     egui::{self, Layout, Ui},
@@ -488,7 +488,13 @@ impl ToySynth {
         let response = ui
             .horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    ui.label("ToySynth")
+                    let response = ui.add(waveform(&mut self.waveform));
+                    if response.changed() {
+                        self.inner
+                            .voices_mut()
+                            .for_each(|v| v.oscillator.set_waveform(self.waveform));
+                    }
+                    response
                 })
                 .inner
                     | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

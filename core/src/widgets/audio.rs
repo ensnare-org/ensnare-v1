@@ -243,17 +243,24 @@ impl<'a> WaveformWidget<'a> {
 }
 impl<'a> Displays for WaveformWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ComboBox::new(ui.next_auto_id(), "Waveform")
+        let mut r = ComboBox::new(ui.next_auto_id(), "Waveform")
             .selected_text(self.waveform.to_string())
             .show_ui(ui, |ui| {
+                let mut bool_response = false;
                 for w in Waveform::iter() {
                     let s: &'static str = w.into();
-                    ui.selectable_value(self.waveform, w, s);
+                    if ui.selectable_value(self.waveform, w, s).changed() {
+                        bool_response = true;
+                    }
                 }
+                bool_response
             });
-
-        // TODO: I'm not sure how to return a Response from a ComboBox.
-        ui.separator()
+        if let Some(inner) = r.inner {
+            if inner {
+                r.response.mark_changed();
+            }
+        }
+        r.response
     }
 }
 
