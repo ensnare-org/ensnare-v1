@@ -62,6 +62,10 @@ impl Tempo {
     pub fn bps(&self) -> ParameterType {
         self.0 / 60.0
     }
+
+    pub fn range() -> std::ops::RangeInclusive<ParameterType> {
+        Self::MIN_VALUE..=Self::MAX_VALUE
+    }
 }
 
 /// [BeatValue] enumerates numerical divisors used in most music.  

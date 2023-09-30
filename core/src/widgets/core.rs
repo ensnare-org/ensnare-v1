@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{time::Transport, traits::prelude::*, types::Normal};
+use crate::{prelude::*, time::Transport, traits::prelude::*, types::Normal};
 use eframe::{
     egui::{DragValue, Label, Layout, RichText, TextStyle},
     emath::Align,
@@ -31,13 +31,17 @@ impl<'a> Displays for TransportWidget<'a> {
         ui.allocate_ui(vec2(72.0, 20.0), |ui| {
             ui.set_min_width(128.0);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.add(Label::new(
-                    RichText::new(format!("{:0.2}", self.transport.tempo))
-                        .text_style(TextStyle::Monospace),
-                ));
-            });
+                ui.add(
+                    DragValue::new(&mut self.transport.tempo.0)
+                        .clamp_range(Tempo::range())
+                        .min_decimals(1)
+                        .speed(0.1)
+                        .suffix(" BPM"),
+                )
+            })
+            .inner
         })
-        .response
+        .inner
             | ui.allocate_ui(vec2(72.0, 20.0), |ui| {
                 ui.set_min_width(128.0);
                 ui.add(Label::new(
