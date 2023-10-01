@@ -50,7 +50,7 @@ pub const MIDI_NOTE_F32_RANGE: std::ops::RangeInclusive<f32> =
 pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
     crate::midi::MidiNote::MIN as u8..=crate::midi::MidiNote::MAX as u8;
 
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub enum UiSize {
     #[default]
     Small,

@@ -280,7 +280,7 @@ impl ToyController {
     }
 }
 
-#[derive(Debug, Default, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Control, Debug, Default, IsInstrument, Params, Uid, Serialize, Deserialize)]
 pub struct ToySynth {
     uid: Uid,
 
@@ -476,8 +476,6 @@ impl ToyVoice {
 impl Displays for ToySynth {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         let height = ui.available_height();
-        ui.set_min_size(ui.available_size());
-        ui.set_max_size(ui.available_size());
         self.ui_size = UiSize::from_height(height);
         match self.ui_size {
             UiSize::Small => self.show_small(ui),

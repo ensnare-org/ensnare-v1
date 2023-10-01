@@ -20,7 +20,10 @@ use ensnare::{
     },
     version::app_version,
 };
-use ensnare_core::widgets::track::TitleBar;
+use ensnare_core::{
+    entities::toys::{ToySynth, ToySynthParams},
+    widgets::track::TitleBar,
+};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -206,14 +209,19 @@ impl DeviceChainSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(track::device_chain(
-                self.track_uid,
-                &mut self.store,
-                &mut self.controllers,
-                &mut self.instruments,
-                &mut self.effects,
-                &mut self.action,
-            ));
+            ui.scope(|ui| {
+                // TODO: who should own this value?
+                ui.set_max_height(32.0);
+
+                ui.add(track::device_chain(
+                    self.track_uid,
+                    &mut self.store,
+                    &mut self.controllers,
+                    &mut self.instruments,
+                    &mut self.effects,
+                    &mut self.action,
+                ))
+            });
         }
     }
 
@@ -436,6 +444,34 @@ impl ESSequencerSettings {
     }
 }
 
+#[derive(Debug)]
+struct ToySynthSettings {
+    hide: bool,
+    toy_synth: ToySynth,
+}
+impl Default for ToySynthSettings {
+    fn default() -> Self {
+        Self {
+            hide: Default::default(),
+            toy_synth: ToySynth::new_with(&ToySynthParams::default()),
+        }
+    }
+}
+impl Displays for ToySynthSettings {
+    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.checkbox(&mut self.hide, "Hide")
+    }
+}
+impl ToySynthSettings {
+    const NAME: &'static str = "Toy Synth";
+
+    fn show(&mut self, ui: &mut Ui) {
+        if !self.hide {
+            self.toy_synth.ui(ui);
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 struct TitleBarSettings {
     hide: bool,
@@ -627,6 +663,7 @@ struct Explorer {
     wiggler: WigglerSettings,
     time_domain: TimeDomainSettings,
     frequency_domain: FrequencyDomainSettings,
+    toy_synth: ToySynthSettings,
 }
 impl Explorer {
     pub const NAME: &'static str = "Explorer";
@@ -670,6 +707,9 @@ impl Explorer {
             });
             Self::wrap_settings(SequencerSettings::NAME, ui, |ui| self.sequencer.ui(ui));
             Self::wrap_settings(ESSequencerSettings::NAME, ui, |ui| self.es_sequencer.ui(ui));
+
+            Self::wrap_settings(ToySynthSettings::NAME, ui, |ui| self.toy_synth.ui(ui));
+
             Self::wrap_settings(TitleBarSettings::NAME, ui, |ui| self.title_bar.ui(ui));
             Self::wrap_settings(WigglerSettings::NAME, ui, |ui| self.wiggler.ui(ui));
             self.debug_ui(ui);
@@ -749,6 +789,7 @@ impl Explorer {
             Self::wrap_item(ESSequencerSettings::NAME, ui, |ui| {
                 self.es_sequencer.show(ui)
             });
+            Self::wrap_item(ToySynthSettings::NAME, ui, |ui| self.toy_synth.show(ui));
             Self::wrap_item(TitleBarSettings::NAME, ui, |ui| self.title_bar.show(ui));
             Self::wrap_item(WigglerSettings::NAME, ui, |ui| self.wiggler.show(ui));
         });

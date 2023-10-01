@@ -190,6 +190,7 @@ impl<'a> Displays for TrackWidget<'a> {
                                 super::timeline::FocusedComponent::Sequencer,
                             ));
                         }
+                        ui.set_max_height(Track::device_view_height(self.ui_state));
                         let mut action = None;
                         ui.add(device_chain(
                             self.track.uid(),

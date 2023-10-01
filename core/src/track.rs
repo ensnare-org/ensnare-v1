@@ -254,7 +254,7 @@ impl Track {
         64.0
     }
 
-    const fn device_view_height(ui_state: TrackUiState) -> f32 {
+    pub(crate) const fn device_view_height(ui_state: TrackUiState) -> f32 {
         match ui_state {
             TrackUiState::Collapsed => 32.0,
             TrackUiState::Expanded => 96.0,
