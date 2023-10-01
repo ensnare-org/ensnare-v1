@@ -15,14 +15,22 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{panels::prelude::*, prelude::*, version::app_version};
-use ensnare_core::widgets::core::transport;
+use ensnare_core::{types::ChannelPair, widgets::core::transport};
 use env_logger;
 use settings::{Settings, SettingsPanel};
 use std::sync::{Arc, Mutex};
 
 mod settings;
 
+enum Message {
+    MidiPanelEvent(MidiPanelEvent),
+    AudioPanelEvent(AudioPanelEvent),
+    OrchestratorEvent(OrchestratorEvent),
+}
+
 struct Application {
+    event_channel: ChannelPair<Message>,
+
     orchestrator: Arc<Mutex<Orchestrator>>,
 
     control_panel: ControlPanel,
@@ -59,17 +67,19 @@ impl Application {
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
 
         let mut r = Self {
+            event_channel: Default::default(),
             orchestrator,
-            control_panel: ControlPanel::default(),
+            control_panel: Default::default(),
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
-            palette_panel: PalettePanel::default(),
+            palette_panel: Default::default(),
             toasts: Toasts::new()
                 .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
                 .direction(eframe::egui::Direction::BottomUp),
             exit_requested: Default::default(),
         };
-        r.spawn_channel_watcher(cc.egui_ctx.clone());
+        r.spawn_app_channel_watcher(cc.egui_ctx.clone());
+        r.spawn_channel_aggregator();
         r
     }
 
@@ -161,16 +171,11 @@ impl Application {
     /// We call ready() rather than select() because select() requires us to
     /// complete the operation that is ready, while ready() just tells us that a
     /// recv() would not block.
-    fn spawn_channel_watcher(&mut self, ctx: Context) {
-        let r1 = self.settings_panel.midi_panel().receiver().clone();
-        let r2 = self.settings_panel.audio_panel().receiver().clone();
-        let r3 = self.orchestrator_panel.receiver().clone();
-
-        let _ = std::thread::spawn(move || {
+    fn spawn_app_channel_watcher(&mut self, ctx: Context) {
+        let receiver = self.event_channel.receiver.clone();
+        let _ = std::thread::spawn(move || -> ! {
             let mut sel = Select::new();
-            let _ = sel.recv(&r1);
-            let _ = sel.recv(&r2);
-            let _ = sel.recv(&r3);
+            let _ = sel.recv(&receiver);
             loop {
                 let _ = sel.ready();
                 ctx.request_repaint();
@@ -178,54 +183,140 @@ impl Application {
         });
     }
 
-    fn handle_message_channels(&mut self) {
-        // As long as any channel had a message in it, we'll keep handling them.
-        // We don't expect a giant number of messages; otherwise we'd worry
-        // about blocking the UI.
+    /// Watches all the channel receivers we know about, and either handles them
+    /// immediately off the UI thread or forwards them to the app's event
+    /// channel.
+    fn spawn_channel_aggregator(&mut self) {
+        let r1 = self.settings_panel.midi_panel().receiver().clone();
+        let r2 = self.settings_panel.audio_panel().receiver().clone();
+        let r3 = self.orchestrator_panel.receiver().clone();
+
+        let app_sender = self.event_channel.sender.clone();
+        let orchestrator_sender = self.orchestrator_panel.sender().clone();
+
+        let _ = std::thread::spawn(move || -> ! {
+            let mut sel = Select::new();
+            let _ = sel.recv(&r1);
+            let _ = sel.recv(&r2);
+            let _ = sel.recv(&r3);
+
+            loop {
+                let operation = sel.select();
+                let index = operation.index();
+                match index {
+                    0 => {
+                        if let Ok(message) = operation.recv(&r1) {
+                            match message {
+                                MidiPanelEvent::Midi(channel, message) => {
+                                    let _ = orchestrator_sender
+                                        .send(OrchestratorInput::Midi(channel, message));
+                                }
+                                _ => {
+                                    let _ = app_sender.send(Message::MidiPanelEvent(message));
+                                }
+                            }
+                        }
+                    }
+                    1 => {
+                        if let Ok(message) = operation.recv(&r2) {
+                            let _ = app_sender.send(Message::AudioPanelEvent(message));
+                        }
+                    }
+                    2 => {
+                        if let Ok(message) = operation.recv(&r3) {
+                            let _ = app_sender.send(Message::OrchestratorEvent(message));
+                        }
+                    }
+                    _ => {
+                        panic!("missing case for a new receiver")
+                    }
+                }
+            }
+        });
+    }
+
+    fn handle_app_event_channel(&mut self) {
+        // As long the channel has messages in it, we'll keep handling them. We
+        // don't expect a giant number of messages; otherwise we'd worry about
+        // blocking the UI.
         loop {
-            if !(self.handle_midi_panel_channel()
-                || self.handle_audio_panel_channel()
-                || self.handle_orchestrator_channel())
-            {
+            if let Ok(m) = self.event_channel.receiver.try_recv() {
+                match m {
+                    Message::MidiPanelEvent(event) => {
+                        match event {
+                            MidiPanelEvent::Midi(..) => {
+                                panic!("this should have been short-circuited in spawn_channel_aggregator");
+                            }
+                            MidiPanelEvent::SelectInput(_) => {
+                                // TODO: save selection in prefs
+                            }
+                            MidiPanelEvent::SelectOutput(_) => {
+                                // TODO: save selection in prefs
+                            }
+                            MidiPanelEvent::PortsRefreshed => {
+                                // TODO: remap any saved preferences to ports that we've found
+                                self.settings_panel.handle_midi_port_refresh();
+                            }
+                        }
+                    }
+                    Message::AudioPanelEvent(event) => match event {
+                        AudioPanelEvent::InterfaceChanged => {
+                            self.update_orchestrator_audio_interface_config();
+                        }
+                    },
+                    Message::OrchestratorEvent(event) => match event {
+                        OrchestratorEvent::Tempo(_tempo) => {
+                            // This is (usually) an acknowledgement that Orchestrator
+                            // got our request to change, so we don't need to do
+                            // anything.
+                        }
+                        OrchestratorEvent::Quit => {
+                            eprintln!("OrchestratorEvent::Quit")
+                        }
+                        OrchestratorEvent::Loaded(path, title) => {
+                            self.orchestrator_panel.update_entity_factory_uid();
+                            let title = title.unwrap_or(String::from(Self::DEFAULT_PROJECT_NAME));
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Success,
+                                text: format!("Loaded {} from {}", title, path.display()).into(),
+                                options: ToastOptions::default()
+                                    .duration_in_seconds(2.0)
+                                    .show_progress(false),
+                            });
+                        }
+                        OrchestratorEvent::LoadError(path, error) => {
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Error,
+                                text: format!("Error loading {}: {}", path.display(), error).into(),
+                                options: ToastOptions::default().duration_in_seconds(5.0),
+                            });
+                        }
+                        OrchestratorEvent::Saved(path) => {
+                            // TODO: this should happen only if the save operation was
+                            // explicit. Autosaves should be invisible.
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Success,
+                                text: format!("Saved to {}", path.display()).into(),
+                                options: ToastOptions::default()
+                                    .duration_in_seconds(1.0)
+                                    .show_progress(false),
+                            });
+                        }
+                        OrchestratorEvent::SaveError(path, error) => {
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Error,
+                                text: format!("Error saving {}: {}", path.display(), error).into(),
+                                options: ToastOptions::default().duration_in_seconds(5.0),
+                            });
+                        }
+                        OrchestratorEvent::New => {
+                            // No special UI needed for this.
+                        }
+                    },
+                }
+            } else {
                 break;
             }
-        }
-    }
-
-    fn handle_midi_panel_channel(&mut self) -> bool {
-        if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
-            match m {
-                MidiPanelEvent::Midi(channel, message) => {
-                    self.orchestrator_panel
-                        .send_to_service(OrchestratorInput::Midi(channel, message));
-                }
-                MidiPanelEvent::SelectInput(_) => {
-                    // TODO: save selection in prefs
-                }
-                MidiPanelEvent::SelectOutput(_) => {
-                    // TODO: save selection in prefs
-                }
-                MidiPanelEvent::PortsRefreshed => {
-                    // TODO: remap any saved preferences to ports that we've found
-                    self.settings_panel.handle_midi_port_refresh();
-                }
-            }
-            true
-        } else {
-            false
-        }
-    }
-
-    fn handle_audio_panel_channel(&mut self) -> bool {
-        if let Ok(m) = self.settings_panel.audio_panel().receiver().try_recv() {
-            match m {
-                AudioPanelEvent::InterfaceChanged => {
-                    self.update_orchestrator_audio_interface_config();
-                }
-            }
-            true
-        } else {
-            false
         }
     }
 
@@ -233,63 +324,6 @@ impl Application {
         let sample_rate = self.settings_panel.audio_panel().sample_rate();
         if let Ok(mut o) = self.orchestrator.lock() {
             o.update_sample_rate(sample_rate);
-        }
-    }
-
-    fn handle_orchestrator_channel(&mut self) -> bool {
-        if let Ok(m) = self.orchestrator_panel.receiver().try_recv() {
-            match m {
-                OrchestratorEvent::Tempo(_tempo) => {
-                    // This is (usually) an acknowledgement that Orchestrator
-                    // got our request to change, so we don't need to do
-                    // anything.
-                }
-                OrchestratorEvent::Quit => {
-                    eprintln!("OrchestratorEvent::Quit")
-                }
-                OrchestratorEvent::Loaded(path, title) => {
-                    self.orchestrator_panel.update_entity_factory_uid();
-                    let title = title.unwrap_or(String::from(Self::DEFAULT_PROJECT_NAME));
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Success,
-                        text: format!("Loaded {} from {}", title, path.display()).into(),
-                        options: ToastOptions::default()
-                            .duration_in_seconds(2.0)
-                            .show_progress(false),
-                    });
-                }
-                OrchestratorEvent::LoadError(path, error) => {
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Error,
-                        text: format!("Error loading {}: {}", path.display(), error).into(),
-                        options: ToastOptions::default().duration_in_seconds(5.0),
-                    });
-                }
-                OrchestratorEvent::Saved(path) => {
-                    // TODO: this should happen only if the save operation was
-                    // explicit. Autosaves should be invisible.
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Success,
-                        text: format!("Saved to {}", path.display()).into(),
-                        options: ToastOptions::default()
-                            .duration_in_seconds(1.0)
-                            .show_progress(false),
-                    });
-                }
-                OrchestratorEvent::SaveError(path, error) => {
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Error,
-                        text: format!("Error saving {}: {}", path.display(), error).into(),
-                        options: ToastOptions::default().duration_in_seconds(5.0),
-                    });
-                }
-                OrchestratorEvent::New => {
-                    // No special UI needed for this.
-                }
-            }
-            true
-        } else {
-            false
         }
     }
 
@@ -370,7 +404,7 @@ impl Application {
 }
 impl App for Application {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-        self.handle_message_channels();
+        self.handle_app_event_channel();
 
         let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
         self.orchestrator_panel
