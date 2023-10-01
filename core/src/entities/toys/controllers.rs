@@ -104,9 +104,8 @@ impl HandlesMidi for ToyController {
 }
 impl Displays for ToyController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label("MIDI out: ");
         let mut channel = self.midi_channel_out.0;
-        let slider_response = ui.add(Slider::new(&mut channel, 0..=16));
+        let slider_response = ui.add(Slider::new(&mut channel, 0..=15).text("MIDI out"));
         if slider_response.changed() {
             self.midi_channel_out = MidiChannel(channel);
         }
