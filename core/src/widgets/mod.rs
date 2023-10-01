@@ -27,6 +27,9 @@ pub mod core;
 /// Widgets that help render generators ([Envelope], [Oscillator], etc.)
 pub mod generators;
 
+/// Widgets that help render modulators, such as [Dca].
+pub mod modulators;
+
 /// Contains widgets related to [Pattern](crate::mini::piano_roll::Pattern)s and
 /// [PianoRoll](crate::mini::piano_roll::PianoRoll).
 pub mod pattern;

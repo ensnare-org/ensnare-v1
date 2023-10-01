@@ -26,7 +26,10 @@ pub mod controllers {
     pub use ensnare_core::{
         controllers::{ControlAtlas, ControlStepBuilder, ControlTripBuilder, ControlTripPath},
         entities::factory::test_entities::TestController,
-        entities::{controllers::*, toys::ToyController},
+        entities::{
+            controllers::*,
+            toys::{ToyController, ToyControllerParams},
+        },
         even_smaller_sequencer::{ESSequencer, ESSequencerBuilder},
         mini_sequencer::Sequencer,
     };
@@ -38,7 +41,7 @@ pub mod effects {
     pub use ensnare_core::entities::{
         effects::*,
         factory::test_entities::{TestEffect, TestEffectNegatesInput},
-        toys::ToyEffect,
+        toys::{ToyEffect, ToyEffectParams},
     };
 }
 
@@ -49,7 +52,7 @@ pub mod instruments {
     pub use ensnare_core::entities::{
         factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
         instruments::*,
-        toys::ToyInstrument,
+        toys::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     };
 }
 
@@ -184,12 +187,10 @@ pub mod prelude {
         controllers::{
             lfo::{LfoController, LfoControllerParams},
             ControlAtlas, ControlStepBuilder, ControlTripBuilder, ControlTripPath, ESSequencer,
-            ESSequencerBuilder, Sequencer, ToyController,
+            ESSequencerBuilder, Sequencer,
         },
-        effects::ToyEffect,
         entity::{register_factory_entities, EntityFactory, EntityKey, EntityStore},
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
-        instruments::ToyInstrument,
         midi::{u4, u7, MidiChannel, MidiMessage, MidiMessagesFn, MidiNote},
         midi_interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
         modulation::{Dca, DcaParams},

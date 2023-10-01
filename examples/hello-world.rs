@@ -3,7 +3,7 @@
 //! Shows how to use basic crate functionality.
 
 use clap::Parser;
-use ensnare::prelude::*;
+use ensnare::{effects::ToyEffect, instruments::ToyInstrument, prelude::*};
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]

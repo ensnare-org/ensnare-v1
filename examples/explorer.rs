@@ -13,6 +13,9 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{
+    controllers::{ToyController, ToyControllerParams},
+    effects::{ToyEffect, ToyEffectParams},
+    instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
     ui::{
         widgets::{audio, control, controllers, pattern, placeholder, timeline, track},
@@ -20,10 +23,7 @@ use ensnare::{
     },
     version::app_version,
 };
-use ensnare_core::{
-    entities::toys::{ToySynth, ToySynthParams},
-    widgets::track::TitleBar,
-};
+use ensnare_core::widgets::track::TitleBar;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -472,6 +472,90 @@ impl ToySynthSettings {
     }
 }
 
+#[derive(Debug)]
+struct ToyControllerSettings {
+    hide: bool,
+    toy: ToyController,
+}
+impl Default for ToyControllerSettings {
+    fn default() -> Self {
+        Self {
+            hide: Default::default(),
+            toy: ToyController::new_with(&ToyControllerParams::default(), MidiChannel(0)),
+        }
+    }
+}
+impl Displays for ToyControllerSettings {
+    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.checkbox(&mut self.hide, "Hide")
+    }
+}
+impl ToyControllerSettings {
+    const NAME: &'static str = "Toy Controller";
+
+    fn show(&mut self, ui: &mut Ui) {
+        if !self.hide {
+            self.toy.ui(ui);
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ToyEffectSettings {
+    hide: bool,
+    toy: ToyEffect,
+}
+impl Default for ToyEffectSettings {
+    fn default() -> Self {
+        Self {
+            hide: Default::default(),
+            toy: ToyEffect::new_with(&ToyEffectParams::default()),
+        }
+    }
+}
+impl Displays for ToyEffectSettings {
+    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.checkbox(&mut self.hide, "Hide")
+    }
+}
+impl ToyEffectSettings {
+    const NAME: &'static str = "Toy Effect";
+
+    fn show(&mut self, ui: &mut Ui) {
+        if !self.hide {
+            self.toy.ui(ui);
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ToyInstrumentSettings {
+    hide: bool,
+    toy: ToyInstrument,
+}
+impl Default for ToyInstrumentSettings {
+    fn default() -> Self {
+        Self {
+            hide: Default::default(),
+            toy: ToyInstrument::new_with(&ToyInstrumentParams::default()),
+        }
+    }
+}
+impl Displays for ToyInstrumentSettings {
+    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.checkbox(&mut self.hide, "Hide")
+    }
+}
+impl ToyInstrumentSettings {
+    const NAME: &'static str = "Toy Instrument";
+
+    fn show(&mut self, ui: &mut Ui) {
+        if !self.hide {
+            self.toy.ui(ui);
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 struct TitleBarSettings {
     hide: bool,
@@ -664,6 +748,9 @@ struct Explorer {
     time_domain: TimeDomainSettings,
     frequency_domain: FrequencyDomainSettings,
     toy_synth: ToySynthSettings,
+    toy_controller: ToyControllerSettings,
+    toy_effect: ToyEffectSettings,
+    toy_instrument: ToyInstrumentSettings,
 }
 impl Explorer {
     pub const NAME: &'static str = "Explorer";
@@ -709,6 +796,13 @@ impl Explorer {
             Self::wrap_settings(ESSequencerSettings::NAME, ui, |ui| self.es_sequencer.ui(ui));
 
             Self::wrap_settings(ToySynthSettings::NAME, ui, |ui| self.toy_synth.ui(ui));
+            Self::wrap_settings(ToyControllerSettings::NAME, ui, |ui| {
+                self.toy_controller.ui(ui)
+            });
+            Self::wrap_settings(ToyEffectSettings::NAME, ui, |ui| self.toy_effect.ui(ui));
+            Self::wrap_settings(ToyInstrumentSettings::NAME, ui, |ui| {
+                self.toy_instrument.ui(ui)
+            });
 
             Self::wrap_settings(TitleBarSettings::NAME, ui, |ui| self.title_bar.ui(ui));
             Self::wrap_settings(WigglerSettings::NAME, ui, |ui| self.wiggler.ui(ui));
@@ -789,7 +883,16 @@ impl Explorer {
             Self::wrap_item(ESSequencerSettings::NAME, ui, |ui| {
                 self.es_sequencer.show(ui)
             });
+
             Self::wrap_item(ToySynthSettings::NAME, ui, |ui| self.toy_synth.show(ui));
+            Self::wrap_item(ToyControllerSettings::NAME, ui, |ui| {
+                self.toy_controller.show(ui)
+            });
+            Self::wrap_item(ToyEffectSettings::NAME, ui, |ui| self.toy_effect.show(ui));
+            Self::wrap_item(ToyInstrumentSettings::NAME, ui, |ui| {
+                self.toy_instrument.show(ui)
+            });
+
             Self::wrap_item(TitleBarSettings::NAME, ui, |ui| self.title_bar.show(ui));
             Self::wrap_item(WigglerSettings::NAME, ui, |ui| self.wiggler.show(ui));
         });

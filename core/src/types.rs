@@ -120,6 +120,13 @@ impl Mul<i16> for Sample {
         Self(self.0 * rhs as f64)
     }
 }
+impl Mul<Normal> for Sample {
+    type Output = Self;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        Self(self.0 * rhs.0 as f64)
+    }
+}
 impl From<f64> for Sample {
     fn from(value: f64) -> Self {
         Sample(value)
@@ -388,6 +395,56 @@ impl Default for Normal {
         Self(1.0)
     }
 }
+impl From<Sample> for Normal {
+    // Sample -1.0..=1.0
+    // Normal 0.0..=1.0
+    fn from(value: Sample) -> Self {
+        Self(value.0 * 0.5 + 0.5)
+    }
+}
+impl From<BipolarNormal> for Normal {
+    fn from(value: BipolarNormal) -> Self {
+        Self(value.value() * 0.5 + 0.5)
+    }
+}
+impl From<FrequencyHz> for Normal {
+    fn from(value: FrequencyHz) -> Self {
+        FrequencyHz::frequency_to_percent(value.value())
+    }
+}
+impl Mul<Normal> for f64 {
+    type Output = Self;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        self * rhs.0
+    }
+}
+impl Mul<f64> for Normal {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+impl From<Normal> for f32 {
+    fn from(val: Normal) -> Self {
+        val.value_as_f32()
+    }
+}
+impl Mul<Self> for Normal {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+impl Sub<Normal> for f64 {
+    type Output = Self;
+
+    fn sub(self, rhs: Normal) -> Self::Output {
+        self - rhs.0
+    }
+}
 
 /// A BipolarNormal is a [RangedF64] whose range is [-1.0, 1.0].
 pub type BipolarNormal = RangedF64<-1, 1>;
@@ -403,18 +460,6 @@ impl Default for BipolarNormal {
     }
 }
 
-impl From<Sample> for Normal {
-    // Sample -1.0..=1.0
-    // Normal 0.0..=1.0
-    fn from(value: Sample) -> Self {
-        Self(value.0 * 0.5 + 0.5)
-    }
-}
-impl From<BipolarNormal> for Normal {
-    fn from(value: BipolarNormal) -> Self {
-        Self(value.value() * 0.5 + 0.5)
-    }
-}
 impl From<Sample> for BipolarNormal {
     // A [Sample] has the same range as a [BipolarNormal], so no conversion is
     // necessary.
@@ -439,52 +484,14 @@ impl From<Normal> for BipolarNormal {
         Self(value.value() * 2.0 - 1.0)
     }
 }
-impl From<FrequencyHz> for Normal {
-    fn from(value: FrequencyHz) -> Self {
-        FrequencyHz::frequency_to_percent(value.value())
-    }
-}
 impl From<Normal> for FrequencyHz {
     fn from(val: Normal) -> Self {
         FrequencyHz::percent_to_frequency(val).into()
     }
 }
-impl Sub<Normal> for f64 {
-    type Output = Self;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self - rhs.0
-    }
-}
-impl Mul<Normal> for f64 {
-    type Output = Self;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        self * rhs.0
-    }
-}
-impl Mul<f64> for Normal {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs)
-    }
-}
 impl From<BipolarNormal> for f32 {
     fn from(val: BipolarNormal) -> Self {
         val.value_as_f32()
-    }
-}
-impl From<Normal> for f32 {
-    fn from(val: Normal) -> Self {
-        val.value_as_f32()
-    }
-}
-impl Mul<Self> for Normal {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
     }
 }
 
