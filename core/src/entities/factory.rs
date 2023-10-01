@@ -776,7 +776,12 @@ pub mod test_entities {
                 oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
                     Waveform::Sine,
                 )),
-                envelope: Envelope::new_with(&EnvelopeParams::safe_default()),
+                envelope: Envelope::new_with(&EnvelopeParams {
+                    attack: Normal::minimum(),
+                    decay: Normal::minimum(),
+                    sustain: Normal::maximum(),
+                    release: Normal::minimum(),
+                }),
                 sample: Default::default(),
                 note_on_key: Default::default(),
                 note_on_velocity: Default::default(),
