@@ -166,14 +166,15 @@ impl Application {
         let r2 = self.settings_panel.audio_panel().receiver().clone();
         let r3 = self.orchestrator_panel.receiver().clone();
 
-        let _ = std::thread::spawn(move || loop {
+        let _ = std::thread::spawn(move || {
             let mut sel = Select::new();
             let _ = sel.recv(&r1);
             let _ = sel.recv(&r2);
             let _ = sel.recv(&r3);
-
-            let _ = sel.ready();
-            ctx.request_repaint();
+            loop {
+                let _ = sel.ready();
+                ctx.request_repaint();
+            }
         });
     }
 
