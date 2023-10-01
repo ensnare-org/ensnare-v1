@@ -1,24 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::audio::waveform;
-use super::core::drag_normal;
-use crate::generators::{Envelope, Oscillator};
 use crate::modulators::Dca;
 use crate::traits::prelude::*;
 use crate::types::{BipolarNormal, Normal};
 use eframe::egui::Slider;
-use eframe::{
-    egui::{Frame, Sense},
-    emath,
-    epaint::{pos2, Color32, PathShape, Pos2, Rect, Shape, Stroke, Vec2},
-};
 
 /// Wraps a [DcaWidget] as a [Widget](eframe::egui::Widget).
 pub fn dca<'a>(dca: &'a mut Dca) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca).ui(ui)
 }
 
-/// An egui widget for [Oscillator].
+/// An egui widget for [Dca].
 #[derive(Debug)]
 pub struct DcaWidget<'a> {
     dca: &'a mut Dca,
