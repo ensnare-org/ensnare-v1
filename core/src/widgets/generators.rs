@@ -72,6 +72,12 @@ impl<'a> Displays for EnvelopeWidget<'a> {
             &mut sustain,
             &mut release,
         ));
+        if canvas_response.changed() {
+            self.envelope.set_attack(attack);
+            self.envelope.set_decay(decay);
+            self.envelope.set_sustain(sustain);
+            self.envelope.set_release(release);
+        }
         let attack_response = ui.add(drag_normal(&mut attack, "Attack: "));
         if attack_response.changed() {
             self.envelope.set_attack(attack);

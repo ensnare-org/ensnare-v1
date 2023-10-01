@@ -459,7 +459,7 @@ impl EnvelopeParams {
     // so I'm creating a custom default method. I think that only test/toy code
     // would rely on defaults for an envelope.
     pub fn safe_default() -> Self {
-        Self::new_with(0.0.into(), 0.0.into(), 1.0.into(), 0.0.into())
+        Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
     }
 }
 

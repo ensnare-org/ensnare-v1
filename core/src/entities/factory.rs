@@ -125,7 +125,12 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
 
     // Instruments
     factory.register_entity(EntityKey::from("toy-synth"), || {
-        Box::new(ToySynth::new_with(&ToySynthParams::default()))
+        Box::new(ToySynth::new_with(&ToySynthParams {
+            voice_count: Default::default(),
+            waveform: Default::default(),
+            envelope: EnvelopeParams::safe_default(),
+            dca: Default::default(),
+        }))
     });
     factory.register_entity(EntityKey::from("toy-instrument"), || {
         Box::<ToyInstrument>::default()

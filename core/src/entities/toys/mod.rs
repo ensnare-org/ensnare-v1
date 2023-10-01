@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::factory::{EntityFactory, EntityKey};
 use crate::{
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
     instruments::Synthesizer,
@@ -21,8 +22,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::factory::{EntityFactory, EntityKey};
-
 #[derive(Debug, Default)]
 pub struct ToyInstrumentEphemerals {
     sample: StereoSample,
@@ -32,8 +31,8 @@ pub struct ToyInstrumentEphemerals {
 }
 
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
-/// [Oscillator] to produce sound. Its "envelope" is just a boolean that responds
-/// to MIDI NoteOn/NoteOff.
+/// [Oscillator] to produce sound. Its "envelope" is just a boolean that
+/// responds to MIDI NoteOn/NoteOff. Unlike [ToySynth], it is monophonic.
 #[derive(Debug, Default, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
 pub struct ToyInstrument {
     uid: Uid,
@@ -354,6 +353,17 @@ impl Configurable for ToySynth {
         self.inner.update_sample_rate(sample_rate)
     }
 }
+impl Displays for ToySynth {
+    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+        let height = ui.available_height();
+        self.ui_size = UiSize::from_height(height);
+        match self.ui_size {
+            UiSize::Small => self.show_small(ui),
+            UiSize::Medium => self.show_medium(ui),
+            UiSize::Large => self.show_full(ui),
+        }
+    }
+}
 impl ToySynth {
     pub fn new_with(params: &ToySynthParams) -> Self {
         let voice_store = VoiceStore::<ToyVoice>::new_with_voice(params.voice_count(), || {
@@ -404,6 +414,66 @@ impl ToySynth {
 
     pub fn set_envelope(&mut self, envelope: Envelope) {
         self.envelope = envelope;
+    }
+
+    fn handle_ui_waveform(&mut self, ui: &mut Ui) -> egui::Response {
+        let response = ui.add(waveform(&mut self.waveform));
+        if response.changed() {
+            self.inner
+                .voices_mut()
+                .for_each(|v| v.oscillator.set_waveform(self.waveform));
+        }
+        response
+    }
+
+    fn handle_ui_envelope(&mut self, ui: &mut Ui) -> egui::Response {
+        let response = ui
+            .scope(|ui| {
+                ui.set_max_size(eframe::epaint::vec2(256.0, 64.0));
+                let response = self.envelope.ui(ui);
+                response
+            })
+            .inner;
+        if response.changed() {
+            self.inner.voices_mut().for_each(|v| {
+                v.envelope.set_attack(self.envelope.attack());
+                v.envelope.set_decay(self.envelope.decay());
+                v.envelope.set_sustain(self.envelope.sustain());
+                v.envelope.set_release(self.envelope.release());
+            });
+        }
+        response
+    }
+
+    fn show_small(&mut self, ui: &mut Ui) -> egui::Response {
+        let response = ui
+            .horizontal(|ui| {
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    self.handle_ui_waveform(ui)
+                })
+                .inner
+                    | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.add(indicator(self.max_signal))
+                    })
+                    .inner
+            })
+            .inner;
+        self.degrade_max(0.95);
+        response
+    }
+    fn show_medium(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.vertical(|ui| {
+            ui.heading("ToySynth");
+            let waveform_response = self.handle_ui_waveform(ui);
+            let envelope_response = self.handle_ui_envelope(ui);
+            waveform_response | envelope_response
+        })
+        .inner
+    }
+    fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
+        ui.heading("ToySynth LARGE!!!!");
+        let value = Normal::from(0.8);
+        ui.add(indicator(value))
     }
 }
 
@@ -471,57 +541,6 @@ impl ToyVoice {
             dca: Dca::default(),
             value: Default::default(),
         }
-    }
-}
-impl Displays for ToySynth {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
-        let height = ui.available_height();
-        self.ui_size = UiSize::from_height(height);
-        match self.ui_size {
-            UiSize::Small => self.show_small(ui),
-            UiSize::Medium => self.show_medium(ui),
-            UiSize::Large => self.show_full(ui),
-        }
-    }
-}
-impl ToySynth {
-    fn handle_ui_waveform(&mut self, ui: &mut Ui) -> egui::Response {
-        let response = ui.add(waveform(&mut self.waveform));
-        if response.changed() {
-            self.inner
-                .voices_mut()
-                .for_each(|v| v.oscillator.set_waveform(self.waveform));
-        }
-        response
-    }
-
-    fn show_small(&mut self, ui: &mut Ui) -> egui::Response {
-        let response = ui
-            .horizontal(|ui| {
-                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    self.handle_ui_waveform(ui)
-                })
-                .inner
-                    | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add(indicator(self.max_signal))
-                    })
-                    .inner
-            })
-            .inner;
-        self.degrade_max(0.95);
-        response
-    }
-    fn show_medium(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.vertical(|ui| {
-            ui.heading("ToySynth");
-            self.handle_ui_waveform(ui)
-        })
-        .inner
-    }
-    fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.heading("ToySynth LARGE!!!!");
-        let value = Normal::from(0.8);
-        ui.add(indicator(value))
     }
 }
 
