@@ -190,20 +190,22 @@ impl<'a> Displays for TrackWidget<'a> {
                                 super::timeline::FocusedComponent::Sequencer,
                             ));
                         }
-                        ui.set_max_height(Track::device_view_height(self.ui_state));
-                        let mut action = None;
-                        ui.add(device_chain(
-                            self.track.uid(),
-                            &mut self.track.entity_store,
-                            &mut self.track.controllers,
-                            &mut self.track.instruments,
-                            &mut self.track.effects,
-                            &mut action,
-                        ));
-                        if let Some(action) = action {
-                            let DeviceChainAction::NewDevice(key) = action;
-                            *self.action = Some(TrackAction::NewDevice(self.track.uid(), key));
-                        }
+                        ui.scope(|ui| {
+                            ui.set_max_height(Track::device_view_height(self.ui_state));
+                            let mut action = None;
+                            ui.add(device_chain(
+                                self.track.uid(),
+                                &mut self.track.entity_store,
+                                &mut self.track.controllers,
+                                &mut self.track.instruments,
+                                &mut self.track.effects,
+                                &mut action,
+                            ));
+                            if let Some(action) = action {
+                                let DeviceChainAction::NewDevice(key) = action;
+                                *self.action = Some(TrackAction::NewDevice(self.track.uid(), key));
+                            }
+                        });
                         response
                     })
                     .inner
