@@ -9,7 +9,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
-    widgets::generators::oscillator,
+    widgets::{generators::oscillator, modulators::dca},
 };
 use core::fmt::Debug;
 use eframe::{
@@ -493,7 +493,7 @@ impl WelshVoice {
                 .default_open(true)
                 .id_source(ui.next_auto_id())
                 .show(ui, |ui| {
-                    if self.dca.ui(ui).changed() {
+                    if ui.add(dca(&mut self.dca)).changed() {
                         synth.voices_mut().for_each(|v| {
                             v.dca.update_from_params(&self.dca.to_params());
                         })

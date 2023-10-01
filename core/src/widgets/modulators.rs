@@ -19,17 +19,17 @@ impl<'a> Displays for DcaWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;
-            ui.label("Gain: ");
-            let response = ui.add(Slider::new(&mut value, Normal::range()));
+            let response = ui.add(Slider::new(&mut value, Normal::range()).text("Gain"));
+            ui.end_row();
             if response.changed() {
                 self.dca.set_gain(Normal::from(value));
             }
             response
         } | {
             let mut value = self.dca.pan().0;
+            let response =
+                ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"));
             ui.end_row();
-            ui.label("Pan (L-R)");
-            let response = ui.add(Slider::new(&mut value, BipolarNormal::range()));
             if response.changed() {
                 self.dca.set_pan(BipolarNormal::from(value));
             }

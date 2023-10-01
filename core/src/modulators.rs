@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::Slider;
+use crate::{prelude::*, traits::prelude::*, widgets::modulators::dca};
 use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
 
@@ -60,26 +59,7 @@ impl Dca {
 }
 impl Displays for Dca {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut gain = self.gain().value();
-        let gain_response = ui.add(
-            Slider::new(&mut gain, Normal::range())
-                .fixed_decimals(2)
-                .text("Gain"),
-        );
-        if gain_response.changed() {
-            self.set_gain(gain.into());
-        };
-
-        let mut pan = self.pan().value();
-        let pan_response = ui.add(
-            Slider::new(&mut pan, BipolarNormal::range())
-                .fixed_decimals(2)
-                .text("Pan"),
-        );
-        if pan_response.changed() {
-            self.set_pan(pan.into());
-        };
-        gain_response | pan_response
+        ui.add(dca(self))
     }
 }
 
