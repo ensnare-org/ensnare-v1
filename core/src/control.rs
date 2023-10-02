@@ -1,18 +1,26 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::prelude::*;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use std::vec::Vec;
+use std::{ops::Add, vec::Vec};
 
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Display)]
 pub struct ControlName(pub String);
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Display)]
 pub struct ControlIndex(pub usize);
+impl Add<usize> for ControlIndex {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
