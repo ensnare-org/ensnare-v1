@@ -261,11 +261,17 @@ impl EntityFactory {
     pub fn new_entity(&self, key: &EntityKey) -> Option<Box<dyn Entity>> {
         if let Some(f) = self.entities.get(key) {
             let mut r = f();
-            r.set_uid(self.mint_uid());
+            self.assign_entity_uid(r.as_mut());
             Some(r)
         } else {
             None
         }
+    }
+
+    /// Given an entity, assigns a new [Uid] to it. Returns the new [Uid].
+    pub fn assign_entity_uid(&self, entity: &mut dyn Entity) -> Uid {
+        entity.set_uid(self.mint_uid());
+        entity.uid()
     }
 
     /// Returns the [HashSet] of all [Key]s.
@@ -315,6 +321,9 @@ impl EntityStore {
     /// Adds an [Entity] to the store.
     pub fn add(&mut self, mut entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
         let uid = entity.uid();
+        if uid.0 == 0 {
+            return Err(anyhow!("Entity Uid zero is invalid"));
+        }
         if self.entities.contains_key(&uid) {
             return Err(anyhow!("Entity Uid {uid} already exists"));
         }
