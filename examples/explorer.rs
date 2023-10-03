@@ -139,7 +139,7 @@ impl Displays for TimelineSettings {
 }
 
 /// Wraps a [DevicePalette] as a [Widget](eframe::egui::Widget).
-pub fn device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
+pub fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| DevicePalette::new(entity_factory).ui(ui)
 }
 
@@ -156,19 +156,23 @@ impl<'a> Displays for DevicePalette<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {
-            ui.horizontal_centered(|ui| {
-                for key in self.entity_factory.sorted_keys() {
-                    DragDropManager::drag_source(
-                        ui,
-                        Id::new(key),
-                        DragDropSource::NewDevice(key.clone()),
-                        |ui| {
-                            ui.label(key.to_string());
-                        },
-                    );
-                }
-            })
-            .response
+            ScrollArea::horizontal()
+                .show(ui, |ui| {
+                    ui.horizontal_centered(|ui| {
+                        for key in self.entity_factory.sorted_keys() {
+                            DragDropManager::drag_source(
+                                ui,
+                                Id::new(key),
+                                DragDropSource::NewDevice(key.clone()),
+                                |ui| {
+                                    ui.label(key.to_string());
+                                },
+                            );
+                        }
+                    })
+                    .response
+                })
+                .inner
         })
         .response
     }
@@ -183,7 +187,7 @@ impl DevicePaletteSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(device_palette(EntityFactory::global()));
+            ui.add(pretend_device_palette(EntityFactory::global()));
         }
     }
 }
