@@ -14,7 +14,7 @@ pub fn wiggler() -> impl eframe::egui::Widget {
 
 /// A placeholder widget that fills available space with an animation.
 #[derive(Debug, Default)]
-pub struct Wiggler {}
+struct Wiggler {}
 impl Wiggler {
     #[allow(missing_docs)]
     pub fn new() -> Self {

@@ -54,7 +54,7 @@ impl<'a> Displays for TransportWidget<'a> {
 }
 
 /// An egui widget that makes it easier to work with a [DragValue] and a Normal.
-pub struct DragNormal<'a> {
+struct DragNormal<'a> {
     normal: &'a mut Normal,
     prefix: Option<String>,
 }

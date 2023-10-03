@@ -23,7 +23,7 @@ pub enum DcaWidgetAction {
 
 /// An egui widget for [Dca].
 #[derive(Debug)]
-pub struct DcaWidget<'a> {
+struct DcaWidget<'a> {
     dca: &'a mut Dca,
     action: &'a mut Option<DcaWidgetAction>,
 }

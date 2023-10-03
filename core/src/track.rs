@@ -13,7 +13,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
-    widgets::{track::TitleBar, UiSize},
+    widgets::{track::make_title_bar_galley, UiSize},
 };
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -380,7 +380,7 @@ impl Track {
     /// it can be rebuilt on the next frame.
     pub(crate) fn update_font_galley(&mut self, ui: &mut eframe::egui::Ui) {
         if self.e.title_font_galley.is_none() && !self.title.0.is_empty() {
-            self.e.title_font_galley = Some(TitleBar::make_galley(ui, &self.title));
+            self.e.title_font_galley = Some(make_title_bar_galley(ui, &self.title));
         }
     }
 }

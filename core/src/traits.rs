@@ -456,7 +456,7 @@ pub trait Acts: Displays {
 pub trait Orchestrates: Configurable {
     fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
-    fn get_tracks(&self) -> &[TrackUid];
+    fn track_uids(&self) -> &[TrackUid];
 
     /// Deletes the specified track.
     fn delete_track(&mut self, track_uid: &TrackUid);
@@ -473,7 +473,7 @@ pub trait Orchestrates: Configurable {
 
     fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>>;
 
-    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
+    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<Uid>;
 
     fn link_control(
         &mut self,
@@ -502,9 +502,32 @@ pub trait Orchestrates: Configurable {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::Ticks;
+    use super::{Orchestrates, Ticks};
+    use crate::track::TrackUid;
+    use more_asserts::assert_gt;
 
     pub trait DebugTicks: Ticks {
         fn debug_tick_until(&mut self, tick_number: usize);
+    }
+
+    pub(crate) fn test_orchestrates(orchestrates: &mut dyn Orchestrates) {
+        assert!(
+            orchestrates.track_uids().is_empty(),
+            "Initial impl should have no tracks"
+        );
+        let track_uid = orchestrates.create_track().unwrap();
+        assert_gt!(track_uid.0, 0, "new track's uid should be nonzero");
+        assert_eq!(
+            orchestrates.track_uids().len(),
+            1,
+            "should be one track after creating one"
+        );
+
+        orchestrates.delete_track(&TrackUid(99999));
+        assert_eq!(
+            orchestrates.track_uids().len(),
+            1,
+            "Deleting nonexistent track shouldn't change anything"
+        );
     }
 }

@@ -57,23 +57,23 @@ pub fn carousel<'a>(
 /// a [Pattern](crate::mini::piano_roll::Pattern)). Intended to be a
 /// drag-and-drop source.
 #[derive(Debug, Default)]
-pub struct Icon<'a> {
+struct Icon<'a> {
     duration: MusicalTime,
     notes: &'a [Note],
     is_selected: bool,
 }
 impl<'a> Icon<'a> {
     /// Creates a new [Icon].
-    pub fn new() -> Self {
+    fn new() -> Self {
         Default::default()
     }
     /// Sets the duration of the pattern implied by the notes.
-    pub fn duration(mut self, duration: MusicalTime) -> Self {
+    fn duration(mut self, duration: MusicalTime) -> Self {
         self.duration = duration;
         self
     }
     /// Sets the sequence of [Note]s that determine the icon's appearance.
-    pub fn notes(mut self, notes: &'a [Note]) -> Self {
+    fn notes(mut self, notes: &'a [Note]) -> Self {
         self.notes = notes;
         self
     }
@@ -131,10 +131,10 @@ impl<'a> Displays for Icon<'a> {
 /// drag-and-drop source. This is needed in the short term because egui doesn't
 /// have an easy way to make a widget both clickable and a drag source.
 #[derive(Debug, Default)]
-pub struct DraggableIcon {}
+struct DraggableIcon {}
 impl DraggableIcon {
     /// Creates a new [DraggableIcon].
-    pub fn new() -> Self {
+    fn new() -> Self {
         Default::default()
     }
 }
@@ -163,7 +163,7 @@ impl Displays for DraggableIcon {
 
 /// Displays a row of selectable icons, each with a drag source.
 #[derive(Debug)]
-pub struct Carousel<'a> {
+struct Carousel<'a> {
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
@@ -222,7 +222,7 @@ impl<'a> Displays for Carousel<'a> {
 /// An egui widget that draws a grid in
 /// [PianoRoll](crate::mini::piano_roll::PianoRoll)'s pattern-editing view.
 #[derive(Debug, Default)]
-pub struct Grid {
+struct Grid {
     /// The extent of the [Pattern](crate::mini::piano_roll::Pattern) to be
     /// edited.
     duration: MusicalTime,

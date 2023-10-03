@@ -1,10 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::types::Normal;
-use eframe::{
-    egui::{self},
-    epaint::{pos2, Color32, Rect, Rounding, Stroke},
-};
+use eframe::epaint::{pos2, Color32, Rect, Rounding, Stroke};
 
 pub mod prelude {
     pub use super::{
@@ -72,14 +69,16 @@ impl UiSize {
     }
 }
 
-pub fn indicator(value: Normal) -> impl egui::Widget + 'static {
-    move |ui: &mut egui::Ui| indicator_ui(ui, value)
+pub fn indicator(value: Normal) -> impl eframe::egui::Widget + 'static {
+    move |ui: &mut eframe::egui::Ui| indicator_ui(ui, value)
 }
 
-fn indicator_ui(ui: &mut egui::Ui, value: Normal) -> egui::Response {
-    let desired_size = egui::vec2(2.0, 16.0);
-    let (rect, response) =
-        ui.allocate_exact_size(desired_size, egui::Sense::focusable_noninteractive());
+fn indicator_ui(ui: &mut eframe::egui::Ui, value: Normal) -> eframe::egui::Response {
+    let desired_size = eframe::egui::vec2(2.0, 16.0);
+    let (rect, response) = ui.allocate_exact_size(
+        desired_size,
+        eframe::egui::Sense::focusable_noninteractive(),
+    );
 
     if ui.is_rect_visible(rect) {
         ui.painter().rect(

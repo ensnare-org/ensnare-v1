@@ -35,7 +35,7 @@ pub fn envelope_shaper<'a>(
 
 /// An egui widget for [Oscillator].
 #[derive(Debug)]
-pub struct OscillatorWidget<'a> {
+struct OscillatorWidget<'a> {
     oscillator: &'a mut Oscillator,
 }
 impl<'a> Displays for OscillatorWidget<'a> {
@@ -51,7 +51,7 @@ impl<'a> OscillatorWidget<'a> {
 
 /// An egui widget that draws an [Envelope].
 #[derive(Debug)]
-pub struct EnvelopeWidget<'a> {
+struct EnvelopeWidget<'a> {
     envelope: &'a mut Envelope,
 }
 impl<'a> EnvelopeWidget<'a> {
@@ -104,7 +104,7 @@ impl<'a> Displays for EnvelopeWidget<'a> {
 
 /// An egui widget that allows visual editing of an [Envelope].
 #[derive(Debug)]
-pub struct EnvelopeShaperWidget<'a> {
+struct EnvelopeShaperWidget<'a> {
     attack: &'a mut Normal,
     decay: &'a mut Normal,
     sustain: &'a mut Normal,

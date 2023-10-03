@@ -20,10 +20,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
-use eframe::{
-    egui::{self, ScrollArea},
-    epaint::vec2,
-};
+use eframe::{egui::ScrollArea, epaint::vec2};
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -474,7 +471,7 @@ impl Orchestrates for Orchestrator {
         self.new_track(track)
     }
 
-    fn get_tracks(&self) -> &[TrackUid] {
+    fn track_uids(&self) -> &[TrackUid] {
         &self.track_uids
     }
 
@@ -503,8 +500,12 @@ impl Orchestrates for Orchestrator {
         }
     }
 
-    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
-        todo!()
+    fn move_entity_to_track(&mut self, track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<Uid> {
+        if let Some(entity) = self.remove_entity(uid) {
+            self.append_entity(track_uid, entity)
+        } else {
+            Err(anyhow!("Couldn't find track {track_uid}"))
+        }
     }
 
     fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>> {
@@ -818,17 +819,17 @@ impl DisplaysInTimeline for Orchestrator {
     }
 }
 impl Displays for Orchestrator {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let total_height = ui.available_height();
 
-        egui::TopBottomPanel::bottom("orchestrator-piano-roll")
+        eframe::egui::TopBottomPanel::bottom("orchestrator-piano-roll")
             .resizable(true)
             .max_height(total_height / 2.0)
             .show(ui.ctx(), |ui| {
                 self.piano_roll.write().unwrap().ui(ui);
             });
 
-        egui::CentralPanel::default()
+        eframe::egui::CentralPanel::default()
             .show(ui.ctx(), |ui| {
                 ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
@@ -922,6 +923,7 @@ mod tests {
             toys::ToyControllerAlwaysSendsMidiMessage,
         },
         midi::{MidiChannel, MidiMessage},
+        traits::tests::test_orchestrates,
         types::ParameterType,
     };
     use std::{collections::HashSet, sync::Arc};
@@ -1204,5 +1206,11 @@ mod tests {
         if let Ok(c) = counter_2.lock() {
             assert_eq!(0, *c);
         };
+    }
+
+    #[test]
+    fn orchestrator_orchestrates() {
+        let mut orchestrator = Orchestrator::default();
+        test_orchestrates(&mut orchestrator);
     }
 }

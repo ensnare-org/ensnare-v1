@@ -18,6 +18,23 @@ use eframe::{
 };
 use std::{f32::consts::PI, sync::Arc};
 
+/// Call this once for the TrackTitle, and then provide it on each frame to
+/// the widget.
+pub fn make_title_bar_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> Arc<Galley> {
+    let mut job = LayoutJob::default();
+    job.append(
+        title.0.as_str(),
+        1.0,
+        TextFormat {
+            color: Color32::YELLOW,
+            font_id: FontId::proportional(12.0),
+            valign: Align::Center,
+            ..Default::default()
+        },
+    );
+    ui.ctx().fonts(|f| f.layout_job(job))
+}
+
 /// Wraps a [TitleBar] as a [Widget](eframe::egui::Widget). Don't have a
 /// font_galley? Check out [TitleBar::make_galley()].
 pub fn title_bar(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget {
@@ -56,7 +73,7 @@ pub fn device_chain<'a>(
 
 /// An egui widget that draws a [Track]'s sideways title bar.
 #[derive(Debug)]
-pub struct TitleBar {
+struct TitleBar {
     font_galley: Option<Arc<Galley>>,
 }
 impl Displays for TitleBar {
@@ -102,28 +119,11 @@ impl TitleBar {
     fn new(font_galley: Option<Arc<Galley>>) -> Self {
         Self { font_galley }
     }
-
-    /// Call this once for the TrackTitle, and then provide it on each frame to
-    /// the widget.
-    pub fn make_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> Arc<Galley> {
-        let mut job = LayoutJob::default();
-        job.append(
-            title.0.as_str(),
-            1.0,
-            TextFormat {
-                color: Color32::YELLOW,
-                font_id: FontId::proportional(12.0),
-                valign: Align::Center,
-                ..Default::default()
-            },
-        );
-        ui.ctx().fonts(|f| f.layout_job(job))
-    }
 }
 
 /// An egui widget that draws a [Track].
 #[derive(Debug)]
-pub struct TrackWidget<'a> {
+struct TrackWidget<'a> {
     track: &'a mut Track,
     is_selected: bool,
     ui_state: TrackUiState,
