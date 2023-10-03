@@ -1,7 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::audio::{frequency, waveform};
 use crate::{
-    even_smaller_sequencer::ESSequencer, piano_roll::Note, prelude::*, traits::prelude::*,
+    even_smaller_sequencer::ESSequencer, generators::Waveform, piano_roll::Note, prelude::*,
+    traits::prelude::*, types::FrequencyRange,
 };
 use eframe::{
     egui::{style::WidgetVisuals, Sense},
@@ -15,6 +17,14 @@ pub fn es_sequencer(
     view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| SequencerWidget::new(sequencer, view_range).ui(ui)
+}
+
+/// Wraps an [LfoControllerWidget] as a [Widget](eframe::egui::Widget).
+pub fn lfo_controller<'a>(
+    waveform: &'a mut Waveform,
+    frequency: &'a mut FrequencyHz,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| LfoControllerWidget::new(waveform, frequency).ui(ui)
 }
 
 #[derive(Debug)]
@@ -112,5 +122,25 @@ impl<'a> Displays for SequencerWidget<'a> {
             response
         })
         .inner
+    }
+}
+
+#[derive(Debug)]
+struct LfoControllerWidget<'a> {
+    waveform: &'a mut Waveform,
+    frequency: &'a mut FrequencyHz,
+}
+impl<'a> Displays for LfoControllerWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
+            | ui.add(waveform(self.waveform))
+    }
+}
+impl<'a> LfoControllerWidget<'a> {
+    pub fn new(waveform: &'a mut Waveform, frequency: &'a mut FrequencyHz) -> Self {
+        Self {
+            waveform,
+            frequency,
+        }
     }
 }

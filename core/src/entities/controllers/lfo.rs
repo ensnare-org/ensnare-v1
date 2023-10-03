@@ -5,8 +5,7 @@ use crate::{
     midi::prelude::*,
     prelude::*,
     traits::prelude::*,
-    types::FrequencyRange,
-    widgets::audio::{frequency, waveform},
+    widgets::controllers::lfo_controller,
 };
 use eframe::egui::{Response, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
@@ -152,33 +151,5 @@ impl Displays for LfoController {
             self.set_frequency(frequency);
         }
         response
-    }
-}
-
-/// Wraps an [LfoControllerWidget] as a [Widget](eframe::egui::Widget).
-pub fn lfo_controller<'a>(
-    waveform: &'a mut Waveform,
-    frequency: &'a mut FrequencyHz,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| LfoControllerWidget::new(waveform, frequency).ui(ui)
-}
-
-#[derive(Debug)]
-struct LfoControllerWidget<'a> {
-    waveform: &'a mut Waveform,
-    frequency: &'a mut FrequencyHz,
-}
-impl<'a> Displays for LfoControllerWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
-            | ui.add(waveform(self.waveform))
-    }
-}
-impl<'a> LfoControllerWidget<'a> {
-    pub fn new(waveform: &'a mut Waveform, frequency: &'a mut FrequencyHz) -> Self {
-        Self {
-            waveform,
-            frequency,
-        }
     }
 }
