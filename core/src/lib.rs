@@ -66,7 +66,9 @@ mod midi_router;
 pub mod prelude {
     pub use super::{
         control::{ControlIndex, ControlName, ControlValue},
+        orchestration::Orchestrator,
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
+        traits::{HasUid, Orchestrates},
         types::{
             BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType,
             SignalType, StereoSample,

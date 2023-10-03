@@ -164,11 +164,13 @@ pub struct Track {
 
     pub(crate) entity_store: EntityStore,
 
+    #[deprecated]
     pub(crate) sequencer: ESSequencer,
     midi_router: MidiRouter,
 
     /// [ControlAtlas] manages the sources of Control events. It generates
     /// events but does not handle their routing.
+    #[deprecated]
     pub(crate) control_atlas: ControlAtlas,
     /// [ControlRouter] manages the destinations of Control events. It does not
     /// generate events, but when events are generated, it knows where to route
@@ -312,11 +314,6 @@ impl Track {
         //self.sequencer.set_piano_roll(piano_roll);
     }
 
-    #[allow(missing_docs)]
-    pub fn sequencer_mut(&mut self) -> &mut ESSequencer {
-        &mut self.sequencer
-    }
-
     /// Sets the wet/dry of an effect in the chain.
     pub fn set_humidity(&mut self, effect_uid: Uid, humidity: Normal) -> anyhow::Result<()> {
         if let Some(entity) = self.entity(&effect_uid) {
@@ -365,11 +362,6 @@ impl Track {
     /// Returns a writable version of the internal buffer.
     pub fn buffer_mut(&mut self) -> &mut TrackBuffer {
         &mut self.e.buffer
-    }
-
-    /// Returns the [ControlAtlas].
-    pub fn control_atlas_mut(&mut self) -> &mut ControlAtlas {
-        &mut self.control_atlas
     }
 
     pub fn title_mut(&mut self) -> &mut TrackTitle {
@@ -467,20 +459,14 @@ impl Ticks for Track {
 }
 impl Configurable for Track {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sequencer.update_sample_rate(sample_rate);
-        self.control_atlas.update_sample_rate(sample_rate);
         self.entity_store.update_sample_rate(sample_rate);
     }
 
     fn update_tempo(&mut self, tempo: Tempo) {
-        self.sequencer.update_tempo(tempo);
-        self.control_atlas.update_tempo(tempo);
         self.entity_store.update_tempo(tempo);
     }
 
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.sequencer.update_time_signature(time_signature);
-        self.control_atlas.update_time_signature(time_signature);
         self.entity_store.update_time_signature(time_signature);
     }
 }
@@ -509,8 +495,6 @@ impl HandlesMidi for Track {
 }
 impl Controls for Track {
     fn update_time(&mut self, range: &Range<MusicalTime>) {
-        self.sequencer.update_time(range);
-        self.control_atlas.update_time(range);
         self.entity_store.update_time(range);
     }
 
@@ -532,8 +516,6 @@ impl Controls for Track {
         };
 
         // Let everyone work and possibly generate messages.
-        self.sequencer.work(&mut handler);
-        self.control_atlas.work(&mut handler);
         self.entity_store.work(&mut handler);
 
         // We've accumulated all the MIDI messages. Route them to our own
@@ -547,39 +529,32 @@ impl Controls for Track {
     }
 
     fn is_finished(&self) -> bool {
-        self.sequencer.is_finished()
-            && self.control_atlas.is_finished()
-            && self.entity_store.is_finished()
+        self.entity_store.is_finished()
     }
 
     fn play(&mut self) {
-        self.sequencer.play();
         self.entity_store.play();
     }
 
     fn stop(&mut self) {
-        self.sequencer.stop();
         self.entity_store.stop();
     }
 
     fn skip_to_start(&mut self) {
-        self.sequencer.skip_to_start();
         self.entity_store.skip_to_start();
     }
 
     fn is_performing(&self) -> bool {
-        self.sequencer.is_performing() || self.entity_store.is_performing()
+        self.entity_store.is_performing()
     }
 }
 impl Serializable for Track {
     fn after_deser(&mut self) {
-        self.sequencer.after_deser();
         self.entity_store.after_deser();
     }
 }
 impl DisplaysInTimeline for Track {
     fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
-        //  self.sequencer.set_view_range(view_range);
         self.e.view_range = view_range.clone();
     }
 }
@@ -588,6 +563,7 @@ impl Displays for Track {}
 #[derive(Debug)]
 pub enum DeviceChainAction {
     NewDevice(EntityKey),
+    LinkControl(Uid, Uid, ControlIndex),
 }
 
 #[derive(Debug)]
@@ -657,7 +633,20 @@ impl<'a> Displays for DeviceChain<'a> {
                             .chain(self.instruments.iter().chain(self.effects.iter()))
                             .for_each(|uid| {
                                 if let Some(entity) = self.store.get_mut(uid) {
-                                    entity.ui(ui);
+                                    eframe::egui::CollapsingHeader::new(entity.name())
+                                        .show_unindented(ui, |ui| {
+                                            if entity.as_controller().is_some() {
+                                                DragDropManager::drag_source(
+                                                    ui,
+                                                    eframe::egui::Id::new(entity.name()),
+                                                    DragDropSource::ControlSource(entity.uid()),
+                                                    |ui| {
+                                                        ui.label("control");
+                                                    },
+                                                )
+                                            }
+                                            entity.ui(ui);
+                                        });
                                 }
                             });
                         let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {

@@ -23,7 +23,7 @@ impl Add<usize> for ControlIndex {
 }
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, Display)]
 pub struct ControlValue(pub f64);
 #[allow(missing_docs)]
 impl ControlValue {

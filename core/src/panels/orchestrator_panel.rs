@@ -46,9 +46,11 @@ pub enum OrchestratorInput {
     /// Delete the selected arranged patterns.
     TrackPatternRemoveSelected,
     /// Add a new entity to the selected track.
-    TrackAddEntity(EntityKey),
+    //TrackAddEntity(EntityKey),
     /// Sets the tempo.
     Tempo(Tempo),
+    /// Link the given source controller to the target controllable's parameter.
+    LinkControl(Uid, Uid, ControlIndex),
 
     /// Quit the thread.
     Quit,
@@ -209,21 +211,24 @@ impl OrchestratorPanel {
                             unimplemented!()
                             //                            o.remove_selected_patterns();
                         }
-                        OrchestratorInput::TrackAddEntity(key) => {
-                            // TODO: this is weird because it acts on all selected tracks. Figure out how to better restrict in the GUI.
-                            if let Ok(track_selection_set) = track_selection_set.lock() {
-                                track_selection_set.iter().for_each(|track_uid| {
-                                    if let Some(track) = o.get_track_mut(track_uid) {
-                                        if let Some(e) = EntityFactory::global().new_entity(&key) {
-                                            let _ = track.append_entity(e);
-                                        }
-                                    }
-                                });
-                            }
-                        }
+                        // OrchestratorInput::TrackAddEntity(key) => {
+                        //     // TODO: this is weird because it acts on all selected tracks. Figure out how to better restrict in the GUI.
+                        //     if let Ok(track_selection_set) = track_selection_set.lock() {
+                        //         track_selection_set.iter().for_each(|track_uid| {
+                        //             if let Some(track) = o.get_track_mut(track_uid) {
+                        //                 if let Some(e) = EntityFactory::global().new_entity(&key) {
+                        //                     let _ = track.append_entity(e);
+                        //                 }
+                        //             }
+                        //         });
+                        //     }
+                        // }
                         OrchestratorInput::Tempo(tempo) => {
                             o.update_tempo(tempo);
                             let _ = sender.send(OrchestratorEvent::Tempo(tempo));
+                        }
+                        OrchestratorInput::LinkControl(source_uid, target_uid, control_index) => {
+                            let _ = o.link_control(source_uid, target_uid, control_index);
                         }
                     },
                     Err(err) => {
@@ -296,10 +301,8 @@ impl OrchestratorPanel {
                 orchestrator.toggle_track_ui_state(&track_uid);
             }
             OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
-                if let Some(track) = orchestrator.get_track_mut(&track_uid) {
-                    if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                        let _ = track.append_entity(entity);
-                    }
+                if let Some(entity) = EntityFactory::global().new_entity(&key) {
+                    let _ = orchestrator.append_entity(&track_uid, entity);
                 }
             }
         }

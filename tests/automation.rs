@@ -6,74 +6,82 @@ use std::path::PathBuf;
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
+    let factory = register_factory_entities(EntityFactory::default());
+
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Automation".to_string()))
         .build()
         .unwrap();
-    orchestrator.update_tempo(Tempo(128.0));
 
-    let factory = register_factory_entities(EntityFactory::default());
+    // We scope this block so that we can work with Orchestrator only as
+    // something implementing the [Orchestrates] trait. This makes sure we're
+    // testing the generic trait behavior as much as possible.
+    {
+        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
 
-    // Add the lead pattern to the PianoRoll.
-    let scale_pattern_uid = {
-        let mut piano_roll = orchestrator.piano_roll_mut();
-        piano_roll.insert(
-            PatternBuilder::default()
-                .note_sequence(
-                    vec![
-                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-                    ],
-                    None,
-                )
-                .build()
-                .unwrap(),
-        )
-    };
+        orchestrator.update_tempo(Tempo(128.0));
 
-    // Arrange the lead pattern in a new MIDI track's Sequencer.
-    let track_uid = orchestrator.new_midi_track().unwrap();
-    let pattern = {
-        let piano_roll = orchestrator.piano_roll();
-        piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone()
-    };
-    let track = orchestrator.get_track_mut(&track_uid).unwrap();
-    let _ = track
-        .sequencer_mut()
-        .insert_pattern(&pattern, MusicalTime::new_with_beats(0));
+        let mut piano_roll = PianoRoll::default();
 
-    // Add a synth to play the pattern.
-    let synth_uid = track
-        .append_entity(factory.new_entity(&EntityKey::from("welsh-synth")).unwrap())
-        .unwrap();
+        // Add the lead pattern to the PianoRoll.
+        let scale_pattern_uid = {
+            piano_roll.insert(
+                PatternBuilder::default()
+                    .note_sequence(
+                        vec![
+                            60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+                        ],
+                        None,
+                    )
+                    .build()
+                    .unwrap(),
+            )
+        };
 
-    // Add an LFO that will control a synth parameter.
-    let lfo_uid = {
-        let mut lfo = Box::new(LfoController::new_with(&LfoControllerParams {
-            frequency: FrequencyHz(2.0),
-            waveform: Waveform::Sine,
-        }));
-        lfo.set_uid(factory.mint_uid());
-        track.append_entity(lfo).unwrap()
-    };
+        // Arrange the lead pattern in the sequencer.
+        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
+        factory.assign_entity_uid(sequencer.as_mut());
+        let track_uid = orchestrator.create_track().unwrap();
+        let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
+        let _ = sequencer.insert_pattern(&pattern, MusicalTime::new_with_beats(0));
+        assert!(orchestrator.append_entity(&track_uid, sequencer).is_ok());
 
-    let pan_param_index = {
-        // This would have been a little easier if Orchestrator or Track had a
-        // way to query param names, but I'm not sure how often that will
-        // happen.
-        factory
-            .new_entity(&EntityKey::from("welsh-synth"))
-            .unwrap()
-            .as_controllable()
-            .unwrap()
-            .control_index_for_name("dca-pan")
-            .unwrap()
-    };
+        // Add a synth to play the pattern.
+        let synth_uid = orchestrator
+            .append_entity(
+                &track_uid,
+                factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
+            )
+            .unwrap();
 
-    // Link the LFO to the synth's pan.
-    track
-        .control_router_mut()
-        .link_control(lfo_uid, synth_uid, pan_param_index);
+        // Add an LFO that will control a synth parameter.
+        let lfo_uid = {
+            let mut lfo = Box::new(LfoController::new_with(&LfoControllerParams {
+                frequency: FrequencyHz(2.0),
+                waveform: Waveform::Sine,
+            }));
+            factory.assign_entity_uid(lfo.as_mut());
+            orchestrator.append_entity(&track_uid, lfo).unwrap()
+        };
 
+        let pan_param_index = {
+            // This would have been a little easier if Orchestrator or Track had a
+            // way to query param names, but I'm not sure how often that will
+            // happen.
+            factory
+                .new_entity(&EntityKey::from("toy-synth"))
+                .unwrap()
+                .as_controllable()
+                .unwrap()
+                .control_index_for_name("dca-pan")
+                .unwrap()
+        };
+
+        // Link the LFO to the synth's pan.
+        assert!(orchestrator
+            .link_control(lfo_uid, synth_uid, pan_param_index)
+            .is_ok());
+    }
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
     let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "automation.wav"]
         .iter()
@@ -83,79 +91,88 @@ fn demo_automation() {
 
 #[test]
 fn demo_control_trips() {
+    let factory = register_factory_entities(EntityFactory::default());
+
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Automation".to_string()))
         .build()
         .unwrap();
-    orchestrator.update_tempo(Tempo(128.0));
 
-    let factory = register_factory_entities(EntityFactory::default());
+    // We scope this block so that we can work with Orchestrator only as
+    // something implementing the [Orchestrates] trait. This makes sure we're
+    // testing the generic trait behavior as much as possible.
+    {
+        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
 
-    // Create the lead pattern.
-    let scale_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-            ],
-            None,
-        )
-        .build()
-        .unwrap();
+        orchestrator.update_tempo(Tempo(128.0));
 
-    // Arrange the lead pattern in a new MIDI track's Sequencer.
-    let track_uid = orchestrator.new_midi_track().unwrap();
-    let track = orchestrator.get_track_mut(&track_uid).unwrap();
-    let _ = track
-        .sequencer_mut()
-        .insert_pattern(&scale_pattern, MusicalTime::new_with_beats(0));
+        // Create the lead pattern.
+        let scale_pattern = PatternBuilder::default()
+            .note_sequence(
+                vec![
+                    60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+                ],
+                None,
+            )
+            .build()
+            .unwrap();
 
-    // Add a synth to play the pattern.
-    let synth_uid = track
-        .append_entity(factory.new_entity(&EntityKey::from("welsh-synth")).unwrap())
-        .unwrap();
+        // Arrange the lead pattern in a sequencer.
+        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
+        factory.assign_entity_uid(sequencer.as_mut());
+        assert!(sequencer
+            .insert_pattern(&scale_pattern, MusicalTime::new_with_beats(0))
+            .is_ok());
 
-    // Figure how out to identify the parameter we want to control.
-    let pan_param_index = {
-        factory
-            .new_entity(&EntityKey::from("welsh-synth"))
-            .unwrap()
+        // Add the sequencer to a new track.
+        let track_uid = orchestrator.create_track().unwrap();
+        assert!(orchestrator.append_entity(&track_uid, sequencer).is_ok());
+
+        // Add a synth to play the pattern. Figure how out to identify the
+        // parameter we want to control.
+        let entity = factory.new_entity(&EntityKey::from("toy-synth")).unwrap();
+        let pan_param_index = entity
             .as_controllable()
             .unwrap()
             .control_index_for_name("dca-pan")
-            .unwrap()
-    };
+            .unwrap();
+        let synth_uid = orchestrator.append_entity(&track_uid, entity).unwrap();
 
-    // Add a ControlTrip that ramps from zero to max over the desired amount of time.
-    let control_atlas = track.control_atlas_mut();
-    let mut trip = ControlTripBuilder::default()
-        .step(
-            ControlStepBuilder::default()
-                .value(ControlValue::MIN)
-                .time(MusicalTime::START)
-                .path(ControlTripPath::Linear)
-                .build()
-                .unwrap(),
-        )
-        .step(
-            ControlStepBuilder::default()
-                .value(ControlValue::MAX)
-                .time(MusicalTime::new_with_beats(4))
-                .path(ControlTripPath::Flat)
-                .build()
-                .unwrap(),
-        )
-        .build()
-        .unwrap();
-    let trip_uid = factory.mint_uid();
-    trip.set_uid(trip_uid);
-    control_atlas.add_trip(trip);
+        // Create a [ControlAtlas] that will manage [ControlTrips](ControlTrip).
+        let mut atlas = ControlAtlas::default();
+        factory.assign_entity_uid(&mut atlas);
 
-    // Hook up that ControlTrip to the pan parameter.
-    track
-        .control_router_mut()
-        .link_control(trip_uid, synth_uid, pan_param_index);
+        // Add a ControlTrip that ramps from zero to max over the desired amount of time.
+        let mut trip = ControlTripBuilder::default()
+            .step(
+                ControlStepBuilder::default()
+                    .value(ControlValue::MIN)
+                    .time(MusicalTime::START)
+                    .path(ControlTripPath::Linear)
+                    .build()
+                    .unwrap(),
+            )
+            .step(
+                ControlStepBuilder::default()
+                    .value(ControlValue::MAX)
+                    .time(MusicalTime::new_with_beats(4))
+                    .path(ControlTripPath::Flat)
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap();
+        factory.assign_entity_uid(&mut trip);
+        let trip_uid = atlas.add_trip(trip).unwrap();
+        let _ = orchestrator
+            .append_entity(&track_uid, Box::new(atlas))
+            .unwrap();
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
+        // Hook up that ControlTrip to the pan parameter.
+        assert!(orchestrator
+            .link_control(trip_uid, synth_uid, pan_param_index)
+            .is_ok());
+    } // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
     let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "control-trips.wav"]
         .iter()
         .collect();

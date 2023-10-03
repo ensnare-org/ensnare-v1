@@ -11,6 +11,7 @@ use crate::{
     midi::{u7, MidiChannel, MidiMessage},
     prelude::*,
     time::{MusicalTime, SampleRate, TimeSignature},
+    track::TrackUid,
 };
 
 /// Quick import of all important traits.
@@ -18,8 +19,8 @@ pub mod prelude {
     pub use super::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HasSettings, HasUid,
-        IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, PlaysNotes,
-        Serializable, StoresVoices, Ticks, TransformsAudio,
+        IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, Orchestrates,
+        PlaysNotes, Serializable, StoresVoices, Ticks, TransformsAudio,
     };
     pub use crate::midi::HandlesMidi;
 }
@@ -449,6 +450,54 @@ pub trait Acts: Displays {
 
     /// Returns the pending action, if any, and resets it to None.
     fn take_action(&mut self) -> Option<Self::Action>;
+}
+
+/// Manages relationships among [Entities](Entity) to produce a song.
+pub trait Orchestrates: Configurable {
+    fn create_track(&mut self) -> anyhow::Result<TrackUid>;
+
+    fn get_tracks(&self) -> &[TrackUid];
+
+    /// Deletes the specified track.
+    fn delete_track(&mut self, track_uid: &TrackUid);
+
+    /// Deletes the specified tracks.
+    fn delete_tracks(&mut self, uids: &[TrackUid]);
+
+    /// Adds the given entity to the end of the specified track.
+    fn append_entity(
+        &mut self,
+        track_uid: &TrackUid,
+        entity: Box<dyn Entity>,
+    ) -> anyhow::Result<Uid>;
+
+    fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>>;
+
+    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
+
+    fn link_control(
+        &mut self,
+        source_uid: Uid,
+        target_uid: Uid,
+        control_index: ControlIndex,
+    ) -> anyhow::Result<()>;
+
+    // Sets the wet/dry mix for an effect. Normal::maximum() is 100% effect;
+    // Normal::minimum() is 100% unprocessed input. Returns an error if the
+    // entity is not an effect.
+    fn set_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()>;
+
+    fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()>;
+
+    /// Configures a send from the given track to the given aux track. The
+    /// `send_amount` parameter indicates how much of the signal should go to
+    /// the aux: 1.0 is full, 0.0 is silent.
+    fn send_to_aux(
+        &mut self,
+        send_track_uid: TrackUid,
+        aux_track_uid: TrackUid,
+        send_amount: Normal,
+    ) -> anyhow::Result<()>;
 }
 
 #[cfg(test)]

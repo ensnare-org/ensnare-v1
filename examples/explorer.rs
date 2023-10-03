@@ -943,22 +943,24 @@ impl eframe::App for Explorer {
                         let _ = self.device_chain.append_entity(entity);
                     }
                 }
-            }
-        }
-        let events = DragDropManager::take_and_clear_events();
-        events.iter().for_each(|e| match e {
-            DragDropEvent::AddDeviceToTrack(key, track_uid) => {
-                eprintln!("DragDropEvent::AddDeviceToTrack {key} {track_uid}")
-            }
-            DragDropEvent::AddPatternToTrack(pattern_uid, track_uid, position) => {
-                eprintln!(
-                    "DragDropEvent::AddPatternToTrack {pattern_uid} {track_uid} {position:?}"
-                );
-                if let Some(pattern) = self.piano_roll.piano_roll.get_pattern(pattern_uid) {
-                    let _ = self.timeline.sequencer.insert_pattern(pattern, *position);
+                DeviceChainAction::LinkControl(source_uid, target_uid, index) => {
+                    eprintln!("{action:?}")
                 }
             }
-        });
+        }
+        let receiver = DragDropManager::global().lock().unwrap().receiver().clone();
+        while let Ok(event) = receiver.try_recv() {
+            eprintln!("{event:?}");
+            match event {
+                DragDropEvent::TrackAddDevice(..) => {}
+                DragDropEvent::TrackAddPattern(track_uid, pattern_uid, position) => {
+                    if let Some(pattern) = self.piano_roll.piano_roll.get_pattern(&pattern_uid) {
+                        let _ = self.timeline.sequencer.insert_pattern(pattern, position);
+                    }
+                }
+                DragDropEvent::LinkControl(source_uid, target_uid, control_index) => {}
+            }
+        }
     }
 }
 

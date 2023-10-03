@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
+    drag_drop::DragDropManager,
     entities::effects::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
@@ -9,7 +10,10 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
-    widgets::{generators::oscillator, modulators::dca},
+    widgets::{
+        generators::oscillator,
+        modulators::{dca, DcaWidgetAction},
+    },
 };
 use core::fmt::Debug;
 use eframe::{
@@ -493,10 +497,24 @@ impl WelshVoice {
                 .default_open(true)
                 .id_source(ui.next_auto_id())
                 .show(ui, |ui| {
-                    if ui.add(dca(&mut self.dca)).changed() {
+                    let mut action = None;
+                    if ui.add(dca(&mut self.dca, &mut action)).changed() {
                         synth.voices_mut().for_each(|v| {
                             v.dca.update_from_params(&self.dca.to_params());
                         })
+                    }
+                    if let Some(action) = action {
+                        match action {
+                            DcaWidgetAction::LinkControl(source_uid, control_index) => {
+                                DragDropManager::enqueue_event(
+                                    crate::drag_drop::DragDropEvent::LinkControl(
+                                        source_uid,
+                                        Uid(9999),
+                                        control_index + Self::DCA_INDEX,
+                                    ),
+                                );
+                            }
+                        }
                     }
                 });
             CollapsingHeader::new("Amplitude")

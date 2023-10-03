@@ -375,12 +375,12 @@ impl<'a> Displays for Timeline<'a> {
                 if let Some(source) = DragDropManager::source() {
                     let event = match source {
                         DragDropSource::NewDevice(key) => {
-                            Some(DragDropEvent::AddDeviceToTrack(key, self.track_uid))
+                            Some(DragDropEvent::TrackAddDevice(self.track_uid, key))
                         }
                         DragDropSource::Pattern(pattern_uid) => Some(
-                            DragDropEvent::AddPatternToTrack(pattern_uid, self.track_uid, time),
+                            DragDropEvent::TrackAddPattern(self.track_uid, pattern_uid, time),
                         ),
-                        DragDropSource::ControlTrip(_uid) => None,
+                        _ => None,
                     };
                     if let Some(event) = event {
                         DragDropManager::enqueue_event(event);

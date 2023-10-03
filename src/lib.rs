@@ -197,7 +197,7 @@ pub mod prelude {
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
             DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid,
-            IsController, IsEffect, IsInstrument,
+            IsController, IsEffect, IsInstrument, Orchestrates,
         },
         types::{
             BipolarNormal, FrequencyHz, MusicalTime, Normal, Ratio, Sample, SampleRate,

@@ -190,6 +190,7 @@ impl Application {
         let r1 = self.settings_panel.midi_panel().receiver().clone();
         let r2 = self.settings_panel.audio_panel().receiver().clone();
         let r3 = self.orchestrator_panel.receiver().clone();
+        let r4 = DragDropManager::global().lock().unwrap().receiver().clone();
 
         let app_sender = self.event_channel.sender.clone();
         let orchestrator_sender = self.orchestrator_panel.sender().clone();
@@ -199,32 +200,59 @@ impl Application {
             let _ = sel.recv(&r1);
             let _ = sel.recv(&r2);
             let _ = sel.recv(&r3);
+            let _ = sel.recv(&r4);
 
             loop {
                 let operation = sel.select();
                 let index = operation.index();
                 match index {
                     0 => {
-                        if let Ok(message) = operation.recv(&r1) {
-                            match message {
+                        if let Ok(event) = operation.recv(&r1) {
+                            match event {
                                 MidiPanelEvent::Midi(channel, message) => {
                                     let _ = orchestrator_sender
                                         .send(OrchestratorInput::Midi(channel, message));
                                 }
                                 _ => {
-                                    let _ = app_sender.send(Message::MidiPanelEvent(message));
+                                    let _ = app_sender.send(Message::MidiPanelEvent(event));
                                 }
                             }
                         }
                     }
                     1 => {
-                        if let Ok(message) = operation.recv(&r2) {
-                            let _ = app_sender.send(Message::AudioPanelEvent(message));
+                        if let Ok(event) = operation.recv(&r2) {
+                            let _ = app_sender.send(Message::AudioPanelEvent(event));
                         }
                     }
                     2 => {
-                        if let Ok(message) = operation.recv(&r3) {
-                            let _ = app_sender.send(Message::OrchestratorEvent(message));
+                        if let Ok(event) = operation.recv(&r3) {
+                            let _ = app_sender.send(Message::OrchestratorEvent(event));
+                        }
+                    }
+                    3 => {
+                        if let Ok(event) = operation.recv(&r4) {
+                            match event {
+                                ensnare_core::drag_drop::DragDropEvent::TrackAddDevice(_, _) => {
+                                    todo!()
+                                }
+                                ensnare_core::drag_drop::DragDropEvent::TrackAddPattern(
+                                    _,
+                                    _,
+                                    _,
+                                ) => todo!(),
+                                ensnare_core::drag_drop::DragDropEvent::LinkControl(
+                                    source_uid,
+                                    target_uid,
+                                    control_index,
+                                ) => {
+                                    let _ =
+                                        orchestrator_sender.send(OrchestratorInput::LinkControl(
+                                            source_uid,
+                                            target_uid,
+                                            control_index,
+                                        ));
+                                }
+                            }
                         }
                     }
                     _ => {

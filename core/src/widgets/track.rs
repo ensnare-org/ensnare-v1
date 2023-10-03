@@ -202,8 +202,23 @@ impl<'a> Displays for TrackWidget<'a> {
                                 &mut action,
                             ));
                             if let Some(action) = action {
-                                let DeviceChainAction::NewDevice(key) = action;
-                                *self.action = Some(TrackAction::NewDevice(self.track.uid(), key));
+                                match action {
+                                    DeviceChainAction::NewDevice(key) => {
+                                        *self.action =
+                                            Some(TrackAction::NewDevice(self.track.uid(), key));
+                                    }
+                                    DeviceChainAction::LinkControl(
+                                        source_uid,
+                                        target_uid,
+                                        control_index,
+                                    ) => {
+                                        self.track.control_router.link_control(
+                                            source_uid,
+                                            target_uid,
+                                            control_index,
+                                        );
+                                    }
+                                }
                             }
                         });
                         response

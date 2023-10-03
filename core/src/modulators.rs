@@ -59,7 +59,8 @@ impl Dca {
 }
 impl Displays for Dca {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(dca(self))
+        let mut action = None;
+        ui.add(dca(self, &mut action))
     }
 }
 

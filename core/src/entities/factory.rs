@@ -416,10 +416,12 @@ impl Controls for EntityStore {
             if let Some(e) = entity.as_controller_mut() {
                 let tuid = e.uid();
                 e.work(&mut |claimed_uid, message| {
-                    control_events_fn(tuid, message);
                     if tuid != claimed_uid {
-                        eprintln!("Warning: entity {tuid} is sending control messages with incorrect uid {claimed_uid}");
+                        // This is OK because ControlAtlas delegates work to its
+                        // ControlTrips, so the uid that emerges won't be the
+                        // same as the one that this code called.
                     }
+                    control_events_fn(claimed_uid, message);
                 });
             }
         });

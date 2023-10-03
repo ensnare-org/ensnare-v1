@@ -1,16 +1,25 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
+    drag_drop::DragDropManager,
     generators::{Oscillator, OscillatorParams, Waveform},
     midi::prelude::*,
     modulators::{Dca, DcaParams},
     prelude::*,
     traits::prelude::*,
-    widgets::{generators::oscillator, modulators::dca},
+    widgets::{
+        generators::oscillator,
+        modulators::{dca, DcaWidgetAction},
+    },
 };
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
+
+#[derive(Debug)]
+pub enum ToyInstrumentAction {
+    LinkControl(Uid, Uid, ControlIndex),
+}
 
 #[derive(Debug, Default)]
 pub struct ToyInstrumentEphemerals {
@@ -18,6 +27,7 @@ pub struct ToyInstrumentEphemerals {
     pub is_playing: bool,
     pub received_midi_message_count: Arc<Mutex<usize>>,
     pub debug_messages: Vec<MidiMessage>,
+    pub action: Option<ToyInstrumentAction>,
 }
 
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
@@ -114,6 +124,27 @@ impl ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca))
+        let mut action = None;
+        let response =
+            ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca, &mut action));
+        if let Some(action) = action {
+            match action {
+                DcaWidgetAction::LinkControl(source_uid, control_index) => {
+                    DragDropManager::enqueue_event(crate::drag_drop::DragDropEvent::LinkControl(
+                        source_uid,
+                        self.uid,
+                        control_index + Self::DCA_INDEX,
+                    ));
+                }
+            }
+        }
+        response
+    }
+}
+impl Acts for ToyInstrument {
+    type Action = ToyInstrumentAction;
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.e.action.take()
     }
 }

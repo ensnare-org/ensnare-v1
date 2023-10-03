@@ -438,15 +438,13 @@ impl Controls for ControlTrip {
     }
 
     fn play(&mut self) {
-        todo!()
+        self.update_interval();
     }
 
-    fn stop(&mut self) {
-        todo!()
-    }
+    fn stop(&mut self) {}
 
     fn skip_to_start(&mut self) {
-        todo!()
+        self.e.reset_current_path_if_needed();
     }
 
     fn is_performing(&self) -> bool {
@@ -488,7 +486,7 @@ impl Default for ControlAtlas {
             uid: Default::default(),
             trips: Default::default(),
         };
-        r.add_trip(
+        let _ = r.add_trip(
             ControlTripBuilder::default()
                 .random(MusicalTime::START)
                 .build()
@@ -518,20 +516,20 @@ impl Controls for ControlAtlas {
         self.trips.iter().all(|ct| ct.is_finished())
     }
 
+    fn is_performing(&self) -> bool {
+        false
+    }
+
     fn play(&mut self) {
-        todo!()
+        self.trips.iter_mut().for_each(|t| t.play());
     }
 
     fn stop(&mut self) {
-        todo!()
+        self.trips.iter_mut().for_each(|t| t.stop());
     }
 
     fn skip_to_start(&mut self) {
-        todo!()
-    }
-
-    fn is_performing(&self) -> bool {
-        false
+        self.trips.iter_mut().for_each(|t| t.skip_to_start());
     }
 }
 impl Serializable for ControlAtlas {}
@@ -554,8 +552,10 @@ impl Configurable for ControlAtlas {
 }
 impl ControlAtlas {
     /// Adds the given [ControlTrip] to this atlas. TODO: specify any ordering constraints
-    pub fn add_trip(&mut self, trip: ControlTrip) {
+    pub fn add_trip(&mut self, trip: ControlTrip) -> anyhow::Result<Uid> {
+        let uid = trip.uid();
         self.trips.push(trip);
+        Ok(uid)
     }
 
     /// Removes the given [ControlTrip] from this atlas.

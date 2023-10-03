@@ -44,7 +44,6 @@ fn main() -> anyhow::Result<()> {
     // An Orchestrator manages a set of Tracks, which are what actually contains
     // musical devices.
     let track_uid = orchestrator.new_midi_track().unwrap();
-    let track = orchestrator.get_track_mut(&track_uid).unwrap();
 
     // The sequencer sends MIDI commands to the synth. Each MIDI track
     // automatically includes one. There are lots of different ways to populate
@@ -59,8 +58,12 @@ fn main() -> anyhow::Result<()> {
 
     // Adding an entity to a track forms a chain that sends MIDI, control, and
     // audio data appropriately.
-    let _synth_id = track.append_entity(Box::new(synth)).unwrap();
-    let _compressor_id = track.append_entity(Box::new(effect)).unwrap();
+    let _synth_id = orchestrator
+        .append_entity(&track_uid, Box::new(synth))
+        .unwrap();
+    let _compressor_id = orchestrator
+        .append_entity(&track_uid, Box::new(effect))
+        .unwrap();
 
     // Once everything is set up, the orchestrator renders an audio stream.
     let _ = orchestrator.write_to_file(&std::path::PathBuf::from("output.wav"));

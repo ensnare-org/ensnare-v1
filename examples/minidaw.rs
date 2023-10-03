@@ -662,7 +662,7 @@ impl MiniDaw {
                 )))
             }
             MenuBarAction::TrackAddEntity(key) => {
-                input = Some(OrchestratorInput::TrackAddEntity(key))
+                //                input = Some(OrchestratorInput::TrackAddEntity(key))
             }
         }
         if let Some(input) = input {

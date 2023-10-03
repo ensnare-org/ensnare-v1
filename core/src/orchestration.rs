@@ -2,7 +2,7 @@
 
 use crate::{
     bus_route::{BusRoute, BusStation},
-    control::{ControlRouter, ControlValue},
+    control::{ControlIndex, ControlRouter, ControlValue},
     entities::factory::EntityKey,
     midi::{MidiChannel, MidiMessage, MidiMessagesFn},
     piano_roll::PianoRoll,
@@ -11,8 +11,8 @@ use crate::{
     track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid},
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid, Serializable,
-        Ticks,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid,
+        Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::Uid,
@@ -64,12 +64,13 @@ pub struct OrchestratorEphemerals {
 ///
 /// ```
 /// use ensnare_core::prelude::*;
-/// use ensnare_core::orchestration::Orchestrator;
+/// use ensnare_core::entities::prelude::*;
 ///
 /// let mut orchestrator = Orchestrator::default();
-/// let track_uid = orchestrator.new_midi_track().unwrap();
-/// let track = orchestrator.get_track_mut(&track_uid).unwrap();
-/// // TODO let uid = track.append_entity(Box::new(ToyInstrument::default())).unwrap();
+/// let track_uid = orchestrator.create_track().unwrap();
+/// let mut instrument = Box::new(ToyInstrument::default());
+/// instrument.set_uid(Uid(123));
+/// let instrument_uid = orchestrator.append_entity(&track_uid, instrument).unwrap();
 ///
 /// let mut samples = [StereoSample::SILENCE; Orchestrator::SAMPLE_BUFFER_SIZE];
 /// orchestrator.render_and_ignore_events(&mut samples);
@@ -97,6 +98,9 @@ pub struct Orchestrator {
     pub piano_roll: Arc<RwLock<PianoRoll>>,
 
     bus_station: BusStation,
+
+    // A cache for finding an [Entity]'s owning [Track].
+    pub entity_uid_to_track_uid: HashMap<Uid, TrackUid>,
 
     // We do want this serialized, unlike many other entities that implement
     // DisplaysInTimeline, because this field determines the timeline view
@@ -129,6 +133,7 @@ impl Default for Orchestrator {
             track_ui_states: Default::default(),
             piano_roll: Default::default(),
             bus_station: Default::default(),
+            entity_uid_to_track_uid: Default::default(),
             view_range,
 
             e: Default::default(),
@@ -179,19 +184,6 @@ impl Orchestrator {
         self.new_audio_track()?;
         self.new_aux_track()?;
         Ok(())
-    }
-
-    /// Deletes the specified track.
-    pub fn delete_track(&mut self, uid: &TrackUid) {
-        self.tracks.remove(uid);
-        self.track_uids.retain(|u| u != uid);
-    }
-
-    /// Deletes the specified tracks.
-    pub fn delete_tracks(&mut self, uids: &[TrackUid]) {
-        uids.iter().for_each(|uid| {
-            self.delete_track(uid);
-        });
     }
 
     /// Sets a new title for the track.
@@ -303,7 +295,7 @@ impl Orchestrator {
     }
 
     /// Returns the specified mutable [Track].
-    pub fn get_track_mut(&mut self, uid: &TrackUid) -> Option<&mut Track> {
+    fn get_track_mut(&mut self, uid: &TrackUid) -> Option<&mut Track> {
         self.tracks.get_mut(uid)
     }
 
@@ -455,24 +447,6 @@ impl Orchestrator {
         Ok(())
     }
 
-    /// Configures a send from the given track to the given aux track. The
-    /// `send_amount` parameter indicates how much of the signal should go to
-    /// the aux: 1.0 is full, 0.0 is silent.
-    pub fn send_to_aux(
-        &mut self,
-        send_track_uid: TrackUid,
-        aux_track_uid: TrackUid,
-        send_amount: Normal,
-    ) -> anyhow::Result<()> {
-        self.bus_station.add_send_route(
-            send_track_uid,
-            BusRoute {
-                aux_track_uid,
-                amount: send_amount,
-            },
-        )
-    }
-
     #[allow(missing_docs)]
     pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
         self.e.track_selection_set = track_selection_set;
@@ -492,6 +466,118 @@ impl Orchestrator {
                 }
             }
         }
+    }
+}
+impl Orchestrates for Orchestrator {
+    fn create_track(&mut self) -> anyhow::Result<TrackUid> {
+        let track = self.track_factory.midi(&self.piano_roll);
+        self.new_track(track)
+    }
+
+    fn get_tracks(&self) -> &[TrackUid] {
+        &self.track_uids
+    }
+
+    fn delete_track(&mut self, track_uid: &TrackUid) {
+        self.tracks.remove(&track_uid);
+        self.track_uids.retain(|uid| uid != track_uid);
+    }
+
+    fn delete_tracks(&mut self, uids: &[TrackUid]) {
+        uids.iter().for_each(|uid| {
+            self.delete_track(uid);
+        });
+    }
+
+    fn append_entity(
+        &mut self,
+        track_uid: &TrackUid,
+        entity: Box<dyn Entity>,
+    ) -> anyhow::Result<Uid> {
+        if let Some(track) = self.tracks.get_mut(&track_uid) {
+            self.entity_uid_to_track_uid
+                .insert(entity.uid(), *track_uid);
+            track.append_entity(entity)
+        } else {
+            Err(anyhow!("Couldn't find track {track_uid}"))
+        }
+    }
+
+    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>> {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.remove_entity(uid)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn link_control(
+        &mut self,
+        source_uid: Uid,
+        target_uid: Uid,
+        control_index: ControlIndex,
+    ) -> anyhow::Result<()> {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track
+                    .control_router_mut()
+                    .link_control(source_uid, target_uid, control_index);
+                Ok(())
+            } else {
+                Err(anyhow!("Couldn't find track that owns entity {target_uid}"))
+            }
+        } else {
+            Err(anyhow!(
+                "Couldn't find uid of track that owns entity {target_uid}"
+            ))
+        }
+    }
+
+    fn set_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.set_humidity(uid, humidity)
+            } else {
+                Err(anyhow!("Couldn't find track that owns entity {uid}"))
+            }
+        } else {
+            Err(anyhow!("Couldn't find uid of track that owns entity {uid}"))
+        }
+    }
+
+    fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.move_effect(uid, index)
+            } else {
+                Err(anyhow!("Couldn't find track that owns entity {uid}"))
+            }
+        } else {
+            Err(anyhow!("Couldn't find uid of track that owns entity {uid}"))
+        }
+    }
+
+    fn send_to_aux(
+        &mut self,
+        send_track_uid: TrackUid,
+        aux_track_uid: TrackUid,
+        send_amount: Normal,
+    ) -> anyhow::Result<()> {
+        self.bus_station.add_send_route(
+            send_track_uid,
+            BusRoute {
+                aux_track_uid,
+                amount: send_amount,
+            },
+        )
     }
 }
 impl Acts for Orchestrator {
@@ -872,7 +958,9 @@ mod tests {
         let track = o.get_track_mut(&tuid).unwrap();
 
         const TIMER_DURATION: MusicalTime = MusicalTime::new_with_beats(1);
-        let _ = track.append_entity(Box::new(Timer::new_with(TIMER_DURATION)));
+        let mut entity = Box::new(Timer::new_with(TIMER_DURATION));
+        entity.set_uid(Uid(459));
+        let _ = track.append_entity(entity);
 
         o.play();
         let mut _prior_start_time = MusicalTime::TIME_ZERO;
@@ -1001,13 +1089,11 @@ mod tests {
 
         {
             let track = o.get_track_mut(&track_uid).unwrap();
-            assert!(track
-                .append_entity(Box::new(TestAudioSource::new_with(
-                    &TestAudioSourceParams {
-                        level: EXPECTED_LEVEL
-                    }
-                )))
-                .is_ok());
+            let mut e = Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
+                level: EXPECTED_LEVEL,
+            }));
+            e.set_uid(Uid(245));
+            assert!(track.append_entity(e).is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
@@ -1029,9 +1115,9 @@ mod tests {
         // Add an effect to the aux track.
         {
             let track = o.get_track_mut(&aux_uid).unwrap();
-            assert!(track
-                .append_entity(Box::new(TestEffectNegatesInput::default()))
-                .is_ok());
+            let mut effect = Box::new(TestEffectNegatesInput::default());
+            effect.set_uid(Uid(405));
+            assert!(track.append_entity(effect).is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
@@ -1048,7 +1134,8 @@ mod tests {
         let track_uid = o.new_midi_track().unwrap();
 
         let track = o.get_track_mut(&track_uid).unwrap();
-        let instrument = TestInstrumentCountsMidiMessages::default();
+        let mut instrument = TestInstrumentCountsMidiMessages::default();
+        instrument.set_uid(Uid(345));
         let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
         let _ = track.append_entity(Box::new(instrument)).unwrap();
 

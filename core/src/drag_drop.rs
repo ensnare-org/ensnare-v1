@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{entities::prelude::*, piano_roll::PatternUid, prelude::*, track::TrackUid};
+use crate::{
+    entities::prelude::*, piano_roll::PatternUid, prelude::*, track::TrackUid, types::ChannelPair,
+};
+use crossbeam_channel::Receiver;
 use eframe::{
     egui::{CursorIcon, Id as EguiId, InnerResponse, LayerId, Order, Sense, Ui},
     epaint::{self, Color32, Rect, Shape, Stroke, Vec2},
@@ -18,21 +21,23 @@ pub enum DragDropSource {
     NewDevice(EntityKey),
     Pattern(PatternUid),
     ControlTrip(Uid),
+    ControlSource(Uid),
 }
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Display)]
 pub enum DragDropEvent {
-    AddDeviceToTrack(EntityKey, TrackUid),
-    AddPatternToTrack(PatternUid, TrackUid, MusicalTime),
+    TrackAddDevice(TrackUid, EntityKey),
+    TrackAddPattern(TrackUid, PatternUid, MusicalTime),
+    LinkControl(Uid, Uid, ControlIndex),
 }
 
 // TODO: a way to express rules about what can and can't be dropped
 #[allow(missing_docs)]
 #[derive(Debug, Default)]
 pub struct DragDropManager {
+    event_channel: ChannelPair<DragDropEvent>,
     source: Option<DragDropSource>,
-    events: Vec<DragDropEvent>,
 }
 #[allow(missing_docs)]
 impl DragDropManager {
@@ -48,14 +53,16 @@ impl DragDropManager {
     }
 
     pub fn enqueue_event(event: DragDropEvent) {
-        Self::global().lock().unwrap().events.push(event);
+        let _ = Self::global()
+            .lock()
+            .unwrap()
+            .event_channel
+            .sender
+            .send(event);
     }
 
-    pub fn take_and_clear_events() -> Vec<DragDropEvent> {
-        let mut drag_drop_manager = Self::global().lock().unwrap();
-        let events = drag_drop_manager.events.clone();
-        drag_drop_manager.events.clear();
-        events.into_iter().rev().collect()
+    pub fn receiver(&self) -> &Receiver<DragDropEvent> {
+        &self.event_channel.receiver
     }
 
     // These two functions are based on egui_demo_lib/src/demo/drag_and_drop.rs
