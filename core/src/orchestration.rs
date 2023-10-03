@@ -542,7 +542,7 @@ impl Orchestrates for Orchestrator {
         }
     }
 
-    fn set_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
+    fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
         if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
             if let Some(track) = self.tracks.get_mut(track_uid) {
                 track.set_humidity(uid, humidity)

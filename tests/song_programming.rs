@@ -55,7 +55,7 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
                 .unwrap(),
         )
         .unwrap();
-    o.set_humidity(filter_uid, Normal::from(0.2));
+    assert!(o.set_effect_humidity(filter_uid, Normal::from(0.2)).is_ok());
 }
 
 fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
@@ -92,7 +92,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
             factory.new_entity(&EntityKey::from("reverb")).unwrap(),
         )
         .unwrap();
-    assert!(o.set_humidity(reverb_uid, Normal::from(0.2)).is_ok());
+    assert!(o.set_effect_humidity(reverb_uid, Normal::from(0.2)).is_ok());
 }
 
 // Demonstrates making a song in Rust. We assume that we knew what the song is

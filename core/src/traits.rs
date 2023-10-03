@@ -454,27 +454,39 @@ pub trait Acts: Displays {
 
 /// Manages relationships among [Entities](Entity) to produce a song.
 pub trait Orchestrates: Configurable {
+    /// Creates a new track, returning its [TrackUid] if successful. A track is
+    /// a group of musical instruments that together produce a single audio
+    /// sample for every frame.
     fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
+    /// Returns an ordered list of [TrackUid]s.
     fn track_uids(&self) -> &[TrackUid];
 
-    /// Deletes the specified track.
+    /// Deletes the specified track, disposing of any [Entities](Entity) that it
+    /// owns.
     fn delete_track(&mut self, track_uid: &TrackUid);
 
-    /// Deletes the specified tracks.
+    /// Deletes the specified tracks. As with [Orchestrates::delete_track()],
+    /// disposes of any owned [Entities](Entity).
     fn delete_tracks(&mut self, uids: &[TrackUid]);
 
-    /// Adds the given entity to the end of the specified track.
+    /// Adds the given [Entity] to the end of the specified track.
     fn append_entity(
         &mut self,
         track_uid: &TrackUid,
         entity: Box<dyn Entity>,
     ) -> anyhow::Result<Uid>;
 
+    /// Removes the specified [Entity], returning ownership (if successful) to
+    /// the caller.
     fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>>;
 
+    /// Removes the specified [Entity] from its current track and appends it to
+    /// the specified track. Returns the [Entity]'s [Uid] if successful.
     fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<Uid>;
 
+    /// Establishes a control link. If the link is successful, then the source
+    /// [Entity]'s output will control the target's given parameter.
     fn link_control(
         &mut self,
         source_uid: Uid,
@@ -482,11 +494,12 @@ pub trait Orchestrates: Configurable {
         control_index: ControlIndex,
     ) -> anyhow::Result<()>;
 
-    // Sets the wet/dry mix for an effect. Normal::maximum() is 100% effect;
-    // Normal::minimum() is 100% unprocessed input. Returns an error if the
-    // entity is not an effect.
-    fn set_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()>;
+    /// Sets the specified effect's wet/dry mix. Normal::maximum() is 100%
+    /// effect, and Normal::minimum() is 100% unprocessed input. Returns an
+    /// error if the entity is not an effect.
+    fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()>;
 
+    /// Repositions the specified effect in the track's effects chain.
     fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()>;
 
     /// Configures a send from the given track to the given aux track. The
