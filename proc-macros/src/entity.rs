@@ -55,6 +55,9 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
                     fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
                         Some(self)
                     }
+                    fn as_displays_in_timeline(&self) -> Option<&dyn #core_crate::traits::DisplaysInTimeline> {
+                        Some(self)
+                    }
                     fn as_displays_in_timeline_mut(&mut self) -> Option<&mut dyn #core_crate::traits::DisplaysInTimeline> {
                         Some(self)
                     }

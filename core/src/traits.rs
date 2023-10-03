@@ -405,6 +405,9 @@ pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::De
     fn as_controllable_mut(&mut self) -> Option<&mut dyn Controllable> {
         None
     }
+    fn as_displays_in_timeline(&self) -> Option<&dyn DisplaysInTimeline> {
+        None
+    }
     fn as_displays_in_timeline_mut(&mut self) -> Option<&mut dyn DisplaysInTimeline> {
         None
     }
