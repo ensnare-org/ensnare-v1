@@ -17,3 +17,18 @@
   Orchestrator. This leads to naturally thinking in terms of contracts, testable
   behavior, etc. It also makes it easier to swap in experiments or outright
   overhauls.
+
+# Widgets, Displays, DisplaysInTimeline
+
+I've noticed my egui work tends to sprawl all over the place, and it's
+inconsistent. I'm making good headway in turning reusable things into widgets,
+but I think I've gone too far, and things that didn't need to be widgets have
+become them. So here are some guidelines.
+
+1. If something can be used by more than one owner, then it's probably a Widget.
+   This guideline focuses on how tightly bound a thing is to an Entity. If you
+   always need a certain Entity to construct the Widget, and the Widget's main
+   purpose is to render the Entity, then it's probably better for it to be a
+   Displays::ui() implementation instead.
+2. Another way to put rule #1: if you made the Widget private to the module
+   containing the struct that it draws, would anyone notice?
