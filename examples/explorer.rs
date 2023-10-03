@@ -23,7 +23,6 @@ use ensnare::{
     },
     version::app_version,
 };
-use ensnare_core::widgets::track::make_title_bar_galley;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -570,7 +569,7 @@ struct TitleBarSettings {
 impl Displays for TitleBarSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         if self.font_galley.is_none() {
-            self.font_galley = Some(make_title_bar_galley(ui, &self.title));
+            self.font_galley = Some(track::make_title_bar_galley(ui, &self.title));
         }
         ui.checkbox(&mut self.hide, "Hide");
         let response = ui.text_edit_singleline(&mut self.title.0);

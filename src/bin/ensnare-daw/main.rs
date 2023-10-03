@@ -14,8 +14,10 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{panels::prelude::*, prelude::*, version::app_version};
-use ensnare_core::{types::ChannelPair, widgets::core::transport};
+use ensnare::{
+    panels::prelude::*, prelude::*, types::ChannelPair, ui::widgets::core::transport,
+    version::app_version,
+};
 use env_logger;
 use settings::{Settings, SettingsPanel};
 use std::sync::{Arc, Mutex};

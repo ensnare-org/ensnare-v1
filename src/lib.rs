@@ -143,7 +143,7 @@ pub mod ui {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_core::panels::{audio_settings, midi_settings};
         pub use ensnare_core::widgets::{
-            audio, control, controllers, generators, pattern, placeholder, timeline, track,
+            audio, control, controllers, core, generators, pattern, placeholder, timeline, track,
         };
     }
 }
