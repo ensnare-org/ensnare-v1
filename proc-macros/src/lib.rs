@@ -3,8 +3,7 @@
 //! This crate provides macros that make Entity development easier.
 
 use control::impl_control_derive;
-use entity::{parse_and_generate_entity, EntityType};
-// use everything::parse_and_generate_everything;
+use entity::{parse_and_generate_entity, EntityType, ImplementsDisplaysInTimeline};
 use params::impl_params_derive;
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
@@ -43,7 +42,20 @@ pub fn params_derive(input: TokenStream) -> TokenStream {
 /// Derives helper methods to access Entity traits associated with controllers.
 #[proc_macro_derive(IsController)]
 pub fn controller_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::Controller)
+    parse_and_generate_entity(
+        input,
+        EntityType::Controller(ImplementsDisplaysInTimeline::DoesNotImplement),
+    )
+}
+
+/// Derives helper methods to access Entity traits associated with controllers
+/// that implement DisplaysInTimeline.
+#[proc_macro_derive(IsControllerWithTimelineDisplay)]
+pub fn controller_with_timeline_display_derive(input: TokenStream) -> TokenStream {
+    parse_and_generate_entity(
+        input,
+        EntityType::Controller(ImplementsDisplaysInTimeline::DoesImplement),
+    )
 }
 
 /// Derives helper methods to access Entity traits associated with effects.

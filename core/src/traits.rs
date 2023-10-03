@@ -405,6 +405,9 @@ pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::De
     fn as_controllable_mut(&mut self) -> Option<&mut dyn Controllable> {
         None
     }
+    fn as_displays_in_timeline_mut(&mut self) -> Option<&mut dyn DisplaysInTimeline> {
+        None
+    }
 }
 
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
