@@ -412,9 +412,8 @@ pub enum GeneralMidiPercussionProgram {
     OpenTriangle = 81,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct MidiEvent {
-    pub channel: MidiChannel,
     pub message: MidiMessage,
     pub time: MusicalTime,
 }

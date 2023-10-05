@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use crate::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +9,8 @@ pub mod calculator;
 pub mod control;
 pub mod lfo;
 pub mod old_sequencer;
+
+mod sequencers;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub enum SignalPassthroughType {

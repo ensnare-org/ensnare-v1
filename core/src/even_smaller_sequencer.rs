@@ -5,7 +5,7 @@ use crate::{
     piano_roll::{Note, Pattern},
     prelude::*,
     rng::Rng,
-    traits::{prelude::*, Sequences, SequencesNotes},
+    traits::{prelude::*, Sequences, SequencesMidi},
     widgets::controllers::es_sequencer,
 };
 use btreemultimap::BTreeMultiMap;
@@ -89,36 +89,34 @@ pub struct ESSequencer {
     #[builder(setter(skip))]
     e: ESSequencerEphemerals,
 }
-impl Sequences for ESSequencer {
+impl SequencesMidi for ESSequencer {
     fn clear(&mut self) {
         self.notes.clear();
         self.patterns.clear();
         self.calculate_events();
     }
 
-    fn record_midi_message(
+    fn record_midi_event(
         &mut self,
         channel: MidiChannel,
-        event: MidiMessage,
-        time: MusicalTime,
+        event: crate::midi::MidiEvent,
     ) -> anyhow::Result<()> {
-        self.e.events.insert(time, event);
+        self.e.events.insert(event.time, event.message);
         Ok(())
     }
 
-    fn remove_message(
+    fn remove_midi_event(
         &mut self,
         channel: MidiChannel,
-        event: MidiMessage,
-        time: MusicalTime,
+        event: crate::midi::MidiEvent,
     ) -> anyhow::Result<()> {
         self.e
             .events
-            .retain(|&e_time, &e_event| time == e_time && event == e_event);
+            .retain(|&e_time, &e_message| event.time == e_time && event.message == e_message);
         Ok(())
     }
 
-    fn record(&mut self) {
+    fn start_recording(&mut self) {
         self.e.is_recording = true;
     }
 
@@ -126,25 +124,42 @@ impl Sequences for ESSequencer {
         self.e.is_recording
     }
 }
-impl SequencesNotes for ESSequencer {
-    fn record_note(&mut self, _channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+impl Sequences for ESSequencer {
+    type MU = Note;
+
+    fn record(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        let note = Note {
+            key: unit.key,
+            range: (unit.range.start + position)..(unit.range.end + position),
+        };
         self.notes.push(note);
         self.calculate_events();
         Ok(())
     }
 
-    fn remove_note(&mut self, _channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+    fn remove(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        let note = Note {
+            key: unit.key,
+            range: (unit.range.start + position)..(unit.range.end + position),
+        };
         self.notes.retain(|n| *n != note);
         self.calculate_events();
         Ok(())
     }
 
-    fn as_sequences(&self) -> &dyn Sequences {
-        self
-    }
-
-    fn as_sequences_mut(&mut self) -> &mut dyn Sequences {
-        self
+    fn clear(&mut self) {
+        self.notes.clear();
+        self.calculate_events();
     }
 }
 impl ESSequencer {
@@ -324,7 +339,7 @@ impl Serializable for ESSequencer {
 mod tests {
     use crate::{
         piano_roll::PatternBuilder,
-        traits::tests::{validate_sequences_notes_trait, validate_sequences_trait},
+        traits::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait},
     };
 
     use super::*;
@@ -408,7 +423,7 @@ mod tests {
     fn sequencer_passes_sequences_trait_validation() {
         let mut s = ESSequencerBuilder::default().build().unwrap();
 
-        validate_sequences_trait(&mut s);
+        validate_sequences_midi_trait(&mut s);
         validate_sequences_notes_trait(&mut s);
     }
 }

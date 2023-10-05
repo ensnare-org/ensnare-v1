@@ -5,7 +5,7 @@ use super::{
     widgets::pattern::{self, grid},
 };
 use crate::{
-    midi::prelude::*,
+    midi::{prelude::*, MidiEvent},
     prelude::*,
     selection_set::SelectionSet,
     traits::prelude::*,
@@ -19,7 +19,7 @@ use eframe::{
     epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, ops::Add};
 
 /// Identifies a [Pattern].
 #[derive(
@@ -66,13 +66,43 @@ impl Note {
         }
     }
 }
+impl Add<MusicalTime> for Note {
+    type Output = Self;
+
+    fn add(self, rhs: MusicalTime) -> Self::Output {
+        Self {
+            key: self.key,
+            range: (self.range.start + rhs)..(self.range.end + rhs),
+        }
+    }
+}
+impl Into<Vec<MidiEvent>> for Note {
+    fn into(self) -> Vec<MidiEvent> {
+        vec![
+            MidiEvent {
+                message: MidiMessage::NoteOn {
+                    key: u7::from(self.key),
+                    vel: u7::from(127),
+                },
+                time: self.range.start,
+            },
+            MidiEvent {
+                message: MidiMessage::NoteOff {
+                    key: u7::from(self.key),
+                    vel: u7::from(127),
+                },
+                time: self.range.end,
+            },
+        ]
+    }
+}
 
 /// A [Pattern] contains a musical sequence that is suitable for
 /// pattern-based composition. It is a series of [Note]s and a
 /// [TimeSignature]. All the notes should fit into the pattern's duration, and
 /// the duration should be a round multiple of the length implied by the time
 /// signature.
-#[derive(Clone, Debug, Serialize, Deserialize, Builder)]
+#[derive(Clone, Debug, Serialize, Deserialize, Builder, PartialEq)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct Pattern {
     /// The pattern's [TimeSignature].
@@ -244,6 +274,27 @@ impl Serializable for Pattern {
         self.refresh_internals();
     }
 }
+impl Add<MusicalTime> for Pattern {
+    type Output = Self;
+
+    fn add(self, rhs: MusicalTime) -> Self::Output {
+        Self {
+            time_signature: self.time_signature,
+            duration: self.duration,
+            notes: self.notes.iter().map(|note| note.clone() + rhs).collect(),
+        }
+    }
+}
+impl Into<Vec<MidiEvent>> for Pattern {
+    fn into(self) -> Vec<MidiEvent> {
+        self.notes.iter().fold(Vec::default(), |mut v, note| {
+            let mut note_as_events: Vec<MidiEvent> = note.clone().into();
+            v.append(&mut note_as_events);
+            v
+        })
+    }
+}
+
 impl Pattern {
     /// Returns the number of notes in the pattern.
     pub fn note_count(&self) -> usize {

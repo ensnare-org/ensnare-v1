@@ -4,7 +4,7 @@ use crate::{
     midi::{prelude::*, MidiEvent},
     piano_roll::Note,
     prelude::*,
-    traits::{prelude::*, SequencesNotes},
+    traits::{prelude::*, Sequences, SequencesMidi},
 };
 use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
@@ -196,51 +196,33 @@ impl Serializable for ToyControllerAlwaysSendsMidiMessage {}
 #[derive(Debug, Default)]
 struct ToySequencer {
     events: Vec<MidiEvent>,
+    notes: Vec<Note>,
     time_range: std::ops::Range<MusicalTime>,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
 }
-impl Sequences for ToySequencer {
+impl SequencesMidi for ToySequencer {
     fn clear(&mut self) {
         self.events.clear();
         self.max_event_time = MusicalTime::default();
     }
 
-    fn record_midi_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        time: MusicalTime,
-    ) -> anyhow::Result<()> {
-        self.events.push(MidiEvent {
-            channel,
-            message,
-            time,
-        });
-        if time > self.max_event_time {
-            self.max_event_time = time;
+    fn record_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
+        self.events.push(event);
+        if event.time > self.max_event_time {
+            self.max_event_time = event.time;
         }
         Ok(())
     }
 
-    fn remove_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        time: MusicalTime,
-    ) -> anyhow::Result<()> {
-        let event = MidiEvent {
-            channel: channel,
-            message,
-            time,
-        };
+    fn remove_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
         self.events.retain(|e| *e != event);
         self.recalculate_max_time();
         Ok(())
     }
 
-    fn record(&mut self) {
+    fn start_recording(&mut self) {
         self.is_recording = true;
     }
 
@@ -248,53 +230,64 @@ impl Sequences for ToySequencer {
         self.is_recording
     }
 }
-impl SequencesNotes for ToySequencer {
-    fn record_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+impl Sequences for ToySequencer {
+    type MU = Note;
+
+    fn record(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
         let _ = self.record_midi_message(
             channel,
             MidiMessage::NoteOn {
-                key: u7::from(note.key),
+                key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            note.range.start,
+            unit.range.start,
         );
         let _ = self.record_midi_message(
             channel,
             MidiMessage::NoteOff {
-                key: u7::from(note.key),
+                key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            note.range.end,
+            unit.range.end,
         );
+        self.notes.push(unit.clone());
         Ok(())
     }
 
-    fn remove_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()> {
-        let _ = self.remove_message(
+    fn remove(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        let _ = self.remove_midi_message(
             channel,
             MidiMessage::NoteOn {
-                key: u7::from(note.key),
+                key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            note.range.start,
+            position + unit.range.start,
         );
-        let _ = self.remove_message(
+        let _ = self.remove_midi_message(
             channel,
             MidiMessage::NoteOff {
-                key: u7::from(note.key),
+                key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            note.range.end,
+            position + unit.range.end,
         );
+        self.notes.retain(|n| n != unit);
         Ok(())
     }
 
-    fn as_sequences(&self) -> &dyn Sequences {
-        self
-    }
-
-    fn as_sequences_mut(&mut self) -> &mut dyn Sequences {
-        self
+    fn clear(&mut self) {
+        self.notes.clear();
+        SequencesMidi::clear(self);
     }
 }
 impl Configurable for ToySequencer {
@@ -318,7 +311,7 @@ impl Controls for ToySequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
             if self.time_range.contains(&e.time) {
-                control_events_fn(Uid(0), EntityEvent::Midi(e.channel, e.message))
+                control_events_fn(Uid(0), EntityEvent::Midi(MidiChannel(0), e.message))
             }
         });
     }
@@ -370,13 +363,13 @@ impl ToySequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::tests::{validate_sequences_notes_trait, validate_sequences_trait};
+    use crate::traits::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
 
     #[test]
     fn toy_passes_sequences_trait_validation() {
         let mut s = ToySequencer::default();
 
-        validate_sequences_trait(&mut s);
+        validate_sequences_midi_trait(&mut s);
         validate_sequences_notes_trait(&mut s);
     }
 }
