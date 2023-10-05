@@ -23,6 +23,9 @@ pub fn atlas<'a>(
     move |ui: &mut eframe::egui::Ui| Atlas::new(control_atlas, control_router, view_range).ui(ui)
 }
 
+// TODO: aargh, control.rs and controllers.rs are used in opposite senses
+// depending on whether you're in widgets or core!
+
 #[derive(Debug)]
 struct Atlas<'a> {
     control_atlas: &'a mut ControlAtlas,
@@ -112,7 +115,7 @@ impl<'a> Displays for Atlas<'a> {
                             .build()
                             .unwrap();
                         trip.set_uid(EntityFactory::global().mint_uid());
-                        self.control_atlas.add_trip(trip);
+                        let _ = self.control_atlas.add_trip(trip);
                     }
                 })
             } else {

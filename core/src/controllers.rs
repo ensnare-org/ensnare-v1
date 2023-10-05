@@ -1,8 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng, traits::prelude::*};
+use crate::{
+    control::ControlRouter, prelude::*, rng::Rng, traits::prelude::*, widgets::control::atlas,
+};
 use derive_builder::Builder;
-use ensnare_proc_macros::{Control, IsController, Uid};
+use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Uid};
 use serde::{Deserialize, Serialize};
 
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
@@ -215,7 +217,7 @@ impl ControlTripPath {
 }
 
 /// Parts of [ControlTrip] that shouldn't be serialized.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ControlTripEphemerals {
     /// The time range for this work slice. This is a copy of the value passed
     /// in Controls::update_time().
@@ -274,7 +276,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Serialize, Deserialize, Debug, Default, IsController, Uid, Builder)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Uid, Builder)]
 #[builder(setter(skip), default)]
 pub struct ControlTrip {
     uid: Uid,
@@ -475,16 +477,23 @@ pub struct ControlStep {
 
 /// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
 /// maps.)
-#[derive(Serialize, Deserialize, IsController, Debug, Uid)]
+#[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Uid)]
 pub struct ControlAtlas {
     uid: Uid,
+
+    #[builder(default, setter(each(name = "trip", into)))]
     trips: Vec<ControlTrip>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl Default for ControlAtlas {
     fn default() -> Self {
         let mut r = Self {
             uid: Default::default(),
             trips: Default::default(),
+            view_range: Default::default(),
         };
         let _ = r.add_trip(
             ControlTripBuilder::default()
@@ -496,8 +505,17 @@ impl Default for ControlAtlas {
     }
 }
 impl Displays for ControlAtlas {
-    fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        unimplemented!("Use the atlas widget rather than calling this directly")
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let mut control_router = ControlRouter::default();
+        ui.add(atlas(self, &mut control_router, self.view_range.clone()))
+    }
+}
+impl DisplaysInTimeline for ControlAtlas {
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.trips
+            .iter_mut()
+            .for_each(|t| t.set_view_range(view_range));
+        self.view_range = view_range.clone();
     }
 }
 impl HandlesMidi for ControlAtlas {}

@@ -280,8 +280,9 @@ impl Paths {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+    use crate::{traits::Entity, uid::Uid};
     use std::path::Path;
 
     impl Paths {
@@ -294,6 +295,16 @@ mod tests {
         fn push_test_path(&mut self) {
             self.push_hive(&Self::hive(PathType::Test));
         }
+    }
+
+    // This method is a one-liner to create test entities with valid Uids.
+    pub fn create_entity_with_uid(
+        create_fn: impl Fn() -> Box<dyn Entity>,
+        uid: usize,
+    ) -> Box<dyn Entity> {
+        let mut entity = create_fn();
+        entity.set_uid(Uid(uid));
+        entity
     }
 
     #[test]

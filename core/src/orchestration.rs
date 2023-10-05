@@ -4,7 +4,7 @@ use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
     entities::factory::EntityKey,
-    midi::{MidiChannel, MidiMessage, MidiMessagesFn},
+    midi::{MidiChannel, MidiMessage},
     piano_roll::PianoRoll,
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
@@ -12,7 +12,7 @@ use crate::{
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid,
-        Orchestrates, Serializable, Ticks,
+        MidiMessagesFn, Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::Uid,
@@ -923,8 +923,9 @@ mod tests {
             toys::ToyControllerAlwaysSendsMidiMessage,
         },
         midi::{MidiChannel, MidiMessage},
-        traits::tests::test_orchestrates,
+        traits::tests::validate_orchestrates_trait,
         types::ParameterType,
+        utils::tests::create_entity_with_uid,
     };
     use std::{collections::HashSet, sync::Arc};
 
@@ -960,9 +961,12 @@ mod tests {
         let track = o.get_track_mut(&tuid).unwrap();
 
         const TIMER_DURATION: MusicalTime = MusicalTime::new_with_beats(1);
-        let mut entity = Box::new(Timer::new_with(TIMER_DURATION));
-        entity.set_uid(Uid(459));
-        let _ = track.append_entity(entity);
+        let _ = track
+            .append_entity(create_entity_with_uid(
+                || Box::new(Timer::new_with(TIMER_DURATION)),
+                459,
+            ))
+            .unwrap();
 
         o.play();
         let mut _prior_start_time = MusicalTime::TIME_ZERO;
@@ -1091,11 +1095,14 @@ mod tests {
 
         {
             let track = o.get_track_mut(&track_uid).unwrap();
-            let mut e = Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
-                level: EXPECTED_LEVEL,
-            }));
-            e.set_uid(Uid(245));
-            assert!(track.append_entity(e).is_ok());
+            assert!(track
+                .append_entity(create_entity_with_uid(
+                    || Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
+                        level: EXPECTED_LEVEL,
+                    })),
+                    245
+                ))
+                .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
@@ -1117,9 +1124,12 @@ mod tests {
         // Add an effect to the aux track.
         {
             let track = o.get_track_mut(&aux_uid).unwrap();
-            let mut effect = Box::new(TestEffectNegatesInput::default());
-            effect.set_uid(Uid(405));
-            assert!(track.append_entity(effect).is_ok());
+            assert!(track
+                .append_entity(create_entity_with_uid(
+                    || Box::new(TestEffectNegatesInput::default()),
+                    405
+                ))
+                .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
@@ -1169,12 +1179,13 @@ mod tests {
         let track_b_uid = o.new_midi_track().unwrap();
 
         // On Track 1, put a sender and receiver.
-        let mut sender = ToyControllerAlwaysSendsMidiMessage::default();
-        sender.set_uid(Uid(10001));
         let _ = o
             .get_track_mut(&track_a_uid)
             .unwrap()
-            .append_entity(Box::new(sender));
+            .append_entity(create_entity_with_uid(
+                || Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+                10001,
+            ));
         let mut receiver_1 = TestInstrumentCountsMidiMessages::default();
         receiver_1.set_uid(Uid(10002));
         let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
@@ -1211,6 +1222,6 @@ mod tests {
     #[test]
     fn orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::default();
-        test_orchestrates(&mut orchestrator);
+        validate_orchestrates_trait(&mut orchestrator);
     }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{control::atlas, controllers::es_sequencer};
 use crate::{
     control::ControlRouter,
     controllers::ControlAtlas,
@@ -15,29 +14,6 @@ use eframe::{
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId, Rect, RectShape, Shape},
 };
-use strum::EnumCount;
-use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
-
-/// Wraps a [Timeline] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
-pub fn timeline<'a>(
-    track_uid: TrackUid,
-    sequencer: &'a mut ESSequencer,
-    control_atlas: &'a mut ControlAtlas,
-    control_router: &'a mut ControlRouter,
-    range: std::ops::Range<MusicalTime>,
-    view_range: std::ops::Range<MusicalTime>,
-    cursor: Option<MusicalTime>,
-    focused: FocusedComponent,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        Timeline::new(track_uid, sequencer, control_atlas, control_router)
-            .range(range)
-            .view_range(view_range)
-            .cursor(cursor)
-            .focused(focused)
-            .ui(ui)
-    }
-}
 
 /// Wraps a [Legend] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
 pub fn legend(view_range: &mut std::ops::Range<MusicalTime>) -> impl eframe::egui::Widget + '_ {
@@ -299,22 +275,9 @@ impl Displays for EmptySpace {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, EnumCountMacro, FromRepr)]
-#[allow(missing_docs)]
-pub enum FocusedComponent {
-    #[default]
-    Sequencer,
-    ControlAtlas,
-}
-impl FocusedComponent {
-    /// Returns the next enum, wrapping to the start if necessary.
-    pub fn next(&self) -> Self {
-        FocusedComponent::from_repr((*self as usize + 1) % FocusedComponent::COUNT).unwrap()
-    }
-}
-
 /// Draws the content area of a Timeline, which is the view of a [Track].
 #[derive(Debug)]
+#[deprecated]
 struct Timeline<'a> {
     track_uid: TrackUid,
 
@@ -326,9 +289,6 @@ struct Timeline<'a> {
 
     /// If present, then the moment that's currently playing.
     cursor: Option<MusicalTime>,
-
-    /// Which component is currently enabled,
-    focused: FocusedComponent,
 
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
@@ -354,18 +314,6 @@ impl<'a> Displays for Timeline<'a> {
                     rect.top()..=rect.bottom(),
                 ),
             );
-
-            // What's going on here? To correctly capture Sense events, we
-            // need to draw only the UI that we consider active, or enabled,
-            // or focused, because egui does not seem to like widgets being
-            // drawn on top of each other. So we first draw the non-focused
-            // UI components, but wrapped in add_enabled_ui(false) so that
-            // egui won't try to sense them. Then we draw the one focused
-            // component normally.
-            ui.add_enabled_ui(false, |ui| {
-                self.ui_not_focused(ui, rect, self.focused);
-            });
-            self.ui_focused(ui, rect, self.focused)
         })
         .response;
         if DragDropManager::is_dropped(ui, &response) {
@@ -405,7 +353,6 @@ impl<'a> Timeline<'a> {
             range: Default::default(),
             view_range: Default::default(),
             cursor: None,
-            focused: Default::default(),
             sequencer,
             control_atlas,
             control_router,
@@ -427,92 +374,12 @@ impl<'a> Timeline<'a> {
         self
     }
 
-    fn focused(mut self, component: FocusedComponent) -> Self {
-        self.focused = component;
-        self
-    }
-
-    // Draws the Timeline component that is currently focused.
-    fn ui_focused(
-        &mut self,
-        ui: &mut egui::Ui,
-        rect: Rect,
-        component: FocusedComponent,
-    ) -> egui::Response {
-        match component {
-            FocusedComponent::ControlAtlas => {
-                ui.allocate_ui_at_rect(rect, |ui| {
-                    ui.add(atlas(
-                        self.control_atlas,
-                        self.control_router,
-                        self.view_range.clone(),
-                    ))
-                })
-                .inner
-            }
-            FocusedComponent::Sequencer => {
-                ui.allocate_ui_at_rect(rect, |ui| {
-                    ui.add(es_sequencer(self.sequencer, self.view_range.clone()))
-                })
-                .inner
-            }
-        }
-    }
-
-    // Draws the Timeline components that are not currently focused. It's up to
-    // the caller to wrap in ui.add_enabled_ui().
-    fn ui_not_focused(
-        &mut self,
-        ui: &mut egui::Ui,
-        rect: Rect,
-        which: FocusedComponent,
-    ) -> egui::Response {
-        // The Grid is always disabled and drawn first.
-        let mut response = ui
-            .allocate_ui_at_rect(rect, |ui| {
-                ui.add(grid(self.range.clone(), self.view_range.clone()))
-            })
-            .inner;
-
-        // Now go through and draw the components that are *not* enabled.
-        if !matches!(which, FocusedComponent::ControlAtlas) {
-            response |= ui
-                .allocate_ui_at_rect(rect, |ui| {
-                    ui.add(atlas(
-                        self.control_atlas,
-                        self.control_router,
-                        self.view_range.clone(),
-                    ))
-                })
-                .inner;
-        }
-        if !matches!(which, FocusedComponent::Sequencer) {
-            response |= ui
-                .allocate_ui_at_rect(rect, |ui| {
-                    ui.add(es_sequencer(self.sequencer, self.view_range.clone()))
-                })
-                .inner;
-        }
-
-        // Finally, if it's present, draw the cursor.
-        if let Some(position) = self.cursor {
-            if self.view_range.contains(&position) {
-                response |= ui
-                    .allocate_ui_at_rect(rect, |ui| {
-                        ui.add(cursor(position, self.view_range.clone()))
-                    })
-                    .inner;
-            }
-        }
-        response
-    }
-
     // Looks at what's being dragged, if anything, and updates any state needed
     // to handle it. Returns whether we are interested in this drag source.
     fn check_drag_source(&mut self) -> bool {
         if let Some(source) = DragDropManager::source() {
             if matches!(source, DragDropSource::Pattern(_)) {
-                self.focused = FocusedComponent::Sequencer;
+                // self.focused = FocusedComponent::Sequencer;
                 return true;
             }
         }

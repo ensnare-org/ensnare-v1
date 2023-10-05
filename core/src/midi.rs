@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::time::MusicalTime;
 use derive_more::Display as DeriveDisplay;
 use serde::{Deserialize, Serialize};
 use strum_macros::FromRepr;
@@ -11,10 +12,7 @@ pub use midly::{
 };
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::midi::{
-        new_note_off, new_note_on, u4, u7, HandlesMidi, MidiChannel, MidiMessage, MidiMessagesFn,
-        MidiNote,
-    };
+    pub use crate::midi::{new_note_off, new_note_on, u4, u7, MidiChannel, MidiMessage, MidiNote};
 }
 
 /// Newtype for MIDI channel.
@@ -414,22 +412,11 @@ pub enum GeneralMidiPercussionProgram {
     OpenTriangle = 81,
 }
 
-/// The callback signature for handle_midi_message().
-pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
-
-/// Takes standard MIDI messages. Implementers can ignore MidiChannel if it's
-/// not important, as the virtual cabling model tries to route only relevant
-/// traffic to individual devices.
-pub trait HandlesMidi {
-    #[allow(missing_docs)]
-    #[allow(unused_variables)]
-    fn handle_midi_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
-    ) {
-    }
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct MidiEvent {
+    pub channel: MidiChannel,
+    pub message: MidiMessage,
+    pub time: MusicalTime,
 }
 
 #[cfg(test)]

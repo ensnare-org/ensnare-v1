@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::timeline::timeline;
+use super::timeline::{cursor, grid};
 use crate::{
     entities::factory::EntityStore,
     time::MusicalTime,
@@ -12,7 +12,7 @@ use crate::{
     uid::Uid,
 };
 use eframe::{
-    egui::{Frame, Margin, Sense, TextFormat},
+    egui::{Button, Frame, Margin, Sense, TextFormat},
     emath::Align,
     epaint::{text::LayoutJob, vec2, Color32, FontId, Galley, Shape, Stroke, TextShape, Vec2},
 };
@@ -178,17 +178,65 @@ impl<'a> Displays for TrackWidget<'a> {
                                 self.ui_state,
                             ));
 
+                            // Determine the rectangle that all the composited layers will use.
+                            let desired_size = vec2(ui.available_width(), 64.0);
+                            let (_id, rect) = ui.allocate_space(desired_size);
+
+                            let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
                             let view_range = self.track.view_range().clone();
-                            ui.add(timeline(
-                                self.track.uid(),
-                                &mut self.track.sequencer,
-                                &mut self.track.control_atlas,
-                                &mut self.track.control_router,
-                                MusicalTime::START..MusicalTime::DURATION_WHOLE, // TODO - do we really need this?
-                                view_range,
-                                self.cursor,
-                                super::timeline::FocusedComponent::Sequencer,
-                            ));
+
+                            // The Grid is always disabled and drawn first.
+                            let _ = ui
+                                .allocate_ui_at_rect(rect, |ui| {
+                                    ui.add(grid(
+                                        temp_range.clone(),
+                                        self.track.view_range().clone(),
+                                    ))
+                                })
+                                .inner;
+
+                            // Draw the disabled timeline views.
+                            let enabled_uid = self.track.foreground_timeline_entity.clone();
+                            let entities: Vec<Uid> = self
+                                .track
+                                .timeline_entities
+                                .iter()
+                                .filter(|uid| enabled_uid != Some(**uid))
+                                .cloned()
+                                .collect();
+                            entities.iter().for_each(|uid| {
+                                if let Some(e) = self.track.entity_mut(uid) {
+                                    if let Some(e) = e.as_displays_in_timeline_mut() {
+                                        ui.add_enabled_ui(false, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                        })
+                                        .inner;
+                                    }
+                                }
+                            });
+
+                            // Draw the one enabled timeline view.
+                            if let Some(uid) = enabled_uid {
+                                if let Some(e) = self.track.entity_mut(&uid) {
+                                    if let Some(e) = e.as_displays_in_timeline_mut() {
+                                        ui.add_enabled_ui(true, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                        })
+                                        .inner;
+                                    }
+                                }
+                            };
+
+                            // Finally, if it's present, draw the cursor.
+                            if let Some(position) = self.cursor {
+                                if view_range.contains(&position) {
+                                    let _ = ui
+                                        .allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(cursor(position, view_range.clone()))
+                                        })
+                                        .inner;
+                                }
+                            }
                         }
                         ui.scope(|ui| {
                             ui.set_max_height(Track::device_view_height(self.ui_state));
@@ -221,6 +269,10 @@ impl<'a> Displays for TrackWidget<'a> {
                                 }
                             }
                         });
+
+                        if ui.add(Button::new("next")).clicked() {
+                            self.track.select_next_foreground_timeline_entity();
+                        }
                         response
                     })
                     .inner

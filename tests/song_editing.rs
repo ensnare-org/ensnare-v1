@@ -74,11 +74,18 @@ fn edit_song() {
             .is_ok());
 
         // Arrange the drum pattern.
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
-        let _ = sequencer.insert_pattern(&drum_pattern, MusicalTime::START);
         assert!(orchestrator
-            .append_entity(&rhythm_track_uid, sequencer)
+            .append_entity(
+                &rhythm_track_uid,
+                factory.create_entity_with_minted_uid(|| {
+                    Box::new(
+                        ESSequencerBuilder::default()
+                            .pattern((MusicalTime::START, drum_pattern.clone()))
+                            .build()
+                            .unwrap(),
+                    )
+                })
+            )
             .is_ok());
 
         // Now set up the lead track. We need a pattern; we'll whip up something
@@ -129,11 +136,18 @@ fn edit_song() {
         let _ = orchestrator.move_effect(lead_gain_uid, 0);
 
         // Arrange the lead pattern.
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
-        let _ = sequencer.insert_pattern(&lead_pattern, MusicalTime::START);
         assert!(orchestrator
-            .append_entity(&lead_track_uid, sequencer)
+            .append_entity(
+                &lead_track_uid,
+                factory.create_entity_with_minted_uid(|| {
+                    Box::new(
+                        ESSequencerBuilder::default()
+                            .pattern((MusicalTime::START, lead_pattern.clone()))
+                            .build()
+                            .unwrap(),
+                    )
+                })
+            )
             .is_ok());
     }
 

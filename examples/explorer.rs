@@ -18,11 +18,12 @@ use ensnare::{
     instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
     ui::{
-        widgets::{audio, control, controllers, pattern, placeholder, timeline, track},
+        widgets::{audio, control, pattern, placeholder, timeline, track},
         CircularSampleBuffer, DragDropEvent, DragDropSource,
     },
     version::app_version,
 };
+use ensnare_core::{track::TrackUiState, widgets::track::track};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -65,40 +66,38 @@ impl Displays for LegendSettings {
 }
 
 #[derive(Debug)]
-struct TimelineSettings {
+struct TrackSettings {
     hide: bool,
-    track_uid: TrackUid,
+    track: Track,
     range: std::ops::Range<MusicalTime>,
     view_range: std::ops::Range<MusicalTime>,
-    control_atlas: ControlAtlas,
-    control_router: ControlRouter,
-    sequencer: ESSequencer,
-    focused: timeline::FocusedComponent,
+    // control_atlas: ControlAtlas,
+    // control_router: ControlRouter,
+    // sequencer: ESSequencer,
+    // focused: timeline::FocusedComponent,
 }
-impl DisplaysInTimeline for TimelineSettings {
+impl DisplaysInTimeline for TrackSettings {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.view_range = view_range.clone();
     }
 }
-impl TimelineSettings {
+impl TrackSettings {
     const NAME: &'static str = "Timeline";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(timeline::timeline(
-                self.track_uid,
-                &mut self.sequencer,
-                &mut self.control_atlas,
-                &mut self.control_router,
-                self.range.clone(),
-                self.view_range.clone(),
-                None,
-                self.focused,
+            let mut action = None;
+            ui.add(track(
+                &mut self.track,
+                false,
+                TrackUiState::Expanded,
+                Some(MusicalTime::new_with_beats(1)),
+                &mut action,
             ));
         }
     }
 }
-impl Default for TimelineSettings {
+impl Default for TrackSettings {
     fn default() -> Self {
         let sequencer = ESSequencerBuilder::default()
             .random(MusicalTime::START..MusicalTime::new_with_beats(128))
@@ -106,21 +105,17 @@ impl Default for TimelineSettings {
             .unwrap();
         Self {
             hide: Default::default(),
-            track_uid: TrackUid(123),
+            track: Track::default(),
             range: MusicalTime::START..MusicalTime::new_with_beats(128),
             view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
-            control_atlas: Default::default(),
-            control_router: Default::default(),
-            sequencer,
-            focused: Default::default(),
         }
     }
 }
-impl Displays for TimelineSettings {
+impl Displays for TrackSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         if ui.button("Next").clicked() {
-            self.focused = self.focused.next();
+            self.track.select_next_foreground_timeline_entity();
         }
         ui.label("Range");
         let mut range_start = self.range.start.total_beats();
@@ -439,10 +434,7 @@ impl ESSequencerSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(controllers::es_sequencer(
-                &mut self.sequencer,
-                self.view_range.clone(),
-            ));
+            self.sequencer.ui(ui);
         }
     }
 }
@@ -738,7 +730,7 @@ impl Default for SampleClip {
 struct Explorer {
     legend: LegendSettings,
     grid: GridSettings,
-    timeline: TimelineSettings,
+    track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
     device_chain: DeviceChainSettings,
     control_atlas: ControlAtlasSettings,
@@ -784,7 +776,7 @@ impl Explorer {
                 self.frequency_domain.ui(ui)
             });
             Self::wrap_settings(LegendSettings::NAME, ui, |ui| self.legend.ui(ui));
-            Self::wrap_settings(TimelineSettings::NAME, ui, |ui| self.timeline.ui(ui));
+            Self::wrap_settings(TrackSettings::NAME, ui, |ui| self.track_widget.ui(ui));
             Self::wrap_settings(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.ui(ui)
             });
@@ -848,7 +840,7 @@ impl Explorer {
 
     fn show_center(&mut self, ui: &mut Ui) {
         ScrollArea::vertical().show(ui, |ui| {
-            self.timeline.set_view_range(&self.legend.range);
+            self.track_widget.set_view_range(&self.legend.range);
             self.control_atlas.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);
             self.sequencer.set_view_range(&self.legend.range);
@@ -865,7 +857,7 @@ impl Explorer {
             });
             ui.heading("Timeline");
             self.legend.show(ui);
-            self.timeline.show(ui);
+            self.track_widget.show(ui);
 
             Self::wrap_item(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.show(ui)
@@ -958,7 +950,7 @@ impl eframe::App for Explorer {
                 DragDropEvent::TrackAddDevice(..) => {}
                 DragDropEvent::TrackAddPattern(track_uid, pattern_uid, position) => {
                     if let Some(pattern) = self.piano_roll.piano_roll.get_pattern(&pattern_uid) {
-                        let _ = self.timeline.sequencer.insert_pattern(pattern, position);
+                        //                        let _ = self.track_widget.track.insert_pattern(pattern, position);
                     }
                 }
                 DragDropEvent::LinkControl(source_uid, target_uid, control_index) => {}

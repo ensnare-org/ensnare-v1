@@ -2,10 +2,8 @@
 
 use crate::{
     control::ControlRouter,
-    controllers::ControlAtlas,
     drag_drop::{DragDropManager, DragDropSource},
     entities::prelude::*,
-    even_smaller_sequencer::ESSequencer,
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
@@ -164,17 +162,18 @@ pub struct Track {
 
     pub(crate) entity_store: EntityStore,
 
-    #[deprecated]
-    pub(crate) sequencer: ESSequencer,
+    /// The entities in the [EntityStore] that are capable of displaying in the timeline.
+    pub(crate) timeline_entities: Vec<Uid>,
+
+    /// If present, the one timeline entity that should be foreground during rendering.
+    pub(crate) foreground_timeline_entity: Option<Uid>,
+
     midi_router: MidiRouter,
 
-    /// [ControlAtlas] manages the sources of Control events. It generates
-    /// events but does not handle their routing.
-    #[deprecated]
-    pub(crate) control_atlas: ControlAtlas,
     /// [ControlRouter] manages the destinations of Control events. It does not
     /// generate events, but when events are generated, it knows where to route
-    /// them.
+    /// them. [ControlAtlas] manages the sources of Control events. It generates
+    /// events but does not handle their routing.
     pub(crate) control_router: ControlRouter,
 
     pub(crate) controllers: Vec<Uid>,
@@ -212,8 +211,48 @@ impl Track {
             // TODO: for now, everyone's on channel 0
             self.midi_router.connect(uid, MidiChannel(0));
         }
+        if entity.as_displays_in_timeline().is_some() {
+            self.add_timeline_entity(&entity);
+        }
 
         self.entity_store.add(entity)
+    }
+
+    fn add_timeline_entity(&mut self, entity: &Box<dyn Entity>) {
+        self.timeline_entities.push(entity.uid());
+        if self.foreground_timeline_entity.is_none() {
+            self.select_next_foreground_timeline_entity();
+        }
+    }
+
+    fn remove_timeline_entity(&mut self, uid: &Uid) {
+        if self.foreground_timeline_entity == Some(*uid) {
+            self.select_next_foreground_timeline_entity();
+        }
+        // It's important to remove this one after picking the next one, because
+        // we need its position to determine the next one.
+        self.timeline_entities.retain(|e| e != uid);
+
+        if self.timeline_entities.is_empty() {
+            self.foreground_timeline_entity = None;
+        }
+    }
+
+    pub fn select_next_foreground_timeline_entity(&mut self) {
+        if let Some(foreground_uid) = self.foreground_timeline_entity {
+            if let Some(position) = self
+                .timeline_entities
+                .iter()
+                .position(|uid| *uid == foreground_uid)
+            {
+                self.foreground_timeline_entity =
+                    Some(self.timeline_entities[(position + 1) % self.timeline_entities.len()]);
+            } else {
+                self.foreground_timeline_entity = None;
+            }
+        } else {
+            self.foreground_timeline_entity = self.timeline_entities.first().copied();
+        }
     }
 
     #[allow(missing_docs)]
@@ -227,6 +266,9 @@ impl Track {
             }
             if entity.as_instrument().is_some() {
                 self.instruments.retain(|e| e != uid);
+            }
+            if entity.as_displays_in_timeline().is_some() {
+                self.remove_timeline_entity(uid);
             }
             Some(entity)
         } else {
@@ -555,6 +597,11 @@ impl Serializable for Track {
 }
 impl DisplaysInTimeline for Track {
     fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
+        self.entity_store.iter_mut().for_each(|e| {
+            if let Some(e) = e.as_displays_in_timeline_mut() {
+                e.set_view_range(view_range);
+            }
+        });
         self.e.view_range = view_range.clone();
     }
 }
@@ -634,6 +681,7 @@ impl<'a> Displays for DeviceChain<'a> {
                             .for_each(|uid| {
                                 if let Some(entity) = self.store.get_mut(uid) {
                                     eframe::egui::CollapsingHeader::new(entity.name())
+                                        .id_source(entity.uid())
                                         .show_unindented(ui, |ui| {
                                             if entity.as_controller().is_some() {
                                                 DragDropManager::drag_source(
@@ -667,9 +715,13 @@ impl<'a> Displays for DeviceChain<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::factory::test_entities::{
-        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
+    use crate::{
+        entities::factory::test_entities::{
+            TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
+        },
+        utils::tests::create_entity_with_uid,
     };
+    use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Uid};
 
     #[test]
     fn basic_track_operations() {
@@ -679,14 +731,20 @@ mod tests {
         assert!(t.instruments.is_empty());
 
         // Create an instrument and add it to a track.
-        let mut instrument = TestInstrument::default();
-        instrument.set_uid(Uid(1));
-        let id1 = t.append_entity(Box::new(instrument)).unwrap();
+        let id1 = t
+            .append_entity(create_entity_with_uid(
+                || Box::new(TestInstrument::default()),
+                1,
+            ))
+            .unwrap();
 
         // Add a second instrument to the track.
-        let mut instrument = TestInstrument::default();
-        instrument.set_uid(Uid(2));
-        let id2 = t.append_entity(Box::new(instrument)).unwrap();
+        let id2 = t
+            .append_entity(create_entity_with_uid(
+                || Box::new(TestInstrument::default()),
+                2,
+            ))
+            .unwrap();
 
         assert_ne!(id1, id2, "Don't forget to assign UIDs!");
 
@@ -716,12 +774,18 @@ mod tests {
             "it should be gone from the store"
         );
 
-        let mut effect = TestEffect::default();
-        effect.set_uid(Uid(3));
-        let effect_id1 = t.append_entity(Box::new(effect)).unwrap();
-        let mut effect = TestEffect::default();
-        effect.set_uid(Uid(4));
-        let effect_id2 = t.append_entity(Box::new(effect)).unwrap();
+        let effect_id1 = t
+            .append_entity(create_entity_with_uid(
+                || Box::new(TestEffect::default()),
+                3,
+            ))
+            .unwrap();
+        let effect_id2 = t
+            .append_entity(create_entity_with_uid(
+                || Box::new(TestEffect::default()),
+                4,
+            ))
+            .unwrap();
 
         assert_eq!(t.effects[0], effect_id1);
         assert_eq!(t.effects[1], effect_id2);
@@ -741,9 +805,12 @@ mod tests {
     fn midi_messages_sent_to_caller_and_sending_track_instruments() {
         let mut t = Track::default();
 
-        let mut sender = ToyControllerAlwaysSendsMidiMessage::default();
-        sender.set_uid(Uid(2001));
-        let _sender_id = t.append_entity(Box::new(sender)).unwrap();
+        let _ = t
+            .append_entity(create_entity_with_uid(
+                || Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+                2001,
+            ))
+            .unwrap();
 
         let mut receiver = TestInstrumentCountsMidiMessages::default();
         receiver.set_uid(Uid(2002));
@@ -766,6 +833,90 @@ mod tests {
         assert_eq!(
             external_midi_messages, 1,
             "After one work(), one MIDI message should have emerged for external processing"
+        );
+    }
+
+    #[derive(
+        Default, Debug, Control, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize,
+    )]
+    struct TimelineDisplayer {
+        uid: Uid,
+    }
+    impl Serializable for TimelineDisplayer {}
+    impl Controls for TimelineDisplayer {}
+    impl Configurable for TimelineDisplayer {}
+    impl HandlesMidi for TimelineDisplayer {}
+    impl Displays for TimelineDisplayer {}
+    impl DisplaysInTimeline for TimelineDisplayer {
+        fn set_view_range(&mut self, _view_range: &std::ops::Range<MusicalTime>) {}
+    }
+
+    #[test]
+    fn track_picks_next_foreground_entity() {
+        let e1 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 1000);
+        let e2 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 2000);
+        let e3 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 3000);
+
+        let mut t = Track::default();
+        assert!(
+            t.foreground_timeline_entity.is_none(),
+            "should be none foreground at creation"
+        );
+        let e1_uid = t.append_entity(e1).unwrap();
+        assert!(
+            t.foreground_timeline_entity.is_some(),
+            "adding one should make it foreground"
+        );
+        let e1 = t.remove_entity(&e1_uid).unwrap();
+        assert!(
+            t.foreground_timeline_entity.is_none(),
+            "removing the last one should make none foreground"
+        );
+
+        let e1_uid = t.append_entity(e1).unwrap();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e1_uid),
+            "adding first one should make it foreground"
+        );
+        let e2_uid = t.append_entity(e2).unwrap();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e1_uid),
+            "adding a second shouldn't change which is foreground"
+        );
+        let e3_uid = t.append_entity(e3).unwrap();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e1_uid),
+            "adding a third shouldn't change which is foreground"
+        );
+        let e3 = t.remove_entity(&e3_uid).unwrap();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e1_uid),
+            "removing the third shouldn't change which is foreground"
+        );
+        let _e1 = t.remove_entity(&e1_uid).unwrap();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e2_uid),
+            "removing the first/foreground should pick the new first one"
+        );
+
+        let e3_uid = t.append_entity(e3).unwrap();
+        t.select_next_foreground_timeline_entity();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e3_uid),
+            "selecting next after second should pick the third"
+        );
+
+        t.select_next_foreground_timeline_entity();
+        assert_eq!(
+            t.foreground_timeline_entity,
+            Some(e2_uid),
+            "selecting next after third should pick the second (first was removed)"
         );
     }
 }

@@ -39,12 +39,21 @@ fn demo_automation() {
         };
 
         // Arrange the lead pattern in the sequencer.
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
         let track_uid = orchestrator.create_track().unwrap();
-        let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
-        let _ = sequencer.insert_pattern(&pattern, MusicalTime::new_with_beats(0));
-        assert!(orchestrator.append_entity(&track_uid, sequencer).is_ok());
+        assert!(orchestrator
+            .append_entity(
+                &track_uid,
+                factory.create_entity_with_minted_uid(|| {
+                    let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
+                    Box::new(
+                        ESSequencerBuilder::default()
+                            .pattern((MusicalTime::new_with_beats(0), pattern))
+                            .build()
+                            .unwrap(),
+                    )
+                })
+            )
+            .is_ok());
 
         // Add a synth to play the pattern.
         let synth_uid = orchestrator
@@ -56,11 +65,12 @@ fn demo_automation() {
 
         // Add an LFO that will control a synth parameter.
         let lfo_uid = {
-            let mut lfo = Box::new(LfoController::new_with(&LfoControllerParams {
-                frequency: FrequencyHz(2.0),
-                waveform: Waveform::Sine,
-            }));
-            factory.assign_entity_uid(lfo.as_mut());
+            let lfo = factory.create_entity_with_minted_uid(|| {
+                Box::new(LfoController::new_with(&LfoControllerParams {
+                    frequency: FrequencyHz(2.0),
+                    waveform: Waveform::Sine,
+                }))
+            });
             orchestrator.append_entity(&track_uid, lfo).unwrap()
         };
 
@@ -118,15 +128,20 @@ fn demo_control_trips() {
             .unwrap();
 
         // Arrange the lead pattern in a sequencer.
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
-        assert!(sequencer
-            .insert_pattern(&scale_pattern, MusicalTime::new_with_beats(0))
-            .is_ok());
 
         // Add the sequencer to a new track.
         let track_uid = orchestrator.create_track().unwrap();
-        assert!(orchestrator.append_entity(&track_uid, sequencer).is_ok());
+        assert!(orchestrator
+            .append_entity(
+                &track_uid,
+                factory.create_entity_with_minted_uid(|| Box::new(
+                    ESSequencerBuilder::default()
+                        .pattern((MusicalTime::START, scale_pattern.clone()))
+                        .build()
+                        .unwrap()
+                ))
+            )
+            .is_ok());
 
         // Add a synth to play the pattern. Figure how out to identify the
         // parameter we want to control.
@@ -139,34 +154,38 @@ fn demo_control_trips() {
         let synth_uid = orchestrator.append_entity(&track_uid, entity).unwrap();
 
         // Create a [ControlAtlas] that will manage [ControlTrips](ControlTrip).
-        let mut atlas = ControlAtlas::default();
-        factory.assign_entity_uid(&mut atlas);
+        // First add a ControlTrip that ramps from zero to max over the desired
+        // amount of time.
+        let (atlas, trip_uid) = {
+            let mut trip = ControlTripBuilder::default()
+                .step(
+                    ControlStepBuilder::default()
+                        .value(ControlValue::MIN)
+                        .time(MusicalTime::START)
+                        .path(ControlTripPath::Linear)
+                        .build()
+                        .unwrap(),
+                )
+                .step(
+                    ControlStepBuilder::default()
+                        .value(ControlValue::MAX)
+                        .time(MusicalTime::new_with_beats(4))
+                        .path(ControlTripPath::Flat)
+                        .build()
+                        .unwrap(),
+                )
+                .build()
+                .unwrap();
+            let trip_uid = factory.assign_entity_uid(&mut trip);
+            let atlas = ControlAtlasBuilder::default()
+                .trip(trip)
+                .uid(factory.mint_uid())
+                .build()
+                .unwrap();
+            (Box::new(atlas), trip_uid)
+        };
 
-        // Add a ControlTrip that ramps from zero to max over the desired amount of time.
-        let mut trip = ControlTripBuilder::default()
-            .step(
-                ControlStepBuilder::default()
-                    .value(ControlValue::MIN)
-                    .time(MusicalTime::START)
-                    .path(ControlTripPath::Linear)
-                    .build()
-                    .unwrap(),
-            )
-            .step(
-                ControlStepBuilder::default()
-                    .value(ControlValue::MAX)
-                    .time(MusicalTime::new_with_beats(4))
-                    .path(ControlTripPath::Flat)
-                    .build()
-                    .unwrap(),
-            )
-            .build()
-            .unwrap();
-        factory.assign_entity_uid(&mut trip);
-        let trip_uid = atlas.add_trip(trip).unwrap();
-        let _ = orchestrator
-            .append_entity(&track_uid, Box::new(atlas))
-            .unwrap();
+        let _ = orchestrator.append_entity(&track_uid, atlas).unwrap();
 
         // Hook up that ControlTrip to the pan parameter.
         assert!(orchestrator

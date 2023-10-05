@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    midi::HandlesMidi,
-    traits::{Configurable, ControlEventsFn, Controls, Displays, Serializable},
+    traits::{Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Serializable},
     types::ParameterType,
     uid::Uid,
 };
@@ -238,7 +237,9 @@ impl Default for TimeSignature {
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 units.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(
+    Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default,
+)]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
     units: usize,
@@ -326,11 +327,11 @@ impl MusicalTime {
     }
 
     // The entire number expressed in units.
-    pub fn total_units(&self) -> usize {
+    pub const fn total_units(&self) -> usize {
         self.units
     }
 
-    pub fn units(&self) -> usize {
+    pub const fn units(&self) -> usize {
         self.units % Self::UNITS_IN_PART
     }
 

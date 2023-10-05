@@ -12,11 +12,10 @@ use eframe::{
 };
 
 /// Wraps an [ESSequencer] as a [Widget](eframe::egui::Widget).
-pub fn es_sequencer(
-    sequencer: &mut ESSequencer,
-    view_range: std::ops::Range<MusicalTime>,
-) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| SequencerWidget::new(sequencer, view_range).ui(ui)
+pub fn es_sequencer(sequencer: &mut ESSequencer) -> impl eframe::egui::Widget + '_ {
+    move |ui: &mut eframe::egui::Ui| {
+        SequencerWidget::new(sequencer, sequencer.view_range().clone()).ui(ui)
+    }
 }
 
 /// Wraps an [LfoControllerWidget] as a [Widget](eframe::egui::Widget).

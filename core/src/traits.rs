@@ -9,6 +9,7 @@
 use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiMessage},
+    piano_roll::{Note, Pattern},
     prelude::*,
     time::{MusicalTime, SampleRate, TimeSignature},
     track::TrackUid,
@@ -18,13 +19,11 @@ use crate::{
 pub mod prelude {
     pub use super::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HasSettings, HasUid,
-        IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, Orchestrates,
-        PlaysNotes, Serializable, StoresVoices, Ticks, TransformsAudio,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasSettings,
+        HasUid, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, MidiMessagesFn,
+        Orchestrates, PlaysNotes, Sequences, Serializable, StoresVoices, Ticks, TransformsAudio,
     };
-    pub use crate::midi::HandlesMidi;
 }
-pub use crate::midi::HandlesMidi;
 
 #[allow(missing_docs)]
 pub trait MessageBounds: std::fmt::Debug + Send {}
@@ -227,7 +226,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 /// knows how to respond to requests to start, stop, restart, and seek within
 /// the performance.
 #[allow(unused_variables)]
-pub trait Controls: Configurable + Send + std::fmt::Debug {
+pub trait Controls: Configurable + Send {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
 
@@ -519,17 +518,139 @@ pub trait Orchestrates: Configurable {
     ) -> anyhow::Result<()>;
 }
 
+/// The callback signature for handle_midi_message().
+pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
+
+/// Takes standard MIDI messages. Implementers can ignore MidiChannel if it's
+/// not important, as the virtual cabling model tries to route only relevant
+/// traffic to individual devices. midi_messages_fn allows the implementor to
+/// produce more MIDI messages in response to this message. For example, an
+/// arpeggiator might produce notes in response to a note-on.
+pub trait HandlesMidi {
+    #[allow(missing_docs)]
+    #[allow(unused_variables)]
+    fn handle_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        midi_messages_fn: &mut MidiMessagesFn,
+    ) {
+    }
+}
+
+/// Records and replays MIDI events.
+///
+/// This trait does not specify behavior in case of duplicate events, which
+/// allows simple implementations to use plain vectors rather than sets.
+pub trait Sequences: Controls + Configurable + HandlesMidi {
+    // /// Returns the default [MidiChannel], which is used by recording methods
+    // /// that take an optional channel.
+    // fn default_midi_recording_channel(&self) -> MidiChannel;
+
+    // /// Sets the default [MidiChannel] for recording.
+    // fn set_default_midi_recording_channel(&mut self, channel: MidiChannel);
+
+    /// Records a [MidiMessage] at the given [MusicalTime] on the given [MidiChannel].
+    fn record_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()>;
+
+    /// Removes all recorded messages.
+    fn clear(&mut self);
+
+    /// Deletes all recorded [MidiMessage]s matching the provided paramaters.
+    fn remove_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()>;
+
+    /// Being recording. Messages received through
+    /// [HandlesMidi::handle_midi_message()] will be recorded as of the start of
+    /// the time slice provided by [Controls::update_time()].
+    ///
+    /// [Controls::stop()] stops recording.
+    fn record(&mut self);
+    /// Returns whether the sequencer is recording.
+    fn is_recording(&self) -> bool;
+}
+
+/// An extension to [Sequences] that understands a [Note], which is a pair of
+/// on/off [MidiMessage]s with a start and duration.
+///
+/// The [Note]s in a [SequencesNotes] exist separately from the [MidiMessage]s
+/// that the base [Sequences] deals with. This implies the following behavior:
+///
+///   1. Record a note-on [MidiMessage].
+///   2. Record a [Note] whose start happens to match the message from Step 1.
+///   3. Remove the [Note] from Step 2.
+///   4. Play back. The [Note] from Step 1 should play.
+///
+/// Without this behavior, there would be little reason to specify
+/// [SequencesNotes] as a trait, because [Note]s would simply be two
+/// [MidiMessage]s, and the behavior above would depend on whether [Sequences]
+/// allowed duplicate messages (which [Sequences] intentionally leaves
+/// unspecified).
+pub trait SequencesNotes: Sequences {
+    /// Records a [Note] to the given [MidiChannel].
+    fn record_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()>;
+
+    /// Deletes all recorded [Note]s matching the provided paramaters.
+    fn remove_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()>;
+
+    /// Our old friend, https://github.com/rust-lang/rust/issues/65991
+    fn as_sequences(&self) -> &dyn Sequences;
+    fn as_sequences_mut(&mut self) -> &mut dyn Sequences;
+}
+
+/// An extension to [SequencesNotes] that understands a [Pattern], which is a
+/// sequence of [Note]s.
+///
+/// As with [SequencesNotes], the patterns in [SequencesPatterns] exist
+/// independently from [Note]s and [MidiMessage]s. Adding or removing a
+/// [Pattern] does not affect [Note]s or [MidiMessage]s that are already in the
+/// sequencer.
+pub trait SequencesPatterns: SequencesNotes {
+    /// Records a [Pattern] to the given [MidiChannel] at the given position.
+    fn record_pattern(
+        &mut self,
+        channel: MidiChannel,
+        pattern: Pattern,
+        position: MusicalTime,
+    ) -> anyhow::Result<()>;
+
+    /// Deletes all recorded [Pattern]s matching the provided paramaters.
+    fn remove_pattern(
+        &mut self,
+        channel: MidiChannel,
+        pattern: Pattern,
+        position: MusicalTime,
+    ) -> anyhow::Result<()>;
+
+    fn as_sequences_notes(&self) -> &dyn SequencesNotes;
+    fn as_sequences_notes_mut(&mut self) -> &mut dyn SequencesNotes;
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Orchestrates, Ticks};
-    use crate::track::TrackUid;
+    use super::{Orchestrates, Sequences, SequencesNotes, Ticks};
+    use crate::{
+        midi::{u7, MidiChannel, MidiMessage},
+        piano_roll::Note,
+        prelude::MusicalTime,
+        track::TrackUid,
+    };
     use more_asserts::assert_gt;
 
     pub trait DebugTicks: Ticks {
         fn debug_tick_until(&mut self, tick_number: usize);
     }
 
-    pub(crate) fn test_orchestrates(orchestrates: &mut dyn Orchestrates) {
+    pub(crate) fn validate_orchestrates_trait(orchestrates: &mut dyn Orchestrates) {
         assert!(
             orchestrates.track_uids().is_empty(),
             "Initial impl should have no tracks"
@@ -547,6 +668,138 @@ pub(crate) mod tests {
             orchestrates.track_uids().len(),
             1,
             "Deleting nonexistent track shouldn't change anything"
+        );
+    }
+
+    fn replay_messages(
+        sequences: &mut dyn Sequences,
+        start_time: MusicalTime,
+        duration: MusicalTime,
+    ) -> Vec<(MidiChannel, MidiMessage)> {
+        let mut v = Vec::default();
+        sequences.update_time(&(start_time..start_time + duration));
+        sequences.work(&mut |_, event| match event {
+            crate::traits::EntityEvent::Midi(channel, message) => v.push((channel, message)),
+            crate::traits::EntityEvent::Control(_) => panic!(),
+        });
+        v
+    }
+
+    fn replay_all_messages(sequences: &mut dyn Sequences) -> Vec<(MidiChannel, MidiMessage)> {
+        replay_messages(sequences, MusicalTime::TIME_ZERO, MusicalTime::TIME_MAX)
+    }
+
+    /// Validates the provided implementation of [Sequences].
+    pub(crate) fn validate_sequences_trait(sequences: &mut dyn Sequences) {
+        const SAMPLE_NOTE_ON_MESSAGE: MidiMessage = MidiMessage::NoteOn {
+            key: u7::from_int_lossy(60),
+            vel: u7::from_int_lossy(100),
+        };
+        const SAMPLE_NOTE_OFF_MESSAGE: MidiMessage = MidiMessage::NoteOff {
+            key: u7::from_int_lossy(60),
+            vel: u7::from_int_lossy(100),
+        };
+        const SAMPLE_MIDI_CHANNEL: MidiChannel = MidiChannel(7);
+
+        assert!(replay_all_messages(sequences).is_empty());
+        assert!(sequences
+            .record_midi_message(
+                SAMPLE_MIDI_CHANNEL,
+                SAMPLE_NOTE_OFF_MESSAGE,
+                MusicalTime::START
+            )
+            .is_ok());
+        assert_eq!(
+            replay_all_messages(sequences).len(),
+            1,
+            "sequencer should contain one recorded message"
+        );
+        sequences.clear();
+        assert!(replay_all_messages(sequences).is_empty());
+
+        assert!(
+            sequences.is_finished(),
+            "An empty sequencer should always be finished."
+        );
+        assert!(
+            !sequences.is_performing(),
+            "A sequencer should not be performing before play()"
+        );
+
+        let mut do_nothing = |_, _| {};
+
+        assert!(!sequences.is_recording());
+        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_ON_MESSAGE, &mut do_nothing);
+        assert!(
+            replay_all_messages(sequences).is_empty(),
+            "sequencer should ignore incoming messages when not recording"
+        );
+
+        sequences.record();
+        assert!(sequences.is_recording());
+        sequences.update_time(&(MusicalTime::new_with_beats(1)..MusicalTime::DURATION_QUARTER));
+        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_ON_MESSAGE, &mut do_nothing);
+        sequences.update_time(&(MusicalTime::new_with_beats(2)..MusicalTime::DURATION_QUARTER));
+        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_OFF_MESSAGE, &mut do_nothing);
+        assert_eq!(
+            replay_all_messages(sequences).len(),
+            2,
+            "sequencer should reflect recorded messages even while recording"
+        );
+        sequences.stop();
+        assert_eq!(
+            replay_all_messages(sequences).len(),
+            2,
+            "sequencer should reflect recorded messages after recording"
+        );
+
+        assert!(
+            replay_messages(
+                sequences,
+                MusicalTime::new_with_beats(0),
+                MusicalTime::DURATION_QUARTER,
+            )
+            .is_empty(),
+            "sequencer should replay no events for time slice before recorded events"
+        );
+
+        assert_eq!(
+            replay_messages(
+                sequences,
+                MusicalTime::new_with_beats(1),
+                MusicalTime::DURATION_QUARTER,
+            )
+            .len(),
+            1,
+            "sequencer should produce appropriate messages for time slice"
+        );
+
+        assert_eq!(
+            replay_all_messages(sequences).len(),
+            2,
+            "sequencer should produce appropriate messages for time slice"
+        );
+    }
+
+    /// Validates the provided implementation of [SequencesNotes].
+    pub(crate) fn validate_sequences_notes_trait(s: &mut dyn SequencesNotes) {
+        const SAMPLE_NOTE: Note =
+            Note::new_with(60, MusicalTime::START, MusicalTime::DURATION_QUARTER);
+        const SAMPLE_MIDI_CHANNEL: MidiChannel = MidiChannel(7);
+
+        s.clear();
+
+        assert!(replay_all_messages(s.as_sequences_mut()).is_empty());
+        assert!(s.record_note(SAMPLE_MIDI_CHANNEL, SAMPLE_NOTE).is_ok());
+        assert_eq!(
+            replay_all_messages(s.as_sequences_mut()).len(),
+            2,
+            "After record_note(), two new messages should be recorded."
+        );
+        assert!(s.remove_note(SAMPLE_MIDI_CHANNEL, SAMPLE_NOTE).is_ok());
+        assert!(
+            replay_all_messages(s.as_sequences_mut()).is_empty(),
+            "Sequencer should be empty after removing last note"
         );
     }
 }

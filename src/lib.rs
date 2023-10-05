@@ -24,7 +24,10 @@ pub mod controllers {
     //! Examples are sequencers and arpeggiators. They implement the
     //! [IsController](crate::traits::IsController) interface.
     pub use ensnare_core::{
-        controllers::{ControlAtlas, ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+        controllers::{
+            ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
+            ControlTripPath,
+        },
         entities::factory::test_entities::TestController,
         entities::{
             controllers::*,
@@ -99,7 +102,7 @@ pub mod midi {
     //! system. If you're looking for MIDI that enters or leaves the system
     //! (e.g., MIDI interfaces or MIDI keyboards plugged in through USB), see
     //! [midi_interface](crate::midi_interface) instead.
-    pub use ensnare_core::midi::{u4, u7, MidiChannel, MidiMessage, MidiMessagesFn, MidiNote};
+    pub use ensnare_core::midi::{u4, u7, MidiChannel, MidiMessage, MidiNote};
 }
 
 pub mod generators {
@@ -186,18 +189,18 @@ pub mod prelude {
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{
             lfo::{LfoController, LfoControllerParams},
-            ControlAtlas, ControlStepBuilder, ControlTripBuilder, ControlTripPath, ESSequencer,
-            ESSequencerBuilder, Sequencer,
+            ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
+            ControlTripPath, ESSequencer, ESSequencerBuilder, Sequencer,
         },
         entity::{register_factory_entities, EntityFactory, EntityKey, EntityStore},
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
-        midi::{u4, u7, MidiChannel, MidiMessage, MidiMessagesFn, MidiNote},
+        midi::{u4, u7, MidiChannel, MidiMessage, MidiNote},
         midi_interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
         modulation::{Dca, DcaParams},
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
             DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid,
-            IsController, IsEffect, IsInstrument, Orchestrates,
+            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
         },
         types::{
             BipolarNormal, FrequencyHz, MusicalTime, Normal, Ratio, Sample, SampleRate,

@@ -5,16 +5,17 @@ use crate::{
     piano_roll::{Note, Pattern},
     prelude::*,
     rng::Rng,
-    traits::prelude::*,
+    traits::{prelude::*, Sequences, SequencesNotes},
+    widgets::controllers::es_sequencer,
 };
 use btreemultimap::BTreeMultiMap;
 use derive_builder::Builder;
-use ensnare_proc_macros::{Control, IsController, Uid};
+use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Uid};
 use serde::{Deserialize, Serialize};
 
 impl ESSequencerBuilder {
     /// Builds the [ESSequencer].
-    pub fn build(&self) -> Result<ESSequencer, ESSequencerBuilderError> {
+    pub fn build(&self) -> anyhow::Result<ESSequencer, ESSequencerBuilderError> {
         match self.build_from_builder() {
             Ok(mut s) => {
                 s.after_deser();
@@ -43,20 +44,26 @@ impl ESSequencerBuilder {
 /// Parts of [ESSequencer] that shouldn't be persisted.
 #[derive(Debug, Default)]
 pub struct ESSequencerEphemerals {
-    // The sequencer should be performing work for this time slice.
+    /// The sequencer should be performing work for this time slice.
     range: std::ops::Range<MusicalTime>,
-    // The actual events that the sequencer emits.
+    /// The actual events that the sequencer emits.
     events: BTreeMultiMap<MusicalTime, MidiMessage>,
-    // The latest end time (exclusive) of all the events.
+    /// The latest end time (exclusive) of all the events.
     final_event_time: MusicalTime,
-    // The next place to insert a note.
+    /// The next place to insert a note.
     cursor: MusicalTime,
-    // Whether we're performing, in the [Performs] sense.
+    /// Whether we're performing, in the [Performs] sense.
     is_performing: bool,
+    /// Whether we're recording.
+    is_recording: bool,
+
+    view_range: std::ops::Range<MusicalTime>,
 }
 
 /// [ESSequencer] replays [MidiMessage]s according to [MusicalTime].
-#[derive(Debug, Default, Control, IsController, Uid, Serialize, Deserialize, Builder)]
+#[derive(
+    Debug, Default, Control, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize, Builder,
+)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct ESSequencer {
     #[allow(missing_docs)]
@@ -81,6 +88,64 @@ pub struct ESSequencer {
     #[serde(skip)]
     #[builder(setter(skip))]
     e: ESSequencerEphemerals,
+}
+impl Sequences for ESSequencer {
+    fn clear(&mut self) {
+        self.notes.clear();
+        self.patterns.clear();
+        self.calculate_events();
+    }
+
+    fn record_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        event: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()> {
+        self.e.events.insert(time, event);
+        Ok(())
+    }
+
+    fn remove_message(
+        &mut self,
+        channel: MidiChannel,
+        event: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()> {
+        self.e
+            .events
+            .retain(|&e_time, &e_event| time == e_time && event == e_event);
+        Ok(())
+    }
+
+    fn record(&mut self) {
+        self.e.is_recording = true;
+    }
+
+    fn is_recording(&self) -> bool {
+        self.e.is_recording
+    }
+}
+impl SequencesNotes for ESSequencer {
+    fn record_note(&mut self, _channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+        self.notes.push(note);
+        self.calculate_events();
+        Ok(())
+    }
+
+    fn remove_note(&mut self, _channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+        self.notes.retain(|n| *n != note);
+        self.calculate_events();
+        Ok(())
+    }
+
+    fn as_sequences(&self) -> &dyn Sequences {
+        self
+    }
+
+    fn as_sequences_mut(&mut self) -> &mut dyn Sequences {
+        self
+    }
 }
 impl ESSequencer {
     #[allow(dead_code)]
@@ -146,6 +211,10 @@ impl ESSequencer {
         }
     }
 
+    pub fn view_range(&self) -> &std::ops::Range<MusicalTime> {
+        &self.e.view_range
+    }
+
     // TODO: can we reduce visibility?
     pub(crate) fn calculate_events(&mut self) {
         self.e.events.clear();
@@ -188,11 +257,27 @@ impl ESSequencer {
     }
 }
 impl Displays for ESSequencer {
-    fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        unimplemented!("use es_sequencer widget instead")
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(es_sequencer(self))
     }
 }
-impl HandlesMidi for ESSequencer {}
+impl DisplaysInTimeline for ESSequencer {
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.e.view_range = view_range.clone();
+    }
+}
+impl HandlesMidi for ESSequencer {
+    fn handle_midi_message(
+        &mut self,
+        _channel: MidiChannel,
+        message: MidiMessage,
+        _: &mut MidiMessagesFn,
+    ) {
+        if self.is_recording() {
+            self.e.events.insert(self.e.range.start, message);
+        }
+    }
+}
 impl Controls for ESSequencer {
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
         self.e.range = range.clone();
@@ -212,13 +297,17 @@ impl Controls for ESSequencer {
 
     fn play(&mut self) {
         self.e.is_performing = true;
+        self.e.is_recording = false;
     }
 
     fn stop(&mut self) {
         self.e.is_performing = false;
+        self.e.is_recording = false;
     }
 
-    fn skip_to_start(&mut self) {}
+    fn skip_to_start(&mut self) {
+        self.update_time(&(MusicalTime::START..MusicalTime::START))
+    }
 
     fn is_performing(&self) -> bool {
         self.e.is_performing
@@ -233,7 +322,10 @@ impl Serializable for ESSequencer {
 
 #[cfg(test)]
 mod tests {
-    use crate::piano_roll::PatternBuilder;
+    use crate::{
+        piano_roll::PatternBuilder,
+        traits::tests::{validate_sequences_notes_trait, validate_sequences_trait},
+    };
 
     use super::*;
 
@@ -310,5 +402,13 @@ mod tests {
             4,
             "Appending another pattern with one note should create two more events"
         );
+    }
+
+    #[test]
+    fn sequencer_passes_sequences_trait_validation() {
+        let mut s = ESSequencerBuilder::default().build().unwrap();
+
+        validate_sequences_trait(&mut s);
+        validate_sequences_notes_trait(&mut s);
     }
 }

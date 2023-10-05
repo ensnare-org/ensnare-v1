@@ -26,13 +26,18 @@ fn demo_sidechaining() {
             .build()
             .unwrap();
         let sidechain_track_uid = orchestrator.create_track().unwrap();
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
-        assert!(sequencer
-            .insert_pattern(&sidechain_pattern, MusicalTime::START)
-            .is_ok());
         assert!(orchestrator
-            .append_entity(&sidechain_track_uid, sequencer)
+            .append_entity(
+                &sidechain_track_uid,
+                factory.create_entity_with_minted_uid(|| {
+                    Box::new(
+                        ESSequencerBuilder::default()
+                            .pattern((MusicalTime::START, sidechain_pattern.clone()))
+                            .build()
+                            .unwrap(),
+                    )
+                })
+            )
             .is_ok());
         assert!(orchestrator
             .append_entity(
@@ -66,13 +71,16 @@ fn demo_sidechaining() {
             .build()
             .unwrap();
         let lead_track_uid = orchestrator.create_track().unwrap();
-        let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-        factory.assign_entity_uid(sequencer.as_mut());
-        assert!(sequencer
-            .insert_pattern(&lead_pattern, MusicalTime::START)
-            .is_ok());
         assert!(orchestrator
-            .append_entity(&lead_track_uid, sequencer)
+            .append_entity(
+                &lead_track_uid,
+                factory.create_entity_with_minted_uid(|| Box::new(
+                    ESSequencerBuilder::default()
+                        .pattern((MusicalTime::START, lead_pattern.clone()))
+                        .build()
+                        .unwrap()
+                ))
+            )
             .is_ok());
         assert!(orchestrator
             .append_entity(

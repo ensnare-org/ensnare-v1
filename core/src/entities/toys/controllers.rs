@@ -1,6 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use crate::{
+    midi::{prelude::*, MidiEvent},
+    piano_roll::Note,
+    prelude::*,
+    traits::{prelude::*, SequencesNotes},
+};
 use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
@@ -187,3 +192,191 @@ impl Controls for ToyControllerAlwaysSendsMidiMessage {
 }
 impl Configurable for ToyControllerAlwaysSendsMidiMessage {}
 impl Serializable for ToyControllerAlwaysSendsMidiMessage {}
+
+#[derive(Debug, Default)]
+struct ToySequencer {
+    events: Vec<MidiEvent>,
+    time_range: std::ops::Range<MusicalTime>,
+    is_recording: bool,
+    is_performing: bool,
+    max_event_time: MusicalTime,
+}
+impl Sequences for ToySequencer {
+    fn clear(&mut self) {
+        self.events.clear();
+        self.max_event_time = MusicalTime::default();
+    }
+
+    fn record_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()> {
+        self.events.push(MidiEvent {
+            channel,
+            message,
+            time,
+        });
+        if time > self.max_event_time {
+            self.max_event_time = time;
+        }
+        Ok(())
+    }
+
+    fn remove_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        time: MusicalTime,
+    ) -> anyhow::Result<()> {
+        let event = MidiEvent {
+            channel: channel,
+            message,
+            time,
+        };
+        self.events.retain(|e| *e != event);
+        self.recalculate_max_time();
+        Ok(())
+    }
+
+    fn record(&mut self) {
+        self.is_recording = true;
+    }
+
+    fn is_recording(&self) -> bool {
+        self.is_recording
+    }
+}
+impl SequencesNotes for ToySequencer {
+    fn record_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+        let _ = self.record_midi_message(
+            channel,
+            MidiMessage::NoteOn {
+                key: u7::from(note.key),
+                vel: u7::from(127),
+            },
+            note.range.start,
+        );
+        let _ = self.record_midi_message(
+            channel,
+            MidiMessage::NoteOff {
+                key: u7::from(note.key),
+                vel: u7::from(127),
+            },
+            note.range.end,
+        );
+        Ok(())
+    }
+
+    fn remove_note(&mut self, channel: MidiChannel, note: Note) -> anyhow::Result<()> {
+        let _ = self.remove_message(
+            channel,
+            MidiMessage::NoteOn {
+                key: u7::from(note.key),
+                vel: u7::from(127),
+            },
+            note.range.start,
+        );
+        let _ = self.remove_message(
+            channel,
+            MidiMessage::NoteOff {
+                key: u7::from(note.key),
+                vel: u7::from(127),
+            },
+            note.range.end,
+        );
+        Ok(())
+    }
+
+    fn as_sequences(&self) -> &dyn Sequences {
+        self
+    }
+
+    fn as_sequences_mut(&mut self) -> &mut dyn Sequences {
+        self
+    }
+}
+impl Configurable for ToySequencer {
+    fn sample_rate(&self) -> SampleRate {
+        // I was too lazy to add this everywhere when I added this to the trait,
+        // but I didn't want unexpected usage to go undetected.
+        panic!("Someone asked for a SampleRate but we provided default");
+    }
+
+    fn update_sample_rate(&mut self, _sample_rate: SampleRate) {}
+
+    fn update_tempo(&mut self, _tempo: Tempo) {}
+
+    fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
+}
+impl Controls for ToySequencer {
+    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+        self.time_range = range.clone();
+    }
+
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+        self.events.iter().for_each(|e| {
+            if self.time_range.contains(&e.time) {
+                control_events_fn(Uid(0), EntityEvent::Midi(e.channel, e.message))
+            }
+        });
+    }
+
+    fn is_finished(&self) -> bool {
+        self.time_range.end >= self.max_event_time
+    }
+
+    fn play(&mut self) {
+        self.is_performing = true;
+        self.is_recording = false;
+    }
+
+    fn stop(&mut self) {
+        self.is_performing = false;
+        self.is_recording = false;
+    }
+
+    fn skip_to_start(&mut self) {
+        self.time_range = MusicalTime::default()..MusicalTime::default()
+    }
+
+    fn is_performing(&self) -> bool {
+        self.is_performing
+    }
+}
+impl HandlesMidi for ToySequencer {
+    fn handle_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        _: &mut MidiMessagesFn,
+    ) {
+        if self.is_recording {
+            let _ = self.record_midi_message(channel, message, self.time_range.start);
+        }
+    }
+}
+impl ToySequencer {
+    fn recalculate_max_time(&mut self) {
+        if let Some(max_event_time) = self.events.iter().map(|e| e.time).max() {
+            self.max_event_time = max_event_time;
+        } else {
+            self.max_event_time = MusicalTime::default();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::traits::tests::{validate_sequences_notes_trait, validate_sequences_trait};
+
+    #[test]
+    fn toy_passes_sequences_trait_validation() {
+        let mut s = ToySequencer::default();
+
+        validate_sequences_trait(&mut s);
+        validate_sequences_notes_trait(&mut s);
+    }
+}

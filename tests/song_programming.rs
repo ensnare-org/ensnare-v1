@@ -31,10 +31,19 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Arrange the drum pattern in a new MIDI track's Sequencer. By default, the
     // Sequencer emits events on MIDI channel 0.
     let track_uid = o.create_track().unwrap();
-    let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-    factory.assign_entity_uid(sequencer.as_mut());
-    sequencer.insert_pattern(&drum_pattern, MusicalTime::START);
-    o.append_entity(&track_uid, sequencer);
+    assert!(o
+        .append_entity(
+            &track_uid,
+            factory.create_entity_with_minted_uid(|| {
+                Box::new(
+                    ESSequencerBuilder::default()
+                        .pattern((MusicalTime::START, drum_pattern.clone()))
+                        .build()
+                        .unwrap(),
+                )
+            }),
+        )
+        .is_ok());
 
     // Add the drumkit instrument to the track. By default, it listens on MIDI channel 0.
     assert!(o
@@ -72,10 +81,17 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = o.create_track().unwrap();
-    let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-    factory.assign_entity_uid(sequencer.as_mut());
-    let _ = sequencer.insert_pattern(&scale_pattern, MusicalTime::START);
-    assert!(o.append_entity(&track_uid, sequencer).is_ok());
+    assert!(o
+        .append_entity(
+            &track_uid,
+            factory.create_entity_with_minted_uid(|| Box::new(
+                ESSequencerBuilder::default()
+                    .pattern((MusicalTime::START, scale_pattern.clone()))
+                    .build()
+                    .unwrap()
+            ))
+        )
+        .is_ok());
 
     // Add a synth to play the pattern.
     assert!(o

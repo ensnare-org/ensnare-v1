@@ -305,6 +305,15 @@ impl EntityFactory {
     pub fn initialize(entity_factory: Self) -> Result<(), Self> {
         FACTORY.set(entity_factory)
     }
+
+    pub fn create_entity_with_minted_uid(
+        &self,
+        create_fn: impl Fn() -> Box<dyn Entity>,
+    ) -> Box<dyn Entity> {
+        let mut entity = create_fn();
+        let _ = self.assign_entity_uid(entity.as_mut());
+        entity
+    }
 }
 
 /// An [EntityStore] owns [Entities](Entity). It implements some [Entity]
@@ -484,7 +493,7 @@ pub mod test_entities {
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
         midi::prelude::*,
         prelude::*,
-        traits::{prelude::*, GeneratesEnvelope},
+        traits::{prelude::*, GeneratesEnvelope, MidiMessagesFn},
     };
     use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
     use serde::{Deserialize, Serialize};

@@ -38,12 +38,19 @@ fn aux_bus() {
             .unwrap();
 
         let _synth_uid_1 = {
-            let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-            factory.assign_entity_uid(sequencer.as_mut());
-            assert!(sequencer
-                .insert_pattern(&synth_pattern_1, MusicalTime::START)
+            assert!(orchestrator
+                .append_entity(
+                    &track_uid_1,
+                    factory.create_entity_with_minted_uid(|| {
+                        Box::new(
+                            ESSequencerBuilder::default()
+                                .pattern((MusicalTime::START, synth_pattern_1.clone()))
+                                .build()
+                                .unwrap(),
+                        )
+                    })
+                )
                 .is_ok());
-            assert!(orchestrator.append_entity(&track_uid_1, sequencer).is_ok());
 
             // Even though we want the effect to be placed after the instrument in
             // the audio chain, we can add the effect before we add the instrument.
@@ -63,12 +70,19 @@ fn aux_bus() {
                 .unwrap();
         };
         let _synth_uid_2 = {
-            let mut sequencer = Box::new(ESSequencerBuilder::default().build().unwrap());
-            factory.assign_entity_uid(sequencer.as_mut());
-            assert!(sequencer
-                .insert_pattern(&synth_pattern_2, MusicalTime::START)
+            assert!(orchestrator
+                .append_entity(
+                    &track_uid_2,
+                    factory.create_entity_with_minted_uid(|| {
+                        Box::new(
+                            ESSequencerBuilder::default()
+                                .pattern((MusicalTime::START, synth_pattern_2.clone()))
+                                .build()
+                                .unwrap(),
+                        )
+                    })
+                )
                 .is_ok());
-            assert!(orchestrator.append_entity(&track_uid_2, sequencer).is_ok());
             assert!(orchestrator
                 .append_entity(
                     &track_uid_2,

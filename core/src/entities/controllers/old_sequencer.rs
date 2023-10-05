@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    midi::{u7, MidiChannel, MidiMessage, MidiMessagesFn},
+    midi::{u7, MidiChannel, MidiMessage},
     prelude::*,
     traits::prelude::*,
 };

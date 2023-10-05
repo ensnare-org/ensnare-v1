@@ -50,10 +50,11 @@ pub struct Note {
 }
 impl Note {
     /// Creates a [Note] from a u8.
-    pub fn new_with(key: u8, start: MusicalTime, duration: MusicalTime) -> Self {
+    pub const fn new_with(key: u8, start: MusicalTime, duration: MusicalTime) -> Self {
+        let end = MusicalTime::new_with_units(start.total_units() + duration.total_units());
         Self {
             key,
-            range: start..(start + duration),
+            range: start..end,
         }
     }
 
