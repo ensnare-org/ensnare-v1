@@ -76,6 +76,9 @@ impl Add<MusicalTime> for Note {
         }
     }
 }
+// TODO: I don't think this is the best choice to expose this idea. If there's a
+// way to do it as an iterator, so that we don't always have to create a Vec,
+// that would probably be better.
 impl Into<Vec<MidiEvent>> for Note {
     fn into(self) -> Vec<MidiEvent> {
         vec![
