@@ -162,7 +162,9 @@ fn demo_control_trips() {
         // First add a ControlTrip that ramps from zero to max over the desired
         // amount of time.
         let (atlas, trip_uid) = {
-            let mut trip = ControlTripBuilder::default()
+            let trip_uid = factory.mint_uid();
+            let trip = ControlTripBuilder::default()
+                .uid(trip_uid)
                 .step(
                     ControlStepBuilder::default()
                         .value(ControlValue::MIN)
@@ -181,7 +183,6 @@ fn demo_control_trips() {
                 )
                 .build()
                 .unwrap();
-            let trip_uid = factory.assign_entity_uid(&mut trip);
             let atlas = ControlAtlasBuilder::default()
                 .trip(trip)
                 .uid(factory.mint_uid())

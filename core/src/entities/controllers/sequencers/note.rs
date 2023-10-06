@@ -47,7 +47,9 @@ impl NoteSequencerBuilder {
 #[derive(Debug, Default, Serialize, Deserialize, Builder, IsControllerWithTimelineDisplay, Uid)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
+    #[builder(default)]
     uid: Uid,
+
     #[serde(skip)]
     #[builder(setter(skip))]
     inner: MidiSequencer,

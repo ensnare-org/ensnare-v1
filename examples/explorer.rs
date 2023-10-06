@@ -74,11 +74,12 @@ struct TrackSettings {
 }
 impl DisplaysInTimeline for TrackSettings {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.track.set_view_range(view_range);
         self.view_range = view_range.clone();
     }
 }
 impl TrackSettings {
-    const NAME: &'static str = "Timeline";
+    const NAME: &'static str = "Track";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -95,12 +96,23 @@ impl TrackSettings {
 }
 impl Default for TrackSettings {
     fn default() -> Self {
-        Self {
+        let mut r = Self {
             hide: Default::default(),
             track: Track::default(),
             range: MusicalTime::START..MusicalTime::new_with_beats(128),
             view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
-        }
+        };
+        let _ = r
+            .track
+            .append_entity(EntityFactory::global().create_entity_with_minted_uid(|| {
+                Box::new(NoteSequencerBuilder::default().build().unwrap())
+            }));
+        let _ = r
+            .track
+            .append_entity(EntityFactory::global().create_entity_with_minted_uid(|| {
+                Box::new(ControlAtlasBuilder::default().build().unwrap())
+            }));
+        r
     }
 }
 impl Displays for TrackSettings {
@@ -909,7 +921,7 @@ impl eframe::App for Explorer {
         if let Some(action) = self.device_chain.take_action() {
             match action {
                 track::SignalChainAction::NewDevice(key) => {
-                    eprintln!("DeviceChainAction::NewDevice({key})");
+                    eprintln!("SignalChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
                         let _ = self.device_chain.append_entity(entity);
                     }

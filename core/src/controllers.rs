@@ -281,8 +281,8 @@ impl ControlTripEphemerals {
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
 #[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Uid, Builder)]
-#[builder(setter(skip), default)]
 pub struct ControlTrip {
+    #[builder(default)]
     uid: Uid,
 
     /// The [ControlStep]s that make up this trip. They must be in ascending
@@ -290,6 +290,7 @@ pub struct ControlTrip {
     #[builder(default, setter(each(name = "step", into)))]
     steps: Vec<ControlStep>,
 
+    #[builder(setter(skip))]
     #[serde(skip)]
     e: ControlTripEphemerals,
 }
@@ -483,6 +484,7 @@ pub struct ControlStep {
 /// maps.)
 #[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Uid)]
 pub struct ControlAtlas {
+    #[builder(default)]
     uid: Uid,
 
     #[builder(default, setter(each(name = "trip", into)))]
