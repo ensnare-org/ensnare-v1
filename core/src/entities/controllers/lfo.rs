@@ -2,7 +2,6 @@
 
 use crate::{
     generators::{Oscillator, OscillatorParams, Waveform},
-    midi::prelude::*,
     prelude::*,
     traits::prelude::*,
     widgets::controllers::lfo_controller,

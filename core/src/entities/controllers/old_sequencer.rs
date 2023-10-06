@@ -20,6 +20,7 @@ pub(crate) type BeatEventsMap = BTreeMultiMap<MusicalTime, (MidiChannel, MidiMes
 /// [Sequencer] produces MIDI according to a programmed sequence. Its unit of
 /// time is the beat.
 #[derive(Debug, Control, IsController, Params, Uid, Serialize, Deserialize)]
+#[deprecated]
 pub struct Sequencer {
     uid: Uid,
     #[control]
