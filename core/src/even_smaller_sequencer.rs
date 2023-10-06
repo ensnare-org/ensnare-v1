@@ -65,6 +65,7 @@ pub struct ESSequencerEphemerals {
     Debug, Default, Control, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize, Builder,
 )]
 #[builder(build_fn(private, name = "build_from_builder"))]
+#[deprecated]
 pub struct ESSequencer {
     #[allow(missing_docs)]
     #[builder(default)]
