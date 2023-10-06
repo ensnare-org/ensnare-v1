@@ -693,6 +693,7 @@ impl<'a> Displays for TrackDevices<'a> {
                                     .iter()
                                     .chain(self.track.effects.iter()),
                             )
+                            .filter(|e| !self.track.timeline_entities.contains(e))
                             .for_each(|uid| {
                                 if let Some(entity) = self.track.entity_store.get_mut(uid) {
                                     eframe::egui::CollapsingHeader::new(entity.name())
