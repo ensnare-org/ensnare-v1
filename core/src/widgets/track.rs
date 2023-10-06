@@ -1,14 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::timeline::{cursor, grid};
+use super::{
+    timeline::{cursor, grid},
+    UiSize,
+};
 use crate::{
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
-    time::MusicalTime,
-    track::{
-        Track, TrackAction, TrackDevices, TrackDevicesAction, TrackTitle, TrackType, TrackUiState,
-    },
+    prelude::*,
+    track::{Track, TrackAction, TrackTitle, TrackType},
     traits::prelude::*,
-    uid::Uid,
 };
 use eframe::{
     egui::{Button, Frame, Margin, Sense, TextFormat},
@@ -17,6 +17,7 @@ use eframe::{
         text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
     },
 };
+use serde::{Deserialize, Serialize}; // See TrackWidget below
 use std::{f32::consts::PI, sync::Arc};
 
 /// Call this once for the TrackTitle, and then provide it on each frame to
@@ -58,12 +59,12 @@ pub fn track<'a>(
     }
 }
 
-/// Wraps a [TrackDevices] as a [Widget](eframe::egui::Widget). Mutates many things.
-pub fn track_devices<'a>(
+/// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget). Mutates many things.
+pub fn signal_chain<'a>(
     track: &'a mut Track,
-    action: &'a mut Option<TrackDevicesAction>,
+    action: &'a mut Option<SignalChainAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| TrackDevices::new(track, action).ui(ui)
+    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track, action).ui(ui)
 }
 
 /// An egui widget that draws a [Track]'s sideways title bar.
@@ -116,6 +117,18 @@ impl TitleBar {
     }
 }
 
+// TODO: the location and dependencies of this enum is weird. TrackWidget needs
+// it, but Orchestrator serializes it. So it seems like it should be located
+// here, and not with Track, but it is the only thing in widgets that needs
+// serde. This is probably the thing that'll push me toward moving
+// owner-specific widget code to the owner's file.
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
+pub enum TrackUiState {
+    #[default]
+    Collapsed,
+    Expanded,
+}
+
 /// An egui widget that draws a [Track].
 #[derive(Debug)]
 struct TrackWidget<'a> {
@@ -143,7 +156,7 @@ impl<'a> Displays for TrackWidget<'a> {
             })
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.set_min_height(Track::track_view_height(self.track.ty(), self.ui_state));
+                    ui.set_min_height(track_view_height(self.track.ty(), self.ui_state));
 
                     // The `Response` is based on the title bar, so
                     // clicking/dragging on the title bar affects the `Track` as a
@@ -175,7 +188,7 @@ impl<'a> Displays for TrackWidget<'a> {
                             // Only MIDI/audio tracks have content.
                             if !matches!(self.track.ty(), TrackType::Aux) {
                                 // Reserve space for the device view.
-                                ui.set_max_height(Track::track_view_height(
+                                ui.set_max_height(track_view_height(
                                     self.track.ty(),
                                     self.ui_state,
                                 ));
@@ -249,19 +262,19 @@ impl<'a> Displays for TrackWidget<'a> {
                                     }
                                 }
                                 ui.scope(|ui| {
-                                    ui.set_max_height(Track::device_view_height(self.ui_state));
+                                    ui.set_max_height(device_view_height(self.ui_state));
                                     let mut action = None;
-                                    ui.add(track_devices(&mut self.track, &mut action));
+                                    ui.add(signal_chain(&mut self.track, &mut action));
                                     if let Some(action) = action {
                                         match action {
-                                            TrackDevicesAction::NewDevice(key) => {
+                                            SignalChainAction::NewDevice(key) => {
                                                 eprintln!("yo"); // BUG! both the device view and the track view are handling the new device case, so we add twice on drag and drop
                                                 *self.action = Some(TrackAction::NewDevice(
                                                     self.track.uid(),
                                                     key,
                                                 ));
                                             }
-                                            TrackDevicesAction::LinkControl(
+                                            SignalChainAction::LinkControl(
                                                 source_uid,
                                                 target_uid,
                                                 control_index,
@@ -353,5 +366,118 @@ impl<'a> TrackWidget<'a> {
             }
         }
         false
+    }
+}
+
+pub(crate) fn track_view_height(track_type: TrackType, ui_state: TrackUiState) -> f32 {
+    if matches!(track_type, TrackType::Aux) {
+        device_view_height(ui_state)
+    } else {
+        timeline_view_height(ui_state) + device_view_height(ui_state)
+    }
+}
+
+pub(crate) const fn timeline_view_height(_ui_state: TrackUiState) -> f32 {
+    64.0
+}
+
+pub(crate) const fn device_view_height(ui_state: TrackUiState) -> f32 {
+    match ui_state {
+        TrackUiState::Collapsed => 32.0,
+        TrackUiState::Expanded => 96.0,
+    }
+}
+
+#[derive(Debug)]
+pub enum SignalChainAction {
+    NewDevice(EntityKey),
+    LinkControl(Uid, Uid, ControlIndex),
+}
+
+#[derive(Debug)]
+struct SignalChainWidget<'a> {
+    track: &'a mut Track,
+    action: &'a mut Option<SignalChainAction>,
+    ui_size: UiSize,
+}
+impl<'a> SignalChainWidget<'a> {
+    pub fn new(track: &'a mut Track, action: &'a mut Option<SignalChainAction>) -> Self {
+        Self {
+            track,
+            action,
+            ui_size: Default::default(),
+        }
+    }
+
+    fn can_accept(&self) -> bool {
+        if let Some(source) = DragDropManager::source() {
+            matches!(source, DragDropSource::NewDevice(_))
+        } else {
+            false
+        }
+    }
+
+    fn check_drop(&mut self) {
+        if let Some(source) = DragDropManager::source() {
+            if let DragDropSource::NewDevice(key) = source {
+                *self.action = Some(SignalChainAction::NewDevice(key))
+            }
+        }
+    }
+}
+impl<'a> Displays for SignalChainWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        self.ui_size = UiSize::from_height(ui.available_height());
+        let desired_size = ui.available_size();
+
+        ui.allocate_ui(desired_size, |ui| {
+            let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
+            eframe::egui::Frame::default()
+                .stroke(stroke)
+                .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
+                .show(ui, |ui| {
+                    ui.set_min_size(desired_size);
+                    ui.horizontal_top(|ui| {
+                        self.track
+                            .controllers
+                            .iter()
+                            .chain(
+                                self.track
+                                    .instruments
+                                    .iter()
+                                    .chain(self.track.effects.iter()),
+                            )
+                            .filter(|e| !self.track.timeline_entities.contains(e))
+                            .for_each(|uid| {
+                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
+                                    eframe::egui::CollapsingHeader::new(entity.name())
+                                        .id_source(entity.uid())
+                                        .show_unindented(ui, |ui| {
+                                            if entity.as_controller().is_some() {
+                                                DragDropManager::drag_source(
+                                                    ui,
+                                                    eframe::egui::Id::new(entity.name()),
+                                                    DragDropSource::ControlSource(entity.uid()),
+                                                    |ui| {
+                                                        ui.label("control");
+                                                    },
+                                                )
+                                            }
+                                            entity.ui(ui);
+                                        });
+                                }
+                            });
+                        let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
+                            ui.label("[+]")
+                        })
+                        .response;
+                        if DragDropManager::is_dropped(ui, &response) {
+                            self.check_drop();
+                        }
+                    })
+                    .inner
+                });
+        })
+        .response
     }
 }

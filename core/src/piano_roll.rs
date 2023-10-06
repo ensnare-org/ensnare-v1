@@ -5,7 +5,7 @@ use super::{
     widgets::pattern::{self, grid},
 };
 use crate::{
-    midi::{prelude::*, MidiEvent},
+    midi::prelude::*,
     prelude::*,
     selection_set::SelectionSet,
     traits::prelude::*,

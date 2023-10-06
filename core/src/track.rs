@@ -2,7 +2,6 @@
 
 use crate::{
     control::ControlRouter,
-    drag_drop::{DragDropManager, DragDropSource},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
     midi::prelude::*,
@@ -11,7 +10,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
-    widgets::{track::make_title_bar_galley, UiSize},
+    widgets::track::make_title_bar_galley,
 };
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
@@ -146,13 +145,6 @@ impl Default for TrackTitle {
     fn default() -> Self {
         Self("Untitled".to_string())
     }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
-pub enum TrackUiState {
-    #[default]
-    Collapsed,
-    Expanded,
 }
 
 #[derive(Debug, Default)]
@@ -300,25 +292,6 @@ impl Track {
     /// Returns the mutable [Entity] having the given [Uid], if it exists.
     pub fn entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
         self.entity_store.get_mut(uid)
-    }
-
-    pub(crate) fn track_view_height(track_type: TrackType, ui_state: TrackUiState) -> f32 {
-        if matches!(track_type, TrackType::Aux) {
-            Self::device_view_height(ui_state)
-        } else {
-            Self::timeline_view_height(ui_state) + Self::device_view_height(ui_state)
-        }
-    }
-
-    pub(crate) const fn timeline_view_height(_ui_state: TrackUiState) -> f32 {
-        64.0
-    }
-
-    pub(crate) const fn device_view_height(ui_state: TrackUiState) -> f32 {
-        match ui_state {
-            TrackUiState::Collapsed => 32.0,
-            TrackUiState::Expanded => 96.0,
-        }
     }
 
     #[allow(missing_docs)]
@@ -633,100 +606,6 @@ impl DisplaysInTimeline for Track {
     }
 }
 impl Displays for Track {}
-
-#[derive(Debug)]
-pub enum TrackDevicesAction {
-    NewDevice(EntityKey),
-    LinkControl(Uid, Uid, ControlIndex),
-}
-
-#[derive(Debug)]
-pub struct TrackDevices<'a> {
-    track: &'a mut Track,
-    action: &'a mut Option<TrackDevicesAction>,
-    ui_size: UiSize,
-}
-impl<'a> TrackDevices<'a> {
-    pub fn new(track: &'a mut Track, action: &'a mut Option<TrackDevicesAction>) -> Self {
-        Self {
-            track,
-            action,
-            ui_size: Default::default(),
-        }
-    }
-
-    fn can_accept(&self) -> bool {
-        if let Some(source) = DragDropManager::source() {
-            matches!(source, DragDropSource::NewDevice(_))
-        } else {
-            false
-        }
-    }
-
-    fn check_drop(&mut self) {
-        if let Some(source) = DragDropManager::source() {
-            if let DragDropSource::NewDevice(key) = source {
-                *self.action = Some(TrackDevicesAction::NewDevice(key))
-            }
-        }
-    }
-}
-impl<'a> Displays for TrackDevices<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        self.ui_size = UiSize::from_height(ui.available_height());
-        let desired_size = ui.available_size();
-
-        ui.allocate_ui(desired_size, |ui| {
-            let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
-            eframe::egui::Frame::default()
-                .stroke(stroke)
-                .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
-                .show(ui, |ui| {
-                    ui.set_min_size(desired_size);
-                    ui.horizontal_top(|ui| {
-                        self.track
-                            .controllers
-                            .iter()
-                            .chain(
-                                self.track
-                                    .instruments
-                                    .iter()
-                                    .chain(self.track.effects.iter()),
-                            )
-                            .filter(|e| !self.track.timeline_entities.contains(e))
-                            .for_each(|uid| {
-                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                    eframe::egui::CollapsingHeader::new(entity.name())
-                                        .id_source(entity.uid())
-                                        .show_unindented(ui, |ui| {
-                                            if entity.as_controller().is_some() {
-                                                DragDropManager::drag_source(
-                                                    ui,
-                                                    eframe::egui::Id::new(entity.name()),
-                                                    DragDropSource::ControlSource(entity.uid()),
-                                                    |ui| {
-                                                        ui.label("control");
-                                                    },
-                                                )
-                                            }
-                                            entity.ui(ui);
-                                        });
-                                }
-                            });
-                        let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
-                            ui.label("[+]")
-                        })
-                        .response;
-                        if DragDropManager::is_dropped(ui, &response) {
-                            self.check_drop();
-                        }
-                    })
-                    .inner
-                });
-        })
-        .response
-    }
-}
 
 #[cfg(test)]
 mod tests {

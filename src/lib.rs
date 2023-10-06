@@ -124,7 +124,7 @@ pub mod arrangement {
     //! `arrangement` helps organize devices musically.
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
-        track::{Track, TrackDevices, TrackDevicesAction, TrackTitle, TrackUid},
+        track::{Track, TrackTitle, TrackUid},
     };
 }
 
@@ -181,10 +181,7 @@ pub mod version;
 /// `use ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        arrangement::{
-            Orchestrator, OrchestratorBuilder, Track, TrackDevices, TrackDevicesAction, TrackTitle,
-            TrackUid,
-        },
+        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid},
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{

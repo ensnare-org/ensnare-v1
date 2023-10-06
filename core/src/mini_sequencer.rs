@@ -6,7 +6,6 @@ use crate::{
     piano_roll::{Pattern, PatternUid, PianoRoll},
     prelude::*,
     selection_set::SelectionSet,
-    track::TrackUid,
     traits::prelude::*,
     uid::{IsUid, UidFactory},
     widgets::timeline,

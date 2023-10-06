@@ -32,6 +32,10 @@ become them. So here are some guidelines.
    Displays::ui() implementation instead.
 2. Another way to put rule #1: if you made the Widget private to the module
    containing the struct that it draws, would anyone notice?
+3. I'm undecided whether single-consumer widgets (as in #2) should be in the
+   widgets module or in the consumer's file. In the commit adding this text to
+   the notes doc, I show why having that code in widgets pulls in needless
+   dependencies to that module.
 
 # The Sequencer and ControlAtlas integration problem
 

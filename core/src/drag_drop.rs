@@ -1,8 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    entities::prelude::*, piano_roll::PatternUid, prelude::*, track::TrackUid, types::ChannelPair,
-};
+use crate::{entities::prelude::*, piano_roll::PatternUid, prelude::*};
 use crossbeam_channel::Receiver;
 use eframe::{
     egui::{CursorIcon, Id as EguiId, InnerResponse, LayerId, Order, Sense, Ui},

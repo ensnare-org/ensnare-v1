@@ -3,12 +3,12 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
-    entities::{factory::EntityKey, prelude::EntityFactory},
+    entities::factory::EntityKey,
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
-    track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid},
+    track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUid},
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid,
@@ -87,7 +87,7 @@ pub struct Orchestrator {
     tracks: HashMap<TrackUid, Track>,
     /// Track uids in the order they appear in the UI.
     track_uids: Vec<TrackUid>,
-    track_ui_states: HashMap<TrackUid, TrackUiState>,
+    track_ui_states: HashMap<TrackUid, track::TrackUiState>,
 
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
@@ -338,8 +338,8 @@ impl Orchestrator {
         self.track_ui_states.insert(
             *track_uid,
             match new_state {
-                TrackUiState::Collapsed => TrackUiState::Expanded,
-                TrackUiState::Expanded => TrackUiState::Collapsed,
+                track::TrackUiState::Collapsed => track::TrackUiState::Expanded,
+                track::TrackUiState::Expanded => track::TrackUiState::Collapsed,
             },
         );
     }
@@ -870,7 +870,7 @@ impl Displays for Orchestrator {
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
                                 let desired_size = vec2(
                                     ui.available_width(),
-                                    Track::track_view_height(track.ty(), track_ui_state),
+                                    track::track_view_height(track.ty(), track_ui_state),
                                 );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);

@@ -23,7 +23,6 @@ use ensnare::{
     },
     version::app_version,
 };
-use ensnare_core::{track::TrackUiState, widgets::track::track};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -83,10 +82,10 @@ impl TrackSettings {
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
             let mut action = None;
-            ui.add(track(
+            ui.add(track::track(
                 &mut self.track,
                 false,
-                TrackUiState::Expanded,
+                track::TrackUiState::Expanded,
                 Some(MusicalTime::new_with_beats(1)),
                 &mut action,
             ));
@@ -184,21 +183,21 @@ impl Displays for DevicePaletteSettings {
 }
 
 #[derive(Debug, Default)]
-struct DeviceChainSettings {
+struct SignalChainSettings {
     hide: bool,
     is_large_size: bool,
     track: Track,
-    action: Option<TrackDevicesAction>,
+    action: Option<track::SignalChainAction>,
 }
-impl DeviceChainSettings {
-    const NAME: &'static str = "Device Chain";
+impl SignalChainSettings {
+    const NAME: &'static str = "Signal Chain";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
             ui.scope(|ui| {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
-                ui.add(track::track_devices(&mut self.track, &mut self.action))
+                ui.add(track::signal_chain(&mut self.track, &mut self.action))
             });
         }
     }
@@ -207,13 +206,13 @@ impl DeviceChainSettings {
         self.track.append_entity(entity)
     }
 }
-impl Displays for DeviceChainSettings {
+impl Displays for SignalChainSettings {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
     }
 }
-impl Acts for DeviceChainSettings {
-    type Action = TrackDevicesAction;
+impl Acts for SignalChainSettings {
+    type Action = track::SignalChainAction;
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.action.take()
@@ -701,7 +700,7 @@ struct Explorer {
     grid: GridSettings,
     track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
-    device_chain: DeviceChainSettings,
+    device_chain: SignalChainSettings,
     control_atlas: ControlAtlasSettings,
     sequencer: SequencerSettings,
     es_sequencer: ESSequencerSettings,
@@ -749,7 +748,7 @@ impl Explorer {
             Self::wrap_settings(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.ui(ui)
             });
-            Self::wrap_settings(DeviceChainSettings::NAME, ui, |ui| self.device_chain.ui(ui));
+            Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.device_chain.ui(ui));
             Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
             Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
@@ -831,7 +830,7 @@ impl Explorer {
             Self::wrap_item(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.show(ui)
             });
-            Self::wrap_item(DeviceChainSettings::NAME, ui, |ui| {
+            Self::wrap_item(SignalChainSettings::NAME, ui, |ui| {
                 self.device_chain.show(ui)
             });
             Self::wrap_item(PianoRollSettings::NAME, ui, |ui| self.piano_roll.show(ui));
@@ -901,13 +900,13 @@ impl eframe::App for Explorer {
         // not a time-critical app.
         if let Some(action) = self.device_chain.take_action() {
             match action {
-                TrackDevicesAction::NewDevice(key) => {
+                track::SignalChainAction::NewDevice(key) => {
                     eprintln!("DeviceChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
                         let _ = self.device_chain.append_entity(entity);
                     }
                 }
-                TrackDevicesAction::LinkControl(source_uid, target_uid, index) => {
+                track::SignalChainAction::LinkControl(source_uid, target_uid, index) => {
                     eprintln!("{action:?}")
                 }
             }

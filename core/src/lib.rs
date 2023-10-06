@@ -66,12 +66,14 @@ mod midi_router;
 pub mod prelude {
     pub use super::{
         control::{ControlIndex, ControlName, ControlValue},
+        entities::factory::{EntityFactory, EntityKey, EntityStore},
         orchestration::Orchestrator,
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
+        track::{Track, TrackUid},
         traits::{HasUid, Orchestrates},
         types::{
-            BipolarNormal, FrequencyHz, Normal, ParameterType, Ratio, Sample, SampleType,
-            SignalType, StereoSample,
+            BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
+            SampleType, SignalType, StereoSample,
         },
         uid::Uid,
     };

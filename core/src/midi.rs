@@ -12,7 +12,9 @@ pub use midly::{
 };
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::midi::{new_note_off, new_note_on, u4, u7, MidiChannel, MidiMessage, MidiNote};
+    pub use crate::midi::{
+        new_note_off, new_note_on, u4, u7, MidiChannel, MidiEvent, MidiMessage, MidiNote,
+    };
 }
 
 /// Newtype for MIDI channel.
