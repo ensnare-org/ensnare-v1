@@ -336,7 +336,7 @@ pub trait PlaysNotes {
 /// A [StoresVoices] provides access to a collection of voices for a polyphonic
 /// synthesizer. Different implementers provide different policies for how to
 /// handle voice-stealing.
-pub trait StoresVoices: Generates<StereoSample> + Send + std::fmt::Debug {
+pub trait StoresVoices: Generates<StereoSample> + Send + Sync + std::fmt::Debug {
     /// The associated type of sample generator for this voice store.
     type Voice;
 
@@ -374,7 +374,9 @@ pub trait Serializable {
 /// proc macros ([IsController], [IsEffect], [IsInstrument], etc.)
 #[allow(missing_docs)]
 #[typetag::serde(tag = "type")]
-pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::Debug + Send {
+pub trait Entity:
+    HasUid + Displays + Configurable + Serializable + std::fmt::Debug + Send + Sync
+{
     fn as_controller(&self) -> Option<&dyn IsController> {
         None
     }
@@ -415,7 +417,7 @@ pub trait Entity: HasUid + Displays + Configurable + Serializable + std::fmt::De
 
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
 /// construct Voices, and then handle all the MIDI events properly for them.
-pub trait IsVoice<V: Default>: Generates<V> + PlaysNotes + Send {}
+pub trait IsVoice<V: Default>: Generates<V> + PlaysNotes + Send + Sync {}
 /// Same as IsVoice, but stereo.
 pub trait IsStereoSampleVoice: IsVoice<StereoSample> {}
 
