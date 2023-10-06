@@ -3,9 +3,9 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
-    entities::factory::EntityKey,
+    entities::{factory::EntityKey, prelude::EntityFactory},
     midi::{MidiChannel, MidiMessage},
-    piano_roll::PianoRoll,
+    piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUiState, TrackUid},
@@ -120,15 +120,16 @@ impl Default for Orchestrator {
             .unwrap();
         let view_range =
             MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4);
+        let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: None,
             transport,
             control_router: Default::default(),
-            track_factory: Default::default(),
+            track_factory: TrackFactory::new_with(Arc::clone(&piano_roll)),
             tracks: Default::default(),
             track_uids: Default::default(),
             track_ui_states: Default::default(),
-            piano_roll: Default::default(),
+            piano_roll,
             bus_station: Default::default(),
             entity_uid_to_track_uid: Default::default(),
             view_range,
@@ -152,7 +153,7 @@ impl Orchestrator {
     /// Adds a new MIDI track, which can contain controllers, instruments, and
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.midi(&self.piano_roll);
+        let track = self.track_factory.midi();
         self.new_track(track)
     }
 
@@ -467,7 +468,7 @@ impl Orchestrator {
 }
 impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.midi(&self.piano_roll);
+        let track = self.track_factory.midi();
         self.new_track(track)
     }
 
@@ -579,6 +580,19 @@ impl Orchestrates for Orchestrator {
                 amount: send_amount,
             },
         )
+    }
+
+    fn add_pattern_to_track(
+        &mut self,
+        track_uid: &TrackUid,
+        pattern_uid: &PatternUid,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        if let Some(track) = self.get_track_mut(track_uid) {
+            track.add_pattern(pattern_uid, position)
+        } else {
+            Err(anyhow!("Couldn't find track {track_uid}"))
+        }
     }
 }
 impl Acts for Orchestrator {
@@ -804,8 +818,9 @@ impl Controls for Orchestrator {
 }
 impl Serializable for Orchestrator {
     fn after_deser(&mut self) {
+        self.track_factory.piano_roll = Arc::clone(&self.piano_roll);
         self.tracks.values_mut().for_each(|t| {
-            t.set_piano_roll(Arc::clone(&self.piano_roll));
+            t.e.piano_roll = Arc::clone(&self.piano_roll);
             t.after_deser();
         });
     }

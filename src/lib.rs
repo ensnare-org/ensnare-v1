@@ -124,7 +124,7 @@ pub mod arrangement {
     //! `arrangement` helps organize devices musically.
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
-        track::{DeviceChain, DeviceChainAction, Track, TrackTitle, TrackUid},
+        track::{Track, TrackDevices, TrackDevicesAction, TrackTitle, TrackUid},
     };
 }
 
@@ -182,15 +182,15 @@ pub mod version;
 pub mod prelude {
     pub use super::{
         arrangement::{
-            DeviceChain, DeviceChainAction, Orchestrator, OrchestratorBuilder, Track, TrackTitle,
+            Orchestrator, OrchestratorBuilder, Track, TrackDevices, TrackDevicesAction, TrackTitle,
             TrackUid,
         },
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{
-            lfo::{LfoController, LfoControllerParams},
             ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
             ControlTripPath, ESSequencer, ESSequencerBuilder, Sequencer,
+            {LfoController, LfoControllerParams},
         },
         entity::{register_factory_entities, EntityFactory, EntityKey, EntityStore},
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},

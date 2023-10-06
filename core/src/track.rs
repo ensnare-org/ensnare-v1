@@ -3,17 +3,18 @@
 use crate::{
     control::ControlRouter,
     drag_drop::{DragDropManager, DragDropSource},
-    entities::prelude::*,
+    entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
-    piano_roll::PianoRoll,
+    piano_roll::{PatternUid, PianoRoll},
     prelude::*,
     traits::{prelude::*, Acts},
     uid::IsUid,
     widgets::{track::make_title_bar_galley, UiSize},
 };
 use anyhow::anyhow;
+use crossbeam_channel::Sender;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -68,38 +69,46 @@ pub enum TrackType {
     Aux,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TrackFactory {
     next_uid: TrackUid,
+
+    #[serde(skip)]
+    pub(crate) piano_roll: Arc<RwLock<PianoRoll>>,
 }
 impl TrackFactory {
+    pub fn new_with(piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+        Self {
+            next_uid: Default::default(),
+            piano_roll,
+        }
+    }
     fn next_uid(&mut self) -> TrackUid {
         let uid = self.next_uid;
         self.next_uid.increment();
         uid
     }
 
-    pub fn midi(&mut self, _piano_roll: &Arc<RwLock<PianoRoll>>) -> Track {
+    pub fn midi(&mut self) -> Track {
         let uid = self.next_uid();
-        let title = TrackTitle(format!("MIDI {}", uid));
-
-        let t = Track {
+        let mut t = Track {
             uid,
-            title,
+            title: TrackTitle(format!("MIDI {}", uid)),
             ty: TrackType::Midi,
             ..Default::default()
         };
-        //        t.sequencer_mut().set_piano_roll(Arc::clone(piano_roll));
-
+        let mut sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
+        EntityFactory::global().assign_entity_uid(&mut sequencer);
+        t.set_sequencer_channel(sequencer.sender());
+        let _ = t.append_entity(Box::new(sequencer));
         t
     }
 
     pub fn audio(&mut self) -> Track {
         let uid = self.next_uid();
-        let title = TrackTitle(format!("Audio {}", uid));
         Track {
             uid,
-            title,
+            title: TrackTitle(format!("Audio {}", uid)),
             ty: TrackType::Audio,
             ..Default::default()
         }
@@ -107,11 +116,10 @@ impl TrackFactory {
 
     pub fn aux(&mut self) -> Track {
         let uid = self.next_uid();
-        let title = TrackTitle(format!("Aux {}", uid));
         Track {
             uid,
-            title,
-            ty: TrackType::Aux,
+            title: TrackTitle(format!("Aux {}", uid)),
+            ty: TrackType::Midi,
             ..Default::default()
         }
     }
@@ -146,10 +154,14 @@ pub enum TrackUiState {
 #[derive(Debug, Default)]
 pub struct TrackEphemerals {
     buffer: TrackBuffer,
-    piano_roll: Arc<RwLock<PianoRoll>>,
+    pub(crate) piano_roll: Arc<RwLock<PianoRoll>>,
     pub(crate) action: Option<TrackAction>,
     view_range: std::ops::Range<MusicalTime>,
     pub(crate) title_font_galley: Option<Arc<eframe::epaint::Galley>>,
+
+    // TODO: we need a story for how this gets restored on deserialization. We
+    // have given up the type info by this point, so how do we recognize it?
+    pattern_event_sender: Option<Sender<LivePatternEvent>>,
 }
 
 /// A collection of instruments, effects, and controllers that combine to
@@ -350,12 +362,6 @@ impl Track {
         self.ty
     }
 
-    #[allow(missing_docs)]
-    pub fn set_piano_roll(&mut self, piano_roll: Arc<RwLock<PianoRoll>>) {
-        self.e.piano_roll = Arc::clone(&piano_roll);
-        //self.sequencer.set_piano_roll(piano_roll);
-    }
-
     /// Sets the wet/dry of an effect in the chain.
     pub fn set_humidity(&mut self, effect_uid: Uid, humidity: Normal) -> anyhow::Result<()> {
         if let Some(entity) = self.entity(&effect_uid) {
@@ -424,6 +430,23 @@ impl Track {
         if self.e.title_font_galley.is_none() && !self.title.0.is_empty() {
             self.e.title_font_galley = Some(make_title_bar_galley(ui, &self.title));
         }
+    }
+
+    pub(crate) fn add_pattern(
+        &mut self,
+        pattern_uid: &PatternUid,
+        position: MusicalTime,
+    ) -> Result<(), anyhow::Error> {
+        if let Some(sender) = &self.e.pattern_event_sender {
+            let _ = sender.send(LivePatternEvent::Add(*pattern_uid, position));
+            Ok(())
+        } else {
+            Err(anyhow!("No pattern event sender"))
+        }
+    }
+
+    fn set_sequencer_channel(&mut self, sender: &Sender<LivePatternEvent>) {
+        self.e.pattern_event_sender = Some(sender.clone());
     }
 }
 impl Acts for Track {
@@ -608,39 +631,21 @@ impl DisplaysInTimeline for Track {
 impl Displays for Track {}
 
 #[derive(Debug)]
-pub enum DeviceChainAction {
+pub enum TrackDevicesAction {
     NewDevice(EntityKey),
     LinkControl(Uid, Uid, ControlIndex),
 }
 
 #[derive(Debug)]
-pub struct DeviceChain<'a> {
-    #[allow(dead_code)]
-    track_uid: TrackUid,
-    store: &'a mut EntityStore,
-    controllers: &'a mut Vec<Uid>,
-    instruments: &'a mut Vec<Uid>,
-    effects: &'a mut Vec<Uid>,
-
-    action: &'a mut Option<DeviceChainAction>,
-
+pub struct TrackDevices<'a> {
+    track: &'a mut Track,
+    action: &'a mut Option<TrackDevicesAction>,
     ui_size: UiSize,
 }
-impl<'a> DeviceChain<'a> {
-    pub fn new(
-        track_uid: TrackUid,
-        store: &'a mut EntityStore,
-        controllers: &'a mut Vec<Uid>,
-        instruments: &'a mut Vec<Uid>,
-        effects: &'a mut Vec<Uid>,
-        action: &'a mut Option<DeviceChainAction>,
-    ) -> Self {
+impl<'a> TrackDevices<'a> {
+    pub fn new(track: &'a mut Track, action: &'a mut Option<TrackDevicesAction>) -> Self {
         Self {
-            track_uid,
-            store,
-            controllers,
-            instruments,
-            effects,
+            track,
             action,
             ui_size: Default::default(),
         }
@@ -657,12 +662,12 @@ impl<'a> DeviceChain<'a> {
     fn check_drop(&mut self) {
         if let Some(source) = DragDropManager::source() {
             if let DragDropSource::NewDevice(key) = source {
-                *self.action = Some(DeviceChainAction::NewDevice(key))
+                *self.action = Some(TrackDevicesAction::NewDevice(key))
             }
         }
     }
 }
-impl<'a> Displays for DeviceChain<'a> {
+impl<'a> Displays for TrackDevices<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         self.ui_size = UiSize::from_height(ui.available_height());
         let desired_size = ui.available_size();
@@ -675,11 +680,17 @@ impl<'a> Displays for DeviceChain<'a> {
                 .show(ui, |ui| {
                     ui.set_min_size(desired_size);
                     ui.horizontal_top(|ui| {
-                        self.controllers
+                        self.track
+                            .controllers
                             .iter()
-                            .chain(self.instruments.iter().chain(self.effects.iter()))
+                            .chain(
+                                self.track
+                                    .instruments
+                                    .iter()
+                                    .chain(self.track.effects.iter()),
+                            )
                             .for_each(|uid| {
-                                if let Some(entity) = self.store.get_mut(uid) {
+                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
                                     eframe::egui::CollapsingHeader::new(entity.name())
                                         .id_source(entity.uid())
                                         .show_unindented(ui, |ui| {

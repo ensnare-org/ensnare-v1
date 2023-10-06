@@ -2,19 +2,20 @@
 
 use super::timeline::{cursor, grid};
 use crate::{
-    entities::factory::EntityStore,
+    drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
     time::MusicalTime,
     track::{
-        DeviceChain, DeviceChainAction, Track, TrackAction, TrackTitle, TrackType, TrackUiState,
-        TrackUid,
+        Track, TrackAction, TrackDevices, TrackDevicesAction, TrackTitle, TrackType, TrackUiState,
     },
     traits::prelude::*,
     uid::Uid,
 };
 use eframe::{
     egui::{Button, Frame, Margin, Sense, TextFormat},
-    emath::Align,
-    epaint::{text::LayoutJob, vec2, Color32, FontId, Galley, Shape, Stroke, TextShape, Vec2},
+    emath::{Align, RectTransform},
+    epaint::{
+        text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
+    },
 };
 use std::{f32::consts::PI, sync::Arc};
 
@@ -57,18 +58,12 @@ pub fn track<'a>(
     }
 }
 
-/// Wraps a [DeviceChain] as a [Widget](eframe::egui::Widget). Mutates many things.
-pub fn device_chain<'a>(
-    track_uid: TrackUid,
-    store: &'a mut EntityStore,
-    controllers: &'a mut Vec<Uid>,
-    instruments: &'a mut Vec<Uid>,
-    effects: &'a mut Vec<Uid>,
-    action: &'a mut Option<DeviceChainAction>,
+/// Wraps a [TrackDevices] as a [Widget](eframe::egui::Widget). Mutates many things.
+pub fn track_devices<'a>(
+    track: &'a mut Track,
+    action: &'a mut Option<TrackDevicesAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        DeviceChain::new(track_uid, store, controllers, instruments, effects, action).ui(ui)
-    }
+    move |ui: &mut eframe::egui::Ui| TrackDevices::new(track, action).ui(ui)
 }
 
 /// An egui widget that draws a [Track]'s sideways title bar.
@@ -170,109 +165,151 @@ impl<'a> Displays for TrackWidget<'a> {
 
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
-                        // Only MIDI/audio tracks have content.
-                        if !matches!(self.track.ty(), TrackType::Aux) {
-                            // Reserve space for the device view.
-                            ui.set_max_height(Track::track_view_height(
-                                self.track.ty(),
-                                self.ui_state,
-                            ));
+                        let mut from_screen = RectTransform::identity(Rect::NOTHING);
+                        let can_accept = self.check_drag_source();
 
-                            // Determine the rectangle that all the composited layers will use.
+                        let response = DragDropManager::drop_target(ui, can_accept, |ui| {
                             let desired_size = vec2(ui.available_width(), 64.0);
                             let (_id, rect) = ui.allocate_space(desired_size);
 
-                            let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
-                            let view_range = self.track.view_range().clone();
+                            // Only MIDI/audio tracks have content.
+                            if !matches!(self.track.ty(), TrackType::Aux) {
+                                // Reserve space for the device view.
+                                ui.set_max_height(Track::track_view_height(
+                                    self.track.ty(),
+                                    self.ui_state,
+                                ));
 
-                            // The Grid is always disabled and drawn first.
-                            let _ = ui
-                                .allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(grid(
-                                        temp_range.clone(),
-                                        self.track.view_range().clone(),
-                                    ))
-                                })
-                                .inner;
+                                // Determine the rectangle that all the composited layers will use.
+                                let desired_size = vec2(ui.available_width(), 64.0);
+                                let (_id, rect) = ui.allocate_space(desired_size);
 
-                            // Draw the disabled timeline views.
-                            let enabled_uid = self.track.foreground_timeline_entity.clone();
-                            let entities: Vec<Uid> = self
-                                .track
-                                .timeline_entities
-                                .iter()
-                                .filter(|uid| enabled_uid != Some(**uid))
-                                .cloned()
-                                .collect();
-                            entities.iter().for_each(|uid| {
-                                if let Some(e) = self.track.entity_mut(uid) {
-                                    if let Some(e) = e.as_displays_in_timeline_mut() {
-                                        ui.add_enabled_ui(false, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
-                                        })
-                                        .inner;
+                                let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
+                                let view_range = self.track.view_range().clone();
+
+                                from_screen = RectTransform::from_to(
+                                    rect,
+                                    Rect::from_x_y_ranges(
+                                        view_range.start.total_units() as f32
+                                            ..=view_range.end.total_units() as f32,
+                                        rect.top()..=rect.bottom(),
+                                    ),
+                                );
+
+                                // The Grid is always disabled and drawn first.
+                                let _ = ui
+                                    .allocate_ui_at_rect(rect, |ui| {
+                                        ui.add(grid(
+                                            temp_range.clone(),
+                                            self.track.view_range().clone(),
+                                        ))
+                                    })
+                                    .inner;
+
+                                // Draw the disabled timeline views.
+                                let enabled_uid = self.track.foreground_timeline_entity.clone();
+                                let entities: Vec<Uid> = self
+                                    .track
+                                    .timeline_entities
+                                    .iter()
+                                    .filter(|uid| enabled_uid != Some(**uid))
+                                    .cloned()
+                                    .collect();
+                                entities.iter().for_each(|uid| {
+                                    if let Some(e) = self.track.entity_mut(uid) {
+                                        if let Some(e) = e.as_displays_in_timeline_mut() {
+                                            ui.add_enabled_ui(false, |ui| {
+                                                ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                            })
+                                            .inner;
+                                        }
+                                    }
+                                });
+
+                                // Draw the one enabled timeline view.
+                                if let Some(uid) = enabled_uid {
+                                    if let Some(e) = self.track.entity_mut(&uid) {
+                                        if let Some(e) = e.as_displays_in_timeline_mut() {
+                                            ui.add_enabled_ui(true, |ui| {
+                                                ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                            })
+                                            .inner;
+                                        }
+                                    }
+
+                                    // Finally, if it's present, draw the cursor.
+                                    if let Some(position) = self.cursor {
+                                        if view_range.contains(&position) {
+                                            let _ = ui
+                                                .allocate_ui_at_rect(rect, |ui| {
+                                                    ui.add(cursor(position, view_range.clone()))
+                                                })
+                                                .inner;
+                                        }
                                     }
                                 }
-                            });
-
-                            // Draw the one enabled timeline view.
-                            if let Some(uid) = enabled_uid {
-                                if let Some(e) = self.track.entity_mut(&uid) {
-                                    if let Some(e) = e.as_displays_in_timeline_mut() {
-                                        ui.add_enabled_ui(true, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
-                                        })
-                                        .inner;
+                                ui.scope(|ui| {
+                                    ui.set_max_height(Track::device_view_height(self.ui_state));
+                                    let mut action = None;
+                                    ui.add(track_devices(&mut self.track, &mut action));
+                                    if let Some(action) = action {
+                                        match action {
+                                            TrackDevicesAction::NewDevice(key) => {
+                                                eprintln!("yo"); // BUG! both the device view and the track view are handling the new device case, so we add twice on drag and drop
+                                                *self.action = Some(TrackAction::NewDevice(
+                                                    self.track.uid(),
+                                                    key,
+                                                ));
+                                            }
+                                            TrackDevicesAction::LinkControl(
+                                                source_uid,
+                                                target_uid,
+                                                control_index,
+                                            ) => {
+                                                self.track.control_router.link_control(
+                                                    source_uid,
+                                                    target_uid,
+                                                    control_index,
+                                                );
+                                            }
+                                        }
                                     }
-                                }
-                            };
+                                });
 
-                            // Finally, if it's present, draw the cursor.
-                            if let Some(position) = self.cursor {
-                                if view_range.contains(&position) {
-                                    let _ = ui
-                                        .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(position, view_range.clone()))
-                                        })
-                                        .inner;
+                                if ui.add(Button::new("next")).clicked() {
+                                    self.track.select_next_foreground_timeline_entity();
                                 }
                             }
-                        }
-                        ui.scope(|ui| {
-                            ui.set_max_height(Track::device_view_height(self.ui_state));
-                            let mut action = None;
-                            ui.add(device_chain(
-                                self.track.uid(),
-                                &mut self.track.entity_store,
-                                &mut self.track.controllers,
-                                &mut self.track.instruments,
-                                &mut self.track.effects,
-                                &mut action,
-                            ));
-                            if let Some(action) = action {
-                                match action {
-                                    DeviceChainAction::NewDevice(key) => {
-                                        *self.action =
-                                            Some(TrackAction::NewDevice(self.track.uid(), key));
-                                    }
-                                    DeviceChainAction::LinkControl(
-                                        source_uid,
-                                        target_uid,
-                                        control_index,
-                                    ) => {
-                                        self.track.control_router.link_control(
-                                            source_uid,
-                                            target_uid,
-                                            control_index,
-                                        );
+                        })
+                        .response;
+
+                        if DragDropManager::is_dropped(ui, &response) {
+                            if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                                let time_pos = from_screen * pointer_pos;
+                                let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                if let Some(source) = DragDropManager::source() {
+                                    let event = match source {
+                                        DragDropSource::NewDevice(key) => Some(
+                                            DragDropEvent::TrackAddDevice(self.track.uid(), key),
+                                        ),
+                                        DragDropSource::Pattern(pattern_uid) => {
+                                            Some(DragDropEvent::TrackAddPattern(
+                                                self.track.uid(),
+                                                pattern_uid,
+                                                time,
+                                            ))
+                                        }
+                                        _ => None,
+                                    };
+                                    if let Some(event) = event {
+                                        DragDropManager::enqueue_event(event);
                                     }
                                 }
+                            } else {
+                                eprintln!("Dropped on timeline at unknown position");
                             }
-                        });
-
-                        if ui.add(Button::new("next")).clicked() {
-                            self.track.select_next_foreground_timeline_entity();
                         }
+
                         response
                     })
                     .inner
@@ -305,5 +342,16 @@ impl<'a> TrackWidget<'a> {
     fn ui_state(mut self, ui_state: TrackUiState) -> Self {
         self.ui_state = ui_state;
         self
+    }
+
+    // Looks at what's being dragged, if anything, and updates any state needed
+    // to handle it. Returns whether we are interested in this drag source.
+    fn check_drag_source(&mut self) -> bool {
+        if let Some(source) = DragDropManager::source() {
+            if matches!(source, DragDropSource::Pattern(..)) {
+                return true;
+            }
+        }
+        false
     }
 }

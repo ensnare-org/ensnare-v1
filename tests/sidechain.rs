@@ -7,7 +7,9 @@ use ensnare::prelude::*;
 // experience and not merely possible).
 #[test]
 fn demo_sidechaining() {
-    let factory = register_factory_entities(EntityFactory::default());
+    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let factory = EntityFactory::global();
+
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Sidechaining".to_string()))
         .build()

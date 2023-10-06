@@ -18,6 +18,7 @@ use ensnare::{
     panels::prelude::*, prelude::*, types::ChannelPair, ui::widgets::core::transport,
     version::app_version,
 };
+use ensnare_core::drag_drop::DragDropEvent;
 use env_logger;
 use settings::{Settings, SettingsPanel};
 use std::sync::{Arc, Mutex};
@@ -81,7 +82,7 @@ impl Application {
             exit_requested: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
-        r.spawn_channel_aggregator();
+        r.spawn_channel_aggregator(cc.egui_ctx.clone());
         r
     }
 
@@ -188,7 +189,7 @@ impl Application {
     /// Watches all the channel receivers we know about, and either handles them
     /// immediately off the UI thread or forwards them to the app's event
     /// channel.
-    fn spawn_channel_aggregator(&mut self) {
+    fn spawn_channel_aggregator(&mut self, ctx: Context) {
         let r1 = self.settings_panel.midi_panel().receiver().clone();
         let r2 = self.settings_panel.audio_panel().receiver().clone();
         let r3 = self.orchestrator_panel.receiver().clone();
@@ -234,15 +235,24 @@ impl Application {
                     3 => {
                         if let Ok(event) = operation.recv(&r4) {
                             match event {
-                                ensnare_core::drag_drop::DragDropEvent::TrackAddDevice(_, _) => {
-                                    todo!()
+                                DragDropEvent::TrackAddDevice(track_uid, key) => {
+                                    let _ = orchestrator_sender
+                                        .send(OrchestratorInput::TrackAddEntity(track_uid, key));
                                 }
-                                ensnare_core::drag_drop::DragDropEvent::TrackAddPattern(
-                                    _,
-                                    _,
-                                    _,
-                                ) => todo!(),
-                                ensnare_core::drag_drop::DragDropEvent::LinkControl(
+                                DragDropEvent::TrackAddPattern(
+                                    track_uid,
+                                    pattern_uid,
+                                    position,
+                                ) => {
+                                    let _ = orchestrator_sender.send(
+                                        OrchestratorInput::TrackPatternAdd(
+                                            track_uid,
+                                            pattern_uid,
+                                            position,
+                                        ),
+                                    );
+                                }
+                                DragDropEvent::LinkControl(
                                     source_uid,
                                     target_uid,
                                     control_index,
@@ -255,6 +265,7 @@ impl Application {
                                         ));
                                 }
                             }
+                            ctx.request_repaint();
                         }
                     }
                     _ => {

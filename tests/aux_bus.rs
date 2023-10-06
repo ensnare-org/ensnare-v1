@@ -5,7 +5,9 @@ use ensnare::prelude::*;
 // Demonstrates use of aux buses.
 #[test]
 fn aux_bus() {
-    let factory = register_factory_entities(EntityFactory::default());
+    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let factory = EntityFactory::global();
+
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Auxiliary Buses".to_string()))
         .build()

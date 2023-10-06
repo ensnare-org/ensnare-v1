@@ -71,10 +71,6 @@ struct TrackSettings {
     track: Track,
     range: std::ops::Range<MusicalTime>,
     view_range: std::ops::Range<MusicalTime>,
-    // control_atlas: ControlAtlas,
-    // control_router: ControlRouter,
-    // sequencer: ESSequencer,
-    // focused: timeline::FocusedComponent,
 }
 impl DisplaysInTimeline for TrackSettings {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
@@ -99,10 +95,6 @@ impl TrackSettings {
 }
 impl Default for TrackSettings {
     fn default() -> Self {
-        let sequencer = ESSequencerBuilder::default()
-            .random(MusicalTime::START..MusicalTime::new_with_beats(128))
-            .build()
-            .unwrap();
         Self {
             hide: Default::default(),
             track: Track::default(),
@@ -195,12 +187,8 @@ impl Displays for DevicePaletteSettings {
 struct DeviceChainSettings {
     hide: bool,
     is_large_size: bool,
-    track_uid: TrackUid,
-    store: EntityStore,
-    controllers: Vec<Uid>,
-    instruments: Vec<Uid>,
-    effects: Vec<Uid>,
-    action: Option<DeviceChainAction>,
+    track: Track,
+    action: Option<TrackDevicesAction>,
 }
 impl DeviceChainSettings {
     const NAME: &'static str = "Device Chain";
@@ -210,32 +198,13 @@ impl DeviceChainSettings {
             ui.scope(|ui| {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
-
-                ui.add(track::device_chain(
-                    self.track_uid,
-                    &mut self.store,
-                    &mut self.controllers,
-                    &mut self.instruments,
-                    &mut self.effects,
-                    &mut self.action,
-                ))
+                ui.add(track::track_devices(&mut self.track, &mut self.action))
             });
         }
     }
 
-    // This duplicates some code in Orchestrator.
     pub fn append_entity(&mut self, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
-        let uid = entity.uid();
-        if entity.as_controller().is_some() {
-            self.controllers.push(uid);
-        }
-        if entity.as_effect().is_some() {
-            self.effects.push(uid);
-        }
-        if entity.as_instrument().is_some() {
-            self.instruments.push(uid);
-        }
-        self.store.add(entity)
+        self.track.append_entity(entity)
     }
 }
 impl Displays for DeviceChainSettings {
@@ -244,7 +213,7 @@ impl Displays for DeviceChainSettings {
     }
 }
 impl Acts for DeviceChainSettings {
-    type Action = DeviceChainAction;
+    type Action = TrackDevicesAction;
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.action.take()
@@ -932,13 +901,13 @@ impl eframe::App for Explorer {
         // not a time-critical app.
         if let Some(action) = self.device_chain.take_action() {
             match action {
-                DeviceChainAction::NewDevice(key) => {
+                TrackDevicesAction::NewDevice(key) => {
                     eprintln!("DeviceChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
                         let _ = self.device_chain.append_entity(entity);
                     }
                 }
-                DeviceChainAction::LinkControl(source_uid, target_uid, index) => {
+                TrackDevicesAction::LinkControl(source_uid, target_uid, index) => {
                     eprintln!("{action:?}")
                 }
             }

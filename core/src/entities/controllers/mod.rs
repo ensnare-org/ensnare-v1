@@ -4,13 +4,14 @@ use crate::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 
-pub mod arpeggiator;
-pub mod calculator;
-pub mod control;
-pub mod lfo;
-pub mod old_sequencer;
+pub use lfo::{LfoController, LfoControllerParams};
 
-mod sequencers;
+pub(crate) mod arpeggiator;
+pub(crate) mod calculator;
+pub(crate) mod control;
+pub(crate) mod lfo;
+pub(crate) mod old_sequencer;
+pub(crate) mod sequencers;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub enum SignalPassthroughType {

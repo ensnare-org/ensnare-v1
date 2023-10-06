@@ -8,6 +8,7 @@ pub mod prelude {
         controllers::{
             arpeggiator::{Arpeggiator, ArpeggiatorParams},
             lfo::{LfoController, LfoControllerParams},
+            sequencers::LivePatternSequencer,
             SignalPassthroughController, SignalPassthroughControllerParams, SignalPassthroughType,
         },
         effects::{

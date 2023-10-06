@@ -245,7 +245,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.start,
+            unit.range.start + position,
         );
         let _ = self.record_midi_message(
             channel,
@@ -253,7 +253,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.end,
+            unit.range.end + position,
         );
         self.notes.push(unit.clone());
         Ok(())
@@ -290,19 +290,7 @@ impl Sequences for ToySequencer {
         SequencesMidi::clear(self);
     }
 }
-impl Configurable for ToySequencer {
-    fn sample_rate(&self) -> SampleRate {
-        // I was too lazy to add this everywhere when I added this to the trait,
-        // but I didn't want unexpected usage to go undetected.
-        panic!("Someone asked for a SampleRate but we provided default");
-    }
-
-    fn update_sample_rate(&mut self, _sample_rate: SampleRate) {}
-
-    fn update_tempo(&mut self, _tempo: Tempo) {}
-
-    fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
-}
+impl Configurable for ToySequencer {}
 impl Controls for ToySequencer {
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
         self.time_range = range.clone();

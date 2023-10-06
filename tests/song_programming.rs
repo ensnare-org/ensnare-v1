@@ -117,7 +117,9 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 // removing them, as you'd expect a GUI DAW to do.
 #[test]
 fn program_song() {
-    let factory = register_factory_entities(EntityFactory::default());
+    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let factory = EntityFactory::global();
+
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Simple Song".to_string()))
         .build()

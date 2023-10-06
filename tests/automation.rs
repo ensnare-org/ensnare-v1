@@ -6,7 +6,8 @@ use std::path::PathBuf;
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
-    let factory = register_factory_entities(EntityFactory::default());
+    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let factory = EntityFactory::global();
 
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Automation".to_string()))
@@ -101,7 +102,8 @@ fn demo_automation() {
 
 #[test]
 fn demo_control_trips() {
-    let factory = register_factory_entities(EntityFactory::default());
+    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let factory = EntityFactory::global();
 
     let mut orchestrator = OrchestratorBuilder::default()
         .title(Some("Automation".to_string()))

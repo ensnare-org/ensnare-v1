@@ -4,6 +4,7 @@ use crate::{
     entities::prelude::*,
     midi::{MidiChannel, MidiMessage},
     orchestration::{Orchestrator, OrchestratorAction, OrchestratorBuilder},
+    piano_roll::PatternUid,
     prelude::*,
     selection_set::SelectionSet,
     track::TrackUid,
@@ -45,6 +46,10 @@ pub enum OrchestratorInput {
     TrackNewMidi,
     /// Delete the selected arranged patterns.
     TrackPatternRemoveSelected,
+    /// Add the given PianoRoll pattern to the track at the specified time.
+    TrackPatternAdd(TrackUid, PatternUid, MusicalTime),
+    /// Add a new entity to the specified track.
+    TrackAddEntity(TrackUid, EntityKey),
     /// Add a new entity to the selected track.
     //TrackAddEntity(EntityKey),
     /// Sets the tempo.
@@ -209,26 +214,22 @@ impl OrchestratorPanel {
                         }
                         OrchestratorInput::TrackPatternRemoveSelected => {
                             unimplemented!()
-                            //                            o.remove_selected_patterns();
                         }
-                        // OrchestratorInput::TrackAddEntity(key) => {
-                        //     // TODO: this is weird because it acts on all selected tracks. Figure out how to better restrict in the GUI.
-                        //     if let Ok(track_selection_set) = track_selection_set.lock() {
-                        //         track_selection_set.iter().for_each(|track_uid| {
-                        //             if let Some(track) = o.get_track_mut(track_uid) {
-                        //                 if let Some(e) = EntityFactory::global().new_entity(&key) {
-                        //                     let _ = track.append_entity(e);
-                        //                 }
-                        //             }
-                        //         });
-                        //     }
-                        // }
                         OrchestratorInput::Tempo(tempo) => {
                             o.update_tempo(tempo);
                             let _ = sender.send(OrchestratorEvent::Tempo(tempo));
                         }
                         OrchestratorInput::LinkControl(source_uid, target_uid, control_index) => {
                             let _ = o.link_control(source_uid, target_uid, control_index);
+                        }
+                        OrchestratorInput::TrackPatternAdd(track_uid, pattern_uid, position) => {
+                            let _ = o.add_pattern_to_track(&track_uid, &pattern_uid, position);
+                        }
+                        OrchestratorInput::TrackAddEntity(track_uid, key) => {
+                            if let Some(entity) = EntityFactory::global().new_entity(&key) {
+                                eprintln!("hi");
+                                let _ = o.append_entity(&track_uid, entity);
+                            }
                         }
                     },
                     Err(err) => {
