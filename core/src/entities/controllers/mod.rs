@@ -10,7 +10,6 @@ pub(crate) mod arpeggiator;
 pub(crate) mod calculator;
 pub(crate) mod control;
 pub(crate) mod lfo;
-pub(crate) mod old_sequencer;
 pub(crate) mod sequencers;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]

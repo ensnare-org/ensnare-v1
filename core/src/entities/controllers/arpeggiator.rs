@@ -1,7 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::old_sequencer::{Sequencer, SequencerParams};
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use super::sequencers::NoteSequencer;
+use crate::{
+    midi::prelude::*,
+    piano_roll::Note,
+    prelude::*,
+    traits::{prelude::*, Sequences},
+};
 use eframe::egui::{self, ComboBox, Ui};
 use ensnare_proc_macros::{Control, IsController, Params, Uid};
 use serde::{Deserialize, Serialize};
@@ -17,7 +22,8 @@ use std::{ops::Range, option::Option};
 pub struct Arpeggiator {
     uid: Uid,
     midi_channel_out: MidiChannel,
-    sequencer: Sequencer,
+    sequencer: NoteSequencer,
+    is_sequencer_enabled: bool,
 
     #[control]
     #[params]
@@ -82,25 +88,30 @@ impl HandlesMidi for Arpeggiator {
                 if self.note_semaphore < 0 {
                     self.note_semaphore = 0;
                 }
-                self.sequencer.enable(self.note_semaphore > 0);
+                self.is_sequencer_enabled = self.note_semaphore > 0;
             }
             MidiMessage::NoteOn { key, vel } => {
                 self.note_semaphore += 1;
                 self.rebuild_sequence(key.as_int(), vel.as_int());
-                self.sequencer.enable(true);
+                self.is_sequencer_enabled = true;
 
-                // TODO: this scratches the itch of needing to respond
-                // to a note-down with a note *during this slice*, but
-                // it also has an edge condition where we need to cancel
-                // a different note that was might have been supposed to
-                // be sent instead during this slice, or at least
-                // immediately shut it off. This seems to require a
-                // two-phase Tick handler (one to decide what we're
-                // going to send, and another to send it), and an
-                // internal memory of which notes we've asked the
-                // downstream to play. TODO TODO TODO
-                self.sequencer
-                    .generate_midi_messages_for_current_frame(midi_messages_fn);
+                // TODO: this scratches the itch of needing to respond to a
+                // note-down with a note *during this slice*, but it also has an
+                // edge condition where we need to cancel a different note that
+                // was might have been supposed to be sent instead during this
+                // slice, or at least immediately shut it off. This seems to
+                // require a two-phase Tick handler (one to decide what we're
+                // going to send, and another to send it), and an internal
+                // memory of which notes we've asked the downstream to play.
+                // TODO TODO TODO
+                //
+                // self.sequencer.generate_midi_messages_for_current_frame(midi_messages_fn);
+                //
+                // TODO 10-2023: I don't understand the prior comment. I should
+                // have just written a unit test. I think that
+                // generate_midi_messages_for_current_frame() was just the same
+                // as work() for the current time slice, which we can assume
+                // will be called. We'll see.
             }
             MidiMessage::Aftertouch { key: _, vel: _ } => todo!(),
             MidiMessage::Controller {
@@ -127,25 +138,24 @@ impl Arpeggiator {
             uid: Default::default(),
             midi_channel_out,
             bpm: params.bpm,
-            sequencer: Sequencer::new_with(&SequencerParams { bpm: params.bpm() }),
+            sequencer: Default::default(),
+            is_sequencer_enabled: Default::default(),
             note_semaphore: Default::default(),
         }
     }
 
     fn insert_one_note(&mut self, when: &MusicalTime, duration: &MusicalTime, key: u8, vel: u8) {
-        self.sequencer
-            .insert(when, self.midi_channel_out, new_note_on(key, vel));
-        self.sequencer.insert(
-            &(*when + *duration),
+        let _ = self.sequencer.record(
             self.midi_channel_out,
-            new_note_off(key, 0),
+            &Note::new_with(key, MusicalTime::START, *duration),
+            *when,
         );
     }
 
     fn rebuild_sequence(&mut self, key: u8, vel: u8) {
         self.sequencer.clear();
 
-        let start_beat = *self.sequencer.cursor();
+        let start_beat = MusicalTime::START; // TODO: this is wrong, but I'm just trying to get this code to build for now
         let duration = MusicalTime::new_with_parts(4); // TODO: we're ignoring time signature!
         let scale_notes = [0, 2, 4, 5, 7, 9, 11];
         for (index, offset) in scale_notes.iter().enumerate() {
