@@ -7,6 +7,10 @@ use derive_builder::Builder;
 use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Uid};
 use serde::{Deserialize, Serialize};
 
+pub use crate::entities::controllers::sequencers::{
+    LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
+};
+
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.

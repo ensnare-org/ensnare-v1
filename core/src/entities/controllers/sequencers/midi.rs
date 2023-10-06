@@ -116,16 +116,3 @@ impl MidiSequencer {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::traits::tests::validate_sequences_midi_trait;
-
-    #[test]
-    fn midi_sequencer_works() {
-        let mut s = MidiSequencer::default();
-
-        validate_sequences_midi_trait(&mut s);
-    }
-}

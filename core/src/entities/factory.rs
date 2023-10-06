@@ -5,7 +5,6 @@ use crate::{
     entities::prelude::*,
     generators::{EnvelopeParams, Waveform},
     midi::MidiChannel,
-    mini_sequencer::SequencerBuilder,
     modulators::DcaParams,
     prelude::*,
     traits::prelude::*,
@@ -52,14 +51,6 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             frequency: FrequencyHz::from(0.2),
             waveform: Waveform::Sawtooth,
         }))
-    });
-    factory.register_entity(EntityKey::from("sequencer"), || {
-        Box::new(
-            SequencerBuilder::default()
-                .midi_channel_out(MidiChannel(0))
-                .build()
-                .unwrap(),
-        )
     });
     factory.register_entity(EntityKey::from("signal-passthrough"), || {
         Box::<SignalPassthroughController>::default()

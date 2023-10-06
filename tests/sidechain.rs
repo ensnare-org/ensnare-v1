@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
@@ -33,8 +33,8 @@ fn demo_sidechaining() {
                 &sidechain_track_uid,
                 factory.create_entity_with_minted_uid(|| {
                     Box::new(
-                        ESSequencerBuilder::default()
-                            .pattern((MusicalTime::START, sidechain_pattern.clone()))
+                        PatternSequencerBuilder::default()
+                            .pattern(sidechain_pattern.clone() + MusicalTime::START)
                             .build()
                             .unwrap(),
                     )
@@ -77,8 +77,8 @@ fn demo_sidechaining() {
             .append_entity(
                 &lead_track_uid,
                 factory.create_entity_with_minted_uid(|| Box::new(
-                    ESSequencerBuilder::default()
-                        .pattern((MusicalTime::START, lead_pattern.clone()))
+                    PatternSequencerBuilder::default()
+                        .pattern(lead_pattern.clone() + MusicalTime::START)
                         .build()
                         .unwrap()
                 ))

@@ -15,24 +15,25 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
-    panels::prelude::*, prelude::*, types::ChannelPair, ui::widgets::core::transport,
+    panels::prelude::*,
+    prelude::*,
+    ui::{widgets::core::transport, DragDropEvent},
     version::app_version,
 };
-use ensnare_core::drag_drop::DragDropEvent;
 use env_logger;
 use settings::{Settings, SettingsPanel};
 use std::sync::{Arc, Mutex};
 
 mod settings;
 
-enum Message {
+enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),
     AudioPanelEvent(AudioPanelEvent),
     OrchestratorEvent(OrchestratorEvent),
 }
 
-struct Application {
-    event_channel: ChannelPair<Message>,
+struct Ensnare {
+    event_channel: ChannelPair<EnsnareMessage>,
 
     orchestrator: Arc<Mutex<Orchestrator>>,
 
@@ -45,7 +46,7 @@ struct Application {
 
     exit_requested: bool,
 }
-impl Application {
+impl Ensnare {
     /// The user-visible name of the application.
     const NAME: &'static str = "Ensnare";
 
@@ -217,19 +218,19 @@ impl Application {
                                         .send(OrchestratorInput::Midi(channel, message));
                                 }
                                 _ => {
-                                    let _ = app_sender.send(Message::MidiPanelEvent(event));
+                                    let _ = app_sender.send(EnsnareMessage::MidiPanelEvent(event));
                                 }
                             }
                         }
                     }
                     1 => {
                         if let Ok(event) = operation.recv(&r2) {
-                            let _ = app_sender.send(Message::AudioPanelEvent(event));
+                            let _ = app_sender.send(EnsnareMessage::AudioPanelEvent(event));
                         }
                     }
                     2 => {
                         if let Ok(event) = operation.recv(&r3) {
-                            let _ = app_sender.send(Message::OrchestratorEvent(event));
+                            let _ = app_sender.send(EnsnareMessage::OrchestratorEvent(event));
                         }
                     }
                     3 => {
@@ -283,7 +284,7 @@ impl Application {
         loop {
             if let Ok(m) = self.event_channel.receiver.try_recv() {
                 match m {
-                    Message::MidiPanelEvent(event) => {
+                    EnsnareMessage::MidiPanelEvent(event) => {
                         match event {
                             MidiPanelEvent::Midi(..) => {
                                 panic!("this should have been short-circuited in spawn_channel_aggregator");
@@ -300,12 +301,12 @@ impl Application {
                             }
                         }
                     }
-                    Message::AudioPanelEvent(event) => match event {
+                    EnsnareMessage::AudioPanelEvent(event) => match event {
                         AudioPanelEvent::InterfaceChanged => {
                             self.update_orchestrator_audio_interface_config();
                         }
                     },
-                    Message::OrchestratorEvent(event) => match event {
+                    EnsnareMessage::OrchestratorEvent(event) => match event {
                         OrchestratorEvent::Tempo(_tempo) => {
                             // This is (usually) an acknowledgement that Orchestrator
                             // got our request to change, so we don't need to do
@@ -443,7 +444,7 @@ impl Application {
         }
     }
 }
-impl App for Application {
+impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
         self.handle_app_event_channel();
 
@@ -514,9 +515,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Err(e) = eframe::run_native(
-        Application::NAME,
+        Ensnare::NAME,
         options,
-        Box::new(|cc| Box::new(Application::new(cc))),
+        Box::new(|cc| Box::new(Ensnare::new(cc))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {

@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare::{
+    controllers::{LfoController, LfoControllerParams, PatternSequencerBuilder},
+    prelude::*,
+};
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -47,8 +50,8 @@ fn demo_automation() {
                 factory.create_entity_with_minted_uid(|| {
                     let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
                     Box::new(
-                        ESSequencerBuilder::default()
-                            .pattern((MusicalTime::new_with_beats(0), pattern))
+                        PatternSequencerBuilder::default()
+                            .pattern(pattern)
                             .build()
                             .unwrap(),
                     )
@@ -137,8 +140,8 @@ fn demo_control_trips() {
             .append_entity(
                 &track_uid,
                 factory.create_entity_with_minted_uid(|| Box::new(
-                    ESSequencerBuilder::default()
-                        .pattern((MusicalTime::START, scale_pattern.clone()))
+                    PatternSequencerBuilder::default()
+                        .pattern(scale_pattern.clone())
                         .build()
                         .unwrap()
                 ))

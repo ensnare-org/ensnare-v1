@@ -16,8 +16,6 @@ pub mod drag_drop;
 pub mod entities;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
-/// A very simple sequencer.
-pub mod even_smaller_sequencer;
 /// Building blocks for signal generation.
 pub mod generators;
 /// Scaffolding for implementing instruments.
@@ -26,8 +24,6 @@ pub mod instruments;
 pub mod midi;
 /// Talking to external MIDI devices.
 pub mod midi_interface;
-/// Yet another sequencer.
-pub mod mini_sequencer;
 /// Building blocks for signal modulation.
 pub mod modulators;
 /// Infrastructure that coordinates [Entities](Entity).

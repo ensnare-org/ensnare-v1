@@ -30,11 +30,13 @@ pub mod controllers {
         },
         entities::factory::test_entities::TestController,
         entities::{
+            controllers::sequencers::{
+                LivePatternSequencer, MidiSequencer, NoteSequencer, NoteSequencerBuilder,
+                PatternSequencer, PatternSequencerBuilder,
+            },
             controllers::*,
             toys::{ToyController, ToyControllerParams},
         },
-        even_smaller_sequencer::{ESSequencer, ESSequencerBuilder},
-        mini_sequencer::Sequencer,
     };
 }
 
@@ -186,8 +188,7 @@ pub mod prelude {
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{
             ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
-            ControlTripPath, ESSequencer, ESSequencerBuilder, Sequencer,
-            {LfoController, LfoControllerParams},
+            ControlTripPath,
         },
         entity::{register_factory_entities, EntityFactory, EntityKey, EntityStore},
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
@@ -200,8 +201,8 @@ pub mod prelude {
             IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
         },
         types::{
-            BipolarNormal, FrequencyHz, MusicalTime, Normal, Ratio, Sample, SampleRate,
-            StereoSample, Tempo, TimeSignature, Uid,
+            BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
+            SampleRate, StereoSample, Tempo, TimeSignature, Uid,
         },
         ui::DragDropManager,
     };

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Add the drum pattern to the PianoRoll.
@@ -36,8 +36,8 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
             &track_uid,
             factory.create_entity_with_minted_uid(|| {
                 Box::new(
-                    ESSequencerBuilder::default()
-                        .pattern((MusicalTime::START, drum_pattern.clone()))
+                    PatternSequencerBuilder::default()
+                        .pattern(drum_pattern.clone())
                         .build()
                         .unwrap(),
                 )
@@ -85,8 +85,8 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
         .append_entity(
             &track_uid,
             factory.create_entity_with_minted_uid(|| Box::new(
-                ESSequencerBuilder::default()
-                    .pattern((MusicalTime::START, scale_pattern.clone()))
+                PatternSequencerBuilder::default()
+                    .pattern(scale_pattern.clone())
                     .build()
                     .unwrap()
             ))

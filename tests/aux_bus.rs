@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
 
 // Demonstrates use of aux buses.
 #[test]
@@ -45,8 +45,8 @@ fn aux_bus() {
                     &track_uid_1,
                     factory.create_entity_with_minted_uid(|| {
                         Box::new(
-                            ESSequencerBuilder::default()
-                                .pattern((MusicalTime::START, synth_pattern_1.clone()))
+                            PatternSequencerBuilder::default()
+                                .pattern(synth_pattern_1.clone())
                                 .build()
                                 .unwrap(),
                         )
@@ -77,8 +77,8 @@ fn aux_bus() {
                     &track_uid_2,
                     factory.create_entity_with_minted_uid(|| {
                         Box::new(
-                            ESSequencerBuilder::default()
-                                .pattern((MusicalTime::START, synth_pattern_2.clone()))
+                            PatternSequencerBuilder::default()
+                                .pattern(synth_pattern_2.clone())
                                 .build()
                                 .unwrap(),
                         )

@@ -10,7 +10,7 @@ pub(crate) mod arpeggiator;
 pub(crate) mod calculator;
 pub(crate) mod control;
 pub(crate) mod lfo;
-pub(crate) mod sequencers;
+pub mod sequencers;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub enum SignalPassthroughType {

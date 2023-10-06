@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
 
 #[test]
 fn edit_song() {
@@ -81,8 +81,8 @@ fn edit_song() {
                 &rhythm_track_uid,
                 factory.create_entity_with_minted_uid(|| {
                     Box::new(
-                        ESSequencerBuilder::default()
-                            .pattern((MusicalTime::START, drum_pattern.clone()))
+                        PatternSequencerBuilder::default()
+                            .pattern(drum_pattern.clone())
                             .build()
                             .unwrap(),
                     )
@@ -143,8 +143,8 @@ fn edit_song() {
                 &lead_track_uid,
                 factory.create_entity_with_minted_uid(|| {
                     Box::new(
-                        ESSequencerBuilder::default()
-                            .pattern((MusicalTime::START, lead_pattern.clone()))
+                        PatternSequencerBuilder::default()
+                            .pattern(lead_pattern.clone())
                             .build()
                             .unwrap(),
                     )

@@ -14,6 +14,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
+use derive_builder::Builder;
 use eframe::{
     egui::{style::WidgetVisuals, Sense},
     emath::RectTransform,
@@ -36,9 +37,16 @@ use std::{
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Builder, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize)]
 pub struct PatternSequencer {
+    #[builder(setter(skip))]
+    uid: Uid,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
     inner: MidiSequencer,
+
+    #[builder(default, setter(each(name = "pattern", into)))]
     patterns: Vec<Pattern>,
 }
 impl Sequences for PatternSequencer {
@@ -109,6 +117,19 @@ impl Controls for PatternSequencer {
     }
 }
 impl Configurable for PatternSequencer {}
+impl Displays for PatternSequencer {}
+impl DisplaysInTimeline for PatternSequencer {}
+impl HandlesMidi for PatternSequencer {}
+impl Serializable for PatternSequencer {
+    fn after_deser(&mut self) {
+        for pattern in &self.patterns {
+            let events: Vec<MidiEvent> = pattern.clone().into();
+            events.iter().for_each(|&e| {
+                let _ = self.inner.record_midi_event(MidiChannel(0), e);
+            });
+        }
+    }
+}
 impl PatternSequencer {
     fn shape_for_note(to_screen: &RectTransform, visuals: &WidgetVisuals, note: &Note) -> Shape {
         Shape::Rect(RectShape {
@@ -349,26 +370,8 @@ mod tests {
     use crate::{
         midi::MidiNote,
         piano_roll::{Note, PatternBuilder},
-        traits::tests::{
-            validate_sequences_live_patterns_trait, validate_sequences_patterns_trait,
-        },
     };
     use std::sync::{Arc, RwLock};
-
-    #[test]
-    fn sequencer_works() {
-        let mut s = PatternSequencer::default();
-
-        validate_sequences_patterns_trait(&mut s);
-    }
-
-    #[test]
-    fn live_sequencer_works() {
-        let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
-        let mut s = LivePatternSequencer::new_with(Arc::clone(&piano_roll));
-
-        validate_sequences_live_patterns_trait(piano_roll, &mut s);
-    }
 
     #[test]
     fn live_sequencer_can_find_patterns() {

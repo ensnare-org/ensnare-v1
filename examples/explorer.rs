@@ -13,7 +13,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{
-    controllers::{ToyController, ToyControllerParams},
+    controllers::{NoteSequencer, NoteSequencerBuilder, ToyController, ToyControllerParams},
     effects::{ToyEffect, ToyEffectParams},
     instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
@@ -23,6 +23,7 @@ use ensnare::{
     },
     version::app_version,
 };
+use ensnare_core::controllers::LivePatternSequencer;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -344,22 +345,22 @@ impl ControlAtlasSettings {
 }
 
 #[derive(Debug, Default)]
-struct SequencerSettings {
+struct LivePatternSequencerSettings {
     hide: bool,
-    sequencer: Sequencer,
+    sequencer: LivePatternSequencer,
 }
-impl Displays for SequencerSettings {
+impl Displays for LivePatternSequencerSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
-impl DisplaysInTimeline for SequencerSettings {
+impl DisplaysInTimeline for LivePatternSequencerSettings {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.sequencer.set_view_range(view_range);
     }
 }
-impl SequencerSettings {
-    const NAME: &'static str = "Sequencer";
+impl LivePatternSequencerSettings {
+    const NAME: &'static str = "Live Pattern Sequencer";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -369,16 +370,16 @@ impl SequencerSettings {
 }
 
 #[derive(Debug)]
-struct ESSequencerSettings {
+struct NoteSequencerSettings {
     hide: bool,
-    sequencer: ESSequencer,
+    sequencer: NoteSequencer,
     view_range: std::ops::Range<MusicalTime>,
 }
-impl Default for ESSequencerSettings {
+impl Default for NoteSequencerSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            sequencer: ESSequencerBuilder::default()
+            sequencer: NoteSequencerBuilder::default()
                 .random(MusicalTime::START..MusicalTime::new_with_beats(128))
                 .build()
                 .unwrap(),
@@ -387,18 +388,18 @@ impl Default for ESSequencerSettings {
     }
 }
 
-impl Displays for ESSequencerSettings {
+impl Displays for NoteSequencerSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
-impl DisplaysInTimeline for ESSequencerSettings {
+impl DisplaysInTimeline for NoteSequencerSettings {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.view_range = view_range.clone();
     }
 }
-impl ESSequencerSettings {
-    const NAME: &'static str = "Even Smaller Sequencer";
+impl NoteSequencerSettings {
+    const NAME: &'static str = "Note Sequencer";
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
@@ -702,8 +703,8 @@ struct Explorer {
     device_palette: DevicePaletteSettings,
     device_chain: SignalChainSettings,
     control_atlas: ControlAtlasSettings,
-    sequencer: SequencerSettings,
-    es_sequencer: ESSequencerSettings,
+    live_pattern_sequencer: LivePatternSequencerSettings,
+    note_sequencer: NoteSequencerSettings,
     pattern_icon: PatternIconSettings,
     title_bar: TitleBarSettings,
     piano_roll: PianoRollSettings,
@@ -755,8 +756,12 @@ impl Explorer {
             Self::wrap_settings(ControlAtlasSettings::NAME, ui, |ui| {
                 self.control_atlas.ui(ui)
             });
-            Self::wrap_settings(SequencerSettings::NAME, ui, |ui| self.sequencer.ui(ui));
-            Self::wrap_settings(ESSequencerSettings::NAME, ui, |ui| self.es_sequencer.ui(ui));
+            Self::wrap_settings(LivePatternSequencerSettings::NAME, ui, |ui| {
+                self.live_pattern_sequencer.ui(ui)
+            });
+            Self::wrap_settings(NoteSequencerSettings::NAME, ui, |ui| {
+                self.note_sequencer.ui(ui)
+            });
 
             Self::wrap_settings(ToySynthSettings::NAME, ui, |ui| self.toy_synth.ui(ui));
             Self::wrap_settings(ToyControllerSettings::NAME, ui, |ui| {
@@ -811,8 +816,9 @@ impl Explorer {
             self.track_widget.set_view_range(&self.legend.range);
             self.control_atlas.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);
-            self.sequencer.set_view_range(&self.legend.range);
-            self.es_sequencer.set_view_range(&self.legend.range);
+            self.live_pattern_sequencer
+                .set_view_range(&self.legend.range);
+            self.note_sequencer.set_view_range(&self.legend.range);
 
             ui.horizontal_top(|ui| {
                 ui.scope(|ui| {
@@ -842,9 +848,11 @@ impl Explorer {
             Self::wrap_item(ControlAtlasSettings::NAME, ui, |ui| {
                 self.control_atlas.show(ui)
             });
-            Self::wrap_item(SequencerSettings::NAME, ui, |ui| self.sequencer.show(ui));
-            Self::wrap_item(ESSequencerSettings::NAME, ui, |ui| {
-                self.es_sequencer.show(ui)
+            Self::wrap_item(LivePatternSequencerSettings::NAME, ui, |ui| {
+                self.live_pattern_sequencer.show(ui)
+            });
+            Self::wrap_item(NoteSequencerSettings::NAME, ui, |ui| {
+                self.note_sequencer.show(ui)
             });
 
             Self::wrap_item(ToySynthSettings::NAME, ui, |ui| self.toy_synth.show(ui));

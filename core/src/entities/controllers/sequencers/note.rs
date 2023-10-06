@@ -1,20 +1,58 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use serde::{Deserialize, Serialize};
-
+use super::MidiSequencer;
 use crate::{
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     piano_roll::Note,
+    rng::Rng,
     time::MusicalTime,
-    traits::{Configurable, ControlEventsFn, Controls, Sequences, SequencesMidi, Serializable},
+    traits::{
+        Configurable, ControlEventsFn, Controls, Displays, DisplaysInTimeline, HandlesMidi,
+        Sequences, SequencesMidi, Serializable,
+    },
+    uid::Uid,
 };
+use derive_builder::Builder;
+use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Uid};
+use serde::{Deserialize, Serialize};
 
-use super::MidiSequencer;
+impl NoteSequencerBuilder {
+    /// Builds the [NoteSequencer].
+    pub fn build(&self) -> anyhow::Result<NoteSequencer, NoteSequencerBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+    /// Produces a random sequence of quarter-note notes. For debugging.
+    pub fn random(&mut self, range: std::ops::Range<MusicalTime>) -> &mut Self {
+        let mut rng = Rng::default();
+
+        for _ in 0..32 {
+            let beat_range = range.start.total_beats() as u64..range.end.total_beats() as u64;
+            let note_start = MusicalTime::new_with_beats(rng.0.rand_range(beat_range) as usize);
+            self.note(Note {
+                key: rng.0.rand_range(16..100) as u8,
+                range: note_start..note_start + MusicalTime::DURATION_QUARTER,
+            });
+        }
+        self
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Builder, IsControllerWithTimelineDisplay, Uid)]
+#[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
+    uid: Uid,
     #[serde(skip)]
+    #[builder(setter(skip))]
     inner: MidiSequencer,
+
+    #[builder(default, setter(each(name = "note", into)))]
     notes: Vec<Note>,
 }
 impl Sequences for NoteSequencer {
@@ -97,6 +135,7 @@ impl Controls for NoteSequencer {
     }
 }
 impl Configurable for NoteSequencer {}
+impl HandlesMidi for NoteSequencer {}
 impl Serializable for NoteSequencer {
     fn before_ser(&mut self) {}
 
@@ -109,18 +148,12 @@ impl Serializable for NoteSequencer {
         });
     }
 }
+impl Displays for NoteSequencer {}
+impl DisplaysInTimeline for NoteSequencer {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::tests::validate_sequences_notes_trait;
-
-    #[test]
-    fn sequencer_works() {
-        let mut s = NoteSequencer::default();
-
-        validate_sequences_notes_trait(&mut s);
-    }
 
     /////////////////////////////////////////////////////////////////////////
     /// BEGIN tests taken from the old sequencer. These are here to scavenge
