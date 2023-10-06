@@ -8,7 +8,10 @@ use crate::{
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
-    track::{Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle, TrackUid},
+    track::{
+        track_view_height, track_widget, Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle,
+        TrackUiState, TrackUid,
+    },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid,
@@ -87,7 +90,7 @@ pub struct Orchestrator {
     tracks: HashMap<TrackUid, Track>,
     /// Track uids in the order they appear in the UI.
     track_uids: Vec<TrackUid>,
-    track_ui_states: HashMap<TrackUid, track::TrackUiState>,
+    track_ui_states: HashMap<TrackUid, TrackUiState>,
 
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
@@ -338,8 +341,8 @@ impl Orchestrator {
         self.track_ui_states.insert(
             *track_uid,
             match new_state {
-                track::TrackUiState::Collapsed => track::TrackUiState::Expanded,
-                track::TrackUiState::Expanded => track::TrackUiState::Collapsed,
+                TrackUiState::Collapsed => TrackUiState::Expanded,
+                TrackUiState::Expanded => TrackUiState::Collapsed,
             },
         );
     }
@@ -870,7 +873,7 @@ impl Displays for Orchestrator {
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
                                 let desired_size = vec2(
                                     ui.available_width(),
-                                    track::track_view_height(track.ty(), track_ui_state),
+                                    track_view_height(track.ty(), track_ui_state),
                                 );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);
@@ -881,7 +884,7 @@ impl Displays for Orchestrator {
                                         None
                                     };
                                     track.update_font_galley(ui);
-                                    let response = ui.add(track::track(
+                                    let response = ui.add(track_widget(
                                         track,
                                         is_selected,
                                         track_ui_state,

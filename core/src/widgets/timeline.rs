@@ -2,7 +2,7 @@
 
 use crate::{prelude::*, traits::prelude::*};
 use eframe::{
-    egui::{vec2, Response, Ui},
+    egui::vec2,
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId, RectShape, Shape},
 };

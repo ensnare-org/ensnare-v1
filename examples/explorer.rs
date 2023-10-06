@@ -13,7 +13,11 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{
-    controllers::{NoteSequencer, NoteSequencerBuilder, ToyController, ToyControllerParams},
+    arrangement::{signal_chain, track_widget, SignalChainAction, TrackUiState},
+    controllers::{
+        LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
+        ToyControllerParams,
+    },
     effects::{ToyEffect, ToyEffectParams},
     instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
@@ -23,7 +27,6 @@ use ensnare::{
     },
     version::app_version,
 };
-use ensnare_core::controllers::LivePatternSequencer;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -84,10 +87,10 @@ impl TrackSettings {
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
             let mut action = None;
-            ui.add(track::track(
+            ui.add(track_widget(
                 &mut self.track,
                 false,
-                track::TrackUiState::Expanded,
+                TrackUiState::Expanded,
                 Some(MusicalTime::new_with_beats(1)),
                 &mut action,
             ));
@@ -200,7 +203,7 @@ struct SignalChainSettings {
     hide: bool,
     is_large_size: bool,
     track: Track,
-    action: Option<track::SignalChainAction>,
+    action: Option<SignalChainAction>,
 }
 impl SignalChainSettings {
     const NAME: &'static str = "Signal Chain";
@@ -210,7 +213,7 @@ impl SignalChainSettings {
             ui.scope(|ui| {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
-                ui.add(track::signal_chain(&mut self.track, &mut self.action))
+                ui.add(signal_chain(&mut self.track, &mut self.action))
             });
         }
     }
@@ -225,7 +228,7 @@ impl Displays for SignalChainSettings {
     }
 }
 impl Acts for SignalChainSettings {
-    type Action = track::SignalChainAction;
+    type Action = SignalChainAction;
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.action.take()
@@ -920,13 +923,13 @@ impl eframe::App for Explorer {
         // not a time-critical app.
         if let Some(action) = self.device_chain.take_action() {
             match action {
-                track::SignalChainAction::NewDevice(key) => {
+                SignalChainAction::NewDevice(key) => {
                     eprintln!("SignalChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
                         let _ = self.device_chain.append_entity(entity);
                     }
                 }
-                track::SignalChainAction::LinkControl(source_uid, target_uid, index) => {
+                SignalChainAction::LinkControl(source_uid, target_uid, index) => {
                     eprintln!("{action:?}")
                 }
             }

@@ -126,7 +126,10 @@ pub mod arrangement {
     //! `arrangement` helps organize devices musically.
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
-        track::{Track, TrackTitle, TrackUid},
+        track::{
+            signal_chain, track_widget, SignalChainAction, Track, TrackTitle, TrackUiState,
+            TrackUid,
+        },
     };
 }
 
