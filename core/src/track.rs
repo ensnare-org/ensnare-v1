@@ -83,6 +83,7 @@ impl TrackFactory {
             piano_roll,
         }
     }
+
     fn next_uid(&mut self) -> TrackUid {
         let uid = self.next_uid;
         self.next_uid.increment();
@@ -97,10 +98,13 @@ impl TrackFactory {
             ty: TrackType::Midi,
             ..Default::default()
         };
-        let mut sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
-        EntityFactory::global().assign_entity_uid(&mut sequencer);
-        t.set_sequencer_channel(sequencer.sender());
-        let _ = t.append_entity(Box::new(sequencer));
+
+        if EntityFactory::hack_is_global_ready() {
+            let mut sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
+            EntityFactory::global().assign_entity_uid(&mut sequencer);
+            t.set_sequencer_channel(sequencer.sender());
+            let _ = t.append_entity(Box::new(sequencer));
+        }
         t
     }
 
@@ -119,7 +123,7 @@ impl TrackFactory {
         Track {
             uid,
             title: TrackTitle(format!("Aux {}", uid)),
-            ty: TrackType::Midi,
+            ty: TrackType::Aux,
             ..Default::default()
         }
     }

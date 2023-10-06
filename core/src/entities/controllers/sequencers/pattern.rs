@@ -177,8 +177,9 @@ impl Sequences for LivePatternSequencer {
         pattern_uid: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
+        // Someday I will get https://en.wikipedia.org/wiki/De_Morgan%27s_laws right
         self.arrangements
-            .retain(|a| a.pattern_uid != *pattern_uid && a.range.start != position);
+            .retain(|a| a.pattern_uid != *pattern_uid || a.range.start != position);
         self.inner.clear();
         self.replay();
         Ok(())

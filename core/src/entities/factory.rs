@@ -223,6 +223,16 @@ impl EntityFactory {
             .expect("EntityFactory has not been initialized")
     }
 
+    // This is very annoying. TrackFactory is using the global EntityFactory,
+    // which isn't set up in unit/integration tests, so all the tests are
+    // blowing up. This horrible hack sets a flag when EntityFactory is set up.
+    //
+    // I believe this is my comeuppance for using a global in the first place.
+    // Probably for other things, too.
+    pub fn hack_is_global_ready() -> bool {
+        FACTORY.get().is_some()
+    }
+
     /// Set the next [Uid]. This is needed if we're deserializing a project and
     /// need to reset the [EntityFactory] to mint unique [Uid]s.
     ///
