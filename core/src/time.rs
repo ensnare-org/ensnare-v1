@@ -622,7 +622,11 @@ impl Transport {
         // will happen if frames advance faster than MusicalTime units.
         let new_frames = self.e.current_frame + frames;
         let new_time = MusicalTime::new_with_frames(self.tempo, self.e.sample_rate, new_frames);
-        let length = new_time - self.e.current_time;
+        let length = if new_time >= self.e.current_time {
+            new_time - self.e.current_time
+        } else {
+            MusicalTime::DURATION_ZERO
+        };
         let range = self.e.current_time..self.e.current_time + length;
 
         // If we aren't performing, then we don't advance the clock, but we do
