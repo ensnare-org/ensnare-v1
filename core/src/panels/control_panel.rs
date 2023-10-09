@@ -3,9 +3,10 @@
 use crate::traits::{Acts, Displays};
 use eframe::egui::{Response, Ui};
 use std::path::PathBuf;
+use strum_macros::Display;
 
 /// Actions the user might take via the control panel.
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum ControlPanelAction {
     /// Play button pressed.
     Play,
@@ -61,6 +62,15 @@ impl Displays for ControlPanel {
 }
 impl Acts for ControlPanel {
     type Action = ControlPanelAction;
+
+    fn set_action(&mut self, action: Self::Action) {
+        debug_assert!(
+            self.action.is_none(),
+            "Uh-oh, tried to set to {action} but it was already set to {:?}",
+            self.action
+        );
+        self.action = Some(action);
+    }
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.action.take()

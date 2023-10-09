@@ -1,31 +1,22 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::control::ControlIndex;
-use crate::drag_drop::{DragDropManager, DragDropSource};
-use crate::modulators::Dca;
-use crate::traits::prelude::*;
-use crate::types::{BipolarNormal, Normal};
-use crate::uid::Uid;
+use crate::{
+    drag_drop::{DragDropManager, DragDropSource},
+    modulators::{Dca, DcaAction},
+    traits::prelude::*,
+    types::{BipolarNormal, Normal},
+};
 use eframe::egui::Slider;
 
 /// Wraps a [DcaWidget] as a [Widget](eframe::egui::Widget).
-pub fn dca<'a>(
-    dca: &'a mut Dca,
-    action: &'a mut Option<DcaWidgetAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, action).ui(ui)
-}
-
-#[derive(Debug)]
-pub enum DcaWidgetAction {
-    LinkControl(Uid, ControlIndex),
+pub fn dca<'a>(dca: &'a mut Dca) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca).ui(ui)
 }
 
 /// An egui widget for [Dca].
 #[derive(Debug)]
 struct DcaWidget<'a> {
     dca: &'a mut Dca,
-    action: &'a mut Option<DcaWidgetAction>,
 }
 impl<'a> Displays for DcaWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -63,7 +54,8 @@ impl<'a> Displays for DcaWidget<'a> {
             if let Some(source) = DragDropManager::source() {
                 match source {
                     DragDropSource::ControlSource(source_uid) => {
-                        *self.action = Some(DcaWidgetAction::LinkControl(source_uid, index));
+                        self.dca
+                            .set_action(DcaAction::LinkControl(source_uid, index));
                     }
                     _ => {}
                 }
@@ -74,7 +66,7 @@ impl<'a> Displays for DcaWidget<'a> {
     }
 }
 impl<'a> DcaWidget<'a> {
-    fn new(dca: &'a mut Dca, action: &'a mut Option<DcaWidgetAction>) -> Self {
-        Self { dca, action }
+    fn new(dca: &'a mut Dca) -> Self {
+        Self { dca }
     }
 }

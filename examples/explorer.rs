@@ -13,7 +13,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{
-    arrangement::{signal_chain, track_widget, SignalChainAction, TrackUiState},
+    arrangement::{signal_chain, track_widget, TrackAction, TrackUiState},
     controllers::{
         LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
         ToyControllerParams,
@@ -86,13 +86,11 @@ impl TrackSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            let mut action = None;
             ui.add(track_widget(
                 &mut self.track,
                 false,
                 TrackUiState::Expanded,
                 Some(MusicalTime::new_with_beats(1)),
-                &mut action,
             ));
         }
     }
@@ -203,7 +201,6 @@ struct SignalChainSettings {
     hide: bool,
     is_large_size: bool,
     track: Track,
-    action: Option<SignalChainAction>,
 }
 impl SignalChainSettings {
     const NAME: &'static str = "Signal Chain";
@@ -213,7 +210,7 @@ impl SignalChainSettings {
             ui.scope(|ui| {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
-                ui.add(signal_chain(&mut self.track, &mut self.action))
+                ui.add(signal_chain(&mut self.track))
             });
         }
     }
@@ -225,13 +222,6 @@ impl SignalChainSettings {
 impl Displays for SignalChainSettings {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
-    }
-}
-impl Acts for SignalChainSettings {
-    type Action = SignalChainAction;
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.action.take()
     }
 }
 
@@ -726,7 +716,7 @@ struct Explorer {
     grid: GridSettings,
     track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
-    device_chain: SignalChainSettings,
+    signal_chain: SignalChainSettings,
     control_atlas: ControlAtlasSettings,
     live_pattern_sequencer: LivePatternSequencerSettings,
     note_sequencer: NoteSequencerSettings,
@@ -774,7 +764,7 @@ impl Explorer {
             Self::wrap_settings(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.ui(ui)
             });
-            Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.device_chain.ui(ui));
+            Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.signal_chain.ui(ui));
             Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
             Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
@@ -862,7 +852,7 @@ impl Explorer {
                 self.device_palette.show(ui)
             });
             Self::wrap_item(SignalChainSettings::NAME, ui, |ui| {
-                self.device_chain.show(ui)
+                self.signal_chain.show(ui)
             });
             Self::wrap_item(PianoRollSettings::NAME, ui, |ui| self.piano_roll.show(ui));
 
@@ -931,15 +921,15 @@ impl eframe::App for Explorer {
         // TODO: this is bad design because it does non-GUI processing during
         // the update() method. It's OK here because this is a widget explorer,
         // not a time-critical app.
-        if let Some(action) = self.device_chain.take_action() {
+        if let Some(action) = self.signal_chain.track.take_action() {
             match action {
-                SignalChainAction::NewDevice(key) => {
+                TrackAction::NewDevice(key) => {
                     eprintln!("SignalChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                        let _ = self.device_chain.append_entity(entity);
+                        let _ = self.signal_chain.append_entity(entity);
                     }
                 }
-                SignalChainAction::LinkControl(source_uid, target_uid, index) => {
+                TrackAction::LinkControl(source_uid, target_uid, index) => {
                     eprintln!("{action:?}")
                 }
             }

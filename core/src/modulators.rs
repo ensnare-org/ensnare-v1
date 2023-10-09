@@ -3,6 +3,12 @@
 use crate::{prelude::*, traits::prelude::*, widgets::modulators::dca};
 use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
+
+#[derive(Debug, Display)]
+pub enum DcaAction {
+    LinkControl(Uid, ControlIndex),
+}
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
@@ -16,12 +22,16 @@ pub struct Dca {
     #[control]
     #[params]
     pan: BipolarNormal,
+
+    #[serde(skip)]
+    action: Option<DcaAction>,
 }
 impl Dca {
     pub fn new_with(params: &DcaParams) -> Self {
         Self {
             gain: params.gain(),
             pan: params.pan(),
+            action: None,
         }
     }
 
@@ -59,8 +69,23 @@ impl Dca {
 }
 impl Displays for Dca {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut action = None;
-        ui.add(dca(self, &mut action))
+        ui.add(dca(self))
+    }
+}
+impl Acts for Dca {
+    type Action = DcaAction;
+
+    fn set_action(&mut self, action: Self::Action) {
+        debug_assert!(
+            self.action.is_none(),
+            "Uh-oh, tried to set to {action} but it was already set to {:?}",
+            self.action
+        );
+        self.action = Some(action);
+    }
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.action.take()
     }
 }
 

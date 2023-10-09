@@ -32,6 +32,7 @@ use std::{
     option::Option,
     sync::{Arc, RwLock},
 };
+use strum_macros::Display;
 
 /// Identifies a [Track].
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -53,22 +54,19 @@ impl Display for TrackUid {
     }
 }
 
-#[derive(Debug)]
-pub enum TrackElementAction {
-    MoveDeviceLeft(usize),
-    MoveDeviceRight(usize),
-    RemoveDevice(usize),
-}
-
-#[derive(Debug)]
-pub enum TrackDetailAction {}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug)]
+/// A [TrackAction] represents any UI operation that happens to a [Track] but
+/// that the [Track] can't perform itself.  
+#[derive(Clone, Debug, Display)]
 pub enum TrackAction {
-    SetTitle(TrackTitle),
-    ToggleDisclosure,
-    NewDevice(TrackUid, EntityKey),
+    /// Using the [EntityFactory], create a new entity of type [EntityKey] and
+    /// add it to the track. [Track]s can't do this themselves because they
+    /// don't have access to [EntityFactory] (or at least we've decided they
+    /// shouldn't).
+    NewDevice(EntityKey),
+
+    /// Establish a control link between the source and target uids for the
+    /// given parameter.
+    LinkControl(Uid, Uid, ControlIndex),
 }
 
 #[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
@@ -447,6 +445,15 @@ impl Track {
 impl Acts for Track {
     type Action = TrackAction;
 
+    fn set_action(&mut self, action: Self::Action) {
+        debug_assert!(
+            self.e.action.is_none(),
+            "Uh-oh, tried to set to {action} but it was already set to {:?}",
+            self.e.action
+        );
+        self.e.action = Some(action);
+    }
+
     fn take_action(&mut self) -> Option<Self::Action> {
         self.e.action.take()
     }
@@ -631,10 +638,9 @@ pub fn track_widget<'a>(
     is_selected: bool,
     ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
-    action: &'a mut Option<TrackAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        TrackWidget::new(track, cursor, action)
+        TrackWidget::new(track, cursor)
             .is_selected(is_selected)
             .ui_state(ui_state)
             .ui(ui)
@@ -674,7 +680,6 @@ struct TrackWidget<'a> {
     is_selected: bool,
     ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
-    action: &'a mut Option<TrackAction>,
 }
 impl<'a> Displays for TrackWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -838,27 +843,7 @@ impl<'a> Displays for TrackWidget<'a> {
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
                             ui.set_max_height(device_view_height(self.ui_state));
-                            let mut action = None;
-                            ui.add(signal_chain(&mut self.track, &mut action));
-                            if let Some(action) = action {
-                                match action {
-                                    SignalChainAction::NewDevice(key) => {
-                                        *self.action =
-                                            Some(TrackAction::NewDevice(self.track.uid(), key));
-                                    }
-                                    SignalChainAction::LinkControl(
-                                        source_uid,
-                                        target_uid,
-                                        control_index,
-                                    ) => {
-                                        self.track.control_router.link_control(
-                                            source_uid,
-                                            target_uid,
-                                            control_index,
-                                        );
-                                    }
-                                }
-                            }
+                            ui.add(signal_chain(&mut self.track));
                         });
 
                         response
@@ -871,17 +856,12 @@ impl<'a> Displays for TrackWidget<'a> {
     }
 }
 impl<'a> TrackWidget<'a> {
-    fn new(
-        track: &'a mut Track,
-        cursor: Option<MusicalTime>,
-        action: &'a mut Option<TrackAction>,
-    ) -> Self {
+    fn new(track: &'a mut Track, cursor: Option<MusicalTime>) -> Self {
         Self {
             track,
             is_selected: false,
             ui_state: TrackUiState::Collapsed,
             cursor,
-            action,
         }
     }
 
@@ -908,30 +888,19 @@ impl<'a> TrackWidget<'a> {
 }
 
 /// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget). Mutates many things.
-pub fn signal_chain<'a>(
-    track: &'a mut Track,
-    action: &'a mut Option<SignalChainAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track, action).ui(ui)
-}
-
-#[derive(Debug)]
-pub enum SignalChainAction {
-    NewDevice(EntityKey),
-    LinkControl(Uid, Uid, ControlIndex),
+pub fn signal_chain<'a>(track: &'a mut Track) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track).ui(ui)
 }
 
 #[derive(Debug)]
 struct SignalChainWidget<'a> {
     track: &'a mut Track,
-    action: &'a mut Option<SignalChainAction>,
     ui_size: UiSize,
 }
 impl<'a> SignalChainWidget<'a> {
-    pub fn new(track: &'a mut Track, action: &'a mut Option<SignalChainAction>) -> Self {
+    pub fn new(track: &'a mut Track) -> Self {
         Self {
             track,
-            action,
             ui_size: Default::default(),
         }
     }
@@ -947,7 +916,7 @@ impl<'a> SignalChainWidget<'a> {
     fn check_drop(&mut self) {
         if let Some(source) = DragDropManager::source() {
             if let DragDropSource::NewDevice(key) = source {
-                *self.action = Some(SignalChainAction::NewDevice(key))
+                self.track.e.action = Some(TrackAction::NewDevice(key));
             }
         }
     }

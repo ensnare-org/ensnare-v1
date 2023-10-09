@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::MIDI_NOTE_F32_RANGE;
 use crate::{
     drag_drop::{DragDropManager, DragDropSource},
     midi::MidiNote,
@@ -14,8 +15,6 @@ use eframe::{
     epaint::{pos2, RectShape, Shape},
 };
 use std::collections::HashMap;
-
-use super::MIDI_NOTE_F32_RANGE;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
 pub fn icon(

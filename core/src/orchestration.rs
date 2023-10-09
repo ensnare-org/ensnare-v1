@@ -34,9 +34,10 @@ use std::{
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec::Vec,
 };
+use strum_macros::Display;
 
 /// Actions that [Orchestrator]'s UI might need the parent to perform.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Display)]
 pub enum OrchestratorAction {
     /// A [Track] was clicked in the UI.
     ClickTrack(TrackUid),
@@ -454,16 +455,15 @@ impl Orchestrator {
     }
 
     fn handle_track_action(&mut self, uid: TrackUid, action: TrackAction) {
-        if let Some(track) = self.get_track_mut(&uid) {
-            match action {
-                TrackAction::SetTitle(t) => {
-                    track.set_title(t);
-                }
-                TrackAction::ToggleDisclosure => {
-                    self.e.action = Some(OrchestratorAction::DoubleClickTrack(track.uid()));
-                }
-                TrackAction::NewDevice(track_uid, key) => {
-                    self.e.action = Some(OrchestratorAction::NewDeviceForTrack(track_uid, key))
+        match action {
+            TrackAction::NewDevice(key) => {
+                self.e.action = Some(OrchestratorAction::NewDeviceForTrack(uid, key))
+            }
+            TrackAction::LinkControl(source_uid, target_uid, control_index) => {
+                if let Some(track) = self.get_track_mut(&uid) {
+                    track
+                        .control_router
+                        .link_control(source_uid, target_uid, control_index);
                 }
             }
         }
@@ -600,6 +600,15 @@ impl Orchestrates for Orchestrator {
 }
 impl Acts for Orchestrator {
     type Action = OrchestratorAction;
+
+    fn set_action(&mut self, action: Self::Action) {
+        debug_assert!(
+            self.e.action.is_none(),
+            "Uh-oh, tried to set to {action} but it was already set to {:?}",
+            self.e.action
+        );
+        self.e.action = Some(action);
+    }
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.e.action.take()
@@ -877,7 +886,6 @@ impl Displays for Orchestrator {
                                 );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);
-                                    let mut track_action = None;
                                     let cursor = if self.transport.is_performing() {
                                         Some(self.transport.current_time())
                                     } else {
@@ -889,20 +897,7 @@ impl Displays for Orchestrator {
                                         is_selected,
                                         track_ui_state,
                                         cursor,
-                                        &mut track_action,
                                     ));
-                                    if let Some(track_action) = track_action {
-                                        match track_action {
-                                            TrackAction::SetTitle(_) => todo!(),
-                                            TrackAction::ToggleDisclosure => todo!(),
-                                            TrackAction::NewDevice(track_uid, key) => {
-                                                self.e.action =
-                                                    Some(OrchestratorAction::NewDeviceForTrack(
-                                                        track_uid, key,
-                                                    ));
-                                            }
-                                        }
-                                    }
                                     if response.double_clicked() {
                                         self.e.action =
                                             Some(OrchestratorAction::DoubleClickTrack(*track_uid));

@@ -127,8 +127,7 @@ pub mod arrangement {
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
         track::{
-            signal_chain, track_widget, SignalChainAction, Track, TrackTitle, TrackUiState,
-            TrackUid,
+            signal_chain, track_widget, Track, TrackAction, TrackTitle, TrackUiState, TrackUid,
         },
     };
 }

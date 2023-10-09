@@ -661,7 +661,7 @@ impl MiniDaw {
                     "minidaw.json",
                 )))
             }
-            MenuBarAction::TrackAddEntity(key) => {
+            MenuBarAction::TrackAddEntity(_key) => {
                 //                input = Some(OrchestratorInput::TrackAddEntity(key))
             }
         }
@@ -695,10 +695,7 @@ impl MiniDaw {
 
     fn show_left(&mut self, ui: &mut Ui) {
         ScrollArea::horizontal().show(ui, |ui| {
-            if let Some(_action) = self.palette_panel.show_with_action(ui) {
-                // these are inactive for now because we're skipping the drag/drop stuff.
-                //self.handle_palette_action(action);
-            }
+            self.palette_panel.ui(ui);
         });
     }
 

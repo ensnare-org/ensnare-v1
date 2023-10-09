@@ -4,19 +4,17 @@ use crate::{
     drag_drop::DragDropManager,
     generators::{Oscillator, OscillatorParams, Waveform},
     midi::prelude::*,
-    modulators::{Dca, DcaParams},
+    modulators::{Dca, DcaAction, DcaParams},
     prelude::*,
     traits::prelude::*,
-    widgets::{
-        generators::oscillator,
-        modulators::{dca, DcaWidgetAction},
-    },
+    widgets::{generators::oscillator, modulators::dca},
 };
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
+use strum_macros::Display;
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum ToyInstrumentAction {
     LinkControl(Uid, Uid, ControlIndex),
 }
@@ -124,12 +122,10 @@ impl ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut action = None;
-        let response =
-            ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca, &mut action));
-        if let Some(action) = action {
+        let response = ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca));
+        if let Some(action) = self.dca.take_action() {
             match action {
-                DcaWidgetAction::LinkControl(source_uid, control_index) => {
+                DcaAction::LinkControl(source_uid, control_index) => {
                     DragDropManager::enqueue_event(crate::drag_drop::DragDropEvent::LinkControl(
                         source_uid,
                         self.uid,
@@ -143,6 +139,15 @@ impl Displays for ToyInstrument {
 }
 impl Acts for ToyInstrument {
     type Action = ToyInstrumentAction;
+
+    fn set_action(&mut self, action: Self::Action) {
+        debug_assert!(
+            self.e.action.is_none(),
+            "Uh-oh, tried to set to {action} but it was already set to {:?}",
+            self.e.action
+        );
+        self.e.action = Some(action);
+    }
 
     fn take_action(&mut self) -> Option<Self::Action> {
         self.e.action.take()

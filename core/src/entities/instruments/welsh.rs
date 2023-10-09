@@ -6,14 +6,11 @@ use crate::{
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
     midi::prelude::*,
-    modulators::{Dca, DcaParams},
+    modulators::{Dca, DcaAction, DcaParams},
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
-    widgets::{
-        generators::oscillator,
-        modulators::{dca, DcaWidgetAction},
-    },
+    widgets::{generators::oscillator, modulators::dca},
 };
 use core::fmt::Debug;
 use eframe::{
@@ -497,15 +494,14 @@ impl WelshVoice {
                 .default_open(true)
                 .id_source(ui.next_auto_id())
                 .show(ui, |ui| {
-                    let mut action = None;
-                    if ui.add(dca(&mut self.dca, &mut action)).changed() {
+                    if ui.add(dca(&mut self.dca)).changed() {
                         synth.voices_mut().for_each(|v| {
                             v.dca.update_from_params(&self.dca.to_params());
                         })
                     }
-                    if let Some(action) = action {
+                    if let Some(action) = self.dca.take_action() {
                         match action {
-                            DcaWidgetAction::LinkControl(source_uid, control_index) => {
+                            DcaAction::LinkControl(source_uid, control_index) => {
                                 DragDropManager::enqueue_event(
                                     crate::drag_drop::DragDropEvent::LinkControl(
                                         source_uid,
