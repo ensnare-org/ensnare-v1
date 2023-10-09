@@ -716,15 +716,15 @@ impl<'a> Displays for TrackWidget<'a> {
 
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
-                        let mut from_screen = RectTransform::identity(Rect::NOTHING);
-                        let can_accept = self.check_drag_source();
-
-                        let response = DragDropManager::drop_target(ui, can_accept, |ui| {
-                            let desired_size = vec2(ui.available_width(), 64.0);
-                            let (_id, rect) = ui.allocate_space(desired_size);
-
-                            // Only MIDI/audio tracks have content.
-                            if !matches!(self.track.ty(), TrackType::Aux) {
+                        // Only MIDI/audio tracks have the timeline view.
+                        if !matches!(self.track.ty(), TrackType::Aux) {
+                            // This is declared here because we need it to keep
+                            // existing outside of the drop_target() block, so
+                            // that we can use it to calculate the position of
+                            // mouse clicks within the timeline rect.
+                            let mut from_screen = RectTransform::identity(Rect::NOTHING);
+                            let can_accept = self.check_drag_source_for_timeline();
+                            let response = DragDropManager::drop_target(ui, can_accept, |ui| {
                                 // Reserve space for the device view.
                                 ui.set_max_height(track_view_height(
                                     self.track.ty(),
@@ -799,67 +799,67 @@ impl<'a> Displays for TrackWidget<'a> {
                                         }
                                     }
                                 }
-                                ui.scope(|ui| {
-                                    ui.set_max_height(device_view_height(self.ui_state));
-                                    let mut action = None;
-                                    ui.add(signal_chain(&mut self.track, &mut action));
-                                    if let Some(action) = action {
-                                        match action {
-                                            SignalChainAction::NewDevice(key) => {
-                                                eprintln!("yo"); // BUG! both the device view and the track view are handling the new device case, so we add twice on drag and drop
-                                                *self.action = Some(TrackAction::NewDevice(
-                                                    self.track.uid(),
-                                                    key,
-                                                ));
-                                            }
-                                            SignalChainAction::LinkControl(
-                                                source_uid,
-                                                target_uid,
-                                                control_index,
-                                            ) => {
-                                                self.track.control_router.link_control(
-                                                    source_uid,
-                                                    target_uid,
-                                                    control_index,
-                                                );
-                                            }
-                                        }
-                                    }
-                                });
-
                                 if ui.add(Button::new("next")).clicked() {
                                     self.track.select_next_foreground_timeline_entity();
                                 }
-                            }
-                        })
-                        .response;
-
-                        if DragDropManager::is_dropped(ui, &response) {
-                            if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
-                                let time_pos = from_screen * pointer_pos;
-                                let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                if let Some(source) = DragDropManager::source() {
-                                    let event = match source {
-                                        DragDropSource::NewDevice(key) => Some(
-                                            DragDropEvent::TrackAddDevice(self.track.uid(), key),
-                                        ),
-                                        DragDropSource::Pattern(pattern_uid) => {
-                                            Some(DragDropEvent::TrackAddPattern(
-                                                self.track.uid(),
-                                                pattern_uid,
-                                                time,
-                                            ))
+                            })
+                            .response;
+                            if DragDropManager::is_dropped(ui, &response) {
+                                if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                                    let time_pos = from_screen * pointer_pos;
+                                    let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                    if let Some(source) = DragDropManager::source() {
+                                        let event = match source {
+                                            DragDropSource::NewDevice(key) => {
+                                                Some(DragDropEvent::TrackAddDevice(
+                                                    self.track.uid(),
+                                                    key,
+                                                ))
+                                            }
+                                            DragDropSource::Pattern(pattern_uid) => {
+                                                Some(DragDropEvent::TrackAddPattern(
+                                                    self.track.uid(),
+                                                    pattern_uid,
+                                                    time,
+                                                ))
+                                            }
+                                            _ => None,
+                                        };
+                                        if let Some(event) = event {
+                                            DragDropManager::enqueue_event(event);
                                         }
-                                        _ => None,
-                                    };
-                                    if let Some(event) = event {
-                                        DragDropManager::enqueue_event(event);
                                     }
+                                } else {
+                                    eprintln!("Dropped on timeline at unknown position");
                                 }
-                            } else {
-                                eprintln!("Dropped on timeline at unknown position");
                             }
                         }
+
+                        // Draw the signal chain view for every kind of track.
+                        ui.scope(|ui| {
+                            ui.set_max_height(device_view_height(self.ui_state));
+                            let mut action = None;
+                            ui.add(signal_chain(&mut self.track, &mut action));
+                            if let Some(action) = action {
+                                match action {
+                                    SignalChainAction::NewDevice(key) => {
+                                        *self.action =
+                                            Some(TrackAction::NewDevice(self.track.uid(), key));
+                                    }
+                                    SignalChainAction::LinkControl(
+                                        source_uid,
+                                        target_uid,
+                                        control_index,
+                                    ) => {
+                                        self.track.control_router.link_control(
+                                            source_uid,
+                                            target_uid,
+                                            control_index,
+                                        );
+                                    }
+                                }
+                            }
+                        });
 
                         response
                     })
@@ -897,7 +897,7 @@ impl<'a> TrackWidget<'a> {
 
     // Looks at what's being dragged, if anything, and updates any state needed
     // to handle it. Returns whether we are interested in this drag source.
-    fn check_drag_source(&mut self) -> bool {
+    fn check_drag_source_for_timeline(&mut self) -> bool {
         if let Some(source) = DragDropManager::source() {
             if matches!(source, DragDropSource::Pattern(..)) {
                 return true;

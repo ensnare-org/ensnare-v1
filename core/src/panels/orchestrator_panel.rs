@@ -227,7 +227,6 @@ impl OrchestratorPanel {
                         }
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
                             if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                                eprintln!("hi");
                                 let _ = o.append_entity(&track_uid, entity);
                             }
                         }
