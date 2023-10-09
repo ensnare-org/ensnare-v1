@@ -15,14 +15,14 @@ use eframe::{
 use ensnare::{
     arrangement::{signal_chain, track_widget, TrackAction, TrackUiState},
     controllers::{
-        LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
+        atlas, LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
         ToyControllerParams,
     },
     effects::{ToyEffect, ToyEffectParams},
     instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
     ui::{
-        widgets::{audio, control, pattern, placeholder, timeline, track},
+        widgets::{audio, pattern, placeholder, timeline, track},
         CircularSampleBuffer, DragDropEvent, DragDropSource,
     },
     version::app_version,
@@ -350,7 +350,7 @@ impl ControlAtlasSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            ui.add(control::atlas(
+            ui.add(atlas(
                 &mut self.control_atlas,
                 &mut self.control_router,
                 self.view_range.clone(),

@@ -4,16 +4,11 @@ use crate::types::Normal;
 use eframe::epaint::{pos2, Color32, Rect, Rounding, Stroke};
 
 pub mod prelude {
-    pub use super::{
-        audio, control, controllers, core, generators, pattern, placeholder, timeline, track,
-    };
+    pub use super::{audio, controllers, core, generators, pattern, placeholder, timeline, track};
 }
 
 /// Contains widgets that help visualize audio.
 pub mod audio;
-
-/// Contains widgets related to automation/control.
-pub mod control;
 
 /// Contains widgets that support Controller views.
 pub mod controllers;

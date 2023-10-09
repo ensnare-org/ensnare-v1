@@ -3,14 +3,13 @@
 use crate::{
     drag_drop::DragDropManager,
     entities::effects::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
-    generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
+    generators::{oscillator, Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
     midi::prelude::*,
-    modulators::{Dca, DcaAction, DcaParams},
+    modulators::{dca, Dca, DcaAction, DcaParams},
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
-    widgets::{generators::oscillator, modulators::dca},
 };
 use core::fmt::Debug;
 use eframe::{

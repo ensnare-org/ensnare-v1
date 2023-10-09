@@ -2,12 +2,11 @@
 
 use crate::{
     drag_drop::DragDropManager,
-    generators::{Oscillator, OscillatorParams, Waveform},
+    generators::{oscillator, Oscillator, OscillatorParams, Waveform},
     midi::prelude::*,
-    modulators::{Dca, DcaAction, DcaParams},
+    modulators::{dca, Dca, DcaAction, DcaParams},
     prelude::*,
     traits::prelude::*,
-    widgets::{generators::oscillator, modulators::dca},
 };
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};

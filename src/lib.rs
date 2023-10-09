@@ -25,7 +25,7 @@ pub mod controllers {
     //! [IsController](crate::traits::IsController) interface.
     pub use ensnare_core::{
         controllers::{
-            ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
+            atlas, ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
             ControlTripPath,
         },
         entities::factory::test_entities::TestController,
@@ -126,6 +126,7 @@ pub mod arrangement {
     //! `arrangement` helps organize devices musically.
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
+        time::{transport, Transport},
         track::{
             signal_chain, track_widget, Track, TrackAction, TrackTitle, TrackUiState, TrackUid,
         },
@@ -150,7 +151,7 @@ pub mod ui {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_core::panels::{audio_settings, midi_settings};
         pub use ensnare_core::widgets::{
-            audio, control, controllers, core, generators, pattern, placeholder, timeline, track,
+            audio, controllers, core, generators, pattern, placeholder, timeline, track,
         };
     }
 }
@@ -185,7 +186,7 @@ pub mod version;
 /// `use ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid},
+        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid, Transport},
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         controllers::{
