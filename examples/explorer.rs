@@ -328,12 +328,22 @@ impl PatternIconSettings {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct ControlAtlasSettings {
     hide: bool,
     control_atlas: ControlAtlas,
     control_router: ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
+}
+impl Default for ControlAtlasSettings {
+    fn default() -> Self {
+        Self {
+            hide: Default::default(),
+            control_atlas: ControlAtlasBuilder::default().random().build().unwrap(),
+            control_router: Default::default(),
+            view_range: Default::default(),
+        }
+    }
 }
 impl Displays for ControlAtlasSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {

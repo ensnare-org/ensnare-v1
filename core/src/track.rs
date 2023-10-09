@@ -2,6 +2,7 @@
 
 use crate::{
     control::ControlRouter,
+    controllers::ControlAtlasBuilder,
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
@@ -113,6 +114,13 @@ impl TrackFactory {
             EntityFactory::global().assign_entity_uid(&mut sequencer);
             t.set_sequencer_channel(sequencer.sender());
             let _ = t.append_entity(Box::new(sequencer));
+            let _ = t.append_entity(Box::new(
+                ControlAtlasBuilder::default()
+                    .uid(EntityFactory::global().mint_uid())
+                    .random()
+                    .build()
+                    .unwrap(),
+            ));
         }
         t
     }

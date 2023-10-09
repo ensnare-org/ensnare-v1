@@ -480,6 +480,18 @@ pub struct ControlStep {
     pub path: ControlTripPath,
 }
 
+impl ControlAtlasBuilder {
+    pub fn random(&mut self) -> &mut Self {
+        self.trip(
+            ControlTripBuilder::default()
+                .random(MusicalTime::START)
+                .build()
+                .unwrap(),
+        );
+        self
+    }
+}
+
 /// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
 /// maps.)
 #[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Uid)]
@@ -496,18 +508,11 @@ pub struct ControlAtlas {
 }
 impl Default for ControlAtlas {
     fn default() -> Self {
-        let mut r = Self {
+        Self {
             uid: Default::default(),
             trips: Default::default(),
             view_range: Default::default(),
-        };
-        let _ = r.add_trip(
-            ControlTripBuilder::default()
-                .random(MusicalTime::START)
-                .build()
-                .unwrap(),
-        );
-        r
+        }
     }
 }
 impl Displays for ControlAtlas {
