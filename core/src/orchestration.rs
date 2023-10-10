@@ -851,6 +851,7 @@ impl DisplaysInTimeline for Orchestrator {
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let total_height = ui.available_height();
+        let available_width = ui.available_size_before_wrap().x;
 
         eframe::egui::TopBottomPanel::bottom("orchestrator-piano-roll")
             .resizable(true)
@@ -903,11 +904,12 @@ impl Displays for Orchestrator {
                                     .unwrap_or_default();
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
                                 let desired_size = vec2(
-                                    ui.available_width(),
+                                    available_width,
                                     track_view_height(track.ty(), track_ui_state),
                                 );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);
+                                    ui.set_max_width(available_width);
                                     let cursor = if self.transport.is_performing() {
                                         Some(self.transport.current_time())
                                     } else {
