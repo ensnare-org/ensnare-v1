@@ -422,9 +422,7 @@ impl Ensnare {
     }
 
     fn show_center(&mut self, ui: &mut Ui) {
-        ScrollArea::vertical().show(ui, |ui| {
-            self.orchestrator_panel.ui(ui);
-        });
+        self.orchestrator_panel.ui(ui);
         self.toasts.show(ui.ctx());
     }
 
