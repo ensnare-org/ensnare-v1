@@ -68,3 +68,25 @@ boilerplate).
 
 Still concerned about the ControlAtlas/ControlRouter problem, but maybe that's
 actually another trait. Or maybe they shouldn't be separate at all.
+
+# Widgets Volume 2: How widgets can respond when the user does something
+
+Adapted from
+https://github.com/ensnare-org/ensnare/commit/95db90375b6d31707dc92658aa6f046cb6716b4e
+
+Option #1: Just do it. For example, you're a slider. You mutate the variable and
+return Response::changed(). End of story.
+
+Option #2: The widget acts on a particular struct. The struct should implement
+Acts. The widget calls Acts::set_action(). There might be two widgets that
+operate on a single struct (e.g., TrackWidget and SignalChainWidget), and in
+that case they'll share the same Action enum; in other words, the struct owns
+the Action type, not the widget.
+
+Option #3: The widget requires a &mut specifically to pass back the action. You
+could think of this as a special case of Option #2 except the struct contains
+only the Action.
+
+These are all similar approaches, in a sense. The widget needs something to act
+on, which might be the actual action, or else just a marker that the action
+needs to happen.

@@ -7,6 +7,13 @@ use eframe::{
     epaint::{pos2, FontId, RectShape, Shape},
 };
 
+/// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
+pub fn timeline_icon_strip<'a>(
+    action: &'a mut Option<TimelineIconStripAction>,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| TimelineIconStrip::new(action).ui(ui)
+}
+
 /// Wraps a [Legend] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
 pub fn legend(view_range: &mut std::ops::Range<MusicalTime>) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| Legend::new(view_range).ui(ui)
@@ -200,5 +207,33 @@ impl Displays for Cursor {
         let end = to_screen * pos2(self.position.total_units() as f32, 1.0);
         ui.painter().line_segment([start, end], visuals.fg_stroke);
         response
+    }
+}
+
+#[derive(Debug)]
+pub enum TimelineIconStripAction {
+    NextTimelineView,
+}
+
+/// An egui widget that displays an icon strip that goes above the timeline view.
+#[derive(Debug)]
+pub struct TimelineIconStrip<'a> {
+    action: &'a mut Option<TimelineIconStripAction>,
+}
+impl<'a> TimelineIconStrip<'a> {
+    fn new(action: &'a mut Option<TimelineIconStripAction>) -> Self {
+        Self { action }
+    }
+}
+impl<'a> Displays for TimelineIconStrip<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.horizontal(|ui| {
+            let next_response = ui.button("Next timeline view");
+            if next_response.clicked() {
+                *self.action = Some(TimelineIconStripAction::NextTimelineView);
+            }
+            next_response
+        })
+        .inner
     }
 }

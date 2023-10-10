@@ -19,7 +19,10 @@ use crate::{
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::Uid,
-    widgets::{timeline, track},
+    widgets::{
+        timeline::{self, timeline_icon_strip, TimelineIconStripAction},
+        track,
+    },
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
@@ -858,17 +861,36 @@ impl Displays for Orchestrator {
 
         eframe::egui::CentralPanel::default()
             .show(ui.ctx(), |ui| {
+                let mut action = None;
+                ui.add(timeline_icon_strip(&mut action));
+                if let Some(action) = action {
+                    match action {
+                        TimelineIconStripAction::NextTimelineView => {
+                            // TODO: I don't know whether the foreground entity
+                            // should be different for each track. For now we're
+                            // going with the worst of all worlds: each track
+                            // has an independent mode, and we a single button
+                            // advances each track, with no regard for keeping
+                            // them in sync.
+                            for track in self.track_iter_mut() {
+                                track.select_next_foreground_timeline_entity();
+                            }
+                        }
+                    }
+                }
+
+                // The timeline needs to be aligned with the track
+                // content, so we create an empty track title bar to
+                // match with the real ones.
+                ui.horizontal(|ui| {
+                    ui.add_enabled(false, track::title_bar(None));
+                    ui.add(timeline::legend(&mut self.view_range));
+                });
+
+                // Create a scrolling area for all the tracks.
                 ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
                     .show(ui, |ui| {
-                        // The timeline needs to be aligned with the track
-                        // content, so we create an empty track title bar to
-                        // match with the real ones.
-                        ui.horizontal(|ui| {
-                            ui.add_enabled(false, track::title_bar(None));
-                            ui.add(timeline::legend(&mut self.view_range));
-                        });
-
                         let mut track_action = None;
                         let mut track_action_track_uid = None;
                         for track_uid in self.track_uids.iter() {

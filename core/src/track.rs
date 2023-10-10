@@ -21,7 +21,7 @@ use crate::{
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use eframe::{
-    egui::{Button, Frame, Margin},
+    egui::{Frame, Margin},
     emath::RectTransform,
     epaint::{vec2, Color32, Rect, Stroke, Vec2},
 };
@@ -803,9 +803,6 @@ impl<'a> Displays for TrackWidget<'a> {
                                                 .inner;
                                         }
                                     }
-                                }
-                                if ui.add(Button::new("next")).clicked() {
-                                    self.track.select_next_foreground_timeline_entity();
                                 }
                             })
                             .response;
