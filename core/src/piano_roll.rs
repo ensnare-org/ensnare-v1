@@ -16,7 +16,7 @@ use derive_builder::Builder;
 use eframe::{
     egui::{Response, Sense, Ui},
     emath::RectTransform,
-    epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
+    epaint::{pos2, vec2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add};
@@ -520,8 +520,10 @@ impl PianoRoll {
 
     fn ui_pattern_edit(&mut self, ui: &mut Ui) -> Response {
         if let Some(pattern_uid) = self.pattern_selection_set.single_selection() {
+            ui.set_min_height(192.0);
             if let Some(pattern) = self.uids_to_patterns.get_mut(pattern_uid) {
-                let (_id, rect) = ui.allocate_space(ui.available_size_before_wrap());
+                let desired_size = vec2(ui.available_width(), 96.0);
+                let (_id, rect) = ui.allocate_space(desired_size);
                 ui.add_enabled_ui(false, |ui| {
                     ui.allocate_ui_at_rect(rect, |ui| ui.add(grid(pattern.duration)))
                         .inner
@@ -529,7 +531,11 @@ impl PianoRoll {
                 return ui.allocate_ui_at_rect(rect, |ui| pattern.ui(ui)).inner;
             }
         }
-        ui.label("nothing selected")
+
+        ui.set_min_height(0.0);
+        // This is here so that we can return a Response. I don't know of a
+        // better way to do it.
+        ui.add_visible_ui(false, |_| {}).response
     }
 }
 impl Displays for PianoRoll {
