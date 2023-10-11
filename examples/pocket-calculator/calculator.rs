@@ -147,7 +147,8 @@ struct Engine {
     // Which chain slot we're currently playing
     pb_chain_index: u8,
 
-    // Which pattern we're currently playing (different from active pattern, which is used for editing)
+    // Which pattern we're currently playing (different from active pattern,
+    // which is used for editing)
     pb_pattern_index: u8,
 
     // Which step we're currently playing in the pattern
@@ -341,7 +342,8 @@ impl Engine {
 
     fn next_step(&mut self) -> &Step {
         if self.pb_chain_index == u8::MAX {
-            // We're about to start the song. We know pattern/step were already set to zero.
+            // We're about to start the song. We know pattern/step were already
+            // set to zero.
             self.pb_chain_index = 0;
         } else {
             self.pb_step_index += 1;
@@ -431,6 +433,83 @@ pub enum CalculatorTempo {
     Techno,
 }
 
+#[derive(Debug)]
+struct CalculatorEphemerals {
+    // The value passed in Controls::update_time(). The [Controls] trait assumes
+    // that there is a single global clock whose value gets distributed across
+    // all instruments. In this example, however, there's only one instrument,
+    // and there is no value to maintaining an external global clock. So we'll
+    // use the time slice only to determine how much musical time should be
+    // processed during this iteration. We care only about its duration, not its
+    // position in time.
+    range: Range<MusicalTime>,
+
+    // This is our performance's location in musical time. The current musical
+    // time slice is cursor..(cursor + (range.end-range.start).
+    cursor: MusicalTime,
+
+    /// Generates audio data.
+    inner_synth: Synthesizer<SamplerVoice>,
+}
+impl Default for CalculatorEphemerals {
+    fn default() -> Self {
+        Self {
+            range: Default::default(),
+            cursor: Default::default(),
+            inner_synth: Self::load_sampler_voices(),
+        }
+    }
+}
+impl CalculatorEphemerals {
+    fn load_sampler_voices() -> Synthesizer<SamplerVoice> {
+        let samples = vec![
+            "01-5-inch-floppy",
+            "02-3.5-drive-eject",
+            "03-3.5-floppy-read",
+            "04-keyboard",
+            "05-dot-matrix-printer",
+            "06-joystick",
+            "07-mouse-click",
+            "08-toggle-switch",
+            "09-bass-drum",
+            "10-dtmf-tones",
+            "11-hardsync-tone",
+            "12-hardsync-noise",
+            "13-ring-modulation",
+            "14-bass",
+            "15-glitch-fx",
+            "16-noise-fx",
+        ];
+
+        let sample_dirs = vec!["pocket-calculator-24"];
+
+        let paths = Paths::default();
+
+        let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
+            samples.into_iter().enumerate().map(|(index, asset_name)| {
+                let filename =
+                    paths.build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
+                if let Ok(file) = paths.search_and_open(filename.as_path()) {
+                    if let Ok(samples) = Sampler::read_samples_from_file(&file) {
+                        (
+                            (index as u8).into(),
+                            SamplerVoice::new_with_samples(
+                                Arc::new(samples),
+                                u7::from(index as u8).into(),
+                            ),
+                        )
+                    } else {
+                        panic!()
+                    }
+                } else {
+                    panic!()
+                }
+            }),
+        );
+        Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store))
+    }
+}
+
 /// [Calculator] is the top-level musical instrument. It contains an [Engine]
 /// that has the song data, as well as a sampler synth that can generate digital
 /// audio. It draws the GUI and handles user input.
@@ -442,17 +521,13 @@ pub struct Calculator {
     /// Keeps the music data (notes, sequences, tempo).
     engine: Engine,
 
+    #[serde(skip)]
+    e: CalculatorEphemerals,
+
     /// The final output volume, ranging 0..16.
     volume: u8,
 
-    /// Timekeeper, maps audio-sample time to musical time.
-    clock: MusicalTime,
-
     tempo: Tempo,
-
-    /// Generates audio data.
-    #[serde(skip)]
-    inner_synth: Synthesizer<SamplerVoice>,
 
     /// Which mode the UI is in.
     #[serde(skip)]
@@ -487,26 +562,46 @@ impl HandlesMidi for Calculator {
         message: MidiMessage,
         midi_messages_fn: &mut MidiMessagesFn,
     ) {
-        self.inner_synth
+        self.e
+            .inner_synth
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
 impl Ticks for Calculator {
     fn tick(&mut self, tick_count: usize) {
-        self.inner_synth.tick(tick_count);
+        self.e.inner_synth.tick(tick_count);
     }
 }
 impl Controls for Calculator {
-    fn update_time(&mut self, _range: &Range<MusicalTime>) {
-        todo!()
+    fn update_time(&mut self, range: &Range<MusicalTime>) {
+        self.e.range = range.clone();
     }
 
     fn work(&mut self, _: &mut ControlEventsFn) {
-        self.handle_tick();
+        if self.is_performing() {
+            // We use this only as a marker whether it's time to do work. We
+            // don't use it as a song cursor.
+            let total_steps = self.total_steps();
+            if self.last_handled_step != total_steps {
+                self.last_handled_step = total_steps;
+                let step = *self.engine.next_step(); // TODO: this is costly
+                for i in 0..16 {
+                    if step.is_sound_active(i)
+                        && (self.ui_state != UiState::Solo || self.engine.is_solo(i))
+                    {
+                        self.trigger_note(i);
+                    }
+                }
+            }
+            // We're done with this work slice, so it's time to advance the cursor.
+            let time_slice_duration = self.e.range.end - self.e.range.start;
+            self.e.cursor += time_slice_duration;
+        }
     }
 
     fn is_finished(&self) -> bool {
-        todo!()
+        // A calculator performance ends only when the user presses play again.
+        self.engine.is_finished()
     }
 
     fn play(&mut self) {
@@ -520,7 +615,7 @@ impl Controls for Calculator {
     }
 
     fn skip_to_start(&mut self) {
-        self.clock = MusicalTime::START;
+        self.e.cursor = MusicalTime::START;
         self.last_handled_step = usize::MAX;
         self.engine.skip_to_start();
     }
@@ -543,11 +638,11 @@ impl Configurable for Calculator {
 }
 impl Generates<StereoSample> for Calculator {
     fn value(&self) -> StereoSample {
-        self.inner_synth.value()
+        self.e.inner_synth.value()
     }
 
     fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate_batch_values(values);
+        self.e.inner_synth.generate_batch_values(values);
     }
 }
 impl Default for Calculator {
@@ -555,11 +650,11 @@ impl Default for Calculator {
         Self {
             uid: Default::default(),
             engine: Default::default(),
+            e: Default::default(),
+
             volume: 5,
 
-            clock: MusicalTime::START,
             tempo: Tempo::default(),
-            inner_synth: Self::load_sampler_voices(),
             ui_state: Default::default(),
             blink_counter: Default::default(),
             is_write_enabled: Default::default(),
@@ -722,7 +817,7 @@ impl Calculator {
 
     // How many steps we are into the song.
     fn total_steps(&self) -> usize {
-        self.clock.total_parts() / 4 // TODO: this might not be right; I think a step is a 16th of a bar
+        self.e.cursor.total_parts() / 4
     }
 
     // How many steps we are into the current pattern.
@@ -730,88 +825,23 @@ impl Calculator {
         (self.total_steps() % 16) as u8
     }
 
-    fn handle_tick(&mut self) {
-        if self.is_performing() {
-            // We use this only as a marker whether it's time to do work. We don't use it as a song cursor.
-            let total_steps = self.total_steps();
-            if self.last_handled_step == total_steps {
-                return;
-            }
-            self.last_handled_step = total_steps;
-            let step = *self.engine.next_step(); // TODO: this is costly
-            for i in 0..16 {
-                if step.is_sound_active(i)
-                    && (self.ui_state != UiState::Solo || self.engine.is_solo(i))
-                {
-                    self.trigger_note(i);
-                }
-            }
-        }
-    }
-
     fn trigger_note(&mut self, key: u8) {
         let key = key.into();
         let vel = 127.into();
-        self.inner_synth.handle_midi_message(
+        self.e.inner_synth.handle_midi_message(
             MidiChannel(2),
             MidiMessage::NoteOff { key, vel },
             &mut |_, _| {},
         );
-        self.inner_synth.handle_midi_message(
+        self.e.inner_synth.handle_midi_message(
             MidiChannel(4),
             MidiMessage::NoteOn { key, vel },
             &mut |_, _| {},
         );
     }
 
-    fn load_sampler_voices() -> Synthesizer<SamplerVoice> {
-        let samples = vec![
-            "01-5-inch-floppy",
-            "02-3.5-drive-eject",
-            "03-3.5-floppy-read",
-            "04-keyboard",
-            "05-dot-matrix-printer",
-            "06-joystick",
-            "07-mouse-click",
-            "08-toggle-switch",
-            "09-bass-drum",
-            "10-dtmf-tones",
-            "11-hardsync-tone",
-            "12-hardsync-noise",
-            "13-ring-modulation",
-            "14-bass",
-            "15-glitch-fx",
-            "16-noise-fx",
-        ];
-        //            "04-keyboard-2",
-        //            "08-toggle-switch-2",
-
-        let sample_dirs = vec!["pocket-calculator-24"];
-
-        let paths = Paths::default();
-
-        let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
-            samples.into_iter().enumerate().map(|(index, asset_name)| {
-                let filename =
-                    paths.build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
-                if let Ok(file) = paths.search_and_open(filename.as_path()) {
-                    if let Ok(samples) = Sampler::read_samples_from_file(&file) {
-                        (
-                            (index as u8).into(),
-                            SamplerVoice::new_with_samples(
-                                Arc::new(samples),
-                                u7::from(index as u8).into(),
-                            ),
-                        )
-                    } else {
-                        panic!()
-                    }
-                } else {
-                    panic!()
-                }
-            }),
-        );
-        Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store))
+    pub fn tempo(&self) -> Tempo {
+        self.tempo
     }
 }
 
@@ -1100,7 +1130,7 @@ impl Calculator {
         let button_color = if state == ButtonState::Held {
             Color32::DARK_BLUE
         } else {
-            Color32::GRAY
+            Color32::DARK_GRAY
         };
         let led_color = match state {
             ButtonState::Idle => {
@@ -1137,8 +1167,8 @@ impl Calculator {
         .inner
     }
 
-    // TODO: I can't get this knob to be the same size as the other buttons,
-    // so the second button is not correctly centered on the grid.
+    // TODO: I can't get this knob to be the same size as the other buttons, so
+    // the second button is not correctly centered on the grid.
     fn create_knob(ui: &mut Ui, value: &mut f32) -> Response {
         ui.vertical_centered_justified(|ui| {
             // This is clumsy to try to keep all the widgets evenly spaced
@@ -1205,6 +1235,14 @@ impl Calculator {
                 self.engine.b().0,
                 self.engine.swing().0,
                 self.engine.tempo_by_value().0,
+            ))
+            .digit_height(14.0),
+        );
+        ui.add(
+            SegmentedDisplayWidget::sixteen_segment(format!(
+                "C: {} TS: {}",
+                self.e.cursor.total_units(),
+                self.total_steps()
             ))
             .digit_height(14.0),
         );
@@ -1326,7 +1364,7 @@ impl Displays for Calculator {
             None
         };
         ui.set_min_size(Vec2::new(320.0, 560.0)); // 1.75 aspect ratio
-        ui.add_space(64.0);
+        ui.add_space(32.0);
         self.create_dashboard(ui);
         ui.add(SegmentedDisplayWidget::sixteen_segment("MUSIC").digit_height(72.0));
         ui.add_space(16.0);

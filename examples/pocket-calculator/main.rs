@@ -25,15 +25,26 @@ impl CalculatorApp {
         let calculator = Arc::new(Mutex::new(Calculator::default()));
         let c4na = Arc::clone(&calculator);
         let needs_audio_fn: NeedsAudioFn = {
-            Box::new(move |audio_queue, _| {
+            Box::new(move |audio_queue, samples_requested| {
                 let mut buffer = [StereoSample::SILENCE; 64];
-                if let Ok(mut calculator) = c4na.lock() {
-                    let range = MusicalTime::START..MusicalTime::DURATION_EIGHTH;
-                    calculator.update_time(&range);
-                    calculator.work(&mut |_, _| {});
-                    calculator.generate_batch_values(&mut buffer);
-                    for sample in buffer {
-                        let _ = audio_queue.push(sample);
+
+                for _ in 0..(samples_requested / buffer.len()) + 1 {
+                    if let Ok(mut calculator) = c4na.lock() {
+                        // This is a lot of redundant calculation for something that
+                        // doesn't change much, but it's cheap.
+                        let range = MusicalTime::START
+                            ..MusicalTime::new_with_units(MusicalTime::frames_to_units(
+                                calculator.tempo(),
+                                calculator.sample_rate(),
+                                buffer.len(),
+                            ));
+
+                        calculator.update_time(&range);
+                        calculator.work(&mut |_, _| {});
+                        calculator.generate_batch_values(&mut buffer);
+                        for sample in buffer {
+                            let _ = audio_queue.push(sample);
+                        }
                     }
                 }
             })
@@ -53,6 +64,10 @@ impl eframe::App for CalculatorApp {
                 calculator.ui(ui);
             }
         });
+
+        // We're being lazy and always requesting a repaint, even though we
+        // don't know whether anything changed on-screen.
+        ctx.request_repaint();
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
@@ -63,7 +78,7 @@ impl eframe::App for CalculatorApp {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(320.0, 560.0)),
+        initial_window_size: Some(eframe::egui::vec2(348.0, 576.0)),
         ..Default::default()
     };
 
