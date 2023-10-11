@@ -199,6 +199,7 @@ impl Displays for SettingsPanel {
             self.midi_panel.select_output(new_output);
         }
 
+        #[cfg(debug_assertions)]
         {
             let mut debug_on_hover = ui.ctx().debug_on_hover();
             ui.checkbox(&mut debug_on_hover, "🐛 Debug on hover")

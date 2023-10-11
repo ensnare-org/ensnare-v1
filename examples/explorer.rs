@@ -810,11 +810,13 @@ impl Explorer {
     }
 
     fn debug_ui(&mut self, ui: &mut Ui) {
-        let mut debug_on_hover = ui.ctx().debug_on_hover();
-        ui.checkbox(&mut debug_on_hover, "🐛 Debug on hover")
-            .on_hover_text("Show structure of the ui when you hover with the mouse");
-        ui.ctx().set_debug_on_hover(debug_on_hover);
-
+        #[cfg(debug_assertions)]
+        {
+            let mut debug_on_hover = ui.ctx().debug_on_hover();
+            ui.checkbox(&mut debug_on_hover, "🐛 Debug on hover")
+                .on_hover_text("Show structure of the ui when you hover with the mouse");
+            ui.ctx().set_debug_on_hover(debug_on_hover);
+        }
         let style: Style = (*ui.ctx().style()).clone();
         let new_visuals = style.visuals.light_dark_small_toggle_button(ui);
         if let Some(visuals) = new_visuals {
