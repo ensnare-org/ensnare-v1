@@ -29,9 +29,9 @@ impl Default for MidiNoteMinder {
 impl HandlesMidi for MidiNoteMinder {
     fn handle_midi_message(
         &mut self,
-        channel: MidiChannel,
+        _channel: MidiChannel,
         message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
+        _: &mut MidiMessagesFn,
     ) {
         #[allow(unused_variables)]
         match message {
@@ -47,7 +47,7 @@ impl HandlesMidi for MidiNoteMinder {
     }
 }
 impl Controls for MidiNoteMinder {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
+    fn update_time(&mut self, _: &std::ops::Range<MusicalTime>) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         for (i, active_note) in self.active_notes.iter().enumerate() {
@@ -76,7 +76,7 @@ mod tests {
 
     fn gather_all_messages(mnm: &mut MidiNoteMinder) -> Vec<MidiMessage> {
         let mut v = Vec::default();
-        mnm.work(&mut |uid, e| match e {
+        mnm.work(&mut |_, e| match e {
             EntityEvent::Midi(_, message) => v.push(message),
             EntityEvent::Control(_) => panic!("didn't expect a Control event here"),
         });

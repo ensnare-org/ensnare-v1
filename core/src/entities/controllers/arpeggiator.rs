@@ -80,7 +80,7 @@ impl HandlesMidi for Arpeggiator {
         &mut self,
         _channel: MidiChannel,
         message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
+        _: &mut MidiMessagesFn,
     ) {
         match message {
             MidiMessage::NoteOff { key: _, vel: _ } => {
@@ -144,7 +144,7 @@ impl Arpeggiator {
         }
     }
 
-    fn insert_one_note(&mut self, when: &MusicalTime, duration: &MusicalTime, key: u8, vel: u8) {
+    fn insert_one_note(&mut self, when: &MusicalTime, duration: &MusicalTime, key: u8, _vel: u8) {
         let _ = self.sequencer.record(
             self.midi_channel_out,
             &Note::new_with(key, MusicalTime::START, *duration),

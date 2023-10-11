@@ -194,7 +194,7 @@ impl Sequences for LivePatternSequencer {
 
     fn remove(
         &mut self,
-        channel: MidiChannel,
+        _channel: MidiChannel,
         pattern_uid: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
