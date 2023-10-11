@@ -91,7 +91,7 @@ impl Configurable for SamplerVoice {
 }
 impl SamplerVoice {
     pub fn new_with_samples(samples: Arc<Vec<StereoSample>>, root_frequency: FrequencyHz) -> Self {
-        if !root_frequency.value().is_normal() {
+        if !root_frequency.0.is_normal() {
             panic!("strange number given for root frequency: {root_frequency}");
         }
         Self {
@@ -163,7 +163,7 @@ impl Sampler {
                 if let Ok(samples) = Self::read_samples_from_file(&file) {
                     let samples = Arc::new(samples);
 
-                    let calculated_root_frequency = if params.root().value() > 0.0 {
+                    let calculated_root_frequency = if params.root().0 > 0.0 {
                         params.root()
                     } else if let Ok(embedded_root_note) = Self::read_riff_metadata(&mut f2) {
                         FrequencyHz::from(u7::from(embedded_root_note))

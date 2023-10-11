@@ -295,13 +295,6 @@ impl<const LOWER: i8, const UPPER: i8> RangedF64<LOWER, UPPER> {
     pub const fn zero() -> Self {
         Self(Self::ZERO)
     }
-    pub fn value(&self) -> f64 {
-        // We don't clamp here because we have already checked all inputs.
-        self.0
-    }
-    pub fn value_as_f32(&self) -> f32 {
-        self.value() as f32
-    }
     pub fn set(&mut self, value: f64) {
         self.0 = value.clamp(Self::MIN, Self::MAX);
     }
@@ -311,7 +304,7 @@ impl<const LOWER: i8, const UPPER: i8> RangedF64<LOWER, UPPER> {
     }
 
     pub fn to_percentage(&self) -> f64 {
-        self.value() * 100.0
+        self.0 * 100.0
     }
 
     pub fn from_percentage(percentage: f64) -> Self {
@@ -404,12 +397,12 @@ impl From<Sample> for Normal {
 }
 impl From<BipolarNormal> for Normal {
     fn from(value: BipolarNormal) -> Self {
-        Self(value.value() * 0.5 + 0.5)
+        Self(value.0 * 0.5 + 0.5)
     }
 }
 impl From<FrequencyHz> for Normal {
     fn from(value: FrequencyHz) -> Self {
-        FrequencyHz::frequency_to_percent(value.value())
+        FrequencyHz::frequency_to_percent(value.0)
     }
 }
 impl Mul<Normal> for f64 {
@@ -428,7 +421,7 @@ impl Mul<f64> for Normal {
 }
 impl From<Normal> for f32 {
     fn from(val: Normal) -> Self {
-        val.value_as_f32()
+        val.0 as f32
     }
 }
 impl Mul<Self> for Normal {
@@ -471,17 +464,17 @@ impl Mul<Normal> for BipolarNormal {
     type Output = BipolarNormal;
 
     fn mul(self, rhs: Normal) -> Self::Output {
-        Self(self.0 * rhs.value())
+        Self(self.0 * rhs.0)
     }
 }
 impl From<BipolarNormal> for StereoSample {
     fn from(value: BipolarNormal) -> Self {
-        StereoSample::from(value.value())
+        StereoSample::from(value.0)
     }
 }
 impl From<Normal> for BipolarNormal {
     fn from(value: Normal) -> Self {
-        Self(value.value() * 2.0 - 1.0)
+        Self(value.0 * 2.0 - 1.0)
     }
 }
 impl From<Normal> for FrequencyHz {
@@ -491,7 +484,7 @@ impl From<Normal> for FrequencyHz {
 }
 impl From<BipolarNormal> for f32 {
     fn from(val: BipolarNormal) -> Self {
-        val.value_as_f32()
+        val.into()
     }
 }
 
@@ -518,8 +511,7 @@ impl FrequencyHz {
     // Column A is 24db filter percentages from all the patches. Column B is
     // envelope-filter percentages from all the patches.
     pub fn percent_to_frequency(percentage: Normal) -> ParameterType {
-        Self::FREQUENCY_TO_LINEAR_COEFFICIENT
-            * Self::FREQUENCY_TO_LINEAR_BASE.powf(percentage.value())
+        Self::FREQUENCY_TO_LINEAR_COEFFICIENT * Self::FREQUENCY_TO_LINEAR_BASE.powf(percentage.0)
     }
 
     pub fn frequency_to_percent(frequency: ParameterType) -> Normal {
@@ -535,10 +527,6 @@ impl FrequencyHz {
 
     pub fn zero() -> Self {
         FrequencyHz(0.0)
-    }
-
-    pub fn value(&self) -> f64 {
-        self.0
     }
 }
 impl Default for FrequencyHz {
@@ -676,13 +664,7 @@ impl FrequencyRange {
 ///
 /// Negative ratios are meaningless for current use cases.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Ratio(ParameterType);
-#[allow(missing_docs)]
-impl Ratio {
-    pub fn value(&self) -> ParameterType {
-        self.0
-    }
-}
+pub struct Ratio(pub ParameterType);
 impl Default for Ratio {
     fn default() -> Self {
         Self(1.0)
@@ -695,12 +677,12 @@ impl From<f64> for Ratio {
 }
 impl From<BipolarNormal> for Ratio {
     fn from(value: BipolarNormal) -> Self {
-        Self(2.0f64.powf(value.value() * 3.0))
+        Self(2.0f64.powf(value.0 * 3.0))
     }
 }
 impl From<Ratio> for BipolarNormal {
     fn from(value: Ratio) -> Self {
-        BipolarNormal::from(value.value().log2() / 3.0)
+        BipolarNormal::from(value.0.log2() / 3.0)
     }
 }
 impl From<Normal> for Ratio {
@@ -899,20 +881,20 @@ mod tests {
 
     #[test]
     fn ratio_ok() {
-        assert_eq!(Ratio::from(BipolarNormal::from(-1.0)).value(), 0.125);
-        assert_eq!(Ratio::from(BipolarNormal::from(0.0)).value(), 1.0);
-        assert_eq!(Ratio::from(BipolarNormal::from(1.0)).value(), 8.0);
+        assert_eq!(Ratio::from(BipolarNormal::from(-1.0)).0, 0.125);
+        assert_eq!(Ratio::from(BipolarNormal::from(0.0)).0, 1.0);
+        assert_eq!(Ratio::from(BipolarNormal::from(1.0)).0, 8.0);
 
-        assert_eq!(BipolarNormal::from(Ratio::from(0.125)).value(), -1.0);
-        assert_eq!(BipolarNormal::from(Ratio::from(1.0)).value(), 0.0);
-        assert_eq!(BipolarNormal::from(Ratio::from(8.0)).value(), 1.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(0.125)).0, -1.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(1.0)).0, 0.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(8.0)).0, 1.0);
     }
 
     #[test]
     fn ratio_control_ok() {
-        assert_eq!(Ratio::from(ControlValue(0.0)).value(), 0.125);
-        assert_eq!(Ratio::from(ControlValue(0.5)).value(), 1.0);
-        assert_eq!(Ratio::from(ControlValue(1.0)).value(), 8.0);
+        assert_eq!(Ratio::from(ControlValue(0.0)).0, 0.125);
+        assert_eq!(Ratio::from(ControlValue(0.5)).0, 1.0);
+        assert_eq!(Ratio::from(ControlValue(1.0)).0, 8.0);
 
         assert_eq!(ControlValue::from(Ratio::from(0.125)).0, 0.0);
         assert_eq!(ControlValue::from(Ratio::from(1.0)).0, 0.5);

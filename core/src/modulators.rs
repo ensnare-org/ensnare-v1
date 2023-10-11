@@ -43,9 +43,9 @@ impl Dca {
 
     pub fn transform_audio_to_stereo(&mut self, input_sample: Sample) -> StereoSample {
         // See Pirkle, DSSPC++, p.73
-        let input_sample: f64 = input_sample.0 * self.gain.value();
-        let left_pan: f64 = 1.0 - 0.25 * (self.pan.value() + 1.0).powi(2);
-        let right_pan: f64 = 1.0 - (0.5 * self.pan.value() - 0.5).powi(2);
+        let input_sample: f64 = input_sample.0 * self.gain.0;
+        let left_pan: f64 = 1.0 - 0.25 * (self.pan.0 + 1.0f64).powi(2);
+        let right_pan: f64 = 1.0 - (0.5 * self.pan.0 - 0.5f64).powi(2);
         StereoSample::new(
             (left_pan * input_sample).into(),
             (right_pan * input_sample).into(),

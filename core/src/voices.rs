@@ -447,8 +447,8 @@ mod tests {
             assert!(
                 approx_eq!(
                     ParameterType,
-                    voice.debug_oscillator_frequency().value(),
-                    FrequencyHz::from(MidiNote::C4).value()
+                    voice.debug_oscillator_frequency().0,
+                    FrequencyHz::from(MidiNote::C4).0
                 ),
                 "we should have gotten back the same voice for the requested note"
             );
@@ -458,8 +458,8 @@ mod tests {
             assert!(
                 approx_eq!(
                     ParameterType,
-                    voice.debug_oscillator_frequency().value(),
-                    FrequencyHz::from(MidiNote::D4).value()
+                    voice.debug_oscillator_frequency().0,
+                    FrequencyHz::from(MidiNote::D4).0
                 ),
                 "we should have gotten back the same voice for the requested note"
             );
@@ -481,8 +481,8 @@ mod tests {
             assert!(
                 approx_eq!(
                     ParameterType,
-                    voice.debug_oscillator_frequency().value(),
-                    FrequencyHz::from(MidiNote::C4).value()
+                    voice.debug_oscillator_frequency().0,
+                    FrequencyHz::from(MidiNote::C4).0
                 ),
                 "we should have gotten back the same voice for the requested note"
             );
@@ -499,8 +499,8 @@ mod tests {
             assert!(
                 approx_eq!(
                     ParameterType,
-                    voice.debug_oscillator_frequency().value(),
-                    FrequencyHz::from(MidiNote::C4).value() // 60, not 62!!
+                    voice.debug_oscillator_frequency().0,
+                    FrequencyHz::from(MidiNote::C4).0 // 60, not 62!!
                 ),
                 "we should have gotten the defunct voice for a new note"
             );

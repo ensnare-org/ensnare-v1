@@ -41,7 +41,7 @@ impl Humidifier {
         pre_effect: Sample,
         post_effect: Sample,
     ) -> Sample {
-        let humidity = humidity.value();
+        let humidity: f64 = humidity.into();
         let aridity = 1.0 - humidity;
         post_effect * humidity + pre_effect * aridity
     }

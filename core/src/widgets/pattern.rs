@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::MIDI_NOTE_F32_RANGE;
+use super::parts::MIDI_NOTE_F32_RANGE;
 use crate::{
     drag_drop::{DragDropManager, DragDropSource},
     midi::MidiNote,

@@ -95,7 +95,7 @@ struct ReverbChannel {
 }
 impl TransformsAudio for ReverbChannel {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
-        let input_attenuated = input_sample * self.attenuation.value();
+        let input_attenuated = input_sample * self.attenuation.0;
         let recirc_output = self.recirc_delay_lines[0].pop_output(input_attenuated)
             + self.recirc_delay_lines[1].pop_output(input_attenuated)
             + self.recirc_delay_lines[2].pop_output(input_attenuated)

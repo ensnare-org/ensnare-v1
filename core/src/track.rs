@@ -13,9 +13,9 @@ use crate::{
     traits::{prelude::*, Acts},
     uid::IsUid,
     widgets::{
+        prelude::*,
         timeline::{cursor, grid},
         track::{make_title_bar_galley, title_bar},
-        UiSize,
     },
 };
 use anyhow::anyhow;

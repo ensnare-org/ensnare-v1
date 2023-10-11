@@ -61,7 +61,7 @@ impl<'a> Displays for EnvelopeShaperWidget<'a> {
 
                 let attack_x_scaled = self.attack.0 as f32 * x_max / 4.0;
                 let decay_x_scaled = self.decay.0 as f32 * x_max / 4.0;
-                let sustain_y_scaled = (1.0 - self.sustain.value() as f32) * y_max;
+                let sustain_y_scaled = (1.0 - self.sustain.0 as f32) * y_max;
                 let release_x_scaled = self.release.0 as f32 * x_max / 4.0;
                 let mut control_points = [
                     pos2(attack_x_scaled, 0.0),

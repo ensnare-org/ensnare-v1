@@ -17,7 +17,7 @@ impl Serializable for Gain {}
 impl Configurable for Gain {}
 impl TransformsAudio for Gain {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
-        Sample(input_sample.0 * self.ceiling.value())
+        Sample(input_sample.0 * self.ceiling.0)
     }
 }
 impl Gain {

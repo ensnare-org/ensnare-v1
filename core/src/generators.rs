@@ -257,7 +257,7 @@ impl Oscillator {
         };
         unmodulated_frequency
             * FrequencyHz(
-                2.0f64.powf(self.frequency_modulation.value()) + self.linear_frequency_modulation,
+                2.0f64.powf(self.frequency_modulation.0) + self.linear_frequency_modulation,
             )
     }
 
@@ -393,7 +393,7 @@ impl Oscillator {
             Waveform::None => 0.0,
             Waveform::Sine => (cycle_position * 2.0 * PI).sin(),
             Waveform::Square => -(cycle_position - 0.5).signum(),
-            Waveform::PulseWidth(duty_cycle) => -(cycle_position - duty_cycle.value()).signum(),
+            Waveform::PulseWidth(duty_cycle) => -(cycle_position - duty_cycle.0).signum(),
             Waveform::Triangle => {
                 4.0 * (cycle_position - (0.5 + cycle_position).floor()).abs() - 1.0
             }
@@ -714,7 +714,7 @@ impl Envelope {
                     self.set_state(State::Decay);
                 } else {
                     self.state = State::Attack;
-                    let target_amplitude = Normal::maximum().value();
+                    let target_amplitude = Normal::maximum().0;
                     self.set_target(Normal::maximum(), self.attack, false, false);
                     let current_amplitude = self.uncorrected_amplitude.sum();
 
@@ -734,7 +734,7 @@ impl Envelope {
                     self.set_state(State::Sustain);
                 } else {
                     self.state = State::Decay;
-                    let target_amplitude = self.sustain.value();
+                    let target_amplitude = self.sustain.0;
                     self.set_target(self.sustain, self.decay, true, false);
                     let current_amplitude = self.uncorrected_amplitude.sum();
                     (self.concave_a, self.concave_b, self.concave_c) = Self::calculate_coefficients(
@@ -783,7 +783,7 @@ impl Envelope {
     }
 
     fn set_explicit_amplitude(&mut self, amplitude: Normal) {
-        self.uncorrected_amplitude = KahanSum::new_with_value(amplitude.value());
+        self.uncorrected_amplitude = KahanSum::new_with_value(amplitude.0);
         self.amplitude_was_set = true;
     }
 
@@ -942,7 +942,7 @@ impl Envelope {
 
         let attack_x_scaled = self.attack.0 as f32 * x_max / 4.0;
         let decay_x_scaled = self.decay.0 as f32 * x_max / 4.0;
-        let sustain_y_scaled = (1.0 - self.sustain.value() as f32) * y_max;
+        let sustain_y_scaled = (1.0 - self.sustain.0 as f32) * y_max;
         let release_x_scaled = self.release.0 as f32 * x_max / 4.0;
         let mut control_points = [
             pos2(attack_x_scaled, 0.0),
@@ -1270,11 +1270,7 @@ mod tests {
         // zero
         let mut values = [BipolarNormal::default(); 3];
         oscillator.generate_batch_values(&mut values);
-        assert_ne!(
-            0.0,
-            values[1].value(),
-            "Default Oscillator should not be silent"
-        );
+        assert_ne!(0.0, values[1].0, "Default Oscillator should not be silent");
     }
 
     // Make sure we're dealing with at least a pulse-width wave of amplitude
@@ -1295,7 +1291,7 @@ mod tests {
 
         for _ in 0..SAMPLE_RATE.value() {
             oscillator.tick(1);
-            let f = oscillator.value().value();
+            let f = oscillator.value().0;
             assert_eq!(f, f.signum());
         }
     }
@@ -1319,7 +1315,7 @@ mod tests {
         let mut transitions = 0;
         for _ in 0..SAMPLE_RATE.value() {
             oscillator.tick(1);
-            let f = oscillator.value().value();
+            let f = oscillator.value().0;
             if f == 1.0 {
                 n_pos += 1;
             } else if f == -1.0 {
@@ -1337,7 +1333,7 @@ mod tests {
 
         // The -1 is because we stop at the end of the cycle, and the transition
         // back to 1.0 should be at the start of the next cycle.
-        assert_eq!(transitions, FREQUENCY.value() as i32 * 2 - 1);
+        assert_eq!(transitions, FREQUENCY.0 as i32 * 2 - 1);
     }
 
     #[test]
@@ -1353,7 +1349,7 @@ mod tests {
 
         oscillator.tick(1);
         assert_eq!(
-            oscillator.value().value(),
+            oscillator.value().0,
             1.0,
             "the first sample of a square wave should be 1.0"
         );
@@ -1369,26 +1365,26 @@ mod tests {
         // need to pay close attention to clock.set_samples() other than not
         // exploding, so I might end up deleting that part of the test.
         oscillator.tick(SAMPLE_RATE.value() / 4 - 2);
-        assert_eq!(oscillator.value().value(), 1.0);
+        assert_eq!(oscillator.value().0, 1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), 1.0);
+        assert_eq!(oscillator.value().0, 1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), -1.0);
+        assert_eq!(oscillator.value().0, -1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), -1.0);
+        assert_eq!(oscillator.value().0, -1.0);
 
         // Then should transition back to 1.0 at the first sample of the second
         // cycle.
         //
         // As noted above, we're using clock.set_samples() here.
         oscillator.debug_tick_until(SAMPLE_RATE.value() / 2 - 2);
-        assert_eq!(oscillator.value().value(), -1.0);
+        assert_eq!(oscillator.value().0, -1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), -1.0);
+        assert_eq!(oscillator.value().0, -1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), 1.0);
+        assert_eq!(oscillator.value().0, 1.0);
         oscillator.tick(1);
-        assert_eq!(oscillator.value().value(), 1.0);
+        assert_eq!(oscillator.value().0, 1.0);
     }
 
     #[test]
@@ -1406,7 +1402,7 @@ mod tests {
         let mut n_zero = 0;
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE {
             oscillator.tick(1);
-            let f = oscillator.value().value();
+            let f = oscillator.value().0;
             if f < -0.0000001 {
                 n_neg += 1;
             } else if f > 0.0000001 {
@@ -1429,7 +1425,7 @@ mod tests {
         let mut samples = Vec::default();
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE * run_length_in_seconds {
             source.tick(1);
-            samples.push(Sample::from(source.value().value()));
+            samples.push(Sample::from(source.value().0));
         }
         samples
     }
@@ -1710,7 +1706,7 @@ mod tests {
         transport.advance(1);
         assert!(e.is_idle(), "Untriggered envelope should remain idle.");
         assert_eq!(
-            e.value().value(),
+            e.value().0,
             0.0,
             "Untriggered envelope should remain amplitude zero."
         );
@@ -1764,7 +1760,7 @@ mod tests {
             transport.advance(1);
         }
         assert_gt!(
-            e.value().value(),
+            e.value().0,
             0.0,
             "Envelope amplitude should increase immediately upon trigger"
         );
@@ -1818,10 +1814,10 @@ mod tests {
         );
         assert!(matches!(envelope.debug_state(), State::Decay));
         assert!(
-            approx_eq!(f64, amplitude.value(), 1.0f64, epsilon = 0.0000000000001),
+            approx_eq!(f64, amplitude.0, 1.0f64, epsilon = 0.0000000000001),
             "Amplitude should reach maximum after attack (was {}, difference {}).",
-            amplitude.value(),
-            (1.0 - amplitude.value()).abs()
+            amplitude.0,
+            (1.0 - amplitude.0).abs()
         );
 
         time_marker +=
@@ -1843,7 +1839,7 @@ mod tests {
     // were operating on a full 1.0..=0.0 amplitude range. Thus, the expected
     // time for the stage is not necessarily the same as the parameter.
     fn expected_decay_time(decay: Normal, sustain: Normal) -> Seconds {
-        Envelope::from_normal_to_seconds(decay * (1.0 - sustain.value()))
+        Envelope::from_normal_to_seconds(decay * (1.0 - sustain.0))
     }
 
     fn expected_release_time(release: Normal, current_amplitude: Normal) -> Seconds {
@@ -1891,7 +1887,7 @@ mod tests {
                 );
             },
         )
-        .value();
+        .0;
 
         envelope.trigger_release();
         time_marker += MusicalTime::new_with_fractional_beats(
@@ -1904,11 +1900,11 @@ mod tests {
             time_marker,
             |inner_amplitude, _clock| {
                 assert_lt!(
-                    inner_amplitude.value(),
+                    inner_amplitude.0,
                     last_amplitude,
                     "Amplitude should begin decreasing as soon as note off."
                 );
-                last_amplitude = inner_amplitude.value();
+                last_amplitude = inner_amplitude.0;
             },
         );
 
@@ -1917,10 +1913,10 @@ mod tests {
         assert!(
             envelope.is_idle(),
             "Envelope should be idle when release ends, but it wasn't (amplitude is {})",
-            amplitude.value()
+            amplitude.0
         );
         assert_eq!(
-            envelope.debug_amplitude().value(),
+            envelope.debug_amplitude().0,
             0.0,
             "Amplitude should be zero when release ends"
         );
@@ -1960,15 +1956,10 @@ mod tests {
         let mut time_marker = transport.current_time();
         transport.advance(1);
         assert!(
-            approx_eq!(
-                f64,
-                envelope.value().value(),
-                Normal::maximum().value(),
-                ulps = 8
-            ),
+            approx_eq!(f64, envelope.value().0, Normal::maximum().0, ulps = 8),
             "Amplitude should reach peak upon trigger, but instead of {} we got {}",
-            Normal::maximum().value(),
-            envelope.value().value(),
+            Normal::maximum().0,
+            envelope.value().0,
         );
         envelope.tick(1);
         transport.advance(1);
@@ -2006,12 +1997,7 @@ mod tests {
         let mut time_marker = transport.current_time();
         transport.advance(1);
         assert!(
-            approx_eq!(
-                f64,
-                envelope.value().value(),
-                Normal::maximum().value(),
-                ulps = 8
-            ),
+            approx_eq!(f64, envelope.value().0, Normal::maximum().0, ulps = 8),
             "Amplitude should reach peak upon second trigger"
         );
 
@@ -2021,18 +2007,18 @@ mod tests {
         // Check that we keep decreasing amplitude to zero, not to sustain.
         time_marker +=
             MusicalTime::new_with_fractional_beats(Envelope::from_normal_to_seconds(release).0);
-        let mut last_amplitude = envelope.value().value();
+        let mut last_amplitude = envelope.value().0;
         let _amplitude = run_until(
             &mut envelope,
             &mut transport,
             time_marker,
             |inner_amplitude, _clock| {
                 assert_lt!(
-                    inner_amplitude.value(),
+                    inner_amplitude.0,
                     last_amplitude,
                     "Amplitude should continue decreasing after note off"
                 );
-                last_amplitude = inner_amplitude.value();
+                last_amplitude = inner_amplitude.0;
             },
         );
 
@@ -2043,7 +2029,7 @@ mod tests {
             "Envelope should be idle when release ends"
         );
         assert_eq!(
-            envelope.debug_amplitude().value(),
+            envelope.debug_amplitude().0,
             0.0,
             "Amplitude should be zero when release ends"
         );
@@ -2079,14 +2065,14 @@ mod tests {
             time_marker,
             |_amplitude, _clock| {},
         )
-        .value();
-        assert!(approx_eq!(f64, amplitude, sustain.value(), epsilon=0.0001),
+        .0;
+        assert!(approx_eq!(f64, amplitude, sustain.0, epsilon=0.0001),
             "Expected to see sustain level {} instead of {} at time {} (which is {:.1}% of decay time {}, based on full 1.0..=0.0 amplitude range)",
-            sustain.value(),
+            sustain.0,
             amplitude,
             time_marker,
             decay,
-            100.0 * (1.0 - sustain.value())
+            100.0 * (1.0 - sustain.0)
         );
 
         // Release after note-off should also be shorter than the release value.
@@ -2100,7 +2086,7 @@ mod tests {
             time_marker,
             |inner_amplitude, transport| {
                 assert_gt!(
-                    inner_amplitude.value(),
+                    inner_amplitude.0,
                     0.0,
                     "We should not reach idle before time {}, but we did at time {}.",
                     &time_marker,
@@ -2108,14 +2094,14 @@ mod tests {
                 )
             },
         );
-        let portion_of_full_amplitude_range = sustain.value();
+        let portion_of_full_amplitude_range = sustain.0;
         assert!(
             envelope.is_idle(),
             "Expected release to end after time {}, which is {:.1}% of release time {}. Amplitude is {}",
             expected_release_time.0,
             100.0 * portion_of_full_amplitude_range,
             release,
-            amplitude.value()
+            amplitude.0
         );
     }
 
@@ -2148,7 +2134,7 @@ mod tests {
         e.generate_batch_values(&mut amplitudes);
         amplitudes.iter().for_each(|i| {
             assert_eq!(
-                i.value(),
+                i.0,
                 Normal::MIN,
                 "Each value in untriggered EG's buffer should be set to silence"
             );
@@ -2158,7 +2144,7 @@ mod tests {
         e.trigger_attack();
         e.generate_batch_values(&mut amplitudes);
         assert!(
-            amplitudes.iter().any(|i| { i.value() != Normal::MIN }),
+            amplitudes.iter().any(|i| { i.0 != Normal::MIN }),
             "Once triggered, the EG should generate non-silent values"
         );
     }
@@ -2179,20 +2165,20 @@ mod tests {
         e.trigger_attack();
         e.generate_batch_values(&mut amplitudes);
         assert!(
-            amplitudes.iter().all(|s| { s.value() == Normal::MAX }),
+            amplitudes.iter().all(|s| { s.0 == Normal::MAX }),
             "After enqueueing attack, amplitude should be max"
         );
 
         e.trigger_shutdown();
         e.generate_batch_values(&mut amplitudes);
         assert_lt!(
-            amplitudes[0].value(),
+            amplitudes[0].0,
             (Normal::MAX - Normal::MIN) / 2.0,
             "At sample rate {}, shutdown state should take two samples to go from 1.0 to 0.0, but when we checked it's {}.",
-            e.sample_rate, amplitudes[0].value()
+            e.sample_rate, amplitudes[0].0
         );
         assert_eq!(
-            amplitudes[1].value(),
+            amplitudes[1].0,
             Normal::MIN,
             "At sample rate {}, shutdown state should reach 0.0 within two samples.",
             e.sample_rate
@@ -2218,9 +2204,9 @@ mod tests {
             Envelope::from_seconds_to_normal(Seconds(0.5)),
         ));
         e.update_sample_rate(SampleRate::from(44100));
-        assert_eq!(e.value().value(), 0.0);
+        assert_eq!(e.value().0, 0.0);
         e.tick(1);
-        assert_eq!(e.value().value(), 0.0);
+        assert_eq!(e.value().0, 0.0);
 
         e.trigger_attack();
         e.tick(1);

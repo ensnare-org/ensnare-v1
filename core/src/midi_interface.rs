@@ -78,6 +78,9 @@ pub enum MidiInterfaceEvent {
     /// A MIDI message has arrived from external hardware.
     Midi(MidiChannel, MidiMessage),
 
+    /// A MIDI message was just dispatched to external hardware.
+    MidiOut,
+
     /// The MIDI engine has successfully processed
     /// [MidiHandlerInput::QuitRequested], and the service will go away shortly.
     Quit,
@@ -485,6 +488,9 @@ impl MidiInterface {
     fn handle_midi(&mut self, channel: MidiChannel, message: MidiMessage) {
         if let Some(midi) = self.midi_output.as_mut() {
             midi.handle_midi(channel, message);
+
+            // TODO: this happens even if no interface(s) are selected.
+            let _ = self.sender.try_send(MidiInterfaceEvent::MidiOut);
         }
     }
 

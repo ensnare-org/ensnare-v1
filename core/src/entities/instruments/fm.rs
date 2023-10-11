@@ -101,9 +101,8 @@ impl Ticks for FmVoice {
             if self.is_playing() {
                 let modulator_magnitude =
                     self.modulator.value() * self.modulator_envelope.value() * self.modulator_depth;
-                self.carrier.set_linear_frequency_modulation(
-                    modulator_magnitude.value() * self.modulator_beta,
-                );
+                self.carrier
+                    .set_linear_frequency_modulation(modulator_magnitude.0 * self.modulator_beta);
                 r = self.carrier.value() * self.carrier_envelope.value();
                 self.carrier_envelope.tick(tick_count);
                 self.modulator_envelope.tick(tick_count);
@@ -358,7 +357,7 @@ impl Displays for FmSynth {
         if depth_response.changed() {
             self.set_depth((depth / 100.0).into());
         }
-        let mut ratio = self.ratio.value();
+        let mut ratio = self.ratio.0;
         let ratio_response = ui.add(
             DragValue::new(&mut ratio)
                 .prefix("Ratio: ")

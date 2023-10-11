@@ -486,6 +486,9 @@ impl MiniDaw {
                     self.orchestrator_panel
                         .send_to_service(OrchestratorInput::Midi(channel, message));
                 }
+                MidiPanelEvent::MidiOut => {
+                    // a chance to indicate that outgoing MIDI data happened
+                }
                 MidiPanelEvent::SelectInput(_) => {
                     // TODO: save selection in prefs
                 }

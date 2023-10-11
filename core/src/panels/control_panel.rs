@@ -1,7 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::traits::{Acts, Displays};
-use eframe::egui::{Response, Ui};
+use crate::{
+    traits::{Acts, Displays},
+    widgets::misc::activity_indicator,
+};
+use eframe::{
+    egui::{Layout, Response, Ui},
+    epaint::vec2,
+};
 use std::path::PathBuf;
 use strum_macros::Display;
 
@@ -32,6 +38,18 @@ pub enum ControlPanelAction {
 #[derive(Debug, Default)]
 pub struct ControlPanel {
     action: Option<ControlPanelAction>,
+    saw_midi_in_activity: bool,
+    saw_midi_out_activity: bool,
+}
+impl ControlPanel {
+    /// Tell [ControlPanel] that the system just saw an incoming MIDI message.
+    pub fn tickle_midi_in(&mut self) {
+        self.saw_midi_in_activity = true;
+    }
+    /// Tell [ControlPanel] that the system just produced an outgoing MIDI message.
+    pub fn tickle_midi_out(&mut self) {
+        self.saw_midi_out_activity = true;
+    }
 }
 impl Displays for ControlPanel {
     fn ui(&mut self, ui: &mut Ui) -> Response {
@@ -47,11 +65,26 @@ impl Displays for ControlPanel {
                 self.action = Some(ControlPanelAction::New);
             }
             if ui.button("open").clicked() {
-                self.action = Some(ControlPanelAction::Open(PathBuf::from("minidaw.json")));
+                self.action = Some(ControlPanelAction::Open(PathBuf::from(
+                    "my-ensnare-project.json",
+                )));
             }
             if ui.button("save").clicked() {
-                self.action = Some(ControlPanelAction::Save(PathBuf::from("minidaw.json")));
+                self.action = Some(ControlPanelAction::Save(PathBuf::from(
+                    "my-ensnare-project.json",
+                )));
             }
+            ui.separator();
+            ui.allocate_ui_with_layout(
+                vec2(4.0, 8.0),
+                Layout::top_down(eframe::emath::Align::Center),
+                |ui| {
+                    ui.add(activity_indicator(self.saw_midi_in_activity));
+                    ui.add(activity_indicator(self.saw_midi_out_activity));
+                    self.saw_midi_in_activity = false;
+                    self.saw_midi_out_activity = false;
+                },
+            );
             ui.separator();
             if ui.button("settings").clicked() {
                 self.action = Some(ControlPanelAction::ToggleSettings);

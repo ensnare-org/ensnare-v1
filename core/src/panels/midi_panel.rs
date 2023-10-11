@@ -6,6 +6,7 @@ use crate::{
         MidiInterfaceEvent, MidiInterfaceInput, MidiInterfaceService, MidiPortDescriptor,
     },
     traits::prelude::*,
+    types::ChannelPair,
 };
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CollapsingHeader, ComboBox, Ui};
@@ -80,6 +81,9 @@ pub enum MidiPanelEvent {
     /// A MIDI message arrived from the interface.
     Midi(MidiChannel, MidiMessage),
 
+    /// A MIDI message was just sent to the interface.
+    MidiOut,
+
     /// The user has picked a MIDI input. Switch to it.
     ///
     /// Inputs are sent by the PC to the interface.
@@ -98,8 +102,7 @@ pub enum MidiPanelEvent {
 #[derive(Debug)]
 pub struct MidiPanel {
     sender: Sender<MidiInterfaceInput>, // for us to send to the interface
-    app_receiver: Receiver<MidiPanelEvent>, // to give to the app to receive what we sent
-    app_sender: Sender<MidiPanelEvent>, // for us to send to the app
+    app_channel: ChannelPair<MidiPanelEvent>, // to tell the app what's happened.
 
     inputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
     outputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
@@ -112,12 +115,9 @@ impl MidiPanel {
         let midi_interface_service = MidiInterfaceService::default();
         let sender = midi_interface_service.sender().clone();
 
-        let (app_sender, app_receiver) = crossbeam_channel::unbounded();
-
         let mut r = Self {
             sender,
-            app_receiver,
-            app_sender,
+            app_channel: Default::default(),
 
             inputs: Default::default(),
             outputs: Default::default(),
@@ -146,7 +146,7 @@ impl MidiPanel {
         let inputs = Arc::clone(&self.inputs);
         let outputs = Arc::clone(&self.outputs);
         let settings = Arc::clone(&self.settings);
-        let app_sender = self.app_sender.clone();
+        let app_sender = self.app_channel.sender.clone();
         std::thread::spawn(move || {
             let mut inputs_refreshed = false;
             let mut outputs_refreshed = false;
@@ -184,6 +184,9 @@ impl MidiPanel {
                             }
                             let _ = app_sender.send(MidiPanelEvent::Midi(channel, message));
                         }
+                        MidiInterfaceEvent::MidiOut => {
+                            let _ = app_sender.send(MidiPanelEvent::MidiOut);
+                        }
                         MidiInterfaceEvent::Quit => break,
                     }
                 } else {
@@ -214,7 +217,8 @@ impl MidiPanel {
             .sender
             .send(MidiInterfaceInput::SelectMidiInput(port.clone()));
         let _ = self
-            .app_sender
+            .app_channel
+            .sender
             .send(MidiPanelEvent::SelectInput(port.clone()));
     }
 
@@ -224,13 +228,14 @@ impl MidiPanel {
             .sender
             .send(MidiInterfaceInput::SelectMidiOutput(port.clone()));
         let _ = self
-            .app_sender
+            .app_channel
+            .sender
             .send(MidiPanelEvent::SelectOutput(port.clone()));
     }
 
     /// The receive side of the [MidiPanelEvent] channel
     pub fn receiver(&self) -> &Receiver<MidiPanelEvent> {
-        &self.app_receiver
+        &self.app_channel.receiver
     }
 
     /// Cleans up the MIDI service for quitting.
@@ -246,7 +251,7 @@ impl MidiPanel {
 
     /// Allows sending to the [MidiPanelEvent] channel.
     pub fn app_sender(&self) -> &Sender<MidiPanelEvent> {
-        &self.app_sender
+        &self.app_channel.sender
     }
 
     /// When settings are loaded, we have to look at them and update the actual
@@ -313,24 +318,6 @@ impl<'a> Displays for MidiSettingsWidget<'a> {
         CollapsingHeader::new("MIDI")
             .default_open(true)
             .show(ui, |ui| {
-                let (input_was_recent, output_was_recent) = {
-                    let now = Instant::now();
-                    if let Ok(last_input_instant) = self.settings.last_input_instant.lock() {
-                        let input_was_recent = (now - *last_input_instant).as_millis() < 250;
-                        let output_was_recent =
-                            (now - self.settings.last_output_instant).as_millis() < 250;
-                        (input_was_recent, output_was_recent)
-                    } else {
-                        (false, false)
-                    }
-                };
-
-                ui.label(format!(
-                    "in: {} out: {}",
-                    if input_was_recent { "•" } else { "◦" },
-                    if output_was_recent { "•" } else { "◦" }
-                ));
-
                 let mut cb = ComboBox::from_label("MIDI in");
                 let (mut selected_index, _selected_text) =
                     if let Some(selected) = &self.settings.selected_input {

@@ -116,8 +116,8 @@ impl RecirculatingDelayLine {
         Self {
             delay: DelayLine::new_with(
                 delay_seconds,
-                (peak_amplitude.value() * final_amplitude.value())
-                    .powf(delay_seconds / decay_seconds) as SignalType,
+                (peak_amplitude.0 * final_amplitude.0).powf(delay_seconds / decay_seconds)
+                    as SignalType,
             ),
         }
     }

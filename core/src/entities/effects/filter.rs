@@ -131,7 +131,7 @@ impl BiQuadFilterLowPass24dbChannel {
         cutoff: FrequencyHz,
         passband_ripple: ParameterType,
     ) {
-        let k = (PI * cutoff.value() / sample_rate.value() as f64).tan();
+        let k = (PI * cutoff.0 / sample_rate.value() as f64).tan();
         let sg = passband_ripple.sinh();
         let cg = passband_ripple.cosh() * passband_ripple.cosh();
 
@@ -252,7 +252,7 @@ impl BiQuadFilterLowPass12dbChannel {
         q: ParameterType,
     ) {
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.value(), q);
+            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.0, q);
 
         self.inner.coefficients = CoefficientSet {
             a0: 1.0 + alpha,
@@ -353,7 +353,7 @@ impl BiQuadFilterHighPassChannel {
         q: ParameterType,
     ) {
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.value(), q);
+            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.0, q);
 
         self.inner.coefficients = CoefficientSet {
             a0: 1.0 + alpha,
@@ -452,7 +452,7 @@ impl BiQuadFilterAllPassChannel {
         q: ParameterType,
     ) {
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.value(), q);
+            BiQuadFilter::rbj_intermediates_q(sample_rate, cutoff.0, q);
         self.inner.coefficients = CoefficientSet {
             a0: 1.0 + alpha,
             a1: -2.0f64 * w0cos,
@@ -550,7 +550,7 @@ impl BiQuadFilterBandPassChannel {
         bandwidth: ParameterType,
     ) {
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_bandwidth(sample_rate, cutoff.value(), bandwidth);
+            BiQuadFilter::rbj_intermediates_bandwidth(sample_rate, cutoff.0, bandwidth);
         self.inner.coefficients = CoefficientSet {
             a0: 1.0 + alpha,
             a1: -2.0f64 * w0cos,
@@ -649,7 +649,7 @@ impl BiQuadFilterBandStopChannel {
         bandwidth: ParameterType,
     ) {
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_bandwidth(sample_rate, cutoff.value(), bandwidth);
+            BiQuadFilter::rbj_intermediates_bandwidth(sample_rate, cutoff.0, bandwidth);
 
         self.inner.coefficients = CoefficientSet {
             a0: 1.0 + alpha,
@@ -754,7 +754,7 @@ impl BiQuadFilterPeakingEqChannel {
     ) {
         let (_w0, w0cos, _w0sin, alpha) = BiQuadFilter::rbj_intermediates_q(
             sample_rate,
-            cutoff.value(),
+            cutoff.0,
             std::f64::consts::FRAC_1_SQRT_2,
         );
         let a = 10f64.powf(q / 10.0f64).sqrt();
@@ -857,7 +857,7 @@ impl BiQuadFilterLowShelfChannel {
     ) {
         let a = 10f64.powf(db_gain / 10.0f64).sqrt();
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_shelving(sample_rate, cutoff.value(), a, 1.0);
+            BiQuadFilter::rbj_intermediates_shelving(sample_rate, cutoff.0, a, 1.0);
 
         self.inner.coefficients = CoefficientSet {
             a0: (a + 1.0) + (a - 1.0) * w0cos + 2.0 * a.sqrt() * alpha,
@@ -957,7 +957,7 @@ impl BiQuadFilterHighShelfChannel {
     ) {
         let a = 10f64.powf(db_gain / 10.0f64).sqrt();
         let (_w0, w0cos, _w0sin, alpha) =
-            BiQuadFilter::rbj_intermediates_shelving(sample_rate, cutoff.value(), a, 1.0);
+            BiQuadFilter::rbj_intermediates_shelving(sample_rate, cutoff.0, a, 1.0);
 
         self.inner.coefficients = CoefficientSet {
             a0: (a + 1.0) - (a - 1.0) * w0cos + 2.0 * a.sqrt() * alpha,
@@ -1076,7 +1076,7 @@ impl BiQuadFilter {
     // A placeholder for an intelligent mapping of 0.0..=1.0 to a reasonable Q
     // range
     pub fn denormalize_q(value: Normal) -> ParameterType {
-        value.value() * value.value() * 10.0 + 0.707
+        value.0 * value.0 * 10.0 + 0.707
     }
 
     // A placeholder for an intelligent mapping of 0.0..=1.0 to a reasonable
@@ -1209,7 +1209,7 @@ impl Displays for BiQuadFilterNone {
 
 impl Displays for BiQuadFilterLowPass24db {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        let mut cutoff = self.cutoff().value();
+        let mut cutoff = self.cutoff().0;
         let mut pbr = self.passband_ripple();
         let cutoff_response =
             ui.add(Slider::new(&mut cutoff, FrequencyRange::Audible.as_range()).text("Cutoff"));

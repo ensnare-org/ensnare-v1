@@ -192,9 +192,8 @@ impl Ticks for WelshVoice {
                     self.filter.set_cutoff(new_cutoff_percentage.into());
                 } else if matches!(self.lfo_routing, LfoRouting::FilterCutoff) {
                     let lfo_for_cutoff = lfo * self.lfo_depth;
-                    self.filter.set_cutoff(
-                        (self.filter_cutoff_start * (lfo_for_cutoff.value() + 1.0)).into(),
-                    );
+                    self.filter
+                        .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
                 }
                 let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
 
@@ -208,7 +207,7 @@ impl Ticks for WelshVoice {
 
                 // Final
                 self.dca.transform_audio_to_stereo(Sample(
-                    filtered_mix * amp_env_amplitude.value() * lfo_for_amplitude.value(),
+                    filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
                 ))
             } else {
                 StereoSample::SILENCE

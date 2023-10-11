@@ -45,7 +45,7 @@ impl Serializable for Compressor {}
 impl TransformsAudio for Compressor {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let input_sample_positive = input_sample.0.abs();
-        let threshold = self.threshold.value();
+        let threshold = self.threshold.0;
         if input_sample_positive > threshold {
             // TODO: this expression is (a + b - a) * c * d, which is just b * c
             // * d, which is clearly wrong. Fix it. (Too tired right now to look
@@ -106,7 +106,7 @@ impl Compressor {
 
 impl Displays for Compressor {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        let mut threshold = self.threshold().value();
+        let mut threshold = self.threshold().0;
         let mut ratio = self.ratio();
         let mut attack = self.attack();
         let mut release = self.release();

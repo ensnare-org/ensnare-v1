@@ -30,13 +30,7 @@ impl Configurable for Limiter {}
 impl TransformsAudio for Limiter {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let sign = input_sample.0.signum();
-        Sample::from(
-            input_sample
-                .0
-                .abs()
-                .clamp(self.minimum.value(), self.maximum.value())
-                * sign,
-        )
+        Sample::from(input_sample.0.abs().clamp(self.minimum.0, self.maximum.0) * sign)
     }
 }
 impl Limiter {

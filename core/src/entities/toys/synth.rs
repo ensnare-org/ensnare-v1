@@ -8,7 +8,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
-    widgets::{audio::waveform, indicator, UiSize},
+    widgets::{audio::waveform, misc::level_indicator, parts::UiSize},
 };
 use eframe::{
     egui::{self, Layout, Ui},
@@ -194,7 +194,7 @@ impl ToySynth {
                 })
                 .inner
                     | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add(indicator(self.max_signal))
+                        ui.add(level_indicator(self.max_signal))
                     })
                     .inner
             })
@@ -214,7 +214,7 @@ impl ToySynth {
     fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
         ui.heading("ToySynth LARGE!!!!");
         let value = Normal::from(0.8);
-        ui.add(indicator(value))
+        ui.add(level_indicator(value))
     }
 }
 
@@ -260,7 +260,7 @@ impl Ticks for ToyVoice {
         self.oscillator.tick(tick_count);
         self.envelope.tick(tick_count);
         self.value = self.dca.transform_audio_to_stereo(
-            (self.oscillator.value().value() * self.envelope.value().value()).into(),
+            (self.oscillator.value().0 * self.envelope.value().0).into(),
         );
     }
 }

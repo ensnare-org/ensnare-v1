@@ -279,21 +279,21 @@ mod tests {
 
     #[test]
     fn ratio_ok() {
-        assert_eq!(Ratio::from(ControlValue(0.0)).value(), 0.125);
-        assert_eq!(Ratio::from(ControlValue(0.5)).value(), 1.0);
-        assert_eq!(Ratio::from(ControlValue(1.0)).value(), 8.0);
+        assert_eq!(Ratio::from(ControlValue(0.0)).0, 0.125);
+        assert_eq!(Ratio::from(ControlValue(0.5)).0, 1.0);
+        assert_eq!(Ratio::from(ControlValue(1.0)).0, 8.0);
 
         assert_eq!(ControlValue::from(Ratio::from(0.125)).0, 0.0);
         assert_eq!(ControlValue::from(Ratio::from(1.0)).0, 0.5);
         assert_eq!(ControlValue::from(Ratio::from(8.0)).0, 1.0);
 
-        assert_eq!(Ratio::from(BipolarNormal::from(-1.0)).value(), 0.125);
-        assert_eq!(Ratio::from(BipolarNormal::from(0.0)).value(), 1.0);
-        assert_eq!(Ratio::from(BipolarNormal::from(1.0)).value(), 8.0);
+        assert_eq!(Ratio::from(BipolarNormal::from(-1.0)).0, 0.125);
+        assert_eq!(Ratio::from(BipolarNormal::from(0.0)).0, 1.0);
+        assert_eq!(Ratio::from(BipolarNormal::from(1.0)).0, 8.0);
 
-        assert_eq!(BipolarNormal::from(Ratio::from(0.125)).value(), -1.0);
-        assert_eq!(BipolarNormal::from(Ratio::from(1.0)).value(), 0.0);
-        assert_eq!(BipolarNormal::from(Ratio::from(8.0)).value(), 1.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(0.125)).0, -1.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(1.0)).0, 0.0);
+        assert_eq!(BipolarNormal::from(Ratio::from(8.0)).0, 1.0);
     }
 
     #[test]
