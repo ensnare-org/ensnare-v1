@@ -132,15 +132,15 @@ impl Serializable for PatternSequencer {
 }
 impl PatternSequencer {
     fn shape_for_note(to_screen: &RectTransform, visuals: &WidgetVisuals, note: &Note) -> Shape {
-        Shape::Rect(RectShape {
-            rect: Rect::from_two_pos(
+        Shape::Rect(RectShape::new(
+            Rect::from_two_pos(
                 to_screen * pos2(note.range.start.total_units() as f32, note.key as f32),
                 to_screen * pos2(note.range.end.total_units() as f32, note.key as f32),
             ),
-            rounding: visuals.rounding,
-            fill: visuals.bg_fill,
-            stroke: visuals.fg_stroke,
-        })
+            visuals.rounding,
+            visuals.bg_fill,
+            visuals.fg_stroke,
+        ))
     }
 }
 

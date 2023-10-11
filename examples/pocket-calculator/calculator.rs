@@ -11,20 +11,20 @@
 // - should BPM be global?
 // - a better LCD
 
-use crate::{
-    entities::instruments::sampler::{Sampler, SamplerVoice},
-    instruments::Synthesizer,
-    midi::prelude::*,
-    prelude::*,
-    traits::prelude::*,
-    utils::Paths,
-    voices::VoicePerNoteStore,
-};
 use eframe::{
     egui::{self, Button, Grid, Response, Sense, Ui},
     epaint::{Color32, Stroke, Vec2},
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
+use ensnare::{
+    instruments::{
+        sampler::{Sampler, SamplerVoice},
+        Synthesizer, VoicePerNoteStore,
+    },
+    prelude::*,
+    traits::prelude::*,
+    util::Paths,
+};
 use ensnare_proc_macros::{Control, IsControllerInstrument, Uid};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, path::Path, sync::Arc};
@@ -570,12 +570,6 @@ impl Default for Calculator {
     }
 }
 impl Calculator {
-    pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
-
     pub fn volume(&self) -> u8 {
         self.volume
     }
@@ -760,12 +754,12 @@ impl Calculator {
         let vel = 127.into();
         self.inner_synth.handle_midi_message(
             MidiChannel(2),
-            midly::MidiMessage::NoteOff { key, vel },
+            MidiMessage::NoteOff { key, vel },
             &mut |_, _| {},
         );
         self.inner_synth.handle_midi_message(
             MidiChannel(4),
-            midly::MidiMessage::NoteOn { key, vel },
+            MidiMessage::NoteOn { key, vel },
             &mut |_, _| {},
         );
     }

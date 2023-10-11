@@ -54,10 +54,14 @@ pub mod instruments {
     //! Instruments produce audio in response to MIDI messages. All synthesizers
     //! are instruments. They implement the
     //! [IsInstrument](crate::traits::IsInstrument) interface.
-    pub use ensnare_core::entities::{
-        factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
-        instruments::*,
-        toys::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
+    pub use ensnare_core::{
+        entities::{
+            factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
+            instruments::*,
+            toys::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
+        },
+        instruments::Synthesizer,
+        voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
     };
 }
 
@@ -179,6 +183,7 @@ pub mod panels {
 
 pub mod util {
     //! Various helpers.
+    pub use ensnare_core::utils::Paths;
 }
 
 pub mod version;

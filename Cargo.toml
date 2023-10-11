@@ -16,8 +16,8 @@ version = "0.0.2"
 [dependencies]
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
-eframe = "0.22"
-egui-toast = { version = "0.8" }
+eframe = "0.23"
+egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
 ensnare-core = { path = "core" }
 ensnare-proc-macros = { path = "proc-macros" }
 env_logger = "0.10"
@@ -29,6 +29,13 @@ members = ["core", "proc-macros"]
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
+egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features = [
+    "knobs",
+    "displays",
+] }
+strum_macros = "0.25.2"
+typetag = "0.2.13"
+
 regex = "1.7"
 
 [[bin]]

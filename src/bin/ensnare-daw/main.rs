@@ -6,10 +6,10 @@ use anyhow::anyhow;
 use crossbeam_channel::Select;
 use eframe::{
     egui::{
-        CentralPanel, Context, FontData, FontDefinitions, Layout, ScrollArea, SidePanel, TextStyle,
-        TopBottomPanel, Ui,
+        CentralPanel, Context, Direction, FontData, FontDefinitions, Layout, ScrollArea, SidePanel,
+        TextStyle, TopBottomPanel, Ui,
     },
-    emath::Align,
+    emath::{Align, Align2},
     epaint::{Color32, FontFamily, FontId},
     App, CreationContext,
 };
@@ -75,8 +75,8 @@ impl Ensnare {
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
             palette_panel: Default::default(),
             toasts: Toasts::new()
-                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
-                .direction(eframe::egui::Direction::BottomUp),
+                .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
+                .direction(Direction::BottomUp),
             exit_requested: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());

@@ -258,12 +258,7 @@ impl Displays for Pattern {
                     ui.ctx().style().visuals.widgets.active.bg_stroke
                 };
 
-                Shape::Rect(RectShape {
-                    rect,
-                    rounding: Rounding::default(),
-                    fill,
-                    stroke,
-                })
+                Shape::Rect(RectShape::new(rect, Rounding::default(), fill, stroke))
             })
             .collect();
 
@@ -385,12 +380,12 @@ impl Pattern {
             rect
         };
         debug_assert!(rect.area() != 0.0);
-        vec![Shape::Rect(RectShape {
+        vec![Shape::Rect(RectShape::new(
             rect,
-            rounding: Rounding::default(),
-            fill: Color32::LIGHT_BLUE,
-            stroke: Stroke { width: 2.0, color },
-        })]
+            Rounding::default(),
+            Color32::LIGHT_BLUE,
+            Stroke { width: 2.0, color },
+        ))]
     }
 
     fn rect_for_note(&self, note: &Note) -> Rect {

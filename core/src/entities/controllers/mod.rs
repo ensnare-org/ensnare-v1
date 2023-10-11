@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 pub use lfo::{LfoController, LfoControllerParams};
 
 pub(crate) mod arpeggiator;
-pub(crate) mod calculator;
 pub(crate) mod control;
 pub(crate) mod lfo;
 pub mod sequencers;

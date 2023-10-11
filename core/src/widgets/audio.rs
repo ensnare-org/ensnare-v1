@@ -143,15 +143,15 @@ impl<'a> Displays for TimeDomain<'a> {
         );
         let mut shapes = Vec::default();
 
-        shapes.push(eframe::epaint::Shape::Rect(RectShape {
-            rect: response.rect,
-            rounding: Rounding::same(3.0),
-            fill: Color32::DARK_BLUE,
-            stroke: Stroke {
+        shapes.push(eframe::epaint::Shape::Rect(RectShape::new(
+            response.rect,
+            Rounding::same(3.0),
+            Color32::DARK_BLUE,
+            Stroke {
                 width: 2.0,
                 color: Color32::YELLOW,
             },
-        }));
+        )));
 
         for i in 0..self.samples.len() {
             let cursor = (self.start + i) % self.samples.len();
@@ -199,15 +199,15 @@ impl<'a> Displays for FrequencyDomain<'a> {
         );
         let mut shapes = Vec::default();
 
-        shapes.push(eframe::epaint::Shape::Rect(RectShape {
-            rect: response.rect,
-            rounding: Rounding::same(3.0),
-            fill: Color32::DARK_GREEN,
-            stroke: Stroke {
+        shapes.push(eframe::epaint::Shape::Rect(RectShape::new(
+            response.rect,
+            Rounding::same(3.0),
+            Color32::DARK_GREEN,
+            Stroke {
                 width: 2.0,
                 color: Color32::YELLOW,
             },
-        }));
+        )));
 
         for (i, value) in self.values.iter().enumerate() {
             shapes.push(eframe::epaint::Shape::LineSegment {
