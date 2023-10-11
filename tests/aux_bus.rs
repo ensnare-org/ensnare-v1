@@ -107,7 +107,7 @@ fn aux_bus() {
                 .unwrap();
             orchestrator
                 .append_entity(
-                    (&aux_track_uid),
+                    &aux_track_uid,
                     factory.new_entity(&EntityKey::from("reverb")).unwrap(),
                 )
                 .unwrap()

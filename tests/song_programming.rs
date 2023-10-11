@@ -104,7 +104,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Make the synth sound better.
     let reverb_uid = o
         .append_entity(
-            (&track_uid),
+            &track_uid,
             factory.new_entity(&EntityKey::from("reverb")).unwrap(),
         )
         .unwrap();
