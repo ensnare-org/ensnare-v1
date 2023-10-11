@@ -10,14 +10,14 @@ struct CalculatorApp {
 impl CalculatorApp {
     const APP_NAME: &'static str = "Pocket Calculator";
 
-    fn new(cc: &CreationContext) -> Self {
+    fn new(_cc: &CreationContext) -> Self {
         Self {
             calculator: Default::default(),
         }
     }
 }
 impl eframe::App for CalculatorApp {
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, _ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         todo!()
     }
 }

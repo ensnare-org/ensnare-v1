@@ -929,7 +929,7 @@ impl eframe::App for Explorer {
                         let _ = self.signal_chain.append_entity(entity);
                     }
                 }
-                TrackAction::LinkControl(source_uid, target_uid, index) => {
+                TrackAction::LinkControl(_source_uid, _target_uid, _index) => {
                     eprintln!("{action:?}")
                 }
             }
@@ -939,12 +939,12 @@ impl eframe::App for Explorer {
             eprintln!("{event:?}");
             match event {
                 DragDropEvent::TrackAddDevice(..) => {}
-                DragDropEvent::TrackAddPattern(track_uid, pattern_uid, position) => {
-                    if let Some(pattern) = self.piano_roll.piano_roll.get_pattern(&pattern_uid) {
+                DragDropEvent::TrackAddPattern(_track_uid, pattern_uid, _position) => {
+                    if let Some(_pattern) = self.piano_roll.piano_roll.get_pattern(&pattern_uid) {
                         //                        let _ = self.track_widget.track.insert_pattern(pattern, position);
                     }
                 }
-                DragDropEvent::LinkControl(source_uid, target_uid, control_index) => {}
+                DragDropEvent::LinkControl(_source_uid, _target_uid, _control_index) => {}
             }
         }
     }

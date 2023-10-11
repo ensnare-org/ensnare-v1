@@ -104,7 +104,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Make the synth sound better.
     let reverb_uid = o
         .append_entity(
-            &&track_uid,
+            (&track_uid),
             factory.new_entity(&EntityKey::from("reverb")).unwrap(),
         )
         .unwrap();
@@ -130,8 +130,8 @@ fn program_song() {
 
         orchestrator.update_tempo(Tempo(128.0));
 
-        set_up_drum_track(orchestrator, &factory);
-        set_up_lead_track(orchestrator, &factory);
+        set_up_drum_track(orchestrator, factory);
+        set_up_lead_track(orchestrator, factory);
     }
 
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example

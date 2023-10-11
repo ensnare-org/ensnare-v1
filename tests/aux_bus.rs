@@ -39,7 +39,7 @@ fn aux_bus() {
             .build()
             .unwrap();
 
-        let _synth_uid_1 = {
+        {
             assert!(orchestrator
                 .append_entity(
                     &track_uid_1,
@@ -107,7 +107,7 @@ fn aux_bus() {
                 .unwrap();
             orchestrator
                 .append_entity(
-                    &&aux_track_uid,
+                    (&aux_track_uid),
                     factory.new_entity(&EntityKey::from("reverb")).unwrap(),
                 )
                 .unwrap()
