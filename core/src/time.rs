@@ -52,11 +52,6 @@ impl Tempo {
     /// case... maybe we should be picking 0.1 or similar.
     pub const MIN_VALUE: ParameterType = 0.0;
 
-    #[allow(missing_docs)]
-    /// A getter for the raw value.
-    pub fn value(&self) -> ParameterType {
-        self.0
-    }
     /// Beats per second.
     pub fn bps(&self) -> ParameterType {
         self.0 / 60.0
@@ -381,7 +376,7 @@ impl MusicalTime {
     }
 
     pub fn frames_to_units(tempo: Tempo, sample_rate: SampleRate, frames: usize) -> usize {
-        let elapsed_beats = (frames as f64 / sample_rate.value() as f64) * tempo.bps();
+        let elapsed_beats = (frames as f64 / sample_rate.0 as f64) * tempo.bps();
         let elapsed_fractional_units =
             (elapsed_beats.fract() * Self::UNITS_IN_BEAT as f64 + 0.5) as usize;
         Self::beats_to_units(elapsed_beats.floor() as usize) + elapsed_fractional_units
@@ -526,10 +521,6 @@ pub struct SampleRate(pub usize);
 impl SampleRate {
     pub const DEFAULT_SAMPLE_RATE: usize = 44100;
     pub const DEFAULT: SampleRate = SampleRate::new(Self::DEFAULT_SAMPLE_RATE);
-
-    pub const fn value(&self) -> usize {
-        self.0
-    }
 
     pub const fn new(value: usize) -> Self {
         if value != 0 {
@@ -768,13 +759,13 @@ mod tests {
     #[test]
     fn tempo() {
         let t = Tempo::default();
-        assert_eq!(t.value(), 128.0);
+        assert_eq!(t.0, 128.0);
     }
 
     #[test]
     fn sample_rate_default_is_sane() {
         let sr = SampleRate::default();
-        assert_eq!(sr.value(), 44100);
+        assert_eq!(sr.0, 44100);
     }
 
     #[test]

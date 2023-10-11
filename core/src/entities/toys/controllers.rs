@@ -208,7 +208,7 @@ impl SequencesMidi for ToySequencer {
         self.max_event_time = MusicalTime::default();
     }
 
-    fn record_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
+    fn record_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
         self.events.push(event);
         if event.time > self.max_event_time {
             self.max_event_time = event.time;
@@ -216,7 +216,7 @@ impl SequencesMidi for ToySequencer {
         Ok(())
     }
 
-    fn remove_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
+    fn remove_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
         self.events.retain(|e| *e != event);
         self.recalculate_max_time();
         Ok(())

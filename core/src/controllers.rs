@@ -106,7 +106,7 @@ pub struct Trigger {
 
     timer: Timer,
 
-    value: ControlValue,
+    pub value: ControlValue,
 
     has_triggered: bool,
     is_performing: bool,
@@ -165,10 +165,6 @@ impl Trigger {
             has_triggered: false,
             is_performing: false,
         }
-    }
-
-    pub fn value(&self) -> ControlValue {
-        self.value
     }
 
     pub fn set_value(&mut self, value: ControlValue) {

@@ -125,7 +125,7 @@ impl<V: IsStereoSampleVoice> Synthesizer<V> {
 
     pub fn is_midi_recently_active(&self) -> bool {
         // Last quarter-second
-        self.ticks_since_last_midi_input < self.sample_rate().value() / 4
+        self.ticks_since_last_midi_input < self.sample_rate().0 / 4
     }
 }
 impl<V: IsStereoSampleVoice> HandlesMidi for Synthesizer<V> {

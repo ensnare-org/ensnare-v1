@@ -971,7 +971,7 @@ mod tests {
         let mut o = Orchestrator::default();
 
         assert!(
-            o.sample_rate().value() != 0,
+            o.sample_rate().0 != 0,
             "Default sample rate should be reasonable"
         );
         let new_sample_rate = SampleRate(3);
@@ -982,10 +982,7 @@ mod tests {
             "Sample rate should be settable"
         );
 
-        assert!(
-            o.tempo().value() > 0.0,
-            "Default tempo should be reasonable"
-        );
+        assert!(o.tempo().0 > 0.0, "Default tempo should be reasonable");
         let new_tempo = Tempo(64.0);
         o.update_tempo(new_tempo);
         assert_eq!(o.tempo(), new_tempo, "Tempo should be settable");

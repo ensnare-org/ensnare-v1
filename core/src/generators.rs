@@ -311,8 +311,7 @@ impl Oscillator {
 
     fn update_delta(&mut self) {
         if !self.delta_updated {
-            self.delta =
-                (self.adjusted_frequency() / FrequencyHz::from(self.sample_rate.value())).0;
+            self.delta = (self.adjusted_frequency() / FrequencyHz::from(self.sample_rate.0)).0;
 
             // This resets the accumulated error.
             self.cycle_position = KahanSum::new_with_value(self.cycle_position.sum());
@@ -595,7 +594,7 @@ impl Ticks for Envelope {
                 self.ticks += 1;
                 self.update_amplitude();
             }
-            self.time = Seconds(self.ticks as f64 / self.sample_rate.value() as f64);
+            self.time = Seconds(self.ticks as f64 / self.sample_rate.0 as f64);
 
             self.handle_state();
 
@@ -805,9 +804,7 @@ impl Envelope {
             let duration_seconds = Self::from_normal_to_seconds(duration);
             self.time_target = self.time + duration_seconds;
             self.delta = if duration != Normal::minimum() {
-                range
-                    / (duration_seconds.0 * self.sample_rate.value() as f64
-                        + fast_reaction_extra_frame)
+                range / (duration_seconds.0 * self.sample_rate.0 as f64 + fast_reaction_extra_frame)
             } else {
                 0.0
             };
@@ -1287,9 +1284,9 @@ mod tests {
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         // Below Nyquist limit
-        assert_lt!(FREQUENCY, FrequencyHz((SAMPLE_RATE.value() / 2) as f64));
+        assert_lt!(FREQUENCY, FrequencyHz((SAMPLE_RATE.0 / 2) as f64));
 
-        for _ in 0..SAMPLE_RATE.value() {
+        for _ in 0..SAMPLE_RATE.0 {
             oscillator.tick(1);
             let f = oscillator.value().0;
             assert_eq!(f, f.signum());
@@ -1313,7 +1310,7 @@ mod tests {
         let mut n_neg = 0;
         let mut last_sample = 1.0;
         let mut transitions = 0;
-        for _ in 0..SAMPLE_RATE.value() {
+        for _ in 0..SAMPLE_RATE.0 {
             oscillator.tick(1);
             let f = oscillator.value().0;
             if f == 1.0 {
@@ -1328,7 +1325,7 @@ mod tests {
                 last_sample = f;
             }
         }
-        assert_eq!(n_pos + n_neg, SAMPLE_RATE.value());
+        assert_eq!(n_pos + n_neg, SAMPLE_RATE.0);
         assert_eq!(n_pos, n_neg);
 
         // The -1 is because we stop at the end of the cycle, and the transition
@@ -1364,7 +1361,7 @@ mod tests {
         // reasonably to clock.set_samples(). I haven't decided whether entities
         // need to pay close attention to clock.set_samples() other than not
         // exploding, so I might end up deleting that part of the test.
-        oscillator.tick(SAMPLE_RATE.value() / 4 - 2);
+        oscillator.tick(SAMPLE_RATE.0 / 4 - 2);
         assert_eq!(oscillator.value().0, 1.0);
         oscillator.tick(1);
         assert_eq!(oscillator.value().0, 1.0);
@@ -1377,7 +1374,7 @@ mod tests {
         // cycle.
         //
         // As noted above, we're using clock.set_samples() here.
-        oscillator.debug_tick_until(SAMPLE_RATE.value() / 2 - 2);
+        oscillator.debug_tick_until(SAMPLE_RATE.0 / 2 - 2);
         assert_eq!(oscillator.value().0, -1.0);
         oscillator.tick(1);
         assert_eq!(oscillator.value().0, -1.0);

@@ -53,8 +53,7 @@ impl DelayLine {
     }
 
     fn resize_buffer(&mut self) {
-        self.buffer_size =
-            (self.sample_rate.value() as ParameterType * self.delay_seconds) as usize;
+        self.buffer_size = (self.sample_rate.0 as ParameterType * self.delay_seconds) as usize;
         self.buffer = Vec::with_capacity(self.buffer_size);
         self.buffer.resize(self.buffer_size, Sample::SILENCE);
         self.buffer_pointer = 0;
