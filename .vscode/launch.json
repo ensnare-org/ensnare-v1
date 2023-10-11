@@ -45,15 +45,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug example 'hello_world'",
+            "name": "Debug example 'hello-world'",
             "cargo": {
                 "args": [
                     "build",
-                    "--example=hello_world",
+                    "--example=hello-world",
                     "--package=ensnare"
                 ],
                 "filter": {
-                    "name": "hello_world",
+                    "name": "hello-world",
                     "kind": "example"
                 }
             },
@@ -63,16 +63,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in example 'hello_world'",
+            "name": "Debug example 'Pocket Calculator'",
             "cargo": {
                 "args": [
-                    "test",
-                    "--no-run",
-                    "--example=hello_world",
+                    "build",
+                    "--example=pocket-calculator",
                     "--package=ensnare"
                 ],
                 "filter": {
-                    "name": "hello_world",
+                    "name": "pocket-calculator",
                     "kind": "example"
                 }
             },

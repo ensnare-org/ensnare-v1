@@ -2,6 +2,11 @@
 
 //! Pocket Calculator is a streamlined groovebox.
 
+use anyhow::anyhow;
+use calculator::Calculator;
+use eframe::CreationContext;
+use ensnare::traits::prelude::*;
+
 mod calculator;
 
 struct CalculatorApp {
@@ -17,18 +22,17 @@ impl CalculatorApp {
     }
 }
 impl eframe::App for CalculatorApp {
-    fn update(&mut self, _ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        todo!()
+    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        let center = eframe::egui::CentralPanel::default();
+
+        center.show(ctx, |ui| self.calculator.ui(ui));
     }
 }
 
-use anyhow::anyhow;
-use calculator::Calculator;
-use eframe::CreationContext;
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(1366.0, 768.0)),
+        initial_window_size: Some(eframe::egui::vec2(320.0, 560.0)),
         ..Default::default()
     };
 
