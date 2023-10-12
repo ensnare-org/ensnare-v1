@@ -3,7 +3,7 @@
 use crate::{
     traits::{Acts, Displays},
     types::{ChannelPair, Sample},
-    widgets::audio::{time_domain, CircularSampleBuffer},
+    widgets::audio::{frequency_domain, time_domain, CircularSampleBuffer},
 };
 use eframe::{
     egui::{Layout, Response, Ui},
@@ -35,6 +35,13 @@ pub enum ControlPanelAction {
     ToggleSettings,
 }
 
+#[derive(Debug, Default)]
+enum ControlPanelDisplayMode {
+    #[default]
+    Time,
+    Frequency,
+}
+
 /// [ControlPanel] is the UI component at the top of the main window. Transport,
 /// MIDI status, etc.
 #[derive(Debug, Default)]
@@ -44,6 +51,8 @@ pub struct ControlPanel {
     saw_midi_out_activity: bool,
     sample_buffer: CircularSampleBuffer,
     pub sample_channel: ChannelPair<[Sample; 64]>,
+    which_display: ControlPanelDisplayMode,
+    fft_buffer: Vec<f32>,
 }
 impl ControlPanel {
     /// Tell [ControlPanel] that the system just saw an incoming MIDI message.
@@ -99,7 +108,20 @@ impl Displays for ControlPanel {
             let (samples, start) = self.sample_buffer.get();
             ui.scope(|ui| {
                 ui.set_max_size(vec2(64.0, 32.0));
-                ui.add(time_domain(samples, start));
+                if match self.which_display {
+                    ControlPanelDisplayMode::Time => ui.add(time_domain(samples, start)),
+                    ControlPanelDisplayMode::Frequency => {
+                        self.fft_buffer = self.sample_buffer.analyze_spectrum().unwrap();
+                        ui.add(frequency_domain(&self.fft_buffer))
+                    }
+                }
+                .clicked()
+                {
+                    self.which_display = match self.which_display {
+                        ControlPanelDisplayMode::Time => ControlPanelDisplayMode::Frequency,
+                        ControlPanelDisplayMode::Frequency => ControlPanelDisplayMode::Time,
+                    }
+                }
             });
             ui.separator();
             if ui.button("settings").clicked() {

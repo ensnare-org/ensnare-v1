@@ -137,7 +137,7 @@ impl<'a> TimeDomain<'a> {
 impl<'a> Displays for TimeDomain<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let (response, painter) =
-            ui.allocate_painter(ui.available_size_before_wrap(), Sense::hover());
+            ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let rect = response.rect.shrink(1.0);
 
         let to_screen = RectTransform::from_to(
@@ -164,7 +164,7 @@ impl<'a> Displays for TimeDomain<'a> {
                     to_screen * pos2(i as f32, Sample::MIN.0 as f32),
                     to_screen * pos2(i as f32, sample.0 as f32),
                 ],
-                stroke: Stroke::new(1.0, Color32::DARK_BLUE),
+                stroke: Stroke::new(1.0, Color32::YELLOW),
             })
         }
 
@@ -187,7 +187,8 @@ impl<'a> FrequencyDomain<'a> {
 impl<'a> Displays for FrequencyDomain<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let (response, painter) =
-            ui.allocate_painter(ui.available_size_before_wrap(), Sense::hover());
+            ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
+        let rect = response.rect.shrink(1.0);
 
         let buf_min = 0.0;
         let buf_max = 1.0;
@@ -195,18 +196,15 @@ impl<'a> Displays for FrequencyDomain<'a> {
         #[allow(unused_variables)]
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(0.0..=self.values.len() as f32, buf_max..=buf_min),
-            response.rect,
+            rect,
         );
         let mut shapes = Vec::default();
 
         shapes.push(eframe::epaint::Shape::Rect(RectShape::new(
-            response.rect,
+            rect,
             Rounding::same(3.0),
-            Color32::DARK_GREEN,
-            Stroke {
-                width: 2.0,
-                color: Color32::YELLOW,
-            },
+            ui.visuals().window_fill,
+            ui.visuals().window_stroke,
         )));
 
         for (i, value) in self.values.iter().enumerate() {
