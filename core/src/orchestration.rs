@@ -262,8 +262,12 @@ impl Orchestrator {
                     let _ = queue.push(sample);
                     mono_samples[index] = Sample::from(sample);
                 }
+
+                // TODO: can we do this work outside this critical loop? And can
+                // we have the recipient do the work of the stereo->mono
+                // conversion?
                 if let Some(sender) = &self.e.sample_buffer_channel_sender {
-                    sender.send(mono_samples);
+                    let _ = sender.send(mono_samples);
                 }
             }
         }
