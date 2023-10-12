@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! Explorer is a sandbox for developing egui components and widgets.
+//! The `explorer` example is a sandbox for developing egui components and
+//! widgets.
 
 use anyhow::anyhow;
 use eframe::{
@@ -14,12 +15,14 @@ use eframe::{
 };
 use ensnare::{
     arrangement::{signal_chain, track_widget, TrackAction, TrackUiState},
-    controllers::{
-        atlas, LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
-        ToyControllerParams,
+    entities::{
+        controllers::{
+            atlas, LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
+            ToyControllerParams,
+        },
+        effects::{ToyEffect, ToyEffectParams},
+        instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     },
-    effects::{ToyEffect, ToyEffectParams},
-    instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline, track},
@@ -137,21 +140,21 @@ impl Displays for TrackSettings {
     }
 }
 
-/// Wraps a [DevicePalette] as a [Widget](eframe::egui::Widget).
+/// Wraps a PretendDevicePalette as a [Widget](eframe::egui::Widget).
 pub fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| DevicePalette::new(entity_factory).ui(ui)
+    move |ui: &mut eframe::egui::Ui| PretendDevicePalette::new(entity_factory).ui(ui)
 }
 
 #[derive(Debug)]
-struct DevicePalette<'a> {
+struct PretendDevicePalette<'a> {
     entity_factory: &'a EntityFactory,
 }
-impl<'a> DevicePalette<'a> {
+impl<'a> PretendDevicePalette<'a> {
     fn new(entity_factory: &'a EntityFactory) -> Self {
         Self { entity_factory }
     }
 }
-impl<'a> Displays for DevicePalette<'a> {
+impl<'a> Displays for PretendDevicePalette<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {

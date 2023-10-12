@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
+use ensnare::{entities::controllers::PatternSequencerBuilder, prelude::*};
 
 // Demonstrates use of aux buses.
 #[test]

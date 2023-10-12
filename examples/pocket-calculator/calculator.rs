@@ -17,7 +17,7 @@ use eframe::{
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
 use ensnare::{
-    instruments::{
+    entities::instruments::{
         sampler::{Sampler, SamplerVoice},
         Synthesizer, VoicePerNoteStore,
     },

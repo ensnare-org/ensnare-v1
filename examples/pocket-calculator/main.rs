@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! Pocket Calculator is a streamlined groovebox.
+//! The `pocket-calculator` example is a simple groovebox. It demonstrates using
+//! the `ensnare` crate without an [Orchestrator].
 
 use anyhow::anyhow;
 use calculator::Calculator;

@@ -5,7 +5,7 @@
 
 use ensnare::{
     arrangement::Orchestrator,
-    midi_interface::{MidiInterfaceInput, MidiPortDescriptor},
+    midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     panels::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
     traits::{Displays, EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},

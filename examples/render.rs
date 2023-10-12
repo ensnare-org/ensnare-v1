@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! `minicli` shows how to generate sound files from a serialized
-//! [Orchestrator].
+//! The `render` example generates a WAV file from a serialized [Orchestrator].
 
 use clap::Parser;
 use ensnare::prelude::*;

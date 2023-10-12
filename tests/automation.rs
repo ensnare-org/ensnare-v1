@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    controllers::{LfoController, LfoControllerParams, PatternSequencerBuilder},
+    entities::controllers::{LfoController, LfoControllerParams, PatternSequencerBuilder},
     prelude::*,
 };
 use std::path::PathBuf;

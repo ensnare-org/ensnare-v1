@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{controllers::PatternSequencerBuilder, prelude::*};
+use ensnare::{entities::controllers::PatternSequencerBuilder, prelude::*};
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Add the drum pattern to the PianoRoll.

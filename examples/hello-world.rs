@@ -1,9 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! Shows how to use basic crate functionality.
+//! The `hello-world` example shows how to use basic crate functionality.
 
 use clap::Parser;
-use ensnare::{effects::ToyEffect, instruments::ToyInstrument, prelude::*};
+use ensnare::{
+    entities::{effects::ToyEffect, instruments::ToyInstrument},
+    prelude::*,
+};
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]
