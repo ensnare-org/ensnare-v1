@@ -12,11 +12,16 @@ use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
 
 /// A fixed-size circular buffer for use by audio widgets.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CircularSampleBuffer {
     buffer: Vec<Sample>,
     cursor: usize,
     rng: Rng,
+}
+impl Default for CircularSampleBuffer {
+    fn default() -> Self {
+        Self::new(256)
+    }
 }
 impl CircularSampleBuffer {
     /// Creates a new [CircularSampleBuffer] of the given size.
@@ -133,24 +138,22 @@ impl<'a> Displays for TimeDomain<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::hover());
+        let rect = response.rect.shrink(1.0);
 
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
                 0.0..=self.samples.len() as f32,
                 Sample::MAX.0 as f32..=Sample::MIN.0 as f32,
             ),
-            response.rect,
+            rect,
         );
         let mut shapes = Vec::default();
 
         shapes.push(eframe::epaint::Shape::Rect(RectShape::new(
-            response.rect,
+            rect,
             Rounding::same(3.0),
-            Color32::DARK_BLUE,
-            Stroke {
-                width: 2.0,
-                color: Color32::YELLOW,
-            },
+            ui.visuals().window_fill,
+            ui.visuals().window_stroke,
         )));
 
         for i in 0..self.samples.len() {
@@ -161,10 +164,7 @@ impl<'a> Displays for TimeDomain<'a> {
                     to_screen * pos2(i as f32, Sample::MIN.0 as f32),
                     to_screen * pos2(i as f32, sample.0 as f32),
                 ],
-                stroke: Stroke {
-                    width: 1.0,
-                    color: Color32::YELLOW,
-                },
+                stroke: Stroke::new(1.0, Color32::DARK_BLUE),
             })
         }
 

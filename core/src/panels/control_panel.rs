@@ -1,6 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::traits::{Acts, Displays};
+use crate::{
+    traits::{Acts, Displays},
+    types::{ChannelPair, Sample},
+    widgets::audio::{time_domain, CircularSampleBuffer},
+};
 use eframe::{
     egui::{Layout, Response, Ui},
     epaint::vec2,
@@ -38,12 +42,15 @@ pub struct ControlPanel {
     action: Option<ControlPanelAction>,
     saw_midi_in_activity: bool,
     saw_midi_out_activity: bool,
+    sample_buffer: CircularSampleBuffer,
+    pub sample_channel: ChannelPair<[Sample; 64]>,
 }
 impl ControlPanel {
     /// Tell [ControlPanel] that the system just saw an incoming MIDI message.
     pub fn tickle_midi_in(&mut self) {
         self.saw_midi_in_activity = true;
     }
+
     /// Tell [ControlPanel] that the system just produced an outgoing MIDI message.
     pub fn tickle_midi_out(&mut self) {
         self.saw_midi_out_activity = true;
@@ -83,6 +90,17 @@ impl Displays for ControlPanel {
                     self.saw_midi_out_activity = false;
                 },
             );
+
+            // TODO: not on the UI thread!
+            while let Ok(samples) = self.sample_channel.receiver.try_recv() {
+                self.sample_buffer.push(&samples);
+            }
+
+            let (samples, start) = self.sample_buffer.get();
+            ui.scope(|ui| {
+                ui.set_max_size(vec2(64.0, 32.0));
+                ui.add(time_domain(samples, start));
+            });
             ui.separator();
             if ui.button("settings").clicked() {
                 self.action = Some(ControlPanelAction::ToggleSettings);

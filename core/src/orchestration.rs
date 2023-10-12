@@ -25,6 +25,7 @@ use crate::{
     },
 };
 use anyhow::anyhow;
+use crossbeam_channel::Sender;
 use derive_builder::Builder;
 use eframe::{egui::ScrollArea, epaint::vec2};
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
@@ -61,6 +62,7 @@ pub struct OrchestratorEphemerals {
     is_performing: bool,
     action: Option<OrchestratorAction>,
     track_selection_set: SelectionSet<TrackUid>,
+    pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
@@ -117,7 +119,7 @@ pub struct Orchestrator {
     //////////////////////////////////////////////////////
     //
     #[serde(skip)]
-    e: OrchestratorEphemerals,
+    pub e: OrchestratorEphemerals,
 }
 impl Default for Orchestrator {
     fn default() -> Self {
@@ -255,8 +257,13 @@ impl Orchestrator {
                 // No need to do the Arc deref each time through the loop.
                 // TODO: is there a queue type that allows pushing a batch?
                 let queue = queue.as_ref();
-                for sample in samples {
+                let mut mono_samples = [Sample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
+                for (index, sample) in samples.into_iter().enumerate() {
                     let _ = queue.push(sample);
+                    mono_samples[index] = Sample::from(sample);
+                }
+                if let Some(sender) = &self.e.sample_buffer_channel_sender {
+                    sender.send(mono_samples);
                 }
             }
         }

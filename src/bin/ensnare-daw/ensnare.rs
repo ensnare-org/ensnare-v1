@@ -72,11 +72,14 @@ impl Ensnare {
         let orchestrator_panel = OrchestratorPanel::default();
         let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
+        let control_panel = ControlPanel::default();
+        orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
+            Some(control_panel.sample_channel.sender.clone());
 
         let mut r = Self {
             event_channel: Default::default(),
             orchestrator,
-            control_panel: Default::default(),
+            control_panel,
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
             palette_panel: Default::default(),
