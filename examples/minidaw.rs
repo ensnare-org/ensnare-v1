@@ -19,11 +19,11 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
+    app_version,
     panels::prelude::*,
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
     ui::DragDropManager,
-    app_version,
 };
 use serde::{Deserialize, Serialize};
 use std::{
