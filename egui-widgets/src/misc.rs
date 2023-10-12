@@ -41,7 +41,7 @@ impl Default for ObliqueStrategiesManager {
                     .as_nanos(),
             ),
         };
-        r.set_next_reseed_time(10.0, 20.0);
+        r.set_next_reseed_time(90.0, 300.0);
         r
     }
 }
