@@ -23,7 +23,7 @@ use ensnare::{
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
     ui::DragDropManager,
-    version::app_version,
+    app_version,
 };
 use serde::{Deserialize, Serialize};
 use std::{

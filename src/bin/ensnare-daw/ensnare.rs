@@ -15,7 +15,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
-    arrangement::transport, panels::prelude::*, prelude::*, ui::DragDropEvent, version::app_version,
+    app_version, arrangement::transport, panels::prelude::*, prelude::*, ui::DragDropEvent,
 };
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use std::sync::{Arc, Mutex};

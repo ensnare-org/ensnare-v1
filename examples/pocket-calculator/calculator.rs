@@ -23,7 +23,7 @@ use ensnare::{
     },
     prelude::*,
     traits::prelude::*,
-    util::Paths,
+    utils::Paths,
 };
 use ensnare_proc_macros::{Control, IsControllerInstrument, Uid};
 use serde::{Deserialize, Serialize};

@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     if args.version {
-        eprintln!("{}", ensnare::version::app_version());
+        eprintln!("{}", ensnare::app_version());
         return Ok(());
     }
 

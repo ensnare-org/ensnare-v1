@@ -14,6 +14,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{
+    app_version,
     arrangement::{signal_chain, track_widget, TrackAction, TrackUiState},
     entities::{
         controllers::{
@@ -28,7 +29,6 @@ use ensnare::{
         widgets::{audio, pattern, placeholder, timeline, track},
         CircularSampleBuffer, DragDropEvent, DragDropSource,
     },
-    version::app_version,
 };
 
 #[derive(Debug)]
@@ -141,7 +141,7 @@ impl Displays for TrackSettings {
 }
 
 /// Wraps a PretendDevicePalette as a [Widget](eframe::egui::Widget).
-pub fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
+fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| PretendDevicePalette::new(entity_factory).ui(ui)
 }
 

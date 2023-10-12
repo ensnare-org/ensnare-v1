@@ -141,7 +141,7 @@ pub mod midi {
     }
 }
 
-pub mod modulation {
+pub mod modulators {
     //! Infrastructure for transforming audio. An example is [Dca], or the
     //! digitally-controlled amplifier, which many instruments use to control
     //! signal amplitude and stereo position.
@@ -196,12 +196,14 @@ pub mod ui {
     }
 }
 
-pub mod util {
+pub mod utils {
     //! Various helpers.
     pub use ensnare_core::utils::Paths;
 }
 
-pub mod version;
+mod version;
+
+pub use version::app_version;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
@@ -222,7 +224,7 @@ pub mod prelude {
             interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
             u4, u7, MidiChannel, MidiMessage, MidiNote,
         },
-        modulation::{Dca, DcaParams},
+        modulators::{Dca, DcaParams},
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
             DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid,
