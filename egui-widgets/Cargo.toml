@@ -1,0 +1,13 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
+[package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "egui widgets that might be useful outside this project"
+edition = "2021"
+name = "ensnare-egui-widgets"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+eframe = "0.23"
+oorandom = "11.1.3"

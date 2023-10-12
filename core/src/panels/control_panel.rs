@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    traits::{Acts, Displays},
-    widgets::misc::activity_indicator,
-};
+use crate::traits::{Acts, Displays};
 use eframe::{
     egui::{Layout, Response, Ui},
     epaint::vec2,
 };
+use ensnare_egui_widgets::activity_indicator;
 use std::path::PathBuf;
 use strum_macros::Display;
 

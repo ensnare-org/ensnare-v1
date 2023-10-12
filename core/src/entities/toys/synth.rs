@@ -8,12 +8,13 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
-    widgets::{audio::waveform, misc::level_indicator, parts::UiSize},
+    widgets::{audio::waveform, parts::UiSize},
 };
 use eframe::{
     egui::{self, Layout, Ui},
     emath::Align,
 };
+use ensnare_egui_widgets::level_indicator;
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -194,7 +195,7 @@ impl ToySynth {
                 })
                 .inner
                     | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add(level_indicator(self.max_signal))
+                        ui.add(level_indicator(self.max_signal.into()))
                     })
                     .inner
             })
@@ -214,7 +215,7 @@ impl ToySynth {
     fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
         ui.heading("ToySynth LARGE!!!!");
         let value = Normal::from(0.8);
-        ui.add(level_indicator(value))
+        ui.add(level_indicator(value.into()))
     }
 }
 

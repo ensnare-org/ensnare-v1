@@ -17,6 +17,7 @@ use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     arrangement::transport, panels::prelude::*, prelude::*, ui::DragDropEvent, version::app_version,
 };
+use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use std::sync::{Arc, Mutex};
 
 enum EnsnareMessage {
@@ -36,6 +37,8 @@ pub(super) struct Ensnare {
     palette_panel: PalettePanel,
 
     toasts: Toasts,
+
+    oblique_strategies_mgr: ObliqueStrategiesManager,
 
     exit_requested: bool,
 }
@@ -80,6 +83,7 @@ impl Ensnare {
             toasts: Toasts::new()
                 .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
                 .direction(Direction::BottomUp),
+            oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
@@ -414,7 +418,10 @@ impl Ensnare {
         ui.horizontal(|ui| {
             eframe::egui::warn_if_debug_build(ui);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.label(app_version())
+                ui.label(app_version());
+                if let Some(seed) = self.oblique_strategies_mgr.check_seed() {
+                    ui.add(oblique_strategies(seed));
+                }
             });
         });
     }
