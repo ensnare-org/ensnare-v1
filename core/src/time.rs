@@ -727,28 +727,19 @@ impl<'a> TransportWidget<'a> {
 }
 impl<'a> Displays for TransportWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.allocate_ui(vec2(72.0, 20.0), |ui| {
-            ui.set_min_width(128.0);
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.add(
-                    DragValue::new(&mut self.transport.tempo.0)
-                        .clamp_range(Tempo::range())
-                        .min_decimals(1)
-                        .speed(0.1)
-                        .suffix(" BPM"),
-                )
-            })
-            .inner
+        ui.horizontal_centered(|ui| {
+            ui.add(
+                DragValue::new(&mut self.transport.tempo.0)
+                    .clamp_range(Tempo::range())
+                    .min_decimals(1)
+                    .speed(0.1)
+                    .suffix(" BPM"),
+            ) | ui.add(Label::new(
+                RichText::new(format!("{}", self.transport.current_time()))
+                    .text_style(TextStyle::Monospace),
+            ))
         })
         .inner
-            | ui.allocate_ui(vec2(72.0, 20.0), |ui| {
-                ui.set_min_width(128.0);
-                ui.add(Label::new(
-                    RichText::new(format!("{}", self.transport.current_time()))
-                        .text_style(TextStyle::Monospace),
-                ));
-            })
-            .response
     }
 }
 
