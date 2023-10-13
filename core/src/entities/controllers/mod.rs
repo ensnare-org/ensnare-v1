@@ -4,10 +4,12 @@ use crate::{prelude::*, traits::prelude::*};
 use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
 use serde::{Deserialize, Serialize};
 
+pub use keyboard::KeyboardController;
 pub use lfo::{LfoController, LfoControllerParams};
 
 pub(crate) mod arpeggiator;
 pub(crate) mod control;
+mod keyboard;
 pub(crate) mod lfo;
 pub mod sequencers;
 

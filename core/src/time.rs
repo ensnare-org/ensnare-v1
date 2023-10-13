@@ -9,9 +9,8 @@ use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
 use eframe::{
-    egui::{DragValue, Frame, Label, Layout, Margin, RichText, TextStyle, Ui},
-    emath::Align,
-    epaint::{vec2, Color32, Stroke, Vec2},
+    egui::{DragValue, Frame, Label, Margin, RichText, TextStyle, Ui},
+    epaint::{Color32, Stroke, Vec2},
 };
 use ensnare_proc_macros::{Control, IsController, Uid};
 use serde::{Deserialize, Serialize};

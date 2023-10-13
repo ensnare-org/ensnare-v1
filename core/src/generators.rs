@@ -1231,6 +1231,7 @@ mod tests {
             let mut start_time = 0.0;
             let mut end_time = 0.0;
             let steps = self.steps();
+            #[allow(unused_assignments)]
             for step in steps {
                 // debug_assert_le!(step.interval.start, step.interval.end); // Next step has non-negative duration
                 // debug_assert_ge!(step.interval.start, start_time); // We're not moving backward in time
@@ -2363,6 +2364,7 @@ mod tests {
 
         /// Returns a [PathBuf] representing the target/ build directory, creating
         /// it if necessary.
+        #[allow(dead_code)]
         pub fn writable_out_path() -> PathBuf {
             const OUT_DATA: &'static str = "target";
             let mut path_buf = Self::cwd();

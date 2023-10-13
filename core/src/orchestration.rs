@@ -3,7 +3,7 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
-    entities::factory::EntityKey,
+    entities::{controllers::KeyboardController, factory::EntityKey},
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
@@ -63,6 +63,7 @@ pub struct OrchestratorEphemerals {
     action: Option<OrchestratorAction>,
     track_selection_set: SelectionSet<TrackUid>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
+    keyboard_controller: KeyboardController,
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
@@ -482,6 +483,19 @@ impl Orchestrator {
             }
         }
     }
+
+    fn check_keyboard(&mut self) {
+        let mut keyboard_events = Vec::default();
+
+        self.e.keyboard_controller.work(&mut |_, m| {
+            if let EntityEvent::Midi(channel, message) = m {
+                keyboard_events.push((channel, message));
+            }
+        });
+        for (channel, message) in keyboard_events.into_iter() {
+            self.handle_midi_message(channel, message, &mut |_, _| {})
+        }
+    }
 }
 impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
@@ -774,6 +788,8 @@ impl Controls for Orchestrator {
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.transport.work(&mut |u, m| self.e.events.push((u, m)));
+        self.check_keyboard();
+
         for track in self.tracks.values_mut() {
             track.work(&mut |u, m| self.e.events.push((u, m)));
         }
@@ -861,6 +877,13 @@ impl DisplaysInTimeline for Orchestrator {
 }
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        // TODO: this is ugly and gross. Orchestrator needs ctx to properly
+        // construct the keyboard, or else someone else needs to give it a
+        // constructed keyboard.
+        if self.e.keyboard_controller.ctx.is_none() {
+            self.e.keyboard_controller.ctx = Some(ui.ctx().clone());
+        }
+
         let total_height = ui.available_height();
         let available_width = ui.available_size_before_wrap().x;
 
