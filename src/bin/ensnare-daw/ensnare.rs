@@ -2,7 +2,10 @@
 
 //! Main struct for Ensnare DAW application.
 
-use crate::settings::{Settings, SettingsPanel};
+use crate::{
+    menu::{MenuBar, MenuBarAction},
+    settings::{Settings, SettingsPanel},
+};
 use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
@@ -31,6 +34,7 @@ pub(super) struct Ensnare {
 
     orchestrator: Arc<Mutex<Orchestrator>>,
 
+    menu_bar: MenuBar,
     control_panel: ControlPanel,
     orchestrator_panel: OrchestratorPanel,
     settings_panel: SettingsPanel,
@@ -87,7 +91,9 @@ impl Ensnare {
         let mut r = Self {
             event_channel: Default::default(),
             orchestrator,
+            menu_bar: Default::default(),
             control_panel,
+
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
             palette_panel: Default::default(),
@@ -120,7 +126,7 @@ impl Ensnare {
         fonts.font_data.insert(
             Self::FONT_MONO.to_owned(),
             FontData::from_static(include_bytes!(
-                "../../../res/fonts/cousine/Cousine-Regular.ttf"
+                "../../../res/fonts/roboto-mono/RobotoMono-VariableFont_wght.ttf"
             )),
         );
 
@@ -166,7 +172,7 @@ impl Ensnare {
             (TextStyle::Body, FontId::new(16.0, FontFamily::Proportional)),
             (
                 TextStyle::Monospace,
-                FontId::new(14.0, FontFamily::Monospace),
+                FontId::new(16.0, FontFamily::Monospace),
             ),
             (
                 TextStyle::Button,
@@ -391,19 +397,19 @@ impl Ensnare {
     }
 
     fn show_top(&mut self, ui: &mut Ui) {
-        // if let Some(action) = self
-        //     .menu_bar
-        //     .show_with_action(ui, self.orchestrator_panel.is_any_track_selected())
-        // {
-        //     self.handle_menu_bar_action(action);
-        // }
-        // ui.separator();
+        self.menu_bar
+            .set_is_any_track_selected(self.orchestrator_panel.is_any_track_selected());
+        self.menu_bar.ui(ui);
+        let menu_action = self.menu_bar.take_action();
+        self.handle_menu_bar_action(menu_action);
+        ui.separator();
         ui.horizontal_centered(|ui| {
             if let Ok(mut o) = self.orchestrator.lock() {
                 ui.add(transport(o.transport_mut()));
             }
             self.control_panel.ui(ui);
         });
+        ui.add_space(2.0);
         if let Some(action) = self.control_panel.take_action() {
             self.handle_control_panel_action(action);
         }
@@ -478,6 +484,25 @@ impl Ensnare {
                 }
             }
         });
+    }
+
+    fn handle_menu_bar_action(&mut self, action: Option<MenuBarAction>) {
+        if let Some(action) = action {
+            match action {
+                MenuBarAction::Quit => self.exit_requested = true,
+                MenuBarAction::ProjectNew => todo!(),
+                MenuBarAction::ProjectOpen => todo!(),
+                MenuBarAction::ProjectSave => todo!(),
+                MenuBarAction::TrackNewMidi => todo!(),
+                MenuBarAction::TrackNewAudio => todo!(),
+                MenuBarAction::TrackNewAux => todo!(),
+                MenuBarAction::TrackDuplicate => todo!(),
+                MenuBarAction::TrackDelete => todo!(),
+                MenuBarAction::TrackRemoveSelectedPatterns => todo!(),
+                MenuBarAction::TrackAddThing(_) => todo!(),
+                MenuBarAction::ComingSoon => todo!(),
+            }
+        }
     }
 }
 impl App for Ensnare {

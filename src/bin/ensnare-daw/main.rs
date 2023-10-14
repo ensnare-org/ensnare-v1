@@ -7,6 +7,7 @@ use ensnare::Ensnare;
 use env_logger;
 
 mod ensnare;
+mod menu;
 mod settings;
 
 fn main() -> anyhow::Result<()> {
