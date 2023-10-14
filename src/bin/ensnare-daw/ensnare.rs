@@ -3,11 +3,11 @@
 //! Main struct for Ensnare DAW application.
 
 use crate::settings::{Settings, SettingsPanel};
-use crossbeam_channel::Select;
+use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
-        CentralPanel, Context, Direction, FontData, FontDefinitions, Layout, ScrollArea, SidePanel,
-        TextStyle, TopBottomPanel, Ui,
+        CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, ScrollArea,
+        SidePanel, TextStyle, TopBottomPanel, Ui,
     },
     emath::{Align, Align2},
     epaint::{Color32, FontFamily, FontId},
@@ -41,6 +41,8 @@ pub(super) struct Ensnare {
     oblique_strategies_mgr: ObliqueStrategiesManager,
 
     exit_requested: bool,
+
+    keyboard_events_sender: Sender<Event>,
 }
 impl Ensnare {
     /// The user-visible name of the application.
@@ -75,7 +77,13 @@ impl Ensnare {
         let control_panel = ControlPanel::default();
         orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
             Some(control_panel.sample_channel.sender.clone());
-
+        let keyboard_events_sender = orchestrator
+            .lock()
+            .unwrap()
+            .e
+            .keyboard_controller
+            .sender()
+            .clone();
         let mut r = Self {
             event_channel: Default::default(),
             orchestrator,
@@ -88,6 +96,7 @@ impl Ensnare {
                 .direction(Direction::BottomUp),
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
+            keyboard_events_sender,
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator(cc.egui_ctx.clone());
@@ -453,10 +462,28 @@ impl Ensnare {
             self.settings_panel.toggle();
         }
     }
+
+    fn copy_keyboard_events(&mut self, ctx: &eframe::egui::Context) {
+        ctx.input(|i| {
+            for e in i.events.iter() {
+                match e {
+                    eframe::egui::Event::Key {
+                        repeat, modifiers, ..
+                    } => {
+                        if !repeat && !modifiers.any() {
+                            let _ = self.keyboard_events_sender.send(e.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
 }
 impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
         self.handle_app_event_channel();
+        self.copy_keyboard_events(ctx);
 
         let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
         self.orchestrator_panel

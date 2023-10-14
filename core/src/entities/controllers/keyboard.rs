@@ -1,7 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
-use eframe::egui::{Context, Key};
+use crossbeam_channel::Sender;
+use eframe::egui::{Event, Key};
 use ensnare_proc_macros::{IsController, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -10,25 +11,22 @@ pub struct KeyboardController {
     uid: Uid,
 
     #[serde(skip)]
-    pub ctx: Option<Context>,
+    octave: u8,
 
     #[serde(skip)]
-    octave: u8,
+    keyboard_events: ChannelPair<Event>,
 }
 impl Default for KeyboardController {
     fn default() -> Self {
         Self {
             uid: Default::default(),
-            ctx: Default::default(),
             octave: 5,
+            keyboard_events: Default::default(),
         }
     }
 }
 impl Displays for KeyboardController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        if self.ctx.is_none() {
-            self.ctx = Some(ui.ctx().clone());
-        }
         ui.label("Coming soon!")
     }
 }
@@ -38,31 +36,20 @@ impl Controls for KeyboardController {
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        if let Some(ctx) = &self.ctx {
-            ctx.input(|i| {
-                for event in i.events.iter() {
-                    match event {
-                        eframe::egui::Event::Key {
-                            key,
-                            pressed,
-                            repeat,
-                            modifiers,
-                        } => {
-                            if !*repeat && !modifiers.any() {
-                                eprintln!("got key event {event:?}");
-                                // TODO: we're missing all sorts of events, or
-                                // at least not handling the ones we've gotten
-                                // properly. Something wacky is going on.
-                                if let Some((channel, message)) = self.handle_key(key, *pressed) {
-                                    eprintln!("sending message {message:?}");
-                                    control_events_fn(self.uid, EntityEvent::Midi(channel, message))
-                                }
-                            }
-                        }
-                        _ => {}
+        while let Ok(event) = self.keyboard_events.receiver.try_recv() {
+            match event {
+                Event::Key {
+                    key,
+                    pressed,
+                    repeat,
+                    modifiers,
+                } => {
+                    if let Some((channel, message)) = self.handle_key(&key, pressed) {
+                        control_events_fn(self.uid, EntityEvent::Midi(channel, message));
                     }
                 }
-            });
+                _ => {}
+            }
         }
     }
 
@@ -122,6 +109,10 @@ impl KeyboardController {
                 },
             )
         }
+    }
+
+    pub fn sender(&self) -> &Sender<Event> {
+        &self.keyboard_events.sender
     }
 }
 

@@ -63,7 +63,7 @@ pub struct OrchestratorEphemerals {
     action: Option<OrchestratorAction>,
     track_selection_set: SelectionSet<TrackUid>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
-    keyboard_controller: KeyboardController,
+    pub keyboard_controller: KeyboardController,
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
@@ -877,13 +877,6 @@ impl DisplaysInTimeline for Orchestrator {
 }
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        // TODO: this is ugly and gross. Orchestrator needs ctx to properly
-        // construct the keyboard, or else someone else needs to give it a
-        // constructed keyboard.
-        if self.e.keyboard_controller.ctx.is_none() {
-            self.e.keyboard_controller.ctx = Some(ui.ctx().clone());
-        }
-
         let total_height = ui.available_height();
         let available_width = ui.available_size_before_wrap().x;
 
