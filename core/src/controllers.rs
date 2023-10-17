@@ -604,22 +604,24 @@ impl ControlAtlas {
     }
 }
 
-/// Wraps a [ControlAtlas] as a [Widget](eframe::egui::Widget).
+/// Wraps a [ControlAtlasWidget] as a [Widget](eframe::egui::Widget).
 pub fn atlas<'a>(
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| Atlas::new(control_atlas, control_router, view_range).ui(ui)
+    move |ui: &mut eframe::egui::Ui| {
+        ControlAtlasWidget::new(control_atlas, control_router, view_range).ui(ui)
+    }
 }
 
 #[derive(Debug)]
-struct Atlas<'a> {
+struct ControlAtlasWidget<'a> {
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
 }
-impl<'a> Atlas<'a> {
+impl<'a> ControlAtlasWidget<'a> {
     fn new(
         control_atlas: &'a mut ControlAtlas,
         control_router: &'a mut ControlRouter,
@@ -632,12 +634,12 @@ impl<'a> Atlas<'a> {
         }
     }
 }
-impl<'a> DisplaysInTimeline for Atlas<'a> {
+impl<'a> DisplaysInTimeline for ControlAtlasWidget<'a> {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.view_range = view_range.clone();
     }
 }
-impl<'a> Displays for Atlas<'a> {
+impl<'a> Displays for ControlAtlasWidget<'a> {
     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         // This push_id() was needed to avoid an ID conflict. I think it is
         // because we're drawing widgets on top of each other, but I'm honestly
