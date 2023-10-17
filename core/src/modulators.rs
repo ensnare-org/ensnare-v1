@@ -144,6 +144,10 @@ impl<'a> Displays for DcaWidget<'a> {
                         self.dca
                             .set_action(DcaAction::LinkControl(source_uid, index));
                     }
+                    DragDropSource::ControlTrip(source_uid) => {
+                        self.dca
+                            .set_action(DcaAction::LinkControl(source_uid, index));
+                    }
                     _ => {}
                 }
             }
