@@ -514,8 +514,8 @@ pub mod test_entities {
     /// The smallest possible [IsInstrument].
     #[derive(Debug, Default, IsInstrument, Serialize, Deserialize, Uid)]
     pub struct TestInstrument {
-        uid: Uid,
-        sample_rate: SampleRate,
+        pub uid: Uid,
+        pub sample_rate: SampleRate,
     }
     impl Displays for TestInstrument {}
     impl HandlesMidi for TestInstrument {}

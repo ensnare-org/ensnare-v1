@@ -516,6 +516,9 @@ pub trait Orchestrates: Configurable {
         control_index: ControlIndex,
     ) -> anyhow::Result<()>;
 
+    /// Removes the specified control link, if it exists.
+    fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex);
+
     /// Sets the specified effect's wet/dry mix. Normal::maximum() is 100%
     /// effect, and Normal::minimum() is 100% unprocessed input. Returns an
     /// error if the entity is not an effect.
@@ -638,10 +641,10 @@ pub trait Sequences: Controls + std::fmt::Debug {
 pub(crate) mod tests {
     use super::{Orchestrates, Sequences, SequencesMidi, Ticks};
     use crate::{
+        entities::factory::test_entities::TestInstrument,
         midi::{u7, MidiChannel, MidiMessage, MidiNote},
         piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
-        prelude::MusicalTime,
-        track::TrackUid,
+        prelude::*,
     };
     use more_asserts::assert_gt;
     use std::sync::{Arc, RwLock};
@@ -663,11 +666,41 @@ pub(crate) mod tests {
             "should be one track after creating one"
         );
 
+        assert!(orchestrates
+            .append_entity(
+                &track_uid,
+                Box::new(TestInstrument {
+                    uid: Uid(345),
+                    sample_rate: Default::default(),
+                })
+            )
+            .is_ok());
+        assert!(
+            orchestrates
+                .link_control(Uid(123), Uid(345), ControlIndex(7))
+                .is_ok(),
+            "Linking control to a known target Uid should work"
+        );
+        orchestrates.unlink_control(Uid(234), Uid(345), ControlIndex(8));
+
         orchestrates.delete_track(&TrackUid(99999));
         assert_eq!(
             orchestrates.track_uids().len(),
             1,
             "Deleting nonexistent track shouldn't change anything"
+        );
+
+        orchestrates.delete_track(&track_uid);
+        assert!(
+            orchestrates.track_uids().is_empty(),
+            "Deleting track should change track count"
+        );
+
+        assert!(
+            orchestrates
+                .link_control(Uid(999), Uid(888), ControlIndex(7))
+                .is_err(),
+            "Linking control to an unknown Uid should fail"
         );
     }
 

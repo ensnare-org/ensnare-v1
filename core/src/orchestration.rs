@@ -575,6 +575,16 @@ impl Orchestrates for Orchestrator {
         }
     }
 
+    fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track
+                    .control_router_mut()
+                    .unlink_control(source_uid, target_uid, control_index);
+            }
+        }
+    }
+
     fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
         if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
             if let Some(track) = self.tracks.get_mut(track_uid) {
