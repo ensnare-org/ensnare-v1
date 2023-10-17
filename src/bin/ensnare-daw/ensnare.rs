@@ -47,6 +47,8 @@ pub(super) struct Ensnare {
     exit_requested: bool,
 
     keyboard_events_sender: Sender<Event>,
+
+    pub is_settings_panel_open: bool,
 }
 impl Ensnare {
     /// The user-visible name of the application.
@@ -103,6 +105,7 @@ impl Ensnare {
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
             keyboard_events_sender,
+            is_settings_panel_open: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator(cc.egui_ctx.clone());
@@ -423,7 +426,7 @@ impl Ensnare {
             ControlPanelAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
             ControlPanelAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
             ControlPanelAction::ToggleSettings => {
-                self.settings_panel.toggle();
+                self.is_settings_panel_open = !self.is_settings_panel_open;
                 None
             }
         };
@@ -460,13 +463,9 @@ impl Ensnare {
     }
 
     fn show_settings_panel(&mut self, ctx: &Context) {
-        let mut is_settings_open = self.settings_panel.is_open();
         eframe::egui::Window::new("Settings")
-            .open(&mut is_settings_open)
+            .open(&mut self.is_settings_panel_open)
             .show(ctx, |ui| self.settings_panel.ui(ui));
-        if self.settings_panel.is_open() && !is_settings_open {
-            self.settings_panel.toggle();
-        }
     }
 
     fn copy_keyboard_events(&mut self, ctx: &eframe::egui::Context) {

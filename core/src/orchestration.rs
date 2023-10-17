@@ -64,6 +64,7 @@ pub struct OrchestratorEphemerals {
     track_selection_set: SelectionSet<TrackUid>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
     pub keyboard_controller: KeyboardController,
+    is_piano_roll_open: bool, // TODO whether this should be serialized
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
@@ -877,15 +878,11 @@ impl DisplaysInTimeline for Orchestrator {
 }
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let total_height = ui.available_height();
         let available_width = ui.available_size_before_wrap().x;
 
-        eframe::egui::TopBottomPanel::bottom("orchestrator-piano-roll")
-            .resizable(true)
-            .max_height(total_height / 2.0)
-            .show(ui.ctx(), |ui| {
-                self.piano_roll.write().unwrap().ui(ui);
-            });
+        eframe::egui::Window::new("PianoRoll")
+            .open(&mut self.e.is_piano_roll_open)
+            .show(ui.ctx(), |ui| self.piano_roll.write().unwrap().ui(ui));
 
         eframe::egui::CentralPanel::default()
             .show(ui.ctx(), |ui| {
@@ -903,6 +900,9 @@ impl Displays for Orchestrator {
                             for track in self.track_iter_mut() {
                                 track.select_next_foreground_timeline_entity();
                             }
+                        }
+                        TimelineIconStripAction::ShowPianoRoll => {
+                            self.e.is_piano_roll_open = !self.e.is_piano_roll_open;
                         }
                     }
                 }

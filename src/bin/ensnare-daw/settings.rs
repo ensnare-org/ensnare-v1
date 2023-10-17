@@ -101,8 +101,6 @@ pub(crate) struct SettingsPanel {
 
     midi_inputs: Vec<MidiPortDescriptor>,
     midi_outputs: Vec<MidiPortDescriptor>,
-
-    is_open: bool,
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
@@ -130,18 +128,7 @@ impl SettingsPanel {
             midi_panel,
             midi_inputs: Default::default(),
             midi_outputs: Default::default(),
-            is_open: Default::default(),
         }
-    }
-
-    /// Whether the panel is currently visible.
-    pub fn is_open(&self) -> bool {
-        self.is_open
-    }
-
-    /// Toggle visibility.
-    pub fn toggle(&mut self) {
-        self.is_open = !self.is_open;
     }
 
     /// The owned [AudioPanel].

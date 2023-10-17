@@ -213,6 +213,7 @@ impl Displays for Cursor {
 #[derive(Debug)]
 pub enum TimelineIconStripAction {
     NextTimelineView,
+    ShowPianoRoll,
 }
 
 /// An egui widget that displays an icon strip that goes above the timeline view.
@@ -232,7 +233,12 @@ impl<'a> Displays for TimelineIconStrip<'a> {
             if next_response.clicked() {
                 *self.action = Some(TimelineIconStripAction::NextTimelineView);
             }
-            next_response
+            let piano_roll_response = ui.button("Piano Roll");
+            if piano_roll_response.clicked() {
+                *self.action = Some(TimelineIconStripAction::ShowPianoRoll);
+            }
+
+            next_response | piano_roll_response
         })
         .inner
     }
