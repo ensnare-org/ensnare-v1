@@ -3,10 +3,10 @@
 use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
 use crossbeam_channel::Sender;
 use eframe::egui::{Event, Key};
-use ensnare_proc_macros::{IsController, Uid};
+use ensnare_proc_macros::Uid;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, IsController, Uid, Serialize, Deserialize)]
+#[derive(Debug, Uid, Serialize, Deserialize)]
 pub struct KeyboardController {
     uid: Uid,
 
@@ -30,7 +30,6 @@ impl Displays for KeyboardController {
         ui.label("Coming soon!")
     }
 }
-impl HandlesMidi for KeyboardController {}
 #[allow(unused_variables)]
 impl Controls for KeyboardController {
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
@@ -67,8 +66,6 @@ impl Controls for KeyboardController {
         false
     }
 }
-impl Configurable for KeyboardController {}
-impl Serializable for KeyboardController {}
 impl KeyboardController {
     fn handle_key(&mut self, key: &Key, pressed: bool) -> Option<(MidiChannel, MidiMessage)> {
         match key {

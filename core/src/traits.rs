@@ -227,7 +227,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
 /// knows how to respond to requests to start, stop, restart, and seek within
 /// the performance.
 #[allow(unused_variables)]
-pub trait Controls: Configurable + Send {
+pub trait Controls: Send {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
     fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
 
