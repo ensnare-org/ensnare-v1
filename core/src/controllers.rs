@@ -3,7 +3,6 @@
 use crate::{
     control::ControlRouter,
     drag_drop::{DragDropManager, DragDropSource},
-    entities::prelude::*,
     prelude::*,
     rng::Rng,
     traits::prelude::*,
@@ -16,6 +15,7 @@ use eframe::{
 };
 use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Uid};
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
 
 pub use crate::entities::controllers::sequencers::{
     LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
@@ -288,7 +288,6 @@ impl ControlTripEphemerals {
 /// progress from the current [ControlStep] to the next one.
 #[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Uid, Builder)]
 pub struct ControlTrip {
-    #[builder(default)]
     uid: Uid,
 
     /// The [ControlStep]s that make up this trip. They must be in ascending
@@ -391,6 +390,10 @@ impl ControlTrip {
 
     pub(crate) fn steps_mut(&mut self) -> &mut Vec<ControlStep> {
         &mut self.steps
+    }
+
+    pub fn uid(&self) -> Uid {
+        self.uid
     }
 }
 impl DisplaysInTimeline for ControlTrip {
@@ -498,6 +501,11 @@ impl ControlAtlasBuilder {
     }
 }
 
+#[derive(Debug, Display)]
+pub enum ControlAtlasAction {
+    AddTrip,
+}
+
 /// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
 /// maps.)
 #[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Uid)]
@@ -511,6 +519,10 @@ pub struct ControlAtlas {
     #[serde(skip)]
     #[builder(setter(skip))]
     view_range: std::ops::Range<MusicalTime>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    action: Option<ControlAtlasAction>,
 }
 impl Default for ControlAtlas {
     fn default() -> Self {
@@ -518,13 +530,29 @@ impl Default for ControlAtlas {
             uid: Default::default(),
             trips: Default::default(),
             view_range: Default::default(),
+            action: Default::default(),
         }
     }
 }
 impl Displays for ControlAtlas {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut control_router = ControlRouter::default(); // BAD BAD BAD BAD BAD
-        ui.add(atlas(self, &mut control_router, self.view_range.clone()))
+        let mut action = None;
+        let response = ui.add(atlas(
+            self,
+            &mut control_router,
+            self.view_range.clone(),
+            &mut action,
+        ));
+        if let Some(action) = action {
+            match action {
+                ControlAtlasWidgetAction::AddTrip => {
+                    self.set_action(ControlAtlasAction::AddTrip);
+                    todo!("need to write handler for ControlAtlasAction::AddTrip");
+                }
+            }
+        }
+        response
     }
 }
 impl DisplaysInTimeline for ControlAtlas {
@@ -585,12 +613,22 @@ impl Configurable for ControlAtlas {
             .for_each(|t| t.update_time_signature(time_signature));
     }
 }
+impl Acts for ControlAtlas {
+    type Action = ControlAtlasAction;
+
+    fn set_action(&mut self, action: Self::Action) {
+        self.action = Some(action);
+    }
+
+    fn take_action(&mut self) -> Option<Self::Action> {
+        self.action.take()
+    }
+}
 impl ControlAtlas {
     /// Adds the given [ControlTrip] to this atlas. TODO: specify any ordering constraints
-    pub fn add_trip(&mut self, trip: ControlTrip) -> anyhow::Result<Uid> {
-        let uid = trip.uid();
+    pub fn add_trip(&mut self, trip: ControlTrip) -> anyhow::Result<()> {
         self.trips.push(trip);
-        Ok(uid)
+        Ok(())
     }
 
     /// Removes the given [ControlTrip] from this atlas.
@@ -609,10 +647,16 @@ pub fn atlas<'a>(
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
+    action: &'a mut Option<ControlAtlasWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        ControlAtlasWidget::new(control_atlas, control_router, view_range).ui(ui)
+        ControlAtlasWidget::new(control_atlas, control_router, view_range, action).ui(ui)
     }
+}
+
+#[derive(Debug, Display)]
+pub enum ControlAtlasWidgetAction {
+    AddTrip,
 }
 
 #[derive(Debug)]
@@ -620,17 +664,20 @@ struct ControlAtlasWidget<'a> {
     control_atlas: &'a mut ControlAtlas,
     control_router: &'a mut ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
+    action: &'a mut Option<ControlAtlasWidgetAction>,
 }
 impl<'a> ControlAtlasWidget<'a> {
     fn new(
         control_atlas: &'a mut ControlAtlas,
         control_router: &'a mut ControlRouter,
         view_range: std::ops::Range<MusicalTime>,
+        action: &'a mut Option<ControlAtlasWidgetAction>,
     ) -> Self {
         Self {
             control_atlas,
             control_router,
             view_range,
+            action,
         }
     }
 }
@@ -699,12 +746,7 @@ impl<'a> Displays for ControlAtlasWidget<'a> {
                 response.context_menu(|ui| {
                     if ui.button("Add trip").clicked() {
                         ui.close_menu();
-                        let mut trip = ControlTripBuilder::default()
-                            .random(MusicalTime::START)
-                            .build()
-                            .unwrap();
-                        trip.set_uid(EntityFactory::global().mint_uid());
-                        let _ = self.control_atlas.add_trip(trip);
+                        *self.action = Some(ControlAtlasWidgetAction::AddTrip);
                     }
                 })
             } else {
@@ -921,6 +963,7 @@ mod tests {
     #[test]
     fn control_trip_one_step() {
         let mut ct = ControlTripBuilder::default()
+            .uid(Uid(234598))
             .step(ControlStep {
                 value: ControlValue(0.5),
                 time: MusicalTime::START + MusicalTime::DURATION_WHOLE,
@@ -950,6 +993,7 @@ mod tests {
     #[test]
     fn control_trip_two_flat_steps() {
         let mut ct = ControlTripBuilder::default()
+            .uid(Uid(20459))
             .step(ControlStep {
                 value: ControlValue(0.5),
                 time: MusicalTime::START,
@@ -993,6 +1037,7 @@ mod tests {
     #[test]
     fn control_trip_linear_step() {
         let mut ct = ControlTripBuilder::default()
+            .uid(Uid(5049))
             .step(ControlStep {
                 value: ControlValue(0.0),
                 time: MusicalTime::START,
@@ -1029,6 +1074,7 @@ mod tests {
     fn control_trip_many_steps() {
         for i in 0..2 {
             let mut ct = ControlTripBuilder::default()
+                .uid(Uid(54893))
                 .step(ControlStep {
                     value: ControlValue(0.1),
                     time: MusicalTime::new_with_units(10),

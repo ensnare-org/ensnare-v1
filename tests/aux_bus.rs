@@ -43,14 +43,12 @@ fn aux_bus() {
             assert!(orchestrator
                 .append_entity(
                     &track_uid_1,
-                    factory.create_entity_with_minted_uid(|| {
-                        Box::new(
-                            PatternSequencerBuilder::default()
-                                .pattern(synth_pattern_1.clone())
-                                .build()
-                                .unwrap(),
-                        )
-                    })
+                    Box::new(
+                        PatternSequencerBuilder::default()
+                            .pattern(synth_pattern_1.clone())
+                            .build()
+                            .unwrap(),
+                    )
                 )
                 .is_ok());
 
@@ -75,14 +73,12 @@ fn aux_bus() {
             assert!(orchestrator
                 .append_entity(
                     &track_uid_2,
-                    factory.create_entity_with_minted_uid(|| {
-                        Box::new(
-                            PatternSequencerBuilder::default()
-                                .pattern(synth_pattern_2.clone())
-                                .build()
-                                .unwrap(),
-                        )
-                    })
+                    Box::new(
+                        PatternSequencerBuilder::default()
+                            .pattern(synth_pattern_2.clone())
+                            .build()
+                            .unwrap(),
+                    )
                 )
                 .is_ok());
             assert!(orchestrator

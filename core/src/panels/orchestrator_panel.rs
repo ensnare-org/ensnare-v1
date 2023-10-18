@@ -125,18 +125,6 @@ impl OrchestratorPanel {
         }
     }
 
-    /// Lets the [EntityFactory] know of the highest [Uid] that the current
-    /// Orchestrator has seen, so that it won't generate duplicates.
-    pub fn update_entity_factory_uid(&self) {
-        let uid = self
-            .orchestrator
-            .lock()
-            .unwrap()
-            .calculate_max_entity_uid()
-            .0;
-        EntityFactory::global().set_next_uid(uid + 1);
-    }
-
     /// Requests that the [Orchestrator] prepare to exit.
     pub fn exit(&self) {
         eprintln!("OrchestratorInput::Quit");

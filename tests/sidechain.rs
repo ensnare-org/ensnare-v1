@@ -31,14 +31,12 @@ fn demo_sidechaining() {
         assert!(orchestrator
             .append_entity(
                 &sidechain_track_uid,
-                factory.create_entity_with_minted_uid(|| {
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern(sidechain_pattern.clone() + MusicalTime::START)
-                            .build()
-                            .unwrap(),
-                    )
-                })
+                Box::new(
+                    PatternSequencerBuilder::default()
+                        .pattern(sidechain_pattern.clone() + MusicalTime::START)
+                        .build()
+                        .unwrap(),
+                )
             )
             .is_ok());
         assert!(orchestrator
@@ -76,12 +74,12 @@ fn demo_sidechaining() {
         assert!(orchestrator
             .append_entity(
                 &lead_track_uid,
-                factory.create_entity_with_minted_uid(|| Box::new(
+                Box::new(
                     PatternSequencerBuilder::default()
                         .pattern(lead_pattern.clone() + MusicalTime::START)
                         .build()
                         .unwrap()
-                ))
+                )
             )
             .is_ok());
         assert!(orchestrator

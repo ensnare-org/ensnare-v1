@@ -106,16 +106,14 @@ impl Default for TrackSettings {
             range: MusicalTime::START..MusicalTime::new_with_beats(128),
             view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
         };
-        let _ = r
-            .track
-            .append_entity(EntityFactory::global().create_entity_with_minted_uid(|| {
-                Box::new(NoteSequencerBuilder::default().build().unwrap())
-            }));
-        let _ = r
-            .track
-            .append_entity(EntityFactory::global().create_entity_with_minted_uid(|| {
-                Box::new(ControlAtlasBuilder::default().build().unwrap())
-            }));
+        let _ = r.track.append_entity(
+            Box::new(NoteSequencerBuilder::default().build().unwrap()),
+            Uid(345),
+        );
+        let _ = r.track.append_entity(
+            Box::new(ControlAtlasBuilder::default().build().unwrap()),
+            Uid(346),
+        );
         r
     }
 }
@@ -218,8 +216,8 @@ impl SignalChainSettings {
         }
     }
 
-    pub fn append_entity(&mut self, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
-        self.track.append_entity(entity)
+    pub fn append_entity(&mut self, entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
+        self.track.append_entity(entity, uid)
     }
 }
 impl Displays for SignalChainSettings {
@@ -353,10 +351,12 @@ impl ControlAtlasSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
+            let mut action = None;
             ui.add(atlas(
                 &mut self.control_atlas,
                 &mut self.control_router,
                 self.view_range.clone(),
+                &mut action,
             ));
         }
     }
@@ -931,7 +931,7 @@ impl eframe::App for Explorer {
                 TrackAction::NewDevice(key) => {
                     eprintln!("SignalChainAction::NewDevice({key})");
                     if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                        let _ = self.signal_chain.append_entity(entity);
+                        let _ = self.signal_chain.append_entity(entity, Uid(345698));
                     }
                 }
                 TrackAction::LinkControl(_source_uid, _target_uid, _index) => {

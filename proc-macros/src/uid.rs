@@ -15,10 +15,6 @@ pub(crate) fn impl_uid_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(quote! {
         #[automatically_derived]
         impl #generics #core_crate::traits::HasUid for #name #ty_generics {
-            fn uid(&self) -> #core_crate::uid::Uid {
-                self.uid
-            }
-
             fn set_uid(&mut self, uid: #core_crate::uid::Uid) {
                 self.uid = uid;
             }

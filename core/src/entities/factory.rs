@@ -12,7 +12,6 @@ use crate::{
     utils::Paths,
 };
 use anyhow::anyhow;
-use atomic_counter::{AtomicCounter, RelaxedCounter};
 use derive_more::Display;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
@@ -185,7 +184,6 @@ static FACTORY: OnceCell<EntityFactory> = OnceCell::new();
 /// effects. It makes sure every entity has a proper [Uid].
 #[derive(Debug)]
 pub struct EntityFactory {
-    next_uid: RelaxedCounter,
     entities: HashMap<EntityKey, EntityFactoryFn>,
     keys: HashSet<EntityKey>,
 
@@ -195,7 +193,6 @@ pub struct EntityFactory {
 impl Default for EntityFactory {
     fn default() -> Self {
         Self {
-            next_uid: RelaxedCounter::new(Self::MAX_RESERVED_UID + 1),
             entities: Default::default(),
             keys: Default::default(),
             is_registration_complete: Default::default(),
@@ -224,20 +221,6 @@ impl EntityFactory {
         FACTORY.get().is_some()
     }
 
-    /// Set the next [Uid]. This is needed if we're deserializing a project and
-    /// need to reset the [EntityFactory] to mint unique [Uid]s.
-    ///
-    /// Note that the specified [Uid] is not necessarily the next one that will
-    /// be issued; we guarantee only that subsequent [Uid]s won't be lower than
-    /// it. This is because we're using [RelaxedCounter] under the hood to allow
-    /// entirely immutable usage of this factory after creation and
-    /// configuration.
-    pub fn set_next_uid(&self, next_uid_value: usize) {
-        self.next_uid.reset();
-        self.next_uid
-            .add(next_uid_value.max(Self::MAX_RESERVED_UID + 1));
-    }
-
     /// Registers a new type for the given [Key] using the given closure.
     pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn) {
         if self.is_registration_complete {
@@ -261,18 +244,10 @@ impl EntityFactory {
     /// Creates a new entity of the type corresponding to the given [Key].
     pub fn new_entity(&self, key: &EntityKey) -> Option<Box<dyn Entity>> {
         if let Some(f) = self.entities.get(key) {
-            let mut r = f();
-            self.assign_entity_uid(r.as_mut());
-            Some(r)
+            Some(f())
         } else {
             None
         }
-    }
-
-    /// Given an entity, assigns a new [Uid] to it. Returns the new [Uid].
-    pub fn assign_entity_uid(&self, entity: &mut dyn Entity) -> Uid {
-        entity.set_uid(self.mint_uid());
-        entity.uid()
     }
 
     /// Returns the [HashSet] of all [Key]s.
@@ -283,15 +258,6 @@ impl EntityFactory {
     /// Returns the [HashMap] for all [Key] and entity pairs.
     pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn> {
         &self.entities
-    }
-
-    /// Returns a [Uid] that is guaranteed to be unique among all [Uid]s minted
-    /// by this factory. This method is exposed if someone wants to create an
-    /// entity outside this factory, but still refer to it by [Uid]. An example
-    /// is [super::Transport], which is an entity that [super::Orchestrator]
-    /// treats specially.
-    pub fn mint_uid(&self) -> Uid {
-        Uid(self.next_uid.inc())
     }
 
     /// Returns all the [Key]s in sorted order for consistent display in the UI.
@@ -305,15 +271,6 @@ impl EntityFactory {
     /// Sets the singleton [EntityFactory].
     pub fn initialize(entity_factory: Self) -> Result<(), Self> {
         FACTORY.set(entity_factory)
-    }
-
-    pub fn create_entity_with_minted_uid(
-        &self,
-        create_fn: impl Fn() -> Box<dyn Entity>,
-    ) -> Box<dyn Entity> {
-        let mut entity = create_fn();
-        let _ = self.assign_entity_uid(entity.as_mut());
-        entity
     }
 }
 
@@ -329,8 +286,7 @@ pub struct EntityStore {
 }
 impl EntityStore {
     /// Adds an [Entity] to the store.
-    pub fn add(&mut self, mut entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
-        let uid = entity.uid();
+    pub fn add(&mut self, mut entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
         if uid.0 == 0 {
             return Err(anyhow!("Entity Uid zero is invalid"));
         }
@@ -338,8 +294,8 @@ impl EntityStore {
             return Err(anyhow!("Entity Uid {uid} already exists"));
         }
         entity.update_sample_rate(self.sample_rate);
-        self.entities.insert(entity.uid(), entity);
-        Ok(uid)
+        self.entities.insert(uid, entity);
+        Ok(())
     }
     /// Returns the specified [Entity].
     pub fn get(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
@@ -422,11 +378,10 @@ impl Controls for EntityStore {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.iter_mut().for_each(|entity| {
+        self.entities.iter_mut().for_each(|(uid, entity)| {
             if let Some(e) = entity.as_controller_mut() {
-                let tuid = e.uid();
                 e.work(&mut |claimed_uid, message| {
-                    if tuid != claimed_uid {
+                    if *uid != claimed_uid {
                         // This is OK because ControlAtlas delegates work to its
                         // ControlTrips, so the uid that emerges won't be the
                         // same as the one that this code called.
@@ -828,7 +783,6 @@ mod tests {
     use super::test_entities::{TestController, TestEffect, TestInstrument};
     use super::EntityStore;
     use crate::{entities::prelude::*, prelude::*, traits::prelude::*};
-    use std::collections::HashSet;
 
     /// Registers all [EntityFactory]'s entities. Note that the function returns an
     /// &EntityFactory. This encourages usage like this:
@@ -875,14 +829,11 @@ mod tests {
 
         assert!(factory.new_entity(&EntityKey::from(".9-#$%)@#)")).is_none());
 
-        let mut ids: HashSet<Uid> = HashSet::default();
         for key in factory.keys().iter() {
             let e = factory.new_entity(key);
             assert!(e.is_some());
             if let Some(e) = e {
                 assert!(!e.name().is_empty());
-                assert!(!ids.contains(&e.uid()));
-                ids.insert(e.uid());
                 assert!(
                     e.as_controller().is_some()
                         || e.as_instrument().is_some()
@@ -892,22 +843,6 @@ mod tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn entity_factory_uid_uniqueness() {
-        let ef = EntityFactory::default();
-        let uid = ef.mint_uid();
-
-        let ef = EntityFactory::default();
-        let uid2 = ef.mint_uid();
-
-        assert_eq!(uid, uid2);
-
-        let ef = EntityFactory::default();
-        ef.set_next_uid(uid.0 + 1);
-        let uid2 = ef.mint_uid();
-        assert_ne!(uid, uid2);
     }
 
     #[test]
@@ -924,7 +859,8 @@ mod tests {
             "before adding to store, sample rate should be untouched"
         );
 
-        let uid = t.add(entity).unwrap();
+        let uid = Uid(234);
+        assert!(t.add(entity, uid).is_ok());
         let entity = t.remove(&uid).unwrap();
         assert_eq!(
             entity.sample_rate(),
@@ -938,24 +874,24 @@ mod tests {
         let mut t = EntityStore::default();
         assert_eq!(t.calculate_max_entity_uid(), None);
 
-        let mut one = Box::new(TestInstrument::default());
-        one.set_uid(Uid(9999));
-        assert!(t.add(one).is_ok(), "adding a unique UID should succeed");
-        assert_eq!(t.calculate_max_entity_uid(), Some(Uid(9999)));
-
-        let mut two = Box::new(TestInstrument::default());
-        two.set_uid(Uid(9999));
-        assert!(t.add(two).is_err(), "adding a duplicate UID should fail");
-
-        let max_uid = t.calculate_max_entity_uid().unwrap();
-        // Though the add() was sure to fail, it's still considered mutably
-        // borrowed at compile time.
-        let mut two = Box::new(TestInstrument::default());
-        two.set_uid(Uid(max_uid.0 + 1));
+        let uid_1 = Uid(9999);
+        let one = Box::new(TestInstrument::default());
         assert!(
-            t.add(two).is_ok(),
-            "using Orchestrator's max_entity_uid as a guide should work."
+            t.add(one, uid_1).is_ok(),
+            "adding a unique UID should succeed"
         );
-        assert_eq!(t.calculate_max_entity_uid(), Some(Uid(10000)));
+
+        let two = Box::new(TestInstrument::default());
+        assert!(
+            t.add(two, uid_1).is_err(),
+            "adding a duplicate UID should fail"
+        );
+
+        let uid_2 = Uid(10000);
+        let two = Box::new(TestInstrument::default());
+        assert!(
+            t.add(two, uid_2).is_ok(),
+            "Adding a second unique UID should succeed."
+        );
     }
 }

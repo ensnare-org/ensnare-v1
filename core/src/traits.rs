@@ -160,7 +160,6 @@ pub trait Controllable {
 /// TODO: name() is hitchhiking along with Uid for now.
 #[allow(missing_docs)]
 pub trait HasUid {
-    fn uid(&self) -> Uid;
     fn set_uid(&mut self, uid: Uid);
     fn name(&self) -> &'static str;
 }
@@ -647,7 +646,10 @@ pub(crate) mod tests {
         prelude::*,
     };
     use more_asserts::assert_gt;
-    use std::sync::{Arc, RwLock};
+    use std::{
+        collections::HashSet,
+        sync::{Arc, RwLock},
+    };
 
     pub trait DebugTicks: Ticks {
         fn debug_tick_until(&mut self, tick_number: usize);
@@ -666,18 +668,18 @@ pub(crate) mod tests {
             "should be one track after creating one"
         );
 
-        assert!(orchestrates
+        let target_uid = orchestrates
             .append_entity(
                 &track_uid,
                 Box::new(TestInstrument {
-                    uid: Uid(345),
+                    uid: Uid(1), // TODO: remove
                     sample_rate: Default::default(),
-                })
+                }),
             )
-            .is_ok());
+            .unwrap();
         assert!(
             orchestrates
-                .link_control(Uid(123), Uid(345), ControlIndex(7))
+                .link_control(Uid(123), target_uid, ControlIndex(7))
                 .is_ok(),
             "Linking control to a known target Uid should work"
         );
@@ -689,6 +691,17 @@ pub(crate) mod tests {
             1,
             "Deleting nonexistent track shouldn't change anything"
         );
+
+        let mut ids: HashSet<Uid> = HashSet::default();
+        for _ in 0..64 {
+            let e = Box::new(TestInstrument::default());
+            let uid = orchestrates.append_entity(&track_uid, e).unwrap();
+            assert!(
+                !ids.contains(&uid),
+                "added entities should be assigned unique IDs"
+            );
+            ids.insert(uid);
+        }
 
         orchestrates.delete_track(&track_uid);
         assert!(

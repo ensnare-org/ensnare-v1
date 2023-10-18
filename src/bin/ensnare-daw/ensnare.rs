@@ -346,7 +346,6 @@ impl Ensnare {
                             eprintln!("OrchestratorEvent::Quit")
                         }
                         OrchestratorEvent::Loaded(path, title) => {
-                            self.orchestrator_panel.update_entity_factory_uid();
                             let title = title.unwrap_or(String::from(Self::DEFAULT_PROJECT_NAME));
                             self.toasts.add(Toast {
                                 kind: egui_toast::ToastKind::Success,

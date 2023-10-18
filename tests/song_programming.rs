@@ -34,14 +34,12 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     assert!(o
         .append_entity(
             &track_uid,
-            factory.create_entity_with_minted_uid(|| {
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern(drum_pattern.clone())
-                        .build()
-                        .unwrap(),
-                )
-            }),
+            Box::new(
+                PatternSequencerBuilder::default()
+                    .pattern(drum_pattern.clone())
+                    .build()
+                    .unwrap(),
+            )
         )
         .is_ok());
 
@@ -84,12 +82,12 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     assert!(o
         .append_entity(
             &track_uid,
-            factory.create_entity_with_minted_uid(|| Box::new(
+            Box::new(
                 PatternSequencerBuilder::default()
                     .pattern(scale_pattern.clone())
                     .build()
                     .unwrap()
-            ))
+            )
         )
         .is_ok());
 

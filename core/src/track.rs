@@ -2,7 +2,6 @@
 
 use crate::{
     control::ControlRouter,
-    controllers::ControlAtlasBuilder,
     drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
@@ -100,26 +99,26 @@ impl TrackFactory {
 
     pub fn midi(&mut self) -> Track {
         let uid = self.next_uid();
-        let mut t = Track {
+        let t = Track {
             uid,
             title: TrackTitle(format!("MIDI {}", uid)),
             ty: TrackType::Midi,
             ..Default::default()
         };
 
-        if EntityFactory::hack_is_global_ready() {
-            let mut sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
-            EntityFactory::global().assign_entity_uid(&mut sequencer);
-            t.set_sequencer_channel(sequencer.sender());
-            let _ = t.append_entity(Box::new(sequencer));
-            let _ = t.append_entity(Box::new(
-                ControlAtlasBuilder::default()
-                    .uid(EntityFactory::global().mint_uid())
-                    .random()
-                    .build()
-                    .unwrap(),
-            ));
-        }
+        // TODO: restore sequencer and control atlas
+        // if EntityFactory::hack_is_global_ready() {
+        //     let mut sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
+        //     t.set_sequencer_channel(sequencer.sender());
+        //     let _ = t.append_entity(Box::new(sequencer), Uid());
+        //     let _ = t.append_entity(Box::new(
+        //         ControlAtlasBuilder::default()
+        //             .uid(EntityFactory::global().mint_uid())
+        //             .random()
+        //             .build()
+        //             .unwrap(),
+        //     ));
+        // }
         t
     }
 
@@ -217,9 +216,7 @@ impl Track {
 
     // TODO: for now the only way to add something new to a Track is to append it.
     #[allow(missing_docs)]
-    pub fn append_entity(&mut self, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
-        let uid = entity.uid();
-
+    pub fn append_entity(&mut self, entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
         // Some entities are hybrids, so they can appear in multiple lists.
         // That's why we don't have if-else here.
         if entity.as_controller().is_some() {
@@ -236,14 +233,14 @@ impl Track {
             self.midi_router.connect(uid, MidiChannel(0));
         }
         if entity.as_displays_in_timeline().is_some() {
-            self.add_timeline_entity(&entity);
+            self.record_timeline_entity(uid);
         }
 
-        self.entity_store.add(entity)
+        self.entity_store.add(entity, uid)
     }
 
-    fn add_timeline_entity(&mut self, entity: &Box<dyn Entity>) {
-        self.timeline_entities.push(entity.uid());
+    fn record_timeline_entity(&mut self, uid: Uid) {
+        self.timeline_entities.push(uid);
         if self.foreground_timeline_entity.is_none() {
             self.select_next_foreground_timeline_entity();
         }
@@ -944,13 +941,13 @@ impl<'a> Displays for SignalChainWidget<'a> {
                             .for_each(|uid| {
                                 if let Some(entity) = self.track.entity_store.get_mut(uid) {
                                     eframe::egui::CollapsingHeader::new(entity.name())
-                                        .id_source(entity.uid())
+                                        .id_source(uid)
                                         .show_unindented(ui, |ui| {
                                             if entity.as_controller().is_some() {
                                                 DragDropManager::drag_source(
                                                     ui,
                                                     eframe::egui::Id::new(entity.name()),
-                                                    DragDropSource::ControlSource(entity.uid()),
+                                                    DragDropSource::ControlSource(*uid),
                                                     |ui| {
                                                         ui.label("control");
                                                     },
@@ -978,11 +975,8 @@ impl<'a> Displays for SignalChainWidget<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        entities::factory::test_entities::{
-            TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
-        },
-        utils::tests::create_entity_with_uid,
+    use crate::entities::factory::test_entities::{
+        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
     };
     use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Uid};
 
@@ -994,22 +988,18 @@ mod tests {
         assert!(t.instruments.is_empty());
 
         // Create an instrument and add it to a track.
-        let id1 = t
-            .append_entity(create_entity_with_uid(
-                || Box::new(TestInstrument::default()),
-                1,
-            ))
-            .unwrap();
+        let id1 = Uid(1);
+        assert!(t
+            .append_entity(Box::new(TestInstrument::default()), id1)
+            .is_ok());
 
         // Add a second instrument to the track.
-        let id2 = t
-            .append_entity(create_entity_with_uid(
-                || Box::new(TestInstrument::default()),
-                2,
-            ))
-            .unwrap();
+        let id2 = Uid(2);
+        assert!(t
+            .append_entity(Box::new(TestInstrument::default()), id2)
+            .is_ok());
 
-        assert_ne!(id1, id2, "Don't forget to assign UIDs!");
+        assert_ne!(id1, id2, "Don't forget to assign unique IDs!");
 
         assert_eq!(
             t.instruments[0], id1,
@@ -1025,8 +1015,7 @@ mod tests {
             "there should be exactly as many entities as added"
         );
 
-        let instrument = t.remove_entity(&id1).unwrap();
-        assert_eq!(instrument.uid(), id1, "removed the right instrument");
+        let _ = t.remove_entity(&id1).unwrap();
         assert_eq!(t.instruments.len(), 1, "removed exactly one instrument");
         assert_eq!(
             t.instruments[0], id2,
@@ -1037,18 +1026,14 @@ mod tests {
             "it should be gone from the store"
         );
 
-        let effect_id1 = t
-            .append_entity(create_entity_with_uid(
-                || Box::new(TestEffect::default()),
-                3,
-            ))
-            .unwrap();
-        let effect_id2 = t
-            .append_entity(create_entity_with_uid(
-                || Box::new(TestEffect::default()),
-                4,
-            ))
-            .unwrap();
+        let effect_id1 = Uid(3);
+        assert!(t
+            .append_entity(Box::new(TestEffect::default()), effect_id1)
+            .is_ok());
+        let effect_id2 = Uid(4);
+        assert!(t
+            .append_entity(Box::new(TestEffect::default()), effect_id2,)
+            .is_ok());
 
         assert_eq!(t.effects[0], effect_id1);
         assert_eq!(t.effects[1], effect_id2);
@@ -1068,17 +1053,16 @@ mod tests {
     fn midi_messages_sent_to_caller_and_sending_track_instruments() {
         let mut t = Track::default();
 
-        let _ = t
-            .append_entity(create_entity_with_uid(
-                || Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
-                2001,
-            ))
-            .unwrap();
+        assert!(t
+            .append_entity(
+                Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+                Uid(2001),
+            )
+            .is_ok());
 
-        let mut receiver = TestInstrumentCountsMidiMessages::default();
-        receiver.set_uid(Uid(2002));
+        let receiver = TestInstrumentCountsMidiMessages::default();
         let counter = Arc::clone(receiver.received_midi_message_count_mutex());
-        let _receiver_id = t.append_entity(Box::new(receiver)).unwrap();
+        assert!(t.append_entity(Box::new(receiver), Uid(2002)).is_ok());
 
         let mut external_midi_messages = 0;
         t.play();
@@ -1116,16 +1100,19 @@ mod tests {
 
     #[test]
     fn track_picks_next_foreground_entity() {
-        let e1 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 1000);
-        let e2 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 2000);
-        let e3 = create_entity_with_uid(|| Box::new(TimelineDisplayer::default()), 3000);
+        let e1_uid = Uid(1000);
+        let e2_uid = Uid(2000);
+        let e3_uid = Uid(3000);
+        let e1 = Box::new(TimelineDisplayer::default());
+        let e2 = Box::new(TimelineDisplayer::default());
+        let e3 = Box::new(TimelineDisplayer::default());
 
         let mut t = Track::default();
         assert!(
             t.foreground_timeline_entity.is_none(),
             "should be none foreground at creation"
         );
-        let e1_uid = t.append_entity(e1).unwrap();
+        let _ = t.append_entity(e1, e1_uid);
         assert!(
             t.foreground_timeline_entity.is_some(),
             "adding one should make it foreground"
@@ -1136,19 +1123,19 @@ mod tests {
             "removing the last one should make none foreground"
         );
 
-        let e1_uid = t.append_entity(e1).unwrap();
+        let _ = t.append_entity(e1, e1_uid);
         assert_eq!(
             t.foreground_timeline_entity,
             Some(e1_uid),
             "adding first one should make it foreground"
         );
-        let e2_uid = t.append_entity(e2).unwrap();
+        let _ = t.append_entity(e2, e2_uid);
         assert_eq!(
             t.foreground_timeline_entity,
             Some(e1_uid),
             "adding a second shouldn't change which is foreground"
         );
-        let e3_uid = t.append_entity(e3).unwrap();
+        let _ = t.append_entity(e3, e3_uid);
         assert_eq!(
             t.foreground_timeline_entity,
             Some(e1_uid),
@@ -1167,7 +1154,7 @@ mod tests {
             "removing the first/foreground should pick the new first one"
         );
 
-        let e3_uid = t.append_entity(e3).unwrap();
+        let _ = t.append_entity(e3, e3_uid);
         t.select_next_foreground_timeline_entity();
         assert_eq!(
             t.foreground_timeline_entity,

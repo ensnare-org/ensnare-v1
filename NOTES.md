@@ -90,3 +90,46 @@ only the Action.
 These are all similar approaches, in a sense. The widget needs something to act
 on, which might be the actual action, or else just a marker that the action
 needs to happen.
+
+# Uids
+
+I'm not sure that Entities need to know their own Uids. Entities do not appear
+to use Uids for anything, and the things that do use them (ControlAtlas,
+ControlRouter, EntityStore) store their own copies. In other words, Uids
+establish relationships, but Entities do not care about relationships, so
+Entities probably do not need to care about Uids, either.
+
+# ControlAtlas
+
+ControlAtlas might turn out to be a bad idea, or perhaps not sufficiently
+designed. Its value is that it contains a Track's ControlTrips, and that it
+proxies for them when Orchestrator asks it to do work. So it's basically a list.
+But it cannot render itself (a.k.a. render the ControlTrips it contains) without
+asking ControlRouter for help (since ControlRouter knows the relationships), and
+I haven't figured out a non-clunky way to let them share that knowledge.
+
+Another path:
+
+  - EntityStore stores ControlTrips directly. This simply moves storage rather
+    than adding or removing, no net change.
+  - Orchestrator treats ControlTrips like any other IsController (except for
+    drawing, because they draw into the timeline). A tiny efficiency loss in a
+    Vec of ControlTrips becoming a set of hash lookups, but that's
+    insignificant.
+  - SignalChainWidget needs to be taught not to ask DisplaysInTimeline entities
+    to draw. It currently checks to see what's in track.timeline_entities, but
+    ControlTrips are not full timeline entities (ugh, this is getting brittle).
+  - ControlAtlas's drawing code becomes a ControlRouter widget. This solves the
+    problem of ControlAtlas needing access to ControlRouter during drawing. (The
+    widget would need access to EntityStore, though.)
+  - After writing this out, I don't think this improves anything.
+
+Yet another approach:
+
+  - Keep ControlAtlas, but Track is in charge of drawing it. So it creates the
+    widget, and because it has access to ControlRouter, it can gracefully share
+    access. This undoes some of the work I did to genericize
+    DisplaysWithTimeline entities, but I haven't really seen any benefits from
+    that, so maybe it wasn't actually valuable.
+
+I could also unify ControlAtlas and ControlRouter. 

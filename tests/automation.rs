@@ -45,18 +45,15 @@ fn demo_automation() {
         // Arrange the lead pattern in the sequencer.
         let track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .append_entity(
-                &track_uid,
-                factory.create_entity_with_minted_uid(|| {
-                    let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern(pattern)
-                            .build()
-                            .unwrap(),
-                    )
-                })
-            )
+            .append_entity(&track_uid, {
+                let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
+                Box::new(
+                    PatternSequencerBuilder::default()
+                        .pattern(pattern)
+                        .build()
+                        .unwrap(),
+                )
+            })
             .is_ok());
 
         // Add a synth to play the pattern.
@@ -69,13 +66,15 @@ fn demo_automation() {
 
         // Add an LFO that will control a synth parameter.
         let lfo_uid = {
-            let lfo = factory.create_entity_with_minted_uid(|| {
-                Box::new(LfoController::new_with(&LfoControllerParams {
-                    frequency: FrequencyHz(2.0),
-                    waveform: Waveform::Sine,
-                }))
-            });
-            orchestrator.append_entity(&track_uid, lfo).unwrap()
+            orchestrator
+                .append_entity(
+                    &track_uid,
+                    Box::new(LfoController::new_with(&LfoControllerParams {
+                        frequency: FrequencyHz(2.0),
+                        waveform: Waveform::Sine,
+                    })),
+                )
+                .unwrap()
         };
 
         let pan_param_index = {
@@ -139,12 +138,12 @@ fn demo_control_trips() {
         assert!(orchestrator
             .append_entity(
                 &track_uid,
-                factory.create_entity_with_minted_uid(|| Box::new(
+                Box::new(
                     PatternSequencerBuilder::default()
                         .pattern(scale_pattern.clone())
                         .build()
                         .unwrap()
-                ))
+                )
             )
             .is_ok());
 
@@ -162,7 +161,7 @@ fn demo_control_trips() {
         // First add a ControlTrip that ramps from zero to max over the desired
         // amount of time.
         let (atlas, trip_uid) = {
-            let trip_uid = factory.mint_uid();
+            let trip_uid = Uid(5938);
             let trip = ControlTripBuilder::default()
                 .uid(trip_uid)
                 .step(
@@ -183,11 +182,7 @@ fn demo_control_trips() {
                 )
                 .build()
                 .unwrap();
-            let atlas = ControlAtlasBuilder::default()
-                .trip(trip)
-                .uid(factory.mint_uid())
-                .build()
-                .unwrap();
+            let atlas = ControlAtlasBuilder::default().trip(trip).build().unwrap();
             (Box::new(atlas), trip_uid)
         };
 

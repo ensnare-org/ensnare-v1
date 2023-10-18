@@ -21,13 +21,6 @@ fn validate_factory_entities() {
 }
 
 fn validate_entity(key: &EntityKey, entity: &mut Box<dyn Entity>) {
-    assert_ne!(entity.uid(), Uid(0), "New entity should have a nonzero Uid");
-    assert!(
-        entity.uid().0 > EntityFactory::MAX_RESERVED_UID,
-        "New entity should have a Uid above {}, but the one for {key} was {}",
-        EntityFactory::MAX_RESERVED_UID,
-        entity.uid()
-    );
     validate_configurable(key, entity);
     validate_entity_type(key, entity);
 }

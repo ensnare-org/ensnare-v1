@@ -79,14 +79,12 @@ fn edit_song() {
         assert!(orchestrator
             .append_entity(
                 &rhythm_track_uid,
-                factory.create_entity_with_minted_uid(|| {
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern(drum_pattern.clone())
-                            .build()
-                            .unwrap(),
-                    )
-                })
+                Box::new(
+                    PatternSequencerBuilder::default()
+                        .pattern(drum_pattern.clone())
+                        .build()
+                        .unwrap(),
+                )
             )
             .is_ok());
 
@@ -141,14 +139,12 @@ fn edit_song() {
         assert!(orchestrator
             .append_entity(
                 &lead_track_uid,
-                factory.create_entity_with_minted_uid(|| {
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern(lead_pattern.clone())
-                            .build()
-                            .unwrap(),
-                    )
-                })
+                Box::new(
+                    PatternSequencerBuilder::default()
+                        .pattern(lead_pattern.clone())
+                        .build()
+                        .unwrap(),
+                )
             )
             .is_ok());
     }

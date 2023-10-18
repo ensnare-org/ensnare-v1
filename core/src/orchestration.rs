@@ -35,7 +35,7 @@ use std::{
     fmt::Debug,
     ops::Range,
     path::PathBuf,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{atomic::AtomicUsize, Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec::Vec,
 };
 use strum_macros::Display;
@@ -91,6 +91,8 @@ pub struct Orchestrator {
     #[builder(setter, default)]
     title: Option<String>,
 
+    next_uid: AtomicUsize,
+
     transport: Transport,
     control_router: ControlRouter,
 
@@ -134,6 +136,7 @@ impl Default for Orchestrator {
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: None,
+            next_uid: AtomicUsize::new(Self::MAX_RESERVED_UID),
             transport,
             control_router: Default::default(),
             track_factory: TrackFactory::new_with(Arc::clone(&piano_roll)),
@@ -156,10 +159,11 @@ impl Orchestrator {
     // matter?
     pub const SAMPLE_BUFFER_SIZE: usize = 64;
 
-    /// The fixed [Uid] for the orchestrator itself.
-    const UID: Uid = Uid(1);
+    /// All minted [Uid]s must be higher than this number.
+    pub const MAX_RESERVED_UID: usize = 1023;
+
     /// The fixed [Uid] for the global transport.
-    const TRANSPORT_UID: Uid = Uid(2);
+    const TRANSPORT_UID: Uid = Uid(1);
 
     /// Adds a new MIDI track, which can contain controllers, instruments, and
     /// effects. Returns the new track's [TrackUid] if successful.
@@ -525,9 +529,12 @@ impl Orchestrates for Orchestrator {
         entity: Box<dyn Entity>,
     ) -> anyhow::Result<Uid> {
         if let Some(track) = self.tracks.get_mut(&track_uid) {
-            self.entity_uid_to_track_uid
-                .insert(entity.uid(), *track_uid);
-            track.append_entity(entity)
+            let uid = Uid(self
+                .next_uid
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed));
+            self.entity_uid_to_track_uid.insert(uid, *track_uid);
+            track.append_entity(entity, uid)?;
+            Ok(uid)
         } else {
             Err(anyhow!("Couldn't find track {track_uid}"))
         }
@@ -654,10 +661,6 @@ impl Acts for Orchestrator {
     }
 }
 impl HasUid for Orchestrator {
-    fn uid(&self) -> Uid {
-        Self::UID
-    }
-
     fn set_uid(&mut self, _: Uid) {
         panic!("Orchestrator's UID is reserved and should never change.")
     }
@@ -999,7 +1002,6 @@ mod tests {
         midi::{MidiChannel, MidiMessage},
         traits::tests::validate_orchestrates_trait,
         types::ParameterType,
-        utils::tests::create_entity_with_uid,
     };
     use std::{collections::HashSet, sync::Arc};
 
@@ -1032,12 +1034,7 @@ mod tests {
         let track = o.get_track_mut(&tuid).unwrap();
 
         const TIMER_DURATION: MusicalTime = MusicalTime::new_with_beats(1);
-        let _ = track
-            .append_entity(create_entity_with_uid(
-                || Box::new(Timer::new_with(TIMER_DURATION)),
-                459,
-            ))
-            .unwrap();
+        let _ = track.append_entity(Box::new(Timer::new_with(TIMER_DURATION)), Uid(459));
 
         o.play();
         let mut _prior_start_time = MusicalTime::TIME_ZERO;
@@ -1145,19 +1142,6 @@ mod tests {
     }
 
     #[test]
-    fn default_orchestrator_transport_has_correct_uid() {
-        let o = Orchestrator::default();
-        assert_eq!(o.transport().uid(), Orchestrator::TRANSPORT_UID);
-    }
-
-    #[test]
-    fn default_orchestratorbuilder_transport_has_correct_uid() {
-        // This makes sure we remembered #[builder(default)] on the struct
-        let o = OrchestratorBuilder::default().build().unwrap();
-        assert_eq!(o.transport().uid(), Orchestrator::TRANSPORT_UID);
-    }
-
-    #[test]
     fn sends_send() {
         const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
         let mut o = Orchestrator::default();
@@ -1167,12 +1151,12 @@ mod tests {
         {
             let track = o.get_track_mut(&track_uid).unwrap();
             assert!(track
-                .append_entity(create_entity_with_uid(
-                    || Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
+                .append_entity(
+                    Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
                         level: EXPECTED_LEVEL,
                     })),
-                    245
-                ))
+                    Uid(245)
+                )
                 .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
@@ -1196,10 +1180,7 @@ mod tests {
         {
             let track = o.get_track_mut(&aux_uid).unwrap();
             assert!(track
-                .append_entity(create_entity_with_uid(
-                    || Box::new(TestEffectNegatesInput::default()),
-                    405
-                ))
+                .append_entity(Box::new(TestEffectNegatesInput::default()), Uid(405))
                 .is_ok());
         }
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
@@ -1217,10 +1198,9 @@ mod tests {
         let track_uid = o.new_midi_track().unwrap();
 
         let track = o.get_track_mut(&track_uid).unwrap();
-        let mut instrument = TestInstrumentCountsMidiMessages::default();
-        instrument.set_uid(Uid(345));
+        let instrument = TestInstrumentCountsMidiMessages::default();
         let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
-        let _ = track.append_entity(Box::new(instrument)).unwrap();
+        let _ = track.append_entity(Box::new(instrument), Uid(345));
 
         let test_message = MidiMessage::NoteOn {
             key: 7.into(),
@@ -1250,29 +1230,24 @@ mod tests {
         let track_b_uid = o.new_midi_track().unwrap();
 
         // On Track 1, put a sender and receiver.
-        let _ = o
-            .get_track_mut(&track_a_uid)
-            .unwrap()
-            .append_entity(create_entity_with_uid(
-                || Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
-                10001,
-            ));
-        let mut receiver_1 = TestInstrumentCountsMidiMessages::default();
-        receiver_1.set_uid(Uid(10002));
+        let _ = o.get_track_mut(&track_a_uid).unwrap().append_entity(
+            Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+            Uid(10001),
+        );
+        let receiver_1 = TestInstrumentCountsMidiMessages::default();
         let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
         let _ = o
             .get_track_mut(&track_a_uid)
             .unwrap()
-            .append_entity(Box::new(receiver_1));
+            .append_entity(Box::new(receiver_1), Uid(10002));
 
         // On Track 2, put another receiver.
-        let mut receiver_2 = TestInstrumentCountsMidiMessages::default();
-        receiver_2.set_uid(Uid(20001));
+        let receiver_2 = TestInstrumentCountsMidiMessages::default();
         let counter_2 = Arc::clone(receiver_2.received_midi_message_count_mutex());
         let _ = o
             .get_track_mut(&track_b_uid)
             .unwrap()
-            .append_entity(Box::new(receiver_2));
+            .append_entity(Box::new(receiver_2), Uid(20001));
 
         // Fire everything up.
         o.play();

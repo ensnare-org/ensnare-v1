@@ -154,13 +154,13 @@ mod tests {
             None,
             Arc::clone(&tracker),
         ));
-        let _ = es.add(entity);
+        let _ = es.add(entity, Uid(1));
         let entity = Box::new(TestHandlesMidi::new_with(
             Uid(2),
             None,
             Arc::clone(&tracker),
         ));
-        let _ = es.add(entity);
+        let _ = es.add(entity, Uid(2));
 
         let mut r = MidiRouter::default();
         r.connect(Uid(1), MidiChannel(1));
@@ -212,13 +212,13 @@ mod tests {
             Some(MidiChannel(2)),
             Arc::clone(&tracker),
         ));
-        let _ = es.add(entity);
+        let _ = es.add(entity, Uid(1));
         let entity = Box::new(TestHandlesMidi::new_with(
             Uid(2),
             None,
             Arc::clone(&tracker),
         ));
-        let _ = es.add(entity);
+        let _ = es.add(entity, Uid(2));
 
         let mut r = MidiRouter::default();
         r.connect(Uid(1), MidiChannel(1));
@@ -269,7 +269,7 @@ mod tests {
             Some(MidiChannel(1)),
             Arc::clone(&tracker),
         ));
-        let _ = es.add(entity);
+        let _ = es.add(entity, Uid(1));
 
         let mut r = MidiRouter::default();
         r.connect(Uid(1), MidiChannel(1));
