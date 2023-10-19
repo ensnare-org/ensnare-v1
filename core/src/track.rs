@@ -66,6 +66,9 @@ pub enum TrackAction {
     /// Establish a control link between the source and target uids for the
     /// given parameter.
     LinkControl(Uid, Uid, ControlIndex),
+
+    /// An entity has been selected, and we should show its detail view.
+    EntitySelected(Uid),
 }
 impl IsAction for TrackAction {}
 
@@ -432,8 +435,22 @@ impl Track {
         }
     }
 
+    #[allow(dead_code)]
     fn set_sequencer_channel(&mut self, sender: &Sender<LivePatternEvent>) {
         self.e.pattern_event_sender = Some(sender.clone());
+    }
+
+    /// Draws the given owned [Entity].
+    pub(crate) fn entity_ui(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        uid: &Uid,
+    ) -> eframe::egui::Response {
+        if let Some(entity) = self.entity_store.get_mut(uid) {
+            entity.ui(ui)
+        } else {
+            ui.label("missing!")
+        }
     }
 }
 impl Acts for Track {
@@ -632,9 +649,10 @@ pub fn track_widget<'a>(
     is_selected: bool,
     ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
+    action: &'a mut Option<TrackWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        TrackWidget::new(track, cursor)
+        TrackWidget::new(track, cursor, action)
             .is_selected(is_selected)
             .ui_state(ui_state)
             .ui(ui)
@@ -667,6 +685,11 @@ pub enum TrackUiState {
     Expanded,
 }
 
+#[derive(Debug, Display)]
+pub enum TrackWidgetAction {
+    EntitySelected(Uid),
+}
+
 /// An egui widget that draws a [Track].
 #[derive(Debug)]
 struct TrackWidget<'a> {
@@ -674,6 +697,7 @@ struct TrackWidget<'a> {
     is_selected: bool,
     ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
+    action: &'a mut Option<TrackWidgetAction>,
 }
 impl<'a> Displays for TrackWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -834,7 +858,15 @@ impl<'a> Displays for TrackWidget<'a> {
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
                             ui.set_max_height(device_view_height(self.ui_state));
-                            ui.add(signal_chain(&mut self.track));
+                            let mut action = None;
+                            ui.add(signal_chain(&mut self.track, &mut action));
+                            if let Some(action) = action {
+                                match action {
+                                    SignalChainWidgetAction::EntitySelected(uid) => {
+                                        *self.action = Some(TrackWidgetAction::EntitySelected(uid));
+                                    }
+                                }
+                            }
                         });
 
                         response
@@ -847,12 +879,17 @@ impl<'a> Displays for TrackWidget<'a> {
     }
 }
 impl<'a> TrackWidget<'a> {
-    fn new(track: &'a mut Track, cursor: Option<MusicalTime>) -> Self {
+    fn new(
+        track: &'a mut Track,
+        cursor: Option<MusicalTime>,
+        action: &'a mut Option<TrackWidgetAction>,
+    ) -> Self {
         Self {
             track,
             is_selected: false,
             ui_state: TrackUiState::Collapsed,
             cursor,
+            action,
         }
     }
 
@@ -879,20 +916,31 @@ impl<'a> TrackWidget<'a> {
 }
 
 /// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget). Mutates many things.
-pub fn signal_chain<'a>(track: &'a mut Track) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track).ui(ui)
+pub fn signal_chain<'a>(
+    track: &'a mut Track,
+    action: &'a mut Option<SignalChainWidgetAction>,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track, action).ui(ui)
 }
+
+#[derive(Debug, Display)]
+pub enum SignalChainWidgetAction {
+    EntitySelected(Uid),
+}
+impl IsAction for SignalChainWidgetAction {}
 
 #[derive(Debug)]
 struct SignalChainWidget<'a> {
     track: &'a mut Track,
     ui_size: UiSize,
+    action: &'a mut Option<SignalChainWidgetAction>,
 }
 impl<'a> SignalChainWidget<'a> {
-    pub fn new(track: &'a mut Track) -> Self {
+    pub fn new(track: &'a mut Track, action: &'a mut Option<SignalChainWidgetAction>) -> Self {
         Self {
             track,
             ui_size: Default::default(),
+            action,
         }
     }
 
@@ -937,21 +985,22 @@ impl<'a> Displays for SignalChainWidget<'a> {
                             .filter(|e| !self.track.timeline_entities.contains(e))
                             .for_each(|uid| {
                                 if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                    eframe::egui::CollapsingHeader::new(entity.name())
-                                        .id_source(uid)
-                                        .show_unindented(ui, |ui| {
-                                            if entity.as_controller().is_some() {
-                                                DragDropManager::drag_source(
-                                                    ui,
-                                                    eframe::egui::Id::new(entity.name()),
-                                                    DragDropSource::ControlSource(*uid),
-                                                    |ui| {
-                                                        ui.label("control");
-                                                    },
-                                                )
-                                            }
-                                            entity.ui(ui);
-                                        });
+                                    if entity.as_controller().is_some() {
+                                        DragDropManager::drag_source(
+                                            ui,
+                                            eframe::egui::Id::new(entity.name()),
+                                            DragDropSource::ControlSource(*uid),
+                                            |ui| {
+                                                ui.label(entity.name());
+                                            },
+                                        )
+                                    } else {
+                                        ui.label(entity.name());
+                                    }
+                                    if ui.button("show").clicked() {
+                                        *self.action =
+                                            Some(SignalChainWidgetAction::EntitySelected(*uid));
+                                    }
                                 }
                             });
                         let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {

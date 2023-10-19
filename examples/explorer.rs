@@ -89,11 +89,13 @@ impl TrackSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
+            let mut action = None;
             ui.add(track_widget(
                 &mut self.track,
                 false,
                 TrackUiState::Expanded,
                 Some(MusicalTime::new_with_beats(1)),
+                &mut action,
             ));
         }
     }
@@ -211,7 +213,11 @@ impl SignalChainSettings {
             ui.scope(|ui| {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
-                ui.add(signal_chain(&mut self.track))
+                let mut action = None;
+                ui.add(signal_chain(&mut self.track, &mut action));
+                if action.is_some() {
+                    todo!();
+                }
             });
         }
     }
@@ -935,7 +941,10 @@ impl eframe::App for Explorer {
                     }
                 }
                 TrackAction::LinkControl(_source_uid, _target_uid, _index) => {
-                    eprintln!("{action:?}")
+                    eprintln!("{action:?}");
+                }
+                TrackAction::EntitySelected(uid) => {
+                    eprintln!("we should show entity {uid}");
                 }
             }
         }

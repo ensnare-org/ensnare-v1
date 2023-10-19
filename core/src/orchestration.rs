@@ -10,7 +10,7 @@ use crate::{
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{
         track_view_height, track_widget, Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle,
-        TrackUiState, TrackUid,
+        TrackUiState, TrackUid, TrackWidgetAction,
     },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
@@ -66,6 +66,8 @@ pub struct OrchestratorEphemerals {
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
     pub keyboard_controller: KeyboardController,
     is_piano_roll_open: bool, // TODO whether this should be serialized
+    is_entity_detail_open: bool,
+    selected_entity_uid: Option<Uid>,
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
@@ -471,6 +473,7 @@ impl Orchestrator {
                         .link_control(source_uid, target_uid, control_index);
                 }
             }
+            TrackAction::EntitySelected(uid) => self.e.selected_entity_uid = Some(uid),
         }
     }
 
@@ -904,9 +907,21 @@ impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let available_width = ui.available_size_before_wrap().x;
 
-        eframe::egui::Window::new("PianoRoll")
+        eframe::egui::Window::new("Piano Roll")
             .open(&mut self.e.is_piano_roll_open)
             .show(ui.ctx(), |ui| self.piano_roll.write().unwrap().ui(ui));
+
+        eframe::egui::Window::new("Entity Detail")
+            .open(&mut self.e.is_entity_detail_open)
+            .show(ui.ctx(), |ui| {
+                if let Some(uid) = &self.e.selected_entity_uid {
+                    if let Some(track_uid) = self.entity_uid_to_track_uid.get(uid) {
+                        if let Some(track) = self.tracks.get_mut(track_uid) {
+                            track.entity_ui(ui, uid);
+                        }
+                    }
+                }
+            });
 
         eframe::egui::CentralPanel::default()
             .show(ui.ctx(), |ui| {
@@ -967,12 +982,22 @@ impl Displays for Orchestrator {
                                         None
                                     };
                                     track.update_font_galley(ui);
+                                    let mut track_widget_action = None;
                                     let response = ui.add(track_widget(
                                         track,
                                         is_selected,
                                         track_ui_state,
                                         cursor,
+                                        &mut track_widget_action,
                                     ));
+                                    if let Some(track_widget_action) = track_widget_action {
+                                        match track_widget_action {
+                                            TrackWidgetAction::EntitySelected(uid) => {
+                                                self.e.selected_entity_uid = Some(uid);
+                                                self.e.is_entity_detail_open = true;
+                                            }
+                                        }
+                                    }
                                     if response.double_clicked() {
                                         self.e.action =
                                             Some(OrchestratorAction::DoubleClickTrack(*track_uid));

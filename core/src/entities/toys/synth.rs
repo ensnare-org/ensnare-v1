@@ -8,13 +8,9 @@ use crate::{
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
-    widgets::{audio::waveform, parts::UiSize},
+    widgets::audio::waveform,
 };
-use eframe::{
-    egui::{self, Layout, Ui},
-    emath::Align,
-};
-use ensnare_egui_widgets::level_indicator;
+use eframe::egui::{self, Ui};
 use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
 use serde::{Deserialize, Serialize};
 
@@ -48,9 +44,6 @@ pub struct ToySynth {
 
     #[serde(skip)]
     max_signal: Normal,
-
-    #[serde(skip)]
-    ui_size: UiSize,
 }
 impl Serializable for ToySynth {}
 impl Generates<StereoSample> for ToySynth {
@@ -96,13 +89,12 @@ impl Configurable for ToySynth {
 }
 impl Displays for ToySynth {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
-        let height = ui.available_height();
-        self.ui_size = UiSize::from_height(height);
-        match self.ui_size {
-            UiSize::Small => self.show_small(ui),
-            UiSize::Medium => self.show_medium(ui),
-            UiSize::Large => self.show_full(ui),
-        }
+        ui.vertical(|ui| {
+            let waveform_response = self.ui_waveform(ui);
+            let envelope_response = self.ui_envelope(ui);
+            waveform_response | envelope_response
+        })
+        .inner
     }
 }
 impl ToySynth {
@@ -118,7 +110,6 @@ impl ToySynth {
             dca: Dca::new_with(&params.dca),
             inner: Synthesizer::<ToyVoice>::new_with(Box::new(voice_store)),
             max_signal: Normal::minimum(),
-            ui_size: Default::default(),
         }
     }
 
@@ -157,7 +148,7 @@ impl ToySynth {
         self.envelope = envelope;
     }
 
-    fn handle_ui_waveform(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui_waveform(&mut self, ui: &mut Ui) -> egui::Response {
         let response = ui.add(waveform(&mut self.waveform));
         if response.changed() {
             self.inner
@@ -167,10 +158,9 @@ impl ToySynth {
         response
     }
 
-    fn handle_ui_envelope(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui_envelope(&mut self, ui: &mut Ui) -> egui::Response {
         let response = ui
             .scope(|ui| {
-                ui.set_max_size(eframe::epaint::vec2(256.0, 64.0));
                 let response = self.envelope.ui(ui);
                 response
             })
@@ -184,38 +174,6 @@ impl ToySynth {
             });
         }
         response
-    }
-
-    fn show_small(&mut self, ui: &mut Ui) -> egui::Response {
-        let response = ui
-            .horizontal(|ui| {
-                ui.set_max_width(192.0);
-                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    self.handle_ui_waveform(ui)
-                })
-                .inner
-                    | ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add(level_indicator(self.max_signal.into()))
-                    })
-                    .inner
-            })
-            .inner;
-        self.degrade_max(0.95);
-        response
-    }
-    fn show_medium(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.vertical(|ui| {
-            ui.heading("ToySynth");
-            let waveform_response = self.handle_ui_waveform(ui);
-            let envelope_response = self.handle_ui_envelope(ui);
-            waveform_response | envelope_response
-        })
-        .inner
-    }
-    fn show_full(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.heading("ToySynth LARGE!!!!");
-        let value = Normal::from(0.8);
-        ui.add(level_indicator(value.into()))
     }
 }
 
