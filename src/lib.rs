@@ -227,7 +227,7 @@ pub mod prelude {
         modulators::{Dca, DcaParams},
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
-            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid,
+            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid, IsAction,
             IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
         },
         types::{

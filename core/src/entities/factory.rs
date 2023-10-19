@@ -328,16 +328,6 @@ impl EntityStore {
     pub fn is_empty(&self) -> bool {
         self.entities.is_empty()
     }
-
-    /// Calculates the highest [Uid] of owned [Entities](Entity). This is used
-    /// when after deserializing to make sure that newly generated [Uid]s don't
-    /// collide with existing ones.
-    pub fn calculate_max_entity_uid(&self) -> Option<Uid> {
-        // TODO: keep an eye on this in case it gets expensive. It's currently
-        // used only after loading from disk, and it's O(number of things in
-        // system), so it's unlikely to matter.
-        self.entities.keys().max().copied()
-    }
 }
 impl Ticks for EntityStore {
     fn tick(&mut self, tick_count: usize) {
@@ -872,7 +862,6 @@ mod tests {
     #[test]
     fn disallow_duplicate_uids() {
         let mut t = EntityStore::default();
-        assert_eq!(t.calculate_max_entity_uid(), None);
 
         let uid_1 = Uid(9999);
         let one = Box::new(TestInstrument::default());

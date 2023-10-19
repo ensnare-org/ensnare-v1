@@ -17,6 +17,7 @@ use strum_macros::Display;
 pub enum ToyInstrumentAction {
     LinkControl(Uid, Uid, ControlIndex),
 }
+impl IsAction for ToyInstrumentAction {}
 
 #[derive(Debug, Default)]
 pub struct ToyInstrumentEphemerals {

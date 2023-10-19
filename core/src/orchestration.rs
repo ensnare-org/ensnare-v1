@@ -14,7 +14,7 @@ use crate::{
     },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid, IsAction,
         MidiMessagesFn, Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
@@ -50,6 +50,7 @@ pub enum OrchestratorAction {
     /// A [Track] wants a new device of type [Key].
     NewDeviceForTrack(TrackUid, EntityKey),
 }
+impl IsAction for OrchestratorAction {}
 
 /// A grouping mechanism to declare parts of [Orchestrator] that Serde
 /// shouldn't be serializing. Exists so we don't have to spray #[serde(skip)]

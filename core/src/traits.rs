@@ -20,8 +20,8 @@ pub mod prelude {
     pub use super::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
         Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasSettings,
-        HasUid, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, MidiMessagesFn,
-        Orchestrates, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
+        HasUid, IsAction, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice,
+        MidiMessagesFn, Orchestrates, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
         TransformsAudio,
     };
 }
@@ -453,7 +453,7 @@ pub trait DisplaysInTimeline: Displays {
 
 /// Reports an action requested during [Displays::ui()].
 pub trait Acts: Displays {
-    type Action: std::fmt::Debug + std::fmt::Display;
+    type Action: IsAction;
 
     /// Sets the current action. Typically called by the UI code that just
     /// detected a click, drop, change, etc.
@@ -463,6 +463,7 @@ pub trait Acts: Displays {
     /// called by the UI code that has the context needed to perform the action.
     fn take_action(&mut self) -> Option<Self::Action>;
 }
+pub trait IsAction: std::fmt::Debug + std::fmt::Display {}
 
 /// Manages relationships among [Entities](Entity) to produce a song.
 pub trait Orchestrates: Configurable {

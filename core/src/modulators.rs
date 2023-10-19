@@ -15,6 +15,7 @@ use strum_macros::Display;
 pub enum DcaAction {
     LinkControl(Uid, ControlIndex),
 }
+impl IsAction for DcaAction {}
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.

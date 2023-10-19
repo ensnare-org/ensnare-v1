@@ -18,6 +18,7 @@ pub(crate) enum MenuBarAction {
     TrackAddThing(EntityKey),
     ComingSoon,
 }
+impl IsAction for MenuBarAction {}
 
 #[derive(Debug)]
 struct MenuBarItem {

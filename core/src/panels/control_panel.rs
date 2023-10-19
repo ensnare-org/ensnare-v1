@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    traits::{Acts, Displays},
+    traits::{Acts, Displays, IsAction},
     types::{ChannelPair, Sample},
     widgets::audio::{frequency_domain, time_domain, CircularSampleBuffer},
 };
@@ -34,6 +34,7 @@ pub enum ControlPanelAction {
     /// The user pressed the settings icon.
     ToggleSettings,
 }
+impl IsAction for ControlPanelAction {}
 
 #[derive(Debug, Default)]
 enum ControlPanelDisplayMode {

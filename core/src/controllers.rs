@@ -506,6 +506,7 @@ impl ControlAtlasBuilder {
 pub enum ControlAtlasAction {
     AddTrip,
 }
+impl IsAction for ControlAtlasAction {}
 
 /// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
 /// maps.)

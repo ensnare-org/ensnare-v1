@@ -9,7 +9,7 @@ use crate::{
     midi_router::MidiRouter,
     piano_roll::{PatternUid, PianoRoll},
     prelude::*,
-    traits::{prelude::*, Acts},
+    traits::prelude::*,
     uid::IsUid,
     widgets::{
         prelude::*,
@@ -67,6 +67,7 @@ pub enum TrackAction {
     /// given parameter.
     LinkControl(Uid, Uid, ControlIndex),
 }
+impl IsAction for TrackAction {}
 
 #[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 pub enum TrackType {
@@ -364,10 +365,6 @@ impl Track {
         } else {
             Err(anyhow!("{effect_uid} not found"))
         }
-    }
-
-    pub(crate) fn calculate_max_entity_uid(&self) -> Option<Uid> {
-        self.entity_store.calculate_max_entity_uid()
     }
 
     /// Moves the indicated effect to a new position within the effects chain.
