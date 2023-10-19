@@ -413,21 +413,6 @@ impl Orchestrator {
         }
     }
 
-    /// The highest [Entity] [Uid] that this orchestrator has seen. This is
-    /// needed so that generators of new [Uid]s (such as [crate::EntityFactory])
-    /// can keep generating unique ones.
-    pub fn calculate_max_entity_uid(&self) -> Uid {
-        if let Some(track) = self
-            .track_iter()
-            .max_by_key(|t| t.calculate_max_entity_uid())
-        {
-            if let Some(uid) = track.calculate_max_entity_uid() {
-                return uid;
-            }
-        }
-        Uid(0)
-    }
-
     /// Returns the one and only [PianoRoll].
     pub fn piano_roll(&self) -> RwLockReadGuard<'_, PianoRoll> {
         self.piano_roll.read().unwrap()
