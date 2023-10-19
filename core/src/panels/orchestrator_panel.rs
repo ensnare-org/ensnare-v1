@@ -215,7 +215,7 @@ impl OrchestratorPanel {
                         }
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
                             if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                                let _ = o.append_entity(&track_uid, entity);
+                                let _ = o.add_entity(&track_uid, entity);
                             }
                         }
                     },
@@ -290,7 +290,7 @@ impl OrchestratorPanel {
             }
             OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
                 if let Some(entity) = EntityFactory::global().new_entity(&key) {
-                    let _ = orchestrator.append_entity(&track_uid, entity);
+                    let _ = orchestrator.add_entity(&track_uid, entity);
                 }
             }
         }

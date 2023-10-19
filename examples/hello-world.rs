@@ -62,10 +62,10 @@ fn main() -> anyhow::Result<()> {
     // Adding an entity to a track forms a chain that sends MIDI, control, and
     // audio data appropriately.
     let _synth_id = orchestrator
-        .append_entity(&track_uid, Box::new(synth))
+        .add_entity(&track_uid, Box::new(synth))
         .unwrap();
     let _compressor_id = orchestrator
-        .append_entity(&track_uid, Box::new(effect))
+        .add_entity(&track_uid, Box::new(effect))
         .unwrap();
 
     // Once everything is set up, the orchestrator renders an audio stream.

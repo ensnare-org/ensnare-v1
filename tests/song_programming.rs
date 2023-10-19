@@ -32,7 +32,7 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Sequencer emits events on MIDI channel 0.
     let track_uid = o.create_track().unwrap();
     assert!(o
-        .append_entity(
+        .add_entity(
             &track_uid,
             Box::new(
                 PatternSequencerBuilder::default()
@@ -45,7 +45,7 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Add the drumkit instrument to the track. By default, it listens on MIDI channel 0.
     assert!(o
-        .append_entity(
+        .add_entity(
             &track_uid,
             factory
                 .new_entity(&EntityKey::from("toy-instrument"))
@@ -55,7 +55,7 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Add an effect to the track's effect chain.
     let filter_uid = o
-        .append_entity(
+        .add_entity(
             &track_uid,
             factory
                 .new_entity(&EntityKey::from("filter-low-pass-24db"))
@@ -80,7 +80,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = o.create_track().unwrap();
     assert!(o
-        .append_entity(
+        .add_entity(
             &track_uid,
             Box::new(
                 PatternSequencerBuilder::default()
@@ -93,7 +93,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Add a synth to play the pattern.
     assert!(o
-        .append_entity(
+        .add_entity(
             &track_uid,
             factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
         )
@@ -101,7 +101,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Make the synth sound better.
     let reverb_uid = o
-        .append_entity(
+        .add_entity(
             &track_uid,
             factory.new_entity(&EntityKey::from("reverb")).unwrap(),
         )

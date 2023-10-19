@@ -45,7 +45,7 @@ fn demo_automation() {
         // Arrange the lead pattern in the sequencer.
         let track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .append_entity(&track_uid, {
+            .add_entity(&track_uid, {
                 let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -58,7 +58,7 @@ fn demo_automation() {
 
         // Add a synth to play the pattern.
         let synth_uid = orchestrator
-            .append_entity(
+            .add_entity(
                 &track_uid,
                 factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
             )
@@ -67,7 +67,7 @@ fn demo_automation() {
         // Add an LFO that will control a synth parameter.
         let lfo_uid = {
             orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid,
                     Box::new(LfoController::new_with(&LfoControllerParams {
                         frequency: FrequencyHz(2.0),
@@ -136,7 +136,7 @@ fn demo_control_trips() {
         // Add the sequencer to a new track.
         let track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -155,7 +155,7 @@ fn demo_control_trips() {
             .unwrap()
             .control_index_for_name("dca-pan")
             .unwrap();
-        let synth_uid = orchestrator.append_entity(&track_uid, entity).unwrap();
+        let synth_uid = orchestrator.add_entity(&track_uid, entity).unwrap();
 
         // Create a [ControlAtlas] that will manage [ControlTrips](ControlTrip).
         // First add a ControlTrip that ramps from zero to max over the desired
@@ -186,7 +186,7 @@ fn demo_control_trips() {
             (Box::new(atlas), trip_uid)
         };
 
-        let _ = orchestrator.append_entity(&track_uid, atlas).unwrap();
+        let _ = orchestrator.add_entity(&track_uid, atlas).unwrap();
 
         // Hook up that ControlTrip to the pan parameter.
         assert!(orchestrator

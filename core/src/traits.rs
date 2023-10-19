@@ -467,12 +467,27 @@ pub trait Acts: Displays {
 /// Manages relationships among [Entities](Entity) to produce a song.
 pub trait Orchestrates: Configurable {
     /// Creates a new track, returning its [TrackUid] if successful. A track is
-    /// a group of musical instruments that together produce a single audio
-    /// sample for every frame.
+    /// a group of musical instruments that together produce a single sample for
+    /// every frame of audio. Each track's frame sample is then merged into a
+    /// single sample for the audio frame.
+    ///
+    /// The [TrackUid] should be appended to the internal list of [TrackUid]s.
     fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
-    /// Returns an ordered list of [TrackUid]s.
+    /// Returns an ordered list of [TrackUid]s. The ordering of tracks
+    /// determines how tracks are presented in a visual rendering of the
+    /// project, but it shouldn't affect how the project sounds.
+    ///
+    /// [TrackUid]s are generally appended to this list as they are created.
     fn track_uids(&self) -> &[TrackUid];
+
+    /// Moves the specified [TrackUid] to the given position. Later [TrackUid]s
+    /// are shifted to make room, if needed.
+    fn set_track_position(
+        &mut self,
+        track_uid: TrackUid,
+        new_position: usize,
+    ) -> anyhow::Result<()>;
 
     /// Deletes the specified track, disposing of any [Entities](Entity) that it
     /// owns.
@@ -483,11 +498,11 @@ pub trait Orchestrates: Configurable {
     fn delete_tracks(&mut self, uids: &[TrackUid]);
 
     /// Adds the given [Entity] to the end of the specified track.
-    fn append_entity(
-        &mut self,
-        track_uid: &TrackUid,
-        entity: Box<dyn Entity>,
-    ) -> anyhow::Result<Uid>;
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid>;
+
+    /// Removes the specified [Entity], returning ownership (if successful) to
+    /// the caller.
+    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>>;
 
     /// Adds the [Pattern] with the given [PatternUid] (in [PianoRoll]) at the
     /// specified position to the given track's sequencer.
@@ -498,16 +513,12 @@ pub trait Orchestrates: Configurable {
         position: MusicalTime,
     ) -> anyhow::Result<()>;
 
-    /// Removes the specified [Entity], returning ownership (if successful) to
-    /// the caller.
-    fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>>;
-
-    /// Removes the specified [Entity] from its current track and appends it to
-    /// the specified track. Returns the [Entity]'s [Uid] if successful.
-    fn move_entity_to_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<Uid>;
+    /// Move the specified [Entity] from its current track to the end of the
+    /// specified track.
+    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
 
     /// Establishes a control link. If the link is successful, then the source
-    /// [Entity]'s output will control the target's given parameter.
+    /// [Entity]'s output will control the target [Entity]'s given parameter.
     fn link_control(
         &mut self,
         source_uid: Uid,
@@ -668,8 +679,22 @@ pub(crate) mod tests {
             "should be one track after creating one"
         );
 
+        let track_2_uid = orchestrates.create_track().unwrap();
+        assert_eq!(
+            orchestrates.track_uids().len(),
+            2,
+            "should be two tracks after creating second"
+        );
+        assert!(orchestrates.set_track_position(track_2_uid, 0).is_ok());
+        assert_eq!(
+            orchestrates.track_uids(),
+            vec![track_2_uid, track_uid],
+            "order of track uids should be as expected after move"
+        );
+        orchestrates.delete_track(&track_2_uid);
+
         let target_uid = orchestrates
-            .append_entity(
+            .add_entity(
                 &track_uid,
                 Box::new(TestInstrument {
                     uid: Uid(1), // TODO: remove
@@ -695,7 +720,7 @@ pub(crate) mod tests {
         let mut ids: HashSet<Uid> = HashSet::default();
         for _ in 0..64 {
             let e = Box::new(TestInstrument::default());
-            let uid = orchestrates.append_entity(&track_uid, e).unwrap();
+            let uid = orchestrates.add_entity(&track_uid, e).unwrap();
             assert!(
                 !ids.contains(&uid),
                 "added entities should be assigned unique IDs"

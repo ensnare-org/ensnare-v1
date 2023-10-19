@@ -67,7 +67,7 @@ fn edit_song() {
 
         // Pattern is good; add an instrument to the track.
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &rhythm_track_uid,
                 factory
                     .new_entity(&EntityKey::from("toy-instrument"))
@@ -77,7 +77,7 @@ fn edit_song() {
 
         // Arrange the drum pattern.
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &rhythm_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -103,7 +103,7 @@ fn edit_song() {
         let _ = piano_roll.insert(lead_pattern.clone());
 
         let welsh_synth_uid = orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
             )
@@ -112,7 +112,7 @@ fn edit_song() {
         // Hmmm, we don't like the sound of that synth; let's replace it with another.
         let _ = orchestrator.remove_entity(&welsh_synth_uid);
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
             )
@@ -120,14 +120,14 @@ fn edit_song() {
 
         // That's better, but it needs an effect.
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 factory.new_entity(&EntityKey::from("reverb")).unwrap()
             )
             .is_ok());
         // And another.
         let lead_gain_uid = orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 factory.new_entity(&EntityKey::from("gain")).unwrap(),
             )
@@ -137,7 +137,7 @@ fn edit_song() {
 
         // Arrange the lead pattern.
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()

@@ -29,7 +29,7 @@ fn demo_sidechaining() {
             .unwrap();
         let sidechain_track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &sidechain_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -40,14 +40,14 @@ fn demo_sidechaining() {
             )
             .is_ok());
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &sidechain_track_uid,
                 factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
             )
             .is_ok());
         // This turns the chain's audio output into Control events.
         let signal_passthrough_uid = orchestrator
-            .append_entity(
+            .add_entity(
                 &sidechain_track_uid,
                 factory
                     .new_entity(&EntityKey::from("signal-amplitude-inverted-passthrough"))
@@ -56,7 +56,7 @@ fn demo_sidechaining() {
             .unwrap();
         // In this demo, we don't want to hear the kick track.
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &sidechain_track_uid,
                 factory.new_entity(&EntityKey::from("mute")).unwrap()
             )
@@ -72,7 +72,7 @@ fn demo_sidechaining() {
             .unwrap();
         let lead_track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -83,7 +83,7 @@ fn demo_sidechaining() {
             )
             .is_ok());
         assert!(orchestrator
-            .append_entity(
+            .add_entity(
                 &lead_track_uid,
                 factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
             )
@@ -95,7 +95,7 @@ fn demo_sidechaining() {
             .unwrap()
             .control_index_for_name("ceiling")
             .unwrap();
-        let gain_uid = orchestrator.append_entity(&lead_track_uid, entity).unwrap();
+        let gain_uid = orchestrator.add_entity(&lead_track_uid, entity).unwrap();
 
         // Link the sidechain control to the synth's gain.
         assert!(orchestrator

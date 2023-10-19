@@ -41,7 +41,7 @@ fn aux_bus() {
 
         {
             assert!(orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_1,
                     Box::new(
                         PatternSequencerBuilder::default()
@@ -57,13 +57,13 @@ fn aux_bus() {
             // This is because the processing order is always controllers,
             // instruments, effects.
             assert!(orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_1,
                     factory.new_entity(&EntityKey::from("gain")).unwrap()
                 )
                 .is_ok());
             orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_1,
                     factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
                 )
@@ -71,7 +71,7 @@ fn aux_bus() {
         };
         let _synth_uid_2 = {
             assert!(orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_2,
                     Box::new(
                         PatternSequencerBuilder::default()
@@ -82,13 +82,13 @@ fn aux_bus() {
                 )
                 .is_ok());
             assert!(orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_2,
                     factory.new_entity(&EntityKey::from("gain")).unwrap()
                 )
                 .is_ok());
             orchestrator
-                .append_entity(
+                .add_entity(
                     &track_uid_2,
                     factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
                 )
@@ -96,13 +96,13 @@ fn aux_bus() {
         };
         let _effect_uid_1 = {
             orchestrator
-                .append_entity(
+                .add_entity(
                     &aux_track_uid,
                     factory.new_entity(&EntityKey::from("gain")).unwrap(),
                 )
                 .unwrap();
             orchestrator
-                .append_entity(
+                .add_entity(
                     &aux_track_uid,
                     factory.new_entity(&EntityKey::from("reverb")).unwrap(),
                 )

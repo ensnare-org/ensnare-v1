@@ -76,9 +76,8 @@ pub struct OrchestratorEphemerals {
 ///
 /// let mut orchestrator = Orchestrator::default();
 /// let track_uid = orchestrator.create_track().unwrap();
-/// let mut instrument = Box::new(ToyInstrument::default());
-/// instrument.set_uid(Uid(123));
-/// let instrument_uid = orchestrator.append_entity(&track_uid, instrument).unwrap();
+/// let instrument_uid = orchestrator.add_entity(&track_uid,
+///     Box::new(ToyInstrument::default())).unwrap();
 ///
 /// let mut samples = [StereoSample::SILENCE; Orchestrator::SAMPLE_BUFFER_SIZE];
 /// orchestrator.render_and_ignore_events(&mut samples);
@@ -497,6 +496,27 @@ impl Orchestrates for Orchestrator {
         &self.track_uids
     }
 
+    fn set_track_position(
+        &mut self,
+        track_uid: TrackUid,
+        new_position: usize,
+    ) -> anyhow::Result<()> {
+        if self.track_uids.contains(&track_uid) {
+            self.track_uids.retain(|uid| *uid != track_uid);
+            if new_position <= self.track_uids.len() {
+                self.track_uids.insert(new_position, track_uid);
+                Ok(())
+            } else {
+                Err(anyhow!(
+                    "Given position {new_position} is beyond range 0..{}",
+                    self.track_uids.len(),
+                ))
+            }
+        } else {
+            Err(anyhow!("Track {track_uid} not found"))
+        }
+    }
+
     fn delete_track(&mut self, track_uid: &TrackUid) {
         self.tracks.remove(&track_uid);
         self.track_uids.retain(|uid| uid != track_uid);
@@ -508,11 +528,7 @@ impl Orchestrates for Orchestrator {
         });
     }
 
-    fn append_entity(
-        &mut self,
-        track_uid: &TrackUid,
-        entity: Box<dyn Entity>,
-    ) -> anyhow::Result<Uid> {
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
         if let Some(track) = self.tracks.get_mut(&track_uid) {
             let uid = Uid(self
                 .next_uid
@@ -525,23 +541,32 @@ impl Orchestrates for Orchestrator {
         }
     }
 
-    fn move_entity_to_track(&mut self, track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<Uid> {
-        if let Some(entity) = self.remove_entity(uid) {
-            self.append_entity(track_uid, entity)
+    fn set_entity_track(&mut self, track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+        if let Ok(entity) = self.remove_entity(uid) {
+            match self.add_entity(track_uid, entity) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
+            }
         } else {
             Err(anyhow!("Couldn't find track {track_uid}"))
         }
     }
 
-    fn remove_entity(&mut self, uid: &Uid) -> Option<Box<dyn Entity>> {
+    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
         if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
             if let Some(track) = self.tracks.get_mut(track_uid) {
-                track.remove_entity(uid)
+                if let Some(entity) = track.remove_entity(uid) {
+                    Ok(entity)
+                } else {
+                    Err(anyhow!(
+                        "Couldn't remove entity {uid} from track {track_uid}"
+                    ))
+                }
             } else {
-                None
+                Err(anyhow!("Track {track_uid} not found"))
             }
         } else {
-            None
+            Err(anyhow!("Track location of entity {uid} not found"))
         }
     }
 
