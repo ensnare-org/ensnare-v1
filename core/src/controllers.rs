@@ -493,6 +493,7 @@ impl ControlAtlasBuilder {
     pub fn random(&mut self) -> &mut Self {
         self.trip(
             ControlTripBuilder::default()
+                .uid(Uid(Rng::default().0.rand_range(100..100000) as usize))
                 .random(MusicalTime::START)
                 .build()
                 .unwrap(),
