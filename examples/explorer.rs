@@ -91,6 +91,7 @@ impl TrackSettings {
         if !self.hide {
             let mut action = None;
             ui.add(track_widget(
+                TrackUid(1),
                 &mut self.track,
                 false,
                 TrackUiState::Expanded,

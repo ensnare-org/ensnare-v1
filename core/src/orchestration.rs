@@ -3,14 +3,15 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
+    controllers::LivePatternSequencer,
     entities::{controllers::KeyboardController, factory::EntityKey},
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{
-        track_view_height, track_widget, Track, TrackAction, TrackBuffer, TrackFactory, TrackTitle,
-        TrackUiState, TrackUid, TrackWidgetAction,
+        track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUiState, TrackUid,
+        TrackWidgetAction,
     },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
@@ -31,11 +32,14 @@ use eframe::{egui::ScrollArea, epaint::vec2};
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Debug,
     ops::Range,
     path::PathBuf,
-    sync::{atomic::AtomicUsize, Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
+    },
     vec::Vec,
 };
 use strum_macros::Display;
@@ -93,16 +97,26 @@ pub struct Orchestrator {
     #[builder(setter, default)]
     title: Option<String>,
 
-    next_uid: AtomicUsize,
+    /// The value of the next Entity [Uid] to be assigned.
+    next_entity_uid: AtomicUsize,
+
+    /// The value of the next [TrackUid] to be assigned.
+    next_track_uid: AtomicUsize,
 
     transport: Transport,
     control_router: ControlRouter,
 
-    track_factory: TrackFactory,
-    tracks: HashMap<TrackUid, Track>,
-    /// Track uids in the order they appear in the UI.
+    /// An ordered list of [TrackUid]s in the order they appear in the UI.
     track_uids: Vec<TrackUid>,
+
+    /// All [Track]s, indexed by their [TrackUid].
+    tracks: HashMap<TrackUid, Track>,
+
     track_ui_states: HashMap<TrackUid, TrackUiState>,
+
+    /// Which tracks are aux type.
+    #[deprecated = "Check whether we can infer the right behavior from other track elements"]
+    aux_track_uids: HashSet<TrackUid>,
 
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
@@ -138,13 +152,14 @@ impl Default for Orchestrator {
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: None,
-            next_uid: AtomicUsize::new(Self::MAX_RESERVED_UID),
+            next_entity_uid: AtomicUsize::new(Self::FIRST_ENTITY_UID),
+            next_track_uid: AtomicUsize::new(Self::FIRST_TRACK_UID),
             transport,
             control_router: Default::default(),
-            track_factory: TrackFactory::new_with(Arc::clone(&piano_roll)),
             tracks: Default::default(),
             track_uids: Default::default(),
             track_ui_states: Default::default(),
+            aux_track_uids: Default::default(),
             piano_roll,
             bus_station: Default::default(),
             entity_uid_to_track_uid: Default::default(),
@@ -161,32 +176,84 @@ impl Orchestrator {
     // matter?
     pub const SAMPLE_BUFFER_SIZE: usize = 64;
 
-    /// All minted [Uid]s must be higher than this number.
-    pub const MAX_RESERVED_UID: usize = 1023;
+    /// All [Uid]s below this value are reserved.
+    const FIRST_ENTITY_UID: usize = 1024;
+
+    /// All [TrackUid]s below this value are reserved.
+    const FIRST_TRACK_UID: usize = 1;
 
     /// The fixed [Uid] for the global transport.
     const TRANSPORT_UID: Uid = Uid(1);
 
+    /// Adds the [Pattern] with the given [PatternUid] (in [PianoRoll]) at the
+    /// specified position to the given track's sequencer.
+    pub fn add_pattern_to_track(
+        &mut self,
+        track_uid: &TrackUid,
+        pattern_uid: &PatternUid,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        if let Some(track) = self.get_track_mut(track_uid) {
+            track.add_pattern(pattern_uid, position)
+        } else {
+            Err(anyhow!("Couldn't find track {track_uid}"))
+        }
+    }
+
+    fn mint_entity_uid(&self) -> Uid {
+        Uid(self.next_entity_uid.fetch_add(1, Ordering::Relaxed))
+    }
+
+    fn mint_track_uid(&mut self) -> TrackUid {
+        TrackUid(self.next_track_uid.fetch_add(1, Ordering::Relaxed))
+    }
+
+    fn new_base_track(
+        &mut self,
+        post_creation: impl FnOnce(TrackUid, &mut Track),
+    ) -> anyhow::Result<TrackUid> {
+        let track_uid = self.create_track()?;
+        if let Some(track) = self.tracks.get_mut(&track_uid) {
+            post_creation(track_uid, track);
+            Ok(track_uid)
+        } else {
+            Err(anyhow!("Couldn't find just-created track {track_uid}"))
+        }
+    }
+
     /// Adds a new MIDI track, which can contain controllers, instruments, and
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.midi();
-        self.new_track(track)
+        let sequencer = Box::new(LivePatternSequencer::new_with(Arc::clone(&self.piano_roll)));
+        let entity_uid = self.mint_entity_uid();
+        self.new_base_track(|track_uid, track| {
+            track.title = TrackTitle(format!("MIDI {}", track_uid));
+            track.set_sequencer_channel(sequencer.sender());
+            let _ = track.append_entity(sequencer, entity_uid);
+        })
     }
 
     /// Adds a new audio track, which can contain audio clips and effects.
     /// Returns the new track's [TrackUid] if successful.
     pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.audio();
-        self.new_track(track)
+        self.new_base_track(|track_uid, track| {
+            track.title = TrackTitle(format!("Audio {}", track_uid));
+        })
     }
 
     /// Adds a new aux track, which contains only effects, and to which other
     /// tracks can *send* their output audio. Returns the new track's [TrackUid]
     /// if successful.
     pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.aux();
-        self.new_track(track)
+        match self.new_base_track(|track_uid, track| {
+            track.title = TrackTitle(format!("Aux {}", track_uid));
+        }) {
+            Ok(track_uid) => {
+                self.aux_track_uids.insert(track_uid);
+                Ok(track_uid)
+            }
+            Err(err) => Err(err),
+        }
     }
 
     /// Adds a set of tracks that make sense for a new project.
@@ -370,13 +437,6 @@ impl Orchestrator {
         );
     }
 
-    fn new_track(&mut self, track: Track) -> anyhow::Result<TrackUid> {
-        let uid = track.uid();
-        self.track_uids.push(uid);
-        self.tracks.insert(uid, track);
-        Ok(uid)
-    }
-
     fn calculate_is_finished(&self) -> bool {
         self.tracks.values().all(|t| t.is_finished())
     }
@@ -492,8 +552,10 @@ impl Orchestrator {
 }
 impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track = self.track_factory.midi();
-        self.new_track(track)
+        let track_uid = self.mint_track_uid();
+        self.track_uids.push(track_uid);
+        self.tracks.insert(track_uid, Track::default());
+        Ok(track_uid)
     }
 
     fn track_uids(&self) -> &[TrackUid] {
@@ -533,10 +595,8 @@ impl Orchestrates for Orchestrator {
     }
 
     fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
+        let uid = self.mint_entity_uid();
         if let Some(track) = self.tracks.get_mut(&track_uid) {
-            let uid = Uid(self
-                .next_uid
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed));
             self.entity_uid_to_track_uid.insert(uid, *track_uid);
             track.append_entity(entity, uid)?;
             Ok(uid)
@@ -644,19 +704,6 @@ impl Orchestrates for Orchestrator {
             },
         )
     }
-
-    fn add_pattern_to_track(
-        &mut self,
-        track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
-        position: MusicalTime,
-    ) -> anyhow::Result<()> {
-        if let Some(track) = self.get_track_mut(track_uid) {
-            track.add_pattern(pattern_uid, position)
-        } else {
-            Err(anyhow!("Couldn't find track {track_uid}"))
-        }
-    }
 }
 impl Acts for Orchestrator {
     type Action = OrchestratorAction;
@@ -694,18 +741,20 @@ impl Generates<StereoSample> for Orchestrator {
         let len = values.len();
 
         // Generate all normal tracks in parallel.
-        self.tracks.par_iter_mut().for_each(|(_uid, track)| {
-            if !track.is_aux() {
+        //
+        // TODO: I couldn't figure out how to filter() and then spawn the
+        // parallel iteration on the results, so it looks like we're wasting
+        // time spinning up threads on tracks that we know have no work to do.
+        self.tracks.par_iter_mut().for_each(|(track_uid, track)| {
+            if self.aux_track_uids.contains(track_uid) {
+                // As long as we've got a thread, clear out the aux-track buffers.
+                track.buffer_mut().0.fill(StereoSample::SILENCE);
+            } else {
                 track.generate_batch_values(len);
             }
         });
 
         // Send audio to aux tracks...
-        self.tracks.par_iter_mut().for_each(|(_uid, track)| {
-            if track.is_aux() {
-                track.buffer_mut().0.fill(StereoSample::SILENCE);
-            }
-        });
         for (track_uid, routes) in self.bus_station.send_routes() {
             // We need an extra buffer copy to satisfy the borrow checker.
             // HashMap::get_mut() grabs the entire HashMap, preventing us from
@@ -734,8 +783,8 @@ impl Generates<StereoSample> for Orchestrator {
         //
         // We don't currently support an aux returning to another aux. It's just
         // regular tracks sending to aux, then aux returning to main. See #143
-        self.tracks.par_iter_mut().for_each(|(_uid, track)| {
-            if track.is_aux() {
+        self.tracks.par_iter_mut().for_each(|(track_uid, track)| {
+            if self.aux_track_uids.contains(track_uid) {
                 track.generate_batch_values(len);
             }
         });
@@ -888,7 +937,6 @@ impl Controls for Orchestrator {
 }
 impl Serializable for Orchestrator {
     fn after_deser(&mut self) {
-        self.track_factory.piano_roll = Arc::clone(&self.piano_roll);
         self.tracks.values_mut().for_each(|t| {
             t.e.piano_roll = Arc::clone(&self.piano_roll);
             t.after_deser();
@@ -971,7 +1019,7 @@ impl Displays for Orchestrator {
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
                                 let desired_size = vec2(
                                     available_width,
-                                    track_view_height(track.ty(), track_ui_state),
+                                    64.0, //                                    track_view_height(track.ty(), track_ui_state),
                                 );
                                 ui.allocate_ui(desired_size, |ui| {
                                     ui.set_min_size(desired_size);
@@ -984,6 +1032,7 @@ impl Displays for Orchestrator {
                                     track.update_font_galley(ui);
                                     let mut track_widget_action = None;
                                     let response = ui.add(track_widget(
+                                        *track_uid,
                                         track,
                                         is_selected,
                                         track_ui_state,
@@ -1181,17 +1230,18 @@ mod tests {
     fn sends_send() {
         const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
         let mut o = Orchestrator::default();
-        let track_uid = o.new_midi_track().unwrap();
-        let aux_uid = o.new_aux_track().unwrap();
+        let midi_track_uid = o.new_midi_track().unwrap();
+        let aux_track_uid = o.new_aux_track().unwrap();
 
         {
-            let track = o.get_track_mut(&track_uid).unwrap();
+            let new_uid = o.mint_entity_uid();
+            let track = o.get_track_mut(&midi_track_uid).unwrap();
             assert!(track
                 .append_entity(
                     Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
                         level: EXPECTED_LEVEL,
                     })),
-                    Uid(245)
+                    new_uid
                 )
                 .is_ok());
         }
@@ -1203,18 +1253,19 @@ mod tests {
             "Without a send, original signal should pass through unchanged."
         );
 
-        assert!(o.send_to_aux(track_uid, aux_uid, Normal::from(0.5)).is_ok());
+        assert!(o
+            .send_to_aux(midi_track_uid, aux_track_uid, Normal::from(0.5))
+            .is_ok());
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
         let expected_sample = StereoSample::from(0.75);
-        assert!(
-            samples.iter().all(|s| *s == expected_sample),
-            "With a 50% send, we should see the original 0.5 plus 50% of 0.5 = 0.75"
-        );
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "With a 50% send to an aux track with no effects, we should see the original MEDIUM=0.5 plus 50% of it = 0.75, but at sample #{index} we got {:?}", s);
+        });
 
         // Add an effect to the aux track.
         {
-            let track = o.get_track_mut(&aux_uid).unwrap();
+            let track = o.get_track_mut(&aux_track_uid).unwrap();
             assert!(track
                 .append_entity(Box::new(TestEffectNegatesInput::default()), Uid(405))
                 .is_ok());

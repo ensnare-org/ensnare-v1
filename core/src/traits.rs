@@ -9,7 +9,6 @@
 use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
-    piano_roll::PatternUid,
     prelude::*,
     time::{MusicalTime, SampleRate, TimeSignature},
     track::TrackUid,
@@ -504,15 +503,6 @@ pub trait Orchestrates: Configurable {
     /// Removes the specified [Entity], returning ownership (if successful) to
     /// the caller.
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>>;
-
-    /// Adds the [Pattern] with the given [PatternUid] (in [PianoRoll]) at the
-    /// specified position to the given track's sequencer.
-    fn add_pattern_to_track(
-        &mut self,
-        track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
-        position: MusicalTime,
-    ) -> anyhow::Result<()>;
 
     /// Move the specified [Entity] from its current track to the end of the
     /// specified track.

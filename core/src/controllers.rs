@@ -528,12 +528,7 @@ pub struct ControlAtlas {
 }
 impl Default for ControlAtlas {
     fn default() -> Self {
-        Self {
-            uid: Default::default(),
-            trips: Default::default(),
-            view_range: Default::default(),
-            action: Default::default(),
-        }
+        ControlAtlasBuilder::default().random().build().unwrap()
     }
 }
 impl Displays for ControlAtlas {
