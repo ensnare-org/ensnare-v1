@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::IsEffect};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -20,6 +20,19 @@ impl Humidifier {
 
     pub fn set_humidity_by_uid(&mut self, uid: Uid, humidity: Normal) {
         self.uid_to_humidity.insert(uid, humidity);
+    }
+
+    // TODO: the better trait to pass in here is TransformsAudio, but as of
+    // today we don't have an as_ method to get that narrow trait.
+    pub fn transform_batch(
+        &mut self,
+        humidity: Normal,
+        effect: &mut dyn IsEffect,
+        samples: &mut [StereoSample],
+    ) {
+        for sample in samples {
+            *sample = self.transform_audio(humidity, *sample, effect.transform_audio(*sample));
+        }
     }
 
     pub fn transform_audio(

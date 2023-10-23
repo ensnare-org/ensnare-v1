@@ -270,7 +270,7 @@ pub trait Controls: Send {
 /// do.
 #[allow(unused_variables)]
 pub trait TransformsAudio: std::fmt::Debug {
-    #[allow(missing_docs)]
+    /// Transforms a single sample of audio.
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
         // Beware: converting from mono to stereo isn't just doing the work
         // twice! You'll also have to double whatever state you maintain from
@@ -284,6 +284,13 @@ pub trait TransformsAudio: std::fmt::Debug {
     /// channel: 0 is left, 1 is right. Use the value as an index into arrays.
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         input_sample
+    }
+
+    /// Transforms a buffer of audio.
+    fn transform_batch(&mut self, samples: &mut [StereoSample]) {
+        for sample in samples {
+            *sample = self.transform_audio(*sample);
+        }
     }
 }
 

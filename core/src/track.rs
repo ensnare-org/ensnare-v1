@@ -479,7 +479,6 @@ impl GeneratesToInternalBuffer<StereoSample> for Track {
             }
         }
 
-        // TODO: change this trait to operate on batches.
         for uid in self.effects.iter() {
             if let Some(e) = self.entity_store.get_mut(uid) {
                 if let Some(e) = e.as_effect_mut() {
@@ -487,13 +486,8 @@ impl GeneratesToInternalBuffer<StereoSample> for Track {
                     if humidity == Normal::zero() {
                         continue;
                     }
-                    for sample in self.e.buffer.0.iter_mut() {
-                        *sample = self.humidifier.transform_audio(
-                            humidity,
-                            *sample,
-                            e.transform_audio(*sample),
-                        );
-                    }
+                    self.humidifier
+                        .transform_batch(humidity, e, &mut self.e.buffer.0);
                 }
             }
         }
