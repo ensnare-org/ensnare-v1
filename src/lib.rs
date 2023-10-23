@@ -9,9 +9,7 @@ pub mod arrangement {
     pub use ensnare_core::{
         orchestration::{Orchestrator, OrchestratorBuilder},
         time::{transport, Transport},
-        track::{
-            signal_chain, track_widget, Track, TrackAction, TrackTitle, TrackUiState, TrackUid,
-        },
+        track::{signal_chain, track_widget, Track, TrackAction, TrackTitle, TrackUid},
     };
 }
 

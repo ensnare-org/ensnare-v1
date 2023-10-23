@@ -15,7 +15,7 @@ use eframe::{
 };
 use ensnare::{
     app_version,
-    arrangement::{signal_chain, track_widget, TrackAction, TrackUiState},
+    arrangement::{signal_chain, track_widget, TrackAction},
     entities::{
         controllers::{
             atlas, LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
@@ -94,7 +94,6 @@ impl TrackSettings {
                 TrackUid(1),
                 &mut self.track,
                 false,
-                TrackUiState::Expanded,
                 Some(MusicalTime::new_with_beats(1)),
                 &mut action,
             ));

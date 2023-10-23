@@ -285,8 +285,8 @@ impl OrchestratorPanel {
                     .unwrap()
                     .click(&track_uid, self.is_control_only_down);
             }
-            OrchestratorAction::DoubleClickTrack(track_uid) => {
-                orchestrator.toggle_track_ui_state(&track_uid);
+            OrchestratorAction::DoubleClickTrack(_track_uid) => {
+                // This used to expand/collapse, but that's gone.
             }
             OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
                 if let Some(entity) = EntityFactory::global().new_entity(&key) {

@@ -10,8 +10,7 @@ use crate::{
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{
-        track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUiState, TrackUid,
-        TrackWidgetAction,
+        track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUid, TrackWidgetAction,
     },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
@@ -112,8 +111,6 @@ pub struct Orchestrator {
     /// All [Track]s, indexed by their [TrackUid].
     tracks: HashMap<TrackUid, Track>,
 
-    track_ui_states: HashMap<TrackUid, TrackUiState>,
-
     /// Which tracks are aux type.
     #[deprecated = "Check whether we can infer the right behavior from other track elements"]
     aux_track_uids: HashSet<TrackUid>,
@@ -158,7 +155,6 @@ impl Default for Orchestrator {
             control_router: Default::default(),
             tracks: Default::default(),
             track_uids: Default::default(),
-            track_ui_states: Default::default(),
             aux_track_uids: Default::default(),
             piano_roll,
             bus_station: Default::default(),
@@ -419,22 +415,6 @@ impl Orchestrator {
     /// Sets the name of the project.
     pub fn set_title(&mut self, title: Option<String>) {
         self.title = title;
-    }
-
-    /// Changes a [Track]'s UI state from collapsed to expanded.
-    pub fn toggle_track_ui_state(&mut self, track_uid: &TrackUid) {
-        let new_state = self
-            .track_ui_states
-            .get(track_uid)
-            .cloned()
-            .unwrap_or_default();
-        self.track_ui_states.insert(
-            *track_uid,
-            match new_state {
-                TrackUiState::Collapsed => TrackUiState::Expanded,
-                TrackUiState::Expanded => TrackUiState::Collapsed,
-            },
-        );
     }
 
     fn calculate_is_finished(&self) -> bool {
@@ -1011,50 +991,37 @@ impl Displays for Orchestrator {
                         for track_uid in self.track_uids.iter() {
                             if let Some(track) = self.tracks.get_mut(track_uid) {
                                 track.set_view_range(&self.view_range);
-                                let track_ui_state = self
-                                    .track_ui_states
-                                    .get(track_uid)
-                                    .cloned()
-                                    .unwrap_or_default();
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
-                                let desired_size = vec2(
-                                    available_width,
-                                    64.0, //                                    track_view_height(track.ty(), track_ui_state),
-                                );
-                                ui.allocate_ui(desired_size, |ui| {
-                                    ui.set_min_size(desired_size);
-                                    ui.set_max_width(available_width);
-                                    let cursor = if self.transport.is_performing() {
-                                        Some(self.transport.current_time())
-                                    } else {
-                                        None
-                                    };
-                                    track.update_font_galley(ui);
-                                    let mut track_widget_action = None;
-                                    let response = ui.add(track_widget(
-                                        *track_uid,
-                                        track,
-                                        is_selected,
-                                        track_ui_state,
-                                        cursor,
-                                        &mut track_widget_action,
-                                    ));
-                                    if let Some(track_widget_action) = track_widget_action {
-                                        match track_widget_action {
-                                            TrackWidgetAction::EntitySelected(uid) => {
-                                                self.e.selected_entity_uid = Some(uid);
-                                                self.e.is_entity_detail_open = true;
-                                            }
+                                let cursor = if self.transport.is_performing() {
+                                    Some(self.transport.current_time())
+                                } else {
+                                    None
+                                };
+                                track.update_font_galley(ui);
+                                let mut track_widget_action = None;
+                                let response = ui.add(track_widget(
+                                    *track_uid,
+                                    track,
+                                    is_selected,
+                                    cursor,
+                                    &mut track_widget_action,
+                                ));
+                                if let Some(track_widget_action) = track_widget_action {
+                                    match track_widget_action {
+                                        TrackWidgetAction::EntitySelected(uid) => {
+                                            self.e.selected_entity_uid = Some(uid);
+                                            self.e.is_entity_detail_open = true;
                                         }
                                     }
-                                    if response.double_clicked() {
-                                        self.e.action =
-                                            Some(OrchestratorAction::DoubleClickTrack(*track_uid));
-                                    } else if response.clicked() {
-                                        self.e.action =
-                                            Some(OrchestratorAction::ClickTrack(*track_uid));
-                                    }
-                                });
+                                }
+                                if response.double_clicked() {
+                                    self.e.action =
+                                        Some(OrchestratorAction::DoubleClickTrack(*track_uid));
+                                } else if response.clicked() {
+                                    self.e.action =
+                                        Some(OrchestratorAction::ClickTrack(*track_uid));
+                                }
+
                                 if let Some(action) = track.take_action() {
                                     track_action = Some(action);
                                     track_action_track_uid = Some(*track_uid);

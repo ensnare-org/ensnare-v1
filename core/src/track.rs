@@ -13,7 +13,6 @@ use crate::{
     traits::prelude::*,
     uid::IsUid,
     widgets::{
-        prelude::*,
         timeline::{cursor, grid},
         track::{make_title_bar_galley, title_bar},
     },
@@ -622,42 +621,14 @@ pub fn track_widget<'a>(
     track_uid: TrackUid,
     track: &'a mut Track,
     is_selected: bool,
-    ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
         TrackWidget::new(track_uid, track, cursor, action)
             .is_selected(is_selected)
-            .ui_state(ui_state)
             .ui(ui)
     }
-}
-
-// pub(crate) fn track_view_height(&self) -> f32 {
-//     if matches!(track_type, TrackType::Aux) {
-//         device_view_height(ui_state)
-//     } else {
-//         timeline_view_height(ui_state) + device_view_height(ui_state)
-//     }
-// }
-
-// pub(crate) const fn timeline_view_height(_ui_state: TrackUiState) -> f32 {
-//     64.0
-// }
-
-pub(crate) const fn device_view_height(ui_state: TrackUiState) -> f32 {
-    match ui_state {
-        TrackUiState::Collapsed => 32.0,
-        TrackUiState::Expanded => 96.0,
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
-pub enum TrackUiState {
-    #[default]
-    Collapsed,
-    Expanded,
 }
 
 #[derive(Debug, Display)]
@@ -671,9 +642,12 @@ struct TrackWidget<'a> {
     track_uid: TrackUid,
     track: &'a mut Track,
     is_selected: bool,
-    ui_state: TrackUiState,
     cursor: Option<MusicalTime>,
     action: &'a mut Option<TrackWidgetAction>,
+}
+impl<'a> TrackWidget<'a> {
+    const TIMELINE_HEIGHT: f32 = 64.0;
+    const TRACK_HEIGHT: f32 = 96.0;
 }
 impl<'a> Displays for TrackWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -693,7 +667,7 @@ impl<'a> Displays for TrackWidget<'a> {
             })
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    //                    ui.set_min_height(track_view_height(self.track.ty(), self.ui_state));
+                    ui.set_min_height(Self::TRACK_HEIGHT);
 
                     // The `Response` is based on the title bar, so
                     // clicking/dragging on the title bar affects the `Track` as a
@@ -724,14 +698,9 @@ impl<'a> Displays for TrackWidget<'a> {
                             let mut from_screen = RectTransform::identity(Rect::NOTHING);
                             let can_accept = self.check_drag_source_for_timeline();
                             let response = DragDropManager::drop_target(ui, can_accept, |ui| {
-                                // Reserve space for the device view.
-                                // ui.set_max_height(track_view_height(
-                                //     self.track.ty(),
-                                //     self.ui_state,
-                                // ));
-
                                 // Determine the rectangle that all the composited layers will use.
-                                let desired_size = vec2(ui.available_width(), 64.0);
+                                let desired_size =
+                                    vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
                                 let (_id, rect) = ui.allocate_space(desired_size);
 
                                 let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
@@ -826,7 +795,6 @@ impl<'a> Displays for TrackWidget<'a> {
 
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
-                            ui.set_max_height(device_view_height(self.ui_state));
                             let mut action = None;
                             ui.add(signal_chain(&mut self.track, &mut action));
                             if let Some(action) = action {
@@ -837,6 +805,9 @@ impl<'a> Displays for TrackWidget<'a> {
                                 }
                             }
                         });
+
+                        // This must be last. It makes sure we fill the remaining space.
+                        ui.allocate_space(ui.available_size());
 
                         response
                     })
@@ -858,7 +829,6 @@ impl<'a> TrackWidget<'a> {
             track_uid,
             track,
             is_selected: false,
-            ui_state: TrackUiState::Collapsed,
             cursor,
             action,
         }
@@ -866,11 +836,6 @@ impl<'a> TrackWidget<'a> {
 
     fn is_selected(mut self, is_selected: bool) -> Self {
         self.is_selected = is_selected;
-        self
-    }
-
-    fn ui_state(mut self, ui_state: TrackUiState) -> Self {
-        self.ui_state = ui_state;
         self
     }
 
@@ -900,19 +865,13 @@ pub enum SignalChainWidgetAction {
 }
 impl IsAction for SignalChainWidgetAction {}
 
-#[derive(Debug)]
 struct SignalChainWidget<'a> {
     track: &'a mut Track,
-    ui_size: UiSize,
     action: &'a mut Option<SignalChainWidgetAction>,
 }
 impl<'a> SignalChainWidget<'a> {
     pub fn new(track: &'a mut Track, action: &'a mut Option<SignalChainWidgetAction>) -> Self {
-        Self {
-            track,
-            ui_size: Default::default(),
-            action,
-        }
+        Self { track, action }
     }
 
     fn can_accept(&self) -> bool {
@@ -933,7 +892,6 @@ impl<'a> SignalChainWidget<'a> {
 }
 impl<'a> Displays for SignalChainWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        self.ui_size = UiSize::from_height(ui.available_height());
         let desired_size = ui.available_size();
 
         ui.allocate_ui(desired_size, |ui| {
@@ -962,20 +920,28 @@ impl<'a> Displays for SignalChainWidget<'a> {
                                             eframe::egui::Id::new(entity.name()),
                                             DragDropSource::ControlSource(*uid),
                                             |ui| {
-                                                ui.label(entity.name());
+                                                if ui.button(entity.name()).clicked() {
+                                                    *self.action = Some(
+                                                        SignalChainWidgetAction::EntitySelected(
+                                                            *uid,
+                                                        ),
+                                                    );
+                                                }
                                             },
                                         )
                                     } else {
-                                        ui.label(entity.name());
-                                    }
-                                    if ui.button("show").clicked() {
-                                        *self.action =
-                                            Some(SignalChainWidgetAction::EntitySelected(*uid));
+                                        if ui.button(entity.name()).clicked() {
+                                            *self.action =
+                                                Some(SignalChainWidgetAction::EntitySelected(*uid));
+                                        }
                                     }
                                 }
                             });
                         let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
-                            ui.label("[+]")
+                            ui.add_enabled(
+                                false,
+                                eframe::egui::Button::new("Drag Instruments Here"),
+                            );
                         })
                         .response;
                         if DragDropManager::is_dropped(ui, &response) {
