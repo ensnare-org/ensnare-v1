@@ -27,7 +27,7 @@ use crate::{
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use derive_builder::Builder;
-use eframe::{egui::ScrollArea, epaint::vec2};
+use eframe::egui::ScrollArea;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -70,6 +70,7 @@ pub struct OrchestratorEphemerals {
     pub keyboard_controller: KeyboardController,
     is_piano_roll_open: bool, // TODO whether this should be serialized
     is_entity_detail_open: bool,
+    entity_detail_title: String,
     selected_entity_uid: Option<Uid>,
 }
 
@@ -933,13 +934,12 @@ impl DisplaysInTimeline for Orchestrator {
 }
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let available_width = ui.available_size_before_wrap().x;
-
         eframe::egui::Window::new("Piano Roll")
             .open(&mut self.e.is_piano_roll_open)
             .show(ui.ctx(), |ui| self.piano_roll.write().unwrap().ui(ui));
 
-        eframe::egui::Window::new("Entity Detail")
+        eframe::egui::Window::new(&self.e.entity_detail_title)
+            .id(eframe::egui::Id::from("Entity Detail"))
             .open(&mut self.e.is_entity_detail_open)
             .show(ui.ctx(), |ui| {
                 if let Some(uid) = &self.e.selected_entity_uid {
@@ -1008,9 +1008,10 @@ impl Displays for Orchestrator {
                                 ));
                                 if let Some(track_widget_action) = track_widget_action {
                                     match track_widget_action {
-                                        TrackWidgetAction::EntitySelected(uid) => {
+                                        TrackWidgetAction::EntitySelected(uid, name) => {
                                             self.e.selected_entity_uid = Some(uid);
                                             self.e.is_entity_detail_open = true;
+                                            self.e.entity_detail_title = name;
                                         }
                                     }
                                 }

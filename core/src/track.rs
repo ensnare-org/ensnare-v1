@@ -633,7 +633,7 @@ pub fn track_widget<'a>(
 
 #[derive(Debug, Display)]
 pub enum TrackWidgetAction {
-    EntitySelected(Uid),
+    EntitySelected(Uid, String),
 }
 
 /// An egui widget that draws a [Track].
@@ -799,8 +799,9 @@ impl<'a> Displays for TrackWidget<'a> {
                             ui.add(signal_chain(&mut self.track, &mut action));
                             if let Some(action) = action {
                                 match action {
-                                    SignalChainWidgetAction::EntitySelected(uid) => {
-                                        *self.action = Some(TrackWidgetAction::EntitySelected(uid));
+                                    SignalChainWidgetAction::EntitySelected(uid, name) => {
+                                        *self.action =
+                                            Some(TrackWidgetAction::EntitySelected(uid, name));
                                     }
                                 }
                             }
@@ -861,7 +862,7 @@ pub fn signal_chain<'a>(
 
 #[derive(Debug, Display)]
 pub enum SignalChainWidgetAction {
-    EntitySelected(Uid),
+    EntitySelected(Uid, String),
 }
 impl IsAction for SignalChainWidgetAction {}
 
@@ -892,66 +893,63 @@ impl<'a> SignalChainWidget<'a> {
 }
 impl<'a> Displays for SignalChainWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let desired_size = ui.available_size();
-
-        ui.allocate_ui(desired_size, |ui| {
-            let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
-            eframe::egui::Frame::default()
-                .stroke(stroke)
-                .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
-                .show(ui, |ui| {
-                    ui.set_min_size(desired_size);
-                    ui.horizontal_top(|ui| {
-                        self.track
-                            .controllers
-                            .iter()
-                            .chain(
-                                self.track
-                                    .instruments
-                                    .iter()
-                                    .chain(self.track.effects.iter()),
-                            )
-                            .filter(|e| !self.track.timeline_entities.contains(e))
-                            .for_each(|uid| {
-                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                    if entity.as_controller().is_some() {
-                                        DragDropManager::drag_source(
-                                            ui,
-                                            eframe::egui::Id::new(entity.name()),
-                                            DragDropSource::ControlSource(*uid),
-                                            |ui| {
-                                                if ui.button(entity.name()).clicked() {
-                                                    *self.action = Some(
-                                                        SignalChainWidgetAction::EntitySelected(
-                                                            *uid,
-                                                        ),
-                                                    );
-                                                }
-                                            },
-                                        )
-                                    } else {
-                                        if ui.button(entity.name()).clicked() {
-                                            *self.action =
-                                                Some(SignalChainWidgetAction::EntitySelected(*uid));
-                                        }
+        let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
+        let response = eframe::egui::Frame::default()
+            .stroke(stroke)
+            .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
+            .show(ui, |ui| {
+                ui.horizontal_top(|ui| {
+                    self.track
+                        .controllers
+                        .iter()
+                        .chain(
+                            self.track
+                                .instruments
+                                .iter()
+                                .chain(self.track.effects.iter()),
+                        )
+                        .filter(|e| !self.track.timeline_entities.contains(e))
+                        .for_each(|uid| {
+                            if let Some(entity) = self.track.entity_store.get_mut(uid) {
+                                if entity.as_controller().is_some() {
+                                    DragDropManager::drag_source(
+                                        ui,
+                                        eframe::egui::Id::new(entity.name()),
+                                        DragDropSource::ControlSource(*uid),
+                                        |ui| {
+                                            if ui.button(entity.name()).clicked() {
+                                                *self.action =
+                                                    Some(SignalChainWidgetAction::EntitySelected(
+                                                        *uid,
+                                                        entity.name().to_string(),
+                                                    ));
+                                            }
+                                        },
+                                    )
+                                } else {
+                                    if ui.button(entity.name()).clicked() {
+                                        *self.action =
+                                            Some(SignalChainWidgetAction::EntitySelected(
+                                                *uid,
+                                                entity.name().to_string(),
+                                            ));
                                     }
                                 }
-                            });
-                        let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
-                            ui.add_enabled(
-                                false,
-                                eframe::egui::Button::new("Drag Instruments Here"),
-                            );
-                        })
-                        .response;
-                        if DragDropManager::is_dropped(ui, &response) {
-                            self.check_drop();
-                        }
+                            }
+                        });
+                    let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
+                        ui.add_enabled(false, eframe::egui::Button::new("Drag Items Here"));
                     })
-                    .inner
-                });
-        })
-        .response
+                    .response;
+                    if DragDropManager::is_dropped(ui, &response) {
+                        self.check_drop();
+                    }
+                    ui.allocate_space(ui.available_size());
+                })
+                .inner
+            })
+            .response;
+        response
     }
 }
 
