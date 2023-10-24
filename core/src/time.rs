@@ -587,6 +587,7 @@ pub struct Transport {
 
     /// The current beats per minute.
     #[builder(default)]
+    #[control]
     pub(crate) tempo: Tempo,
 
     #[serde(skip)]
@@ -744,6 +745,11 @@ impl<'a> Displays for TransportWidget<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        control::{ControlIndex, ControlValue},
+        traits::Controllable,
+    };
+
     use super::*;
 
     #[test]
@@ -1093,5 +1099,28 @@ mod tests {
             // without first calling skip_to_start().
             transport.skip_to_start();
         }
+    }
+
+    #[test]
+    fn transport_is_automatable() {
+        let mut t = TransportBuilder::default().uid(Uid(1)).build().unwrap();
+
+        assert_eq!(t.tempo(), Tempo::default());
+
+        assert_eq!(
+            t.control_index_count(),
+            1,
+            "Transport should have one automatable parameter"
+        );
+        const TEMPO_INDEX: ControlIndex = ControlIndex(0);
+        assert_eq!(
+            t.control_name_for_index(TEMPO_INDEX),
+            Some("tempo".to_string()),
+            "Transport's parameter name should be 'tempo'"
+        );
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MAX);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
     }
 }

@@ -511,12 +511,17 @@ pub trait Orchestrates: Configurable {
     /// the caller.
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>>;
 
-    /// Move the specified [Entity] from its current track to the end of the
-    /// specified track.
+    /// Moves the specified [Entity] to the end of the specified track.
     fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
 
-    /// Establishes a control link. If the link is successful, then the source
-    /// [Entity]'s output will control the target [Entity]'s given parameter.
+    /// Establishes a control link between the source [Entity]'s output and the
+    /// given parameter of the target [Entity]'s.
+    ///
+    /// The global transport has a special [Uid] of 1, and its tempo parameter's
+    /// index is zero. Therefore, it's possible to automate the global tempo by
+    /// linking something with target Uid 1, control_index zero. Tempo ranges
+    /// linearly from 0..=Tempo::MAX_VALUE (currently 1024), so a ControlValue
+    /// of 0.125 corresponds to a Tempo of 128 BPM.
     fn link_control(
         &mut self,
         source_uid: Uid,
@@ -527,17 +532,25 @@ pub trait Orchestrates: Configurable {
     /// Removes the specified control link, if it exists.
     fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex);
 
-    /// Sets the specified effect's wet/dry mix. Normal::maximum() is 100%
-    /// effect, and Normal::minimum() is 100% unprocessed input. Returns an
-    /// error if the entity is not an effect.
+    /// Sets the specified effect's wet/dry mix. A humidity of 1.0 is 100%
+    /// effect, and 0.0 is 100% unprocessed input. Returns an error if the
+    /// entity is not an effect.
     fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()>;
 
     /// Repositions the specified effect in the track's effects chain.
+    ///
+    /// Note that ordering matters only for effects, not controllers or
+    /// instruments. During a time slice, all controllers perform their work
+    /// simultaneously, and all instruments generate signals simultaneously. But
+    /// effects operate sequentially. Thus, the first effect operates on the
+    /// output of the mixed instruments, and the second effect operates on the
+    /// output of the first effect, and so on.
     fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()>;
 
     /// Configures a send from the given track to the given aux track. The
-    /// `send_amount` parameter indicates how much of the signal should go to
-    /// the aux: 1.0 is full, 0.0 is silent.
+    /// `send_amount` parameter indicates how much signal attenuation should
+    /// happen before reaching the aux: 1.0 means the full signal should reach
+    /// it, and 0.0 means that none of it should.
     fn send_to_aux(
         &mut self,
         send_track_uid: TrackUid,

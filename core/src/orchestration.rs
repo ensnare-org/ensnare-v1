@@ -621,28 +621,41 @@ impl Orchestrates for Orchestrator {
         target_uid: Uid,
         control_index: ControlIndex,
     ) -> anyhow::Result<()> {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track
-                    .control_router_mut()
-                    .link_control(source_uid, target_uid, control_index);
-                Ok(())
-            } else {
-                Err(anyhow!("Couldn't find track that owns entity {target_uid}"))
-            }
+        if target_uid == Self::TRANSPORT_UID {
+            self.control_router
+                .link_control(source_uid, target_uid, control_index);
+            Ok(())
         } else {
-            Err(anyhow!(
-                "Couldn't find uid of track that owns entity {target_uid}"
-            ))
+            if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
+                if let Some(track) = self.tracks.get_mut(track_uid) {
+                    track
+                        .control_router_mut()
+                        .link_control(source_uid, target_uid, control_index);
+                    Ok(())
+                } else {
+                    Err(anyhow!("Couldn't find track that owns entity {target_uid}"))
+                }
+            } else {
+                Err(anyhow!(
+                    "Couldn't find uid of track that owns entity {target_uid}"
+                ))
+            }
         }
     }
 
     fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track
-                    .control_router_mut()
-                    .unlink_control(source_uid, target_uid, control_index);
+        if target_uid == Self::TRANSPORT_UID {
+            self.control_router
+                .unlink_control(source_uid, target_uid, control_index);
+        } else {
+            if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
+                if let Some(track) = self.tracks.get_mut(track_uid) {
+                    track.control_router_mut().unlink_control(
+                        source_uid,
+                        target_uid,
+                        control_index,
+                    );
+                }
             }
         }
     }
@@ -1047,7 +1060,7 @@ mod tests {
         controllers::Timer,
         entities::{
             factory::test_entities::{
-                TestAudioSource, TestAudioSourceParams, TestEffectNegatesInput,
+                TestAudioSource, TestAudioSourceParams, TestController, TestEffectNegatesInput,
                 TestInstrumentCountsMidiMessages,
             },
             toys::ToyControllerAlwaysSendsMidiMessage,
@@ -1324,5 +1337,24 @@ mod tests {
     fn orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::default();
         validate_orchestrates_trait(&mut orchestrator);
+    }
+
+    #[test]
+    fn orchestrator_handles_transport_control() {
+        let mut orchestrator = Orchestrator::default();
+        let track_uid = orchestrator.create_track().unwrap();
+        let uid = orchestrator
+            .add_entity(&track_uid, Box::new(TestController::default()))
+            .unwrap();
+
+        assert_eq!(orchestrator.tempo(), Tempo::default());
+
+        const TEMPO_INDEX: ControlIndex = ControlIndex(0);
+        assert!(orchestrator
+            .link_control(uid, Orchestrator::TRANSPORT_UID, TEMPO_INDEX)
+            .is_ok());
+
+        orchestrator.route_control_change(uid, ControlValue::MAX);
+        assert_eq!(orchestrator.tempo(), Tempo::from(Tempo::MAX_VALUE));
     }
 }
