@@ -135,7 +135,7 @@ impl Paths {
         self.hives.as_ref()
     }
 
-    fn cwd() -> PathBuf {
+    pub fn cwd() -> PathBuf {
         PathBuf::from(
             current_dir()
                 .ok()
@@ -232,7 +232,8 @@ impl Paths {
         for path in self.hives.iter().rev() {
             let mut full_path = path.to_path_buf();
             full_path.push(filename);
-            if let Ok(f) = std::fs::File::open(full_path) {
+            if let Ok(f) = std::fs::File::open(full_path.clone()) {
+                eprintln!("found at {:?}", &full_path);
                 return Ok(f);
             }
         }

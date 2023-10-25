@@ -192,7 +192,12 @@ impl Sampler {
                 panic!("Couldn't create second file handle to read metadata");
             }
         } else {
-            panic!("Couldn't read file {:?}", path);
+            panic!(
+                "Couldn't read file {:?}. cwd is {:?} and hives are {:?}",
+                path,
+                Paths::cwd(),
+                Paths::default().hives()
+            );
         }
     }
 
