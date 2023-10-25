@@ -21,6 +21,11 @@ impl Add<usize> for ControlIndex {
         Self(self.0 + rhs)
     }
 }
+impl From<usize> for ControlIndex {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, Display)]
