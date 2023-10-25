@@ -3,7 +3,7 @@
 use crate::{
     control::ControlRouter,
     controllers::ControlAtlas,
-    drag_drop::{DragDropEvent, DragDropManager, DragDropSource},
+    drag_drop::{DragDropManager, DragSource, DropTarget},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
     midi::prelude::*,
@@ -211,7 +211,7 @@ impl Track {
         }
         if entity.as_handles_midi().is_some() {
             // TODO: for now, everyone's on channel 0
-            self.midi_router.connect(uid, MidiChannel(0));
+            self.midi_router.connect(uid, MidiChannel::default());
         }
         if entity.as_displays_in_timeline().is_some() {
             self.record_timeline_entity(uid);
@@ -567,6 +567,9 @@ impl Controls for Track {
         // Let everyone work and possibly generate messages.
         self.entity_store.work(&mut handler);
 
+        // Don't forget Controls that we own.
+        self.control_atlas.work(&mut handler);
+
         // We've accumulated all the MIDI messages. Route them to our own
         // MidiRouter. They've already been forwarded to the caller via
         // control_events_fn.
@@ -691,13 +694,8 @@ impl<'a> Displays for TrackWidget<'a> {
                     ui.vertical(|ui| {
                         // Do we need to draw the timeline view?
                         if !self.track.timeline_entities.is_empty() {
-                            // This is declared here because we need it to keep
-                            // existing outside of the drop_target() block, so
-                            // that we can use it to calculate the position of
-                            // mouse clicks within the timeline rect.
-                            let mut from_screen = RectTransform::identity(Rect::NOTHING);
                             let can_accept = self.check_drag_source_for_timeline();
-                            let response = DragDropManager::drop_target(ui, can_accept, |ui| {
+                            let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
                                 // Determine the rectangle that all the composited layers will use.
                                 let desired_size =
                                     vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
@@ -706,7 +704,7 @@ impl<'a> Displays for TrackWidget<'a> {
                                 let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
                                 let view_range = self.track.view_range().clone();
 
-                                from_screen = RectTransform::from_to(
+                                let from_screen = RectTransform::from_to(
                                     rect,
                                     Rect::from_x_y_ranges(
                                         view_range.start.total_units() as f32
@@ -763,40 +761,21 @@ impl<'a> Displays for TrackWidget<'a> {
                                             .inner;
                                     }
                                 }
-                            })
-                            .response;
-                            if DragDropManager::is_dropped(ui, &response) {
                                 if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                                     let time_pos = from_screen * pointer_pos;
                                     let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                    if let Some(source) = DragDropManager::source() {
-                                        let event = match source {
-                                            DragDropSource::NewDevice(key) => Some(
-                                                DragDropEvent::TrackAddDevice(self.track_uid, key),
-                                            ),
-                                            DragDropSource::Pattern(pattern_uid) => {
-                                                Some(DragDropEvent::TrackAddPattern(
-                                                    self.track_uid,
-                                                    pattern_uid,
-                                                    time,
-                                                ))
-                                            }
-                                            _ => None,
-                                        };
-                                        if let Some(event) = event {
-                                            DragDropManager::enqueue_event(event);
-                                        }
-                                    }
+                                    ((), DropTarget::TrackPosition(self.track_uid, time))
                                 } else {
-                                    eprintln!("Dropped on timeline at unknown position");
+                                    ((), DropTarget::Track(self.track_uid))
                                 }
-                            }
+                            })
+                            .response;
                         }
 
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
                             let mut action = None;
-                            ui.add(signal_chain(&mut self.track, &mut action));
+                            ui.add(signal_chain(self.track_uid, &mut self.track, &mut action));
                             if let Some(action) = action {
                                 match action {
                                     SignalChainWidgetAction::EntitySelected(uid, name) => {
@@ -844,7 +823,7 @@ impl<'a> TrackWidget<'a> {
     // to handle it. Returns whether we are interested in this drag source.
     fn check_drag_source_for_timeline(&mut self) -> bool {
         if let Some(source) = DragDropManager::source() {
-            if matches!(source, DragDropSource::Pattern(..)) {
+            if matches!(source, DragSource::Pattern(..)) {
                 return true;
             }
         }
@@ -854,10 +833,11 @@ impl<'a> TrackWidget<'a> {
 
 /// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget). Mutates many things.
 pub fn signal_chain<'a>(
+    track_uid: TrackUid,
     track: &'a mut Track,
     action: &'a mut Option<SignalChainWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track, action).ui(ui)
+    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track_uid, track, action).ui(ui)
 }
 
 #[derive(Debug, Display)]
@@ -867,27 +847,28 @@ pub enum SignalChainWidgetAction {
 impl IsAction for SignalChainWidgetAction {}
 
 struct SignalChainWidget<'a> {
+    track_uid: TrackUid,
     track: &'a mut Track,
     action: &'a mut Option<SignalChainWidgetAction>,
 }
 impl<'a> SignalChainWidget<'a> {
-    pub fn new(track: &'a mut Track, action: &'a mut Option<SignalChainWidgetAction>) -> Self {
-        Self { track, action }
+    pub fn new(
+        track_uid: TrackUid,
+        track: &'a mut Track,
+        action: &'a mut Option<SignalChainWidgetAction>,
+    ) -> Self {
+        Self {
+            track_uid,
+            track,
+            action,
+        }
     }
 
     fn can_accept(&self) -> bool {
         if let Some(source) = DragDropManager::source() {
-            matches!(source, DragDropSource::NewDevice(_))
+            matches!(source, DragSource::NewDevice(_))
         } else {
             false
-        }
-    }
-
-    fn check_drop(&mut self) {
-        if let Some(source) = DragDropManager::source() {
-            if let DragDropSource::NewDevice(key) = source {
-                self.track.e.action = Some(TrackAction::NewDevice(key));
-            }
         }
     }
 }
@@ -915,7 +896,7 @@ impl<'a> Displays for SignalChainWidget<'a> {
                                     DragDropManager::drag_source(
                                         ui,
                                         eframe::egui::Id::new(entity.name()),
-                                        DragDropSource::ControlSource(*uid),
+                                        DragSource::ControlSource(*uid),
                                         |ui| {
                                             if ui.button(entity.name()).clicked() {
                                                 *self.action =
@@ -937,13 +918,13 @@ impl<'a> Displays for SignalChainWidget<'a> {
                                 }
                             }
                         });
-                    let response = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
-                        ui.add_enabled(false, eframe::egui::Button::new("Drag Items Here"));
+                    let _ = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
+                        (
+                            ui.add_enabled(false, eframe::egui::Button::new("Drag Items Here")),
+                            DropTarget::Track(self.track_uid),
+                        )
                     })
                     .response;
-                    if DragDropManager::is_dropped(ui, &response) {
-                        self.check_drop();
-                    }
                     ui.allocate_space(ui.available_size());
                 })
                 .inner

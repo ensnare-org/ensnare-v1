@@ -11,8 +11,9 @@ fn entity_validator_production_entities() {
 }
 
 fn validate_factory_entities() {
-    for key in EntityFactory::global().keys() {
-        if let Some(mut entity) = EntityFactory::global().new_entity(key) {
+    for (uid, key) in EntityFactory::global().keys().iter().enumerate() {
+        let uid = Uid(1000 + uid);
+        if let Some(mut entity) = EntityFactory::global().new_entity(key, uid) {
             validate_entity(key, &mut entity);
         } else {
             panic!("Couldn't create entity with {key}, but EntityFactory said it existed!");

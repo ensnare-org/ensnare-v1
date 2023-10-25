@@ -183,7 +183,7 @@ pub mod types {
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub use ensnare_core::drag_drop::{DragDropEvent, DragDropManager, DragDropSource};
+    pub use ensnare_core::drag_drop::{DragDropManager, DragSource, DropTarget};
     pub use ensnare_core::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
@@ -225,8 +225,8 @@ pub mod prelude {
         modulators::{Dca, DcaParams},
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
-            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasSettings, HasUid, IsAction,
-            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
+            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasMetadata, HasSettings,
+            IsAction, IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
         },
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,

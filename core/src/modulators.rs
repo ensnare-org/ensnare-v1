@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    drag_drop::{DragDropManager, DragDropSource},
+    drag_drop::{DragDropManager, DropTarget},
     prelude::*,
     traits::prelude::*,
     types::{BipolarNormal, Normal},
@@ -9,13 +9,6 @@ use crate::{
 use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
-
-#[derive(Debug, Display)]
-pub enum DcaAction {
-    LinkControl(Uid, ControlIndex),
-}
-impl IsAction for DcaAction {}
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
@@ -26,19 +19,16 @@ pub struct Dca {
     #[control]
     #[params]
     gain: Normal,
+
     #[control]
     #[params]
     pan: BipolarNormal,
-
-    #[serde(skip)]
-    action: Option<DcaAction>,
 }
 impl Dca {
     pub fn new_with(params: &DcaParams) -> Self {
         Self {
             gain: params.gain(),
             pan: params.pan(),
-            action: None,
         }
     }
 
@@ -74,50 +64,30 @@ impl Dca {
         self.set_pan(params.pan());
     }
 }
-impl Displays for Dca {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(dca(self))
-    }
-}
-impl Acts for Dca {
-    type Action = DcaAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        debug_assert!(
-            self.action.is_none(),
-            "Uh-oh, tried to set to {action} but it was already set to {:?}",
-            self.action
-        );
-        self.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.action.take()
-    }
-}
+impl Displays for Dca {}
 
 /// Wraps a [DcaWidget] as a [Widget](eframe::egui::Widget).
-pub fn dca<'a>(dca: &'a mut Dca) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca).ui(ui)
+pub fn dca<'a>(dca: &'a mut Dca, controllable_uid: Uid) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, controllable_uid).ui(ui)
 }
 
 /// An egui widget for [Dca].
 #[derive(Debug)]
 struct DcaWidget<'a> {
     dca: &'a mut Dca,
+    controllable_uid: Uid,
 }
 impl<'a> Displays for DcaWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut drop_index = None;
         let response = {
             let mut value = self.dca.gain().0;
             let response = DragDropManager::drop_target(ui, true, |ui| {
-                ui.add(Slider::new(&mut value, Normal::range()).text("Gain"))
+                (
+                    ui.add(Slider::new(&mut value, Normal::range()).text("Gain")),
+                    DropTarget::Controllable(self.controllable_uid, Dca::GAIN_INDEX.into()),
+                )
             })
             .inner;
-            if DragDropManager::is_dropped(ui, &response) {
-                drop_index = Some(self.dca.control_index_for_name("gain").unwrap());
-            }
             ui.end_row();
             if response.changed() {
                 self.dca.set_gain(Normal::from(value));
@@ -126,40 +96,28 @@ impl<'a> Displays for DcaWidget<'a> {
         } | {
             let mut value = self.dca.pan().0;
             let response = DragDropManager::drop_target(ui, true, |ui| {
-                ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"))
+                (
+                    ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)")),
+                    DropTarget::Controllable(self.controllable_uid, Dca::PAN_INDEX.into()),
+                )
             })
             .inner;
-            if DragDropManager::is_dropped(ui, &response) {
-                drop_index = Some(self.dca.control_index_for_name("pan").unwrap());
-            }
             ui.end_row();
             if response.changed() {
                 self.dca.set_pan(BipolarNormal::from(value));
             }
             response
         };
-        if let Some(index) = drop_index {
-            if let Some(source) = DragDropManager::source() {
-                match source {
-                    DragDropSource::ControlSource(source_uid) => {
-                        self.dca
-                            .set_action(DcaAction::LinkControl(source_uid, index));
-                    }
-                    DragDropSource::ControlTrip(source_uid) => {
-                        self.dca
-                            .set_action(DcaAction::LinkControl(source_uid, index));
-                    }
-                    _ => {}
-                }
-            }
-        }
 
         response
     }
 }
 impl<'a> DcaWidget<'a> {
-    fn new(dca: &'a mut Dca) -> Self {
-        Self { dca }
+    fn new(dca: &'a mut Dca, controllable_uid: Uid) -> Self {
+        Self {
+            dca,
+            controllable_uid,
+        }
     }
 }
 
@@ -169,10 +127,7 @@ mod tests {
 
     #[test]
     fn dca_mainline() {
-        let mut dca = Dca::new_with(&DcaParams {
-            gain: 1.0.into(),
-            pan: BipolarNormal::zero(),
-        });
+        let mut dca = Dca::new_with(&&DcaParams::default());
         const VALUE_IN: Sample = Sample(0.5);
         const VALUE: Sample = Sample(0.5);
         assert_eq!(

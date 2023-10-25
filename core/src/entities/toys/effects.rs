@@ -19,9 +19,9 @@ pub struct ToyEffect {
 }
 
 impl ToyEffect {
-    pub fn new_with(params: &ToyEffectParams) -> Self {
+    pub fn new_with(uid: Uid, params: &ToyEffectParams) -> Self {
         Self {
-            uid: Default::default(),
+            uid,
             magnitude: params.magnitude,
             sample_rate: Default::default(),
         }

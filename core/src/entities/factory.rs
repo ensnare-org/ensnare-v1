@@ -36,102 +36,105 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     // TODO: might be nice to move HasUid::name() to be a function.
 
     // Controllers
-    factory.register_entity(EntityKey::from("arpeggiator"), || {
+    factory.register_entity(EntityKey::from("arpeggiator"), |_uid| {
         Box::new(Arpeggiator::new_with(
             &ArpeggiatorParams::default(),
-            MidiChannel(0),
+            MidiChannel::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("control-trip"), || {
+    factory.register_entity(EntityKey::from("control-trip"), |_uid| {
         Box::<ControlTrip>::default()
     });
-    factory.register_entity(EntityKey::from("lfo"), || {
+    factory.register_entity(EntityKey::from("lfo"), |_uid| {
         Box::new(LfoController::new_with(&LfoControllerParams {
             frequency: FrequencyHz::from(0.2),
             waveform: Waveform::Sawtooth,
         }))
     });
-    factory.register_entity(EntityKey::from("signal-passthrough"), || {
+    factory.register_entity(EntityKey::from("signal-passthrough"), |_uid| {
         Box::<SignalPassthroughController>::default()
     });
-    factory.register_entity(EntityKey::from("signal-amplitude-passthrough"), || {
+    factory.register_entity(EntityKey::from("signal-amplitude-passthrough"), |_uid| {
         Box::new(SignalPassthroughController::new_amplitude_passthrough_type())
     });
     factory.register_entity(
         EntityKey::from("signal-amplitude-inverted-passthrough"),
-        || Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type()),
+        |_uid| Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type()),
     );
-    factory.register_entity(EntityKey::from("timer"), || {
+    factory.register_entity(EntityKey::from("timer"), |_uid| {
         Box::new(Timer::new_with(MusicalTime::DURATION_QUARTER))
     });
-    factory.register_entity(EntityKey::from("trigger"), || {
+    factory.register_entity(EntityKey::from("trigger"), |_uid| {
         Box::new(Trigger::new_with(
             Timer::new_with(MusicalTime::DURATION_QUARTER),
             ControlValue(1.0),
         ))
     });
-    factory.register_entity(EntityKey::from("toy-controller"), || {
+    factory.register_entity(EntityKey::from("toy-controller"), |_uid| {
         Box::<ToyController>::default()
     });
-    factory.register_entity(EntityKey::from("toy-controller-noisy"), || {
+    factory.register_entity(EntityKey::from("toy-controller-noisy"), |_uid| {
         Box::<ToyControllerAlwaysSendsMidiMessage>::default()
     });
 
     // Effects
-    factory.register_entity(EntityKey::from("bitcrusher"), || {
+    factory.register_entity(EntityKey::from("bitcrusher"), |_uid| {
         Box::<Bitcrusher>::default()
     });
-    factory.register_entity(EntityKey::from("compressor"), || {
+    factory.register_entity(EntityKey::from("compressor"), |_uid| {
         Box::<Compressor>::default()
     });
-    factory.register_entity(EntityKey::from("filter-low-pass-24db"), || {
+    factory.register_entity(EntityKey::from("filter-low-pass-24db"), |_uid| {
         Box::new(BiQuadFilterLowPass24db::new_with(
             &BiQuadFilterLowPass24dbParams::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("gain"), || {
+    factory.register_entity(EntityKey::from("gain"), |_uid| {
         Box::new(Gain::new_with(&GainParams {
             ceiling: Normal::from(0.5),
         }))
     });
-    factory.register_entity(EntityKey::from("limiter"), || Box::<Limiter>::default());
-    factory.register_entity(EntityKey::from("mixer"), || Box::<Mixer>::default());
+    factory.register_entity(EntityKey::from("limiter"), |_uid| Box::<Limiter>::default());
+    factory.register_entity(EntityKey::from("mixer"), |_uid| Box::<Mixer>::default());
     // TODO: this is lazy. It's too hard right now to adjust parameters within
     // code, so I'm creating a special instrument with the parameters I want.
-    factory.register_entity(EntityKey::from("mute"), || {
+    factory.register_entity(EntityKey::from("mute"), |_uid| {
         Box::new(Gain::new_with(&GainParams {
             ceiling: Normal::minimum(),
         }))
     });
-    factory.register_entity(EntityKey::from("reverb"), || {
+    factory.register_entity(EntityKey::from("reverb"), |_uid| {
         Box::new(Reverb::new_with(&ReverbParams {
             attenuation: Normal::from(0.8),
             seconds: 1.0,
         }))
     });
-    factory.register_entity(EntityKey::from("toy-effect"), || {
+    factory.register_entity(EntityKey::from("toy-effect"), |_uid| {
         Box::<ToyEffect>::default()
     });
 
     // Instruments
-    factory.register_entity(EntityKey::from("toy-synth"), || {
-        Box::new(ToySynth::new_with(&ToySynthParams {
-            voice_count: Default::default(),
-            waveform: Default::default(),
-            envelope: EnvelopeParams::safe_default(),
-            dca: Default::default(),
-        }))
+    factory.register_entity(EntityKey::from("toy-synth"), |uid| {
+        Box::new(ToySynth::new_with(
+            uid,
+            &ToySynthParams {
+                voice_count: Default::default(),
+                waveform: Default::default(),
+                envelope: EnvelopeParams::safe_default(),
+                dca: Default::default(),
+            },
+        ))
     });
-    factory.register_entity(EntityKey::from("toy-instrument"), || {
+    factory.register_entity(EntityKey::from("toy-instrument"), |_uid| {
         Box::<ToyInstrument>::default()
     });
-    factory.register_entity(EntityKey::from("drumkit"), || {
+    factory.register_entity(EntityKey::from("drumkit"), |_uid| {
         Box::new(Drumkit::new_with(
             &DrumkitParams::default(),
             &Paths::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("fm-synth"), || {
+    factory.register_entity(EntityKey::from("fm-synth"), |_uid| {
         // A crisp, classic FM sound that brings me back to 1985.
         Box::new(FmSynth::new_with(&FmSynthParams {
             depth: 1.0.into(),
@@ -142,7 +145,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             dca: DcaParams::default(),
         }))
     });
-    factory.register_entity(EntityKey::from("sampler"), || {
+    factory.register_entity(EntityKey::from("sampler"), |_uid| {
         Box::new(Sampler::new_with(
             &SamplerParams {
                 filename: "stereo-pluck.wav".to_string(),
@@ -151,8 +154,8 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             &Paths::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("welsh-synth"), || {
-        Box::new(WelshSynth::new_with(&WelshSynthParams::default()))
+    factory.register_entity(EntityKey::from("welsh-synth"), |uid| {
+        Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))
     });
 
     factory.complete_registration();
@@ -175,7 +178,7 @@ impl From<&str> for EntityKey {
     }
 }
 
-type EntityFactoryFn = fn() -> Box<dyn Entity>;
+type EntityFactoryFn = fn(Uid) -> Box<dyn Entity>;
 
 /// The one and only EntityFactory. Access it with `EntityFactory::global()`.
 static FACTORY: OnceCell<EntityFactory> = OnceCell::new();
@@ -211,16 +214,6 @@ impl EntityFactory {
             .expect("EntityFactory has not been initialized")
     }
 
-    // This is very annoying. TrackFactory is using the global EntityFactory,
-    // which isn't set up in unit/integration tests, so all the tests are
-    // blowing up. This horrible hack sets a flag when EntityFactory is set up.
-    //
-    // I believe this is my comeuppance for using a global in the first place.
-    // Probably for other things, too.
-    pub fn hack_is_global_ready() -> bool {
-        FACTORY.get().is_some()
-    }
-
     /// Registers a new type for the given [Key] using the given closure.
     pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn) {
         if self.is_registration_complete {
@@ -242,9 +235,11 @@ impl EntityFactory {
     }
 
     /// Creates a new entity of the type corresponding to the given [Key].
-    pub fn new_entity(&self, key: &EntityKey) -> Option<Box<dyn Entity>> {
+    pub fn new_entity(&self, key: &EntityKey, uid: Uid) -> Option<Box<dyn Entity>> {
         if let Some(f) = self.entities.get(key) {
-            Some(f())
+            let mut entity = f(uid);
+            entity.set_uid(uid);
+            Some(entity)
         } else {
             None
         }
@@ -371,12 +366,29 @@ impl Controls for EntityStore {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             if let Some(e) = entity.as_controller_mut() {
                 e.work(&mut |claimed_uid, message| {
-                    if *uid != claimed_uid {
-                        // This is OK because ControlAtlas delegates work to its
-                        // ControlTrips, so the uid that emerges won't be the
-                        // same as the one that this code called.
-                    }
-                    control_events_fn(claimed_uid, message);
+                    //    debug_assert!(claimed_uid.is_none(), "Entities controlled by EntityStore should not know or claim to know their own Uid");
+
+                    // Here is where we substitute the known Uid of the Entity
+                    // that we just called for the None that should have been
+                    // passed to us. Past this point in the control_events_fn
+                    // chain, we can rely on the uid argument being Some().
+                    //
+                    // Why does this work?
+                    //
+                    // The normal case is that EntityStore knows an Entity's
+                    // Uid, so this is where EntityStore does its job of filling
+                    // in the Uid.
+                    //
+                    // The odd case is ControlAtlas, which owns a bunch of
+                    // ControlTrips, each having its own Uid, that generate
+                    // control events. When we call ControlAtlas::work(), we
+                    // thus expect it to have filled in control_events_fn's uid
+                    // parameter. But at the moment (and unfortunately this has
+                    // been changing a lot lately), Track owns ControlAtlas, so
+                    // we know that we (EntityStore) won't be the one calling
+                    // ControlAtlas::work(). So it's an odd case, but it's also
+                    // inapplicable to this block of code.
+                    control_events_fn(claimed_uid.or(Some(*uid)), message);
                 });
             }
         });
@@ -772,6 +784,8 @@ pub mod test_entities {
 mod tests {
     use super::test_entities::{TestController, TestEffect, TestInstrument};
     use super::EntityStore;
+    use crate::entities::factory::register_factory_entities;
+    use crate::entities::toys::register_toy_factory_entities;
     use crate::{entities::prelude::*, prelude::*, traits::prelude::*};
 
     /// Registers all [EntityFactory]'s entities. Note that the function returns an
@@ -785,24 +799,52 @@ mod tests {
     /// This makes the factory immutable once it's set up.
     #[must_use]
     pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-        factory.register_entity(EntityKey::from("instrument"), || {
+        factory.register_entity(EntityKey::from("instrument"), |_uid| {
             Box::new(TestInstrument::default())
         });
-        factory.register_entity(EntityKey::from("controller"), || {
+        factory.register_entity(EntityKey::from("controller"), |_uid| {
             Box::new(TestController::default())
         });
-        factory.register_entity(
-            EntityKey::from("effect"),
-            || Box::new(TestEffect::default()),
-        );
+        factory.register_entity(EntityKey::from("effect"), |_uid| {
+            Box::new(TestEffect::default())
+        });
 
         factory.complete_registration();
 
         factory
     }
 
+    fn check_entity_factory(factory: EntityFactory) {
+        assert!(factory
+            .new_entity(&EntityKey::from(".9-#$%)@#)"), Uid::default())
+            .is_none());
+
+        for (uid, key) in factory.keys().iter().enumerate() {
+            let uid = Uid(uid + 1000);
+            let e = factory.new_entity(key, uid);
+            assert!(e.is_some());
+            if let Some(e) = e {
+                assert!(!e.name().is_empty());
+                assert_eq!(
+                    e.uid(),
+                    uid,
+                    "Entity should remember the Uid given at creation"
+                );
+                assert!(
+                    e.as_controller().is_some()
+                        || e.as_instrument().is_some()
+                        || e.as_effect().is_some(),
+                    "Entity '{}' is missing its entity type",
+                    key
+                );
+            } else {
+                panic!("new_entity({key}) failed");
+            }
+        }
+    }
+
     #[test]
-    fn entity_creation() {
+    fn creation_of_test_entities() {
         assert!(
             EntityFactory::default().entities().is_empty(),
             "A new EntityFactory should be empty"
@@ -817,22 +859,45 @@ mod tests {
         // After registration, rebind as immutable
         let factory = factory;
 
-        assert!(factory.new_entity(&EntityKey::from(".9-#$%)@#)")).is_none());
+        check_entity_factory(factory);
+    }
 
-        for key in factory.keys().iter() {
-            let e = factory.new_entity(key);
-            assert!(e.is_some());
-            if let Some(e) = e {
-                assert!(!e.name().is_empty());
-                assert!(
-                    e.as_controller().is_some()
-                        || e.as_instrument().is_some()
-                        || e.as_effect().is_some(),
-                    "Entity '{}' is missing its entity type",
-                    key
-                );
-            }
-        }
+    #[test]
+    fn creation_of_toy_entities() {
+        assert!(
+            EntityFactory::default().entities().is_empty(),
+            "A new EntityFactory should be empty"
+        );
+
+        let factory = register_toy_factory_entities(EntityFactory::default());
+        assert!(
+            !factory.entities().is_empty(),
+            "after registering toy entities, factory should contain at least one"
+        );
+
+        // After registration, rebind as immutable
+        let factory = factory;
+
+        check_entity_factory(factory);
+    }
+
+    #[test]
+    fn creation_of_production_entities() {
+        assert!(
+            EntityFactory::default().entities().is_empty(),
+            "A new EntityFactory should be empty"
+        );
+
+        let factory = register_factory_entities(EntityFactory::default());
+        assert!(
+            !factory.entities().is_empty(),
+            "after registering entities, factory should contain at least one"
+        );
+
+        // After registration, rebind as immutable
+        let factory = factory;
+
+        check_entity_factory(factory);
     }
 
     #[test]
@@ -842,7 +907,9 @@ mod tests {
         t.update_sample_rate(SampleRate(44444));
         let factory = register_test_factory_entities(EntityFactory::default());
 
-        let entity = factory.new_entity(&EntityKey::from("instrument")).unwrap();
+        let entity = factory
+            .new_entity(&EntityKey::from("instrument"), Uid::default())
+            .unwrap();
         assert_eq!(
             entity.sample_rate(),
             SampleRate::DEFAULT,

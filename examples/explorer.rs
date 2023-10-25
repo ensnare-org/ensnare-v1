@@ -27,7 +27,7 @@ use ensnare::{
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline, track},
-        CircularSampleBuffer, DragDropEvent, DragDropSource,
+        CircularSampleBuffer, DragSource, DropTarget,
     },
 };
 
@@ -165,7 +165,7 @@ impl<'a> Displays for PretendDevicePalette<'a> {
                             DragDropManager::drag_source(
                                 ui,
                                 Id::new(key),
-                                DragDropSource::NewDevice(key.clone()),
+                                DragSource::NewDevice(key.clone()),
                                 |ui| {
                                     ui.label(key.to_string());
                                 },
@@ -214,7 +214,11 @@ impl SignalChainSettings {
                 // TODO: who should own this value?
                 ui.set_max_height(32.0);
                 let mut action = None;
-                ui.add(signal_chain(&mut self.track, &mut action));
+                ui.add(signal_chain(
+                    TrackUid::default(),
+                    &mut self.track,
+                    &mut action,
+                ));
                 if action.is_some() {
                     todo!();
                 }
@@ -316,7 +320,7 @@ impl PatternIconSettings {
             DragDropManager::drag_source(
                 ui,
                 Id::new("pattern icon"),
-                DragDropSource::Pattern(PatternUid(99)),
+                DragSource::Pattern(PatternUid(99)),
                 |ui| {
                     ui.add(pattern::icon(self.duration, &self.notes, self.is_selected));
                 },
@@ -441,7 +445,7 @@ impl Default for ToySynthSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy_synth: ToySynth::new_with(&ToySynthParams::default()),
+            toy_synth: ToySynth::new_with(Uid::default(), &ToySynthParams::default()),
         }
     }
 }
@@ -469,7 +473,11 @@ impl Default for ToyControllerSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyController::new_with(&ToyControllerParams::default(), MidiChannel(0)),
+            toy: ToyController::new_with(
+                Uid::default(),
+                &ToyControllerParams::default(),
+                MidiChannel::default(),
+            ),
         }
     }
 }
@@ -497,7 +505,7 @@ impl Default for ToyEffectSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyEffect::new_with(&ToyEffectParams::default()),
+            toy: ToyEffect::new_with(Uid::default(), &ToyEffectParams::default()),
         }
     }
 }
@@ -525,7 +533,7 @@ impl Default for ToyInstrumentSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyInstrument::new_with(&ToyInstrumentParams::default()),
+            toy: ToyInstrument::new_with(Uid::default(), &ToyInstrumentParams::default()),
         }
     }
 }
@@ -936,7 +944,7 @@ impl eframe::App for Explorer {
             match action {
                 TrackAction::NewDevice(key) => {
                     eprintln!("SignalChainAction::NewDevice({key})");
-                    if let Some(entity) = EntityFactory::global().new_entity(&key) {
+                    if let Some(entity) = EntityFactory::global().new_entity(&key, Uid::default()) {
                         let _ = self.signal_chain.append_entity(entity, Uid(345698));
                     }
                 }
@@ -948,17 +956,14 @@ impl eframe::App for Explorer {
                 }
             }
         }
-        let receiver = DragDropManager::global().lock().unwrap().receiver().clone();
-        while let Ok(event) = receiver.try_recv() {
-            eprintln!("{event:?}");
-            match event {
-                DragDropEvent::TrackAddDevice(..) => {}
-                DragDropEvent::TrackAddPattern(_track_uid, pattern_uid, _position) => {
-                    if let Some(_pattern) = self.piano_roll.piano_roll.get_pattern(&pattern_uid) {
-                        //                        let _ = self.track_widget.track.insert_pattern(pattern, position);
-                    }
-                }
-                DragDropEvent::LinkControl(_source_uid, _target_uid, _control_index) => {}
+        if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
+            match source {
+                DragSource::NewDevice(_) => todo!(),
+                _ => {}
+            }
+            match target {
+                DropTarget::Controllable(_, _) => todo!(),
+                _ => {}
             }
         }
     }

@@ -44,7 +44,7 @@ impl Controls for KeyboardController {
                     modifiers,
                 } => {
                     if let Some((channel, message)) = self.handle_key(&key, pressed) {
-                        control_events_fn(self.uid, EntityEvent::Midi(channel, message));
+                        control_events_fn(None, EntityEvent::Midi(channel, message));
                     }
                 }
                 _ => {}
@@ -104,7 +104,7 @@ impl KeyboardController {
 
         if pressed {
             (
-                MidiChannel(0),
+                MidiChannel::default(),
                 MidiMessage::NoteOn {
                     key: u7::from(midi_note_number),
                     vel: u7::from(127),
@@ -112,7 +112,7 @@ impl KeyboardController {
             )
         } else {
             (
-                MidiChannel(0),
+                MidiChannel::default(),
                 MidiMessage::NoteOff {
                     key: u7::from(midi_note_number),
                     vel: u7::from(0),

@@ -45,7 +45,7 @@ fn demo_automation() {
         // Arrange the lead pattern in the sequencer.
         let track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .add_entity(&track_uid, {
+            .assign_uid_and_add_entity(&track_uid, {
                 let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -58,16 +58,18 @@ fn demo_automation() {
 
         // Add a synth to play the pattern.
         let synth_uid = orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &track_uid,
-                factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
+                factory
+                    .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                    .unwrap(),
             )
             .unwrap();
 
         // Add an LFO that will control a synth parameter.
         let lfo_uid = {
             orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid,
                     Box::new(LfoController::new_with(&LfoControllerParams {
                         frequency: FrequencyHz(2.0),
@@ -82,7 +84,7 @@ fn demo_automation() {
             // way to query param names, but I'm not sure how often that will
             // happen.
             factory
-                .new_entity(&EntityKey::from("toy-synth"))
+                .new_entity(&EntityKey::from("toy-synth"), Uid::default())
                 .unwrap()
                 .as_controllable()
                 .unwrap()
@@ -112,6 +114,23 @@ fn demo_control_trips() {
         .build()
         .unwrap();
 
+    // Per my epiphany from a few days ago, Orchestrates (the trait) defines
+    // arrangement of Entities, and doesn't get into the actual information that
+    // the Entities contain. That is why Orchestrates doesn't know anything
+    // about patterns, which are implementation details of a certain kind of
+    // controller called a sequencer. Likewise, a ControlAtlas is just another
+    // controller. Orchestrates doesn't know about ControlAtlas, and thus
+    // doesn't know about ControlTrip.
+    //
+    // Addendum: this comment turned out to be superfluous, but it's still
+    // valid. I'm still letting this idea soak in, so I'm keeping the comment
+    // here rather than deleting it without checking it in.
+
+    // Orchestrates doesn't specify a way to generate Uids, so if we want to
+    // make one, we need to do it on the concrete Orchestrator before we erase
+    // its type and deal only with Orchestrates.
+    let trip_uid = orchestrator.mint_entity_uid();
+
     // We scope this block so that we can work with Orchestrator only as
     // something implementing the [Orchestrates] trait. This makes sure we're
     // testing the generic trait behavior as much as possible.
@@ -136,7 +155,7 @@ fn demo_control_trips() {
         // Add the sequencer to a new track.
         let track_uid = orchestrator.create_track().unwrap();
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -149,44 +168,42 @@ fn demo_control_trips() {
 
         // Add a synth to play the pattern. Figure how out to identify the
         // parameter we want to control.
-        let entity = factory.new_entity(&EntityKey::from("toy-synth")).unwrap();
+        let entity = factory
+            .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+            .unwrap();
         let pan_param_index = entity
             .as_controllable()
             .unwrap()
             .control_index_for_name("dca-pan")
             .unwrap();
-        let synth_uid = orchestrator.add_entity(&track_uid, entity).unwrap();
+        let synth_uid = orchestrator
+            .assign_uid_and_add_entity(&track_uid, entity)
+            .unwrap();
 
-        // Create a [ControlAtlas] that will manage [ControlTrips](ControlTrip).
-        // First add a ControlTrip that ramps from zero to max over the desired
+        // Create a ControlTrip that ramps from zero to max over the desired
         // amount of time.
-        let (atlas, trip_uid) = {
-            let trip_uid = Uid(5938);
-            let trip = ControlTripBuilder::default()
-                .uid(trip_uid)
-                .step(
-                    ControlStepBuilder::default()
-                        .value(ControlValue::MIN)
-                        .time(MusicalTime::START)
-                        .path(ControlTripPath::Linear)
-                        .build()
-                        .unwrap(),
-                )
-                .step(
-                    ControlStepBuilder::default()
-                        .value(ControlValue::MAX)
-                        .time(MusicalTime::new_with_beats(4))
-                        .path(ControlTripPath::Flat)
-                        .build()
-                        .unwrap(),
-                )
-                .build()
-                .unwrap();
-            let atlas = ControlAtlasBuilder::default().trip(trip).build().unwrap();
-            (Box::new(atlas), trip_uid)
-        };
-
-        let _ = orchestrator.add_entity(&track_uid, atlas).unwrap();
+        let trip = ControlTripBuilder::default()
+            .uid(trip_uid)
+            .step(
+                ControlStepBuilder::default()
+                    .value(ControlValue::MIN)
+                    .time(MusicalTime::START)
+                    .path(ControlTripPath::Linear)
+                    .build()
+                    .unwrap(),
+            )
+            .step(
+                ControlStepBuilder::default()
+                    .value(ControlValue::MAX)
+                    .time(MusicalTime::new_with_beats(4))
+                    .path(ControlTripPath::Flat)
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap();
+        let atlas = ControlAtlasBuilder::default().trip(trip).build().unwrap();
+        let _ = orchestrator.assign_uid_and_add_entity(&track_uid, Box::new(atlas));
 
         // Hook up that ControlTrip to the pan parameter.
         assert!(orchestrator

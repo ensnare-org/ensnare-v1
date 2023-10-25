@@ -1,12 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    drag_drop::DragDropManager,
     entities::effects::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
     generators::{oscillator, Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
     midi::prelude::*,
-    modulators::{dca, Dca, DcaAction, DcaParams},
+    modulators::{dca, Dca, DcaParams},
     prelude::*,
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
@@ -35,6 +34,9 @@ pub enum LfoRouting {
 
 #[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
 pub struct WelshVoice {
+    #[serde(skip)]
+    parent_uid: Uid,
+
     #[control]
     #[params]
     oscillator_1: Oscillator,
@@ -239,8 +241,9 @@ impl WelshVoice {
         self.oscillator_2.set_frequency(frequency_hz);
     }
 
-    pub fn new_with(params: &WelshVoiceParams) -> Self {
+    pub fn new_with(params: &WelshVoiceParams, parent_uid: Uid) -> Self {
         Self {
+            parent_uid,
             oscillator_1: Oscillator::new_with(&params.oscillator_1),
             oscillator_2: Oscillator::new_with(&params.oscillator_2),
             oscillator_2_sync: params.oscillator_2_sync,
@@ -381,15 +384,15 @@ impl HandlesMidi for WelshSynth {
     }
 }
 impl WelshSynth {
-    pub fn new_with(params: &WelshSynthParams) -> Self {
+    pub fn new_with(uid: Uid, params: &WelshSynthParams) -> Self {
         const VOICE_CAPACITY: usize = 8;
         let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
-            WelshVoice::new_with(params.voice())
+            WelshVoice::new_with(params.voice(), uid)
         });
         Self {
             uid: Default::default(),
             inner_synth: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
-            voice: WelshVoice::new_with(params.voice()),
+            voice: WelshVoice::new_with(params.voice(), uid),
             dca: Dca::new_with(params.dca()),
         }
     }
@@ -492,23 +495,10 @@ impl WelshVoice {
                 .default_open(true)
                 .id_source(ui.next_auto_id())
                 .show(ui, |ui| {
-                    if ui.add(dca(&mut self.dca)).changed() {
+                    if ui.add(dca(&mut self.dca, self.parent_uid)).changed() {
                         synth.voices_mut().for_each(|v| {
                             v.dca.update_from_params(&self.dca.to_params());
                         })
-                    }
-                    if let Some(action) = self.dca.take_action() {
-                        match action {
-                            DcaAction::LinkControl(source_uid, control_index) => {
-                                DragDropManager::enqueue_event(
-                                    crate::drag_drop::DragDropEvent::LinkControl(
-                                        source_uid,
-                                        Uid(9999),
-                                        control_index + Self::DCA_INDEX,
-                                    ),
-                                );
-                            }
-                        }
                     }
                 });
             CollapsingHeader::new("Amplitude")

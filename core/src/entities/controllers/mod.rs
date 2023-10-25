@@ -61,7 +61,7 @@ impl Controls for SignalPassthroughController {
         }
         if !self.has_value_been_issued {
             self.has_value_been_issued = true;
-            control_events_fn(self.uid, EntityEvent::Control(self.control_value))
+            control_events_fn(None, EntityEvent::Control(self.control_value))
         }
     }
 

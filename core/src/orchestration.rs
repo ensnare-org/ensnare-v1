@@ -14,8 +14,8 @@ use crate::{
     },
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasUid, IsAction,
-        MidiMessagesFn, Orchestrates, Serializable, Ticks,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
+        IsAction, MidiMessagesFn, Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::Uid,
@@ -83,7 +83,7 @@ pub struct OrchestratorEphemerals {
 ///
 /// let mut orchestrator = Orchestrator::default();
 /// let track_uid = orchestrator.create_track().unwrap();
-/// let instrument_uid = orchestrator.add_entity(&track_uid,
+/// let instrument_uid = orchestrator.assign_uid_and_add_entity(&track_uid,
 ///     Box::new(ToyInstrument::default())).unwrap();
 ///
 /// let mut samples = [StereoSample::SILENCE; Orchestrator::SAMPLE_BUFFER_SIZE];
@@ -179,10 +179,13 @@ impl Orchestrator {
     /// All [TrackUid]s below this value are reserved.
     const FIRST_TRACK_UID: usize = 1;
 
-    /// The fixed [Uid] for the global transport.
-    const TRANSPORT_UID: Uid = Uid(1);
+    /// The fixed [Uid] for this Orchestrator.
+    pub const ORCHESTRATOR_UID: Uid = Uid(1);
 
-    /// Adds the [Pattern] with the given [PatternUid] (in [PianoRoll]) at the
+    /// The fixed [Uid] for the global transport.
+    pub const TRANSPORT_UID: Uid = Uid(2);
+
+    /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
     /// specified position to the given track's sequencer.
     pub fn add_pattern_to_track(
         &mut self,
@@ -197,7 +200,7 @@ impl Orchestrator {
         }
     }
 
-    fn mint_entity_uid(&self) -> Uid {
+    pub fn mint_entity_uid(&self) -> Uid {
         Uid(self.next_entity_uid.fetch_add(1, Ordering::Relaxed))
     }
 
@@ -575,8 +578,33 @@ impl Orchestrates for Orchestrator {
         });
     }
 
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid> {
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
+        if entity.uid() == Uid::default() {
+            panic!("Attempted to add an entity without a valid Uid. Did you mean to call assign_uid_and_add_entity() instead?");
+        }
+        if let Some(track) = self.tracks.get_mut(&track_uid) {
+            let uid = entity.uid();
+            self.entity_uid_to_track_uid.insert(uid, *track_uid);
+            track.append_entity(entity, uid)?;
+            Ok(())
+        } else {
+            Err(anyhow!("Couldn't find track {track_uid}"))
+        }
+    }
+
+    fn assign_uid_and_add_entity(
+        &mut self,
+        track_uid: &TrackUid,
+        mut entity: Box<dyn Entity>,
+    ) -> anyhow::Result<Uid> {
+        if entity.uid() != Uid::default() {
+            panic!(
+                "Attempted to assign Uid to entity that already had one ({})",
+                entity.uid()
+            );
+        }
         let uid = self.mint_entity_uid();
+        entity.set_uid(uid);
         if let Some(track) = self.tracks.get_mut(&track_uid) {
             self.entity_uid_to_track_uid.insert(uid, *track_uid);
             track.append_entity(entity, uid)?;
@@ -715,11 +743,13 @@ impl Acts for Orchestrator {
         self.e.action.take()
     }
 }
-impl HasUid for Orchestrator {
+impl HasMetadata for Orchestrator {
+    fn uid(&self) -> Uid {
+        Self::ORCHESTRATOR_UID
+    }
     fn set_uid(&mut self, _: Uid) {
         panic!("Orchestrator's UID is reserved and should never change.")
     }
-
     fn name(&self) -> &'static str {
         "Orchestrator"
     }
@@ -858,11 +888,17 @@ impl Controls for Orchestrator {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.transport.work(&mut |u, m| self.e.events.push((u, m)));
+        self.transport
+            .work(&mut |_, m| self.e.events.push((Self::TRANSPORT_UID, m)));
         self.check_keyboard();
 
         for track in self.tracks.values_mut() {
-            track.work(&mut |u, m| self.e.events.push((u, m)));
+            // By this point in the control_events_fn chain, `u` must be
+            // correctly assigned, which is why we know we can safely .unwrap()
+            // it. That's because each Track should know the Uid of the Entity
+            // that gave it the event, so it should be substituting that Uid
+            // into the `u` argument.
+            track.work(&mut |u, m| self.e.events.push((u.unwrap(), m)));
         }
         while let Some((uid, event)) = self.e.events.pop() {
             if matches!(event, EntityEvent::Midi(_, _)) {
@@ -879,7 +915,7 @@ impl Controls for Orchestrator {
                 //
                 // Eventually, we might allow one Track to send MIDI messages to
                 // another Track. But today we don't. TODO?
-                control_events_fn(uid, event);
+                control_events_fn(None, event);
             } else {
                 self.dispatch_event(uid, event);
             }
@@ -1280,9 +1316,11 @@ mod tests {
                 "Before sending an external MIDI message to Orchestrator, count should be zero"
             );
         };
-        o.handle_midi_message(MidiChannel(0), test_message, &mut |channel, message| {
-            panic!("Didn't expect {channel:?} {message:?}",)
-        });
+        o.handle_midi_message(
+            MidiChannel::default(),
+            test_message,
+            &mut |channel, message| panic!("Didn't expect {channel:?} {message:?}",),
+        );
         if let Ok(received) = midi_messages_received.lock() {
             assert_eq!(
                 *received, 1,
@@ -1344,7 +1382,7 @@ mod tests {
         let mut orchestrator = Orchestrator::default();
         let track_uid = orchestrator.create_track().unwrap();
         let uid = orchestrator
-            .add_entity(&track_uid, Box::new(TestController::default()))
+            .assign_uid_and_add_entity(&track_uid, Box::new(TestController::default()))
             .unwrap();
 
         assert_eq!(orchestrator.tempo(), Tempo::default());

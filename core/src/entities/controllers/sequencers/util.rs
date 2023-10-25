@@ -53,9 +53,9 @@ impl Controls for MidiNoteMinder {
         for (i, active_note) in self.active_notes.iter().enumerate() {
             if active_note {
                 control_events_fn(
-                    Uid(0),
+                    None,
                     EntityEvent::Midi(
-                        MidiChannel(0),
+                        MidiChannel::default(),
                         MidiMessage::NoteOff {
                             key: u7::from_int_lossy(i as u8),
                             vel: u7::from(0),
@@ -89,11 +89,15 @@ mod tests {
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // Unexpected note-off doesn't explode
-        mnm.handle_midi_message(MidiChannel(0), new_note_off(42, 111), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            new_note_off(42, 111),
+            &mut |_, _| {},
+        );
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // normal
-        mnm.handle_midi_message(MidiChannel(0), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
         let msgs = gather_all_messages(&mut mnm);
         assert_eq!(msgs.len(), 1);
         assert_eq!(
@@ -105,7 +109,7 @@ mod tests {
         );
 
         // duplicate on doesn't explode or add twice
-        mnm.handle_midi_message(MidiChannel(0), new_note_on(42, 88), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 88), &mut |_, _| {});
         let msgs = gather_all_messages(&mut mnm);
         assert_eq!(msgs.len(), 1);
         assert_eq!(
@@ -117,21 +121,21 @@ mod tests {
         );
 
         // normal
-        mnm.handle_midi_message(MidiChannel(0), new_note_off(42, 77), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 77), &mut |_, _| {});
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // duplicate off doesn't explode
-        mnm.handle_midi_message(MidiChannel(0), new_note_off(42, 66), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 66), &mut |_, _| {});
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // velocity zero treated same as note-off
-        mnm.handle_midi_message(MidiChannel(0), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
         assert_eq!(gather_all_messages(&mut mnm).len(), 1);
-        mnm.handle_midi_message(MidiChannel(0), new_note_off(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 99), &mut |_, _| {});
         assert!(gather_all_messages(&mut mnm).is_empty());
-        mnm.handle_midi_message(MidiChannel(0), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
         assert_eq!(gather_all_messages(&mut mnm).len(), 1);
-        mnm.handle_midi_message(MidiChannel(0), new_note_on(42, 0), &mut |_, _| {});
+        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 0), &mut |_, _| {});
         assert!(gather_all_messages(&mut mnm).is_empty());
     }
 }

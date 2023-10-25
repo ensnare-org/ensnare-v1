@@ -41,7 +41,7 @@ fn aux_bus() {
 
         {
             assert!(orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_1,
                     Box::new(
                         PatternSequencerBuilder::default()
@@ -57,21 +57,25 @@ fn aux_bus() {
             // This is because the processing order is always controllers,
             // instruments, effects.
             assert!(orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_1,
-                    factory.new_entity(&EntityKey::from("gain")).unwrap()
+                    factory
+                        .new_entity(&EntityKey::from("gain"), Uid::default())
+                        .unwrap()
                 )
                 .is_ok());
             orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_1,
-                    factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
+                    factory
+                        .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                        .unwrap(),
                 )
                 .unwrap();
         };
         let _synth_uid_2 = {
             assert!(orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_2,
                     Box::new(
                         PatternSequencerBuilder::default()
@@ -82,29 +86,37 @@ fn aux_bus() {
                 )
                 .is_ok());
             assert!(orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_2,
-                    factory.new_entity(&EntityKey::from("gain")).unwrap()
+                    factory
+                        .new_entity(&EntityKey::from("gain"), Uid::default())
+                        .unwrap()
                 )
                 .is_ok());
             orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &track_uid_2,
-                    factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
+                    factory
+                        .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                        .unwrap(),
                 )
                 .unwrap()
         };
         let _effect_uid_1 = {
             orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &aux_track_uid,
-                    factory.new_entity(&EntityKey::from("gain")).unwrap(),
+                    factory
+                        .new_entity(&EntityKey::from("gain"), Uid::default())
+                        .unwrap(),
                 )
                 .unwrap();
             orchestrator
-                .add_entity(
+                .assign_uid_and_add_entity(
                     &aux_track_uid,
-                    factory.new_entity(&EntityKey::from("reverb")).unwrap(),
+                    factory
+                        .new_entity(&EntityKey::from("reverb"), Uid::default())
+                        .unwrap(),
                 )
                 .unwrap()
         };

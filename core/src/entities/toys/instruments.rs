@@ -1,10 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    drag_drop::DragDropManager,
     generators::{oscillator, Oscillator, OscillatorParams, Waveform},
     midi::prelude::*,
-    modulators::{dca, Dca, DcaAction, DcaParams},
+    modulators::{dca, Dca, DcaParams},
     prelude::*,
     traits::prelude::*,
 };
@@ -102,9 +101,9 @@ impl HandlesMidi for ToyInstrument {
 }
 impl Serializable for ToyInstrument {}
 impl ToyInstrument {
-    pub fn new_with(params: &ToyInstrumentParams) -> Self {
+    pub fn new_with(uid: Uid, params: &ToyInstrumentParams) -> Self {
         Self {
-            uid: Default::default(),
+            uid,
             oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
                 Waveform::Sine,
             )),
@@ -122,19 +121,7 @@ impl ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca));
-        if let Some(action) = self.dca.take_action() {
-            match action {
-                DcaAction::LinkControl(source_uid, control_index) => {
-                    DragDropManager::enqueue_event(crate::drag_drop::DragDropEvent::LinkControl(
-                        source_uid,
-                        self.uid,
-                        control_index + Self::DCA_INDEX,
-                    ));
-                }
-            }
-        }
-        response
+        ui.add(oscillator(&mut self.oscillator)) | ui.add(dca(&mut self.dca, self.uid))
     }
 }
 impl Acts for ToyInstrument {

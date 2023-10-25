@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::midi::MidiChannel;
+
 use super::factory::{EntityFactory, EntityKey};
 
 pub use controllers::{ToyController, ToyControllerAlwaysSendsMidiMessage, ToyControllerParams};
@@ -25,19 +27,26 @@ mod synth;
 /// immutability.
 #[must_use]
 pub fn register_toy_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-    factory.register_entity(EntityKey::from("toy-synth"), || {
-        Box::new(ToySynth::new_with(&ToySynthParams::default()))
+    factory.register_entity(EntityKey::from("toy-synth"), |uid| {
+        Box::new(ToySynth::new_with(uid, &ToySynthParams::default()))
     });
-    factory.register_entity(EntityKey::from("toy-instrument"), || {
-        Box::<ToyInstrument>::default()
+    factory.register_entity(EntityKey::from("toy-instrument"), |uid| {
+        Box::new(ToyInstrument::new_with(
+            uid,
+            &ToyInstrumentParams::default(),
+        ))
     });
-    factory.register_entity(EntityKey::from("toy-controller"), || {
-        Box::<ToyController>::default()
+    factory.register_entity(EntityKey::from("toy-controller"), |uid| {
+        Box::new(ToyController::new_with(
+            uid,
+            &ToyControllerParams::default(),
+            MidiChannel::default(),
+        ))
     });
-    factory.register_entity(EntityKey::from("toy-effect"), || {
-        Box::<ToyEffect>::default()
+    factory.register_entity(EntityKey::from("toy-effect"), |uid| {
+        Box::new(ToyEffect::new_with(uid, &ToyEffectParams::default()))
     });
-    // factory.register_entity(Key::from("toy-controller-noisy"), || {
+    // factory.register_entity(Key::from("toy-controller-noisy"), |uid| {
     //     Box::new(ToyControllerAlwaysSendsMidiMessage::default())
     // });
 

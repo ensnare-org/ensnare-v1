@@ -7,9 +7,9 @@
   range at the last possible moment. A great example is envelope
   attack/decay/release times. Don't store as seconds; store as a Normal, and
   then make time range a late-binding scalar.
-  https://github.com/sowbug/groove/issues/130
+  <https://github.com/sowbug/groove/issues/130>
 - For any given physical parameter, make sure it's correctly represented as
-  linear or logarithmic. https://github.com/sowbug/groove/issues/44
+  linear or logarithmic. <https://github.com/sowbug/groove/issues/44>
 
 # Ideas
 
@@ -72,7 +72,7 @@ actually another trait. Or maybe they shouldn't be separate at all.
 # Widgets Volume 2: How widgets can respond when the user does something
 
 Adapted from
-https://github.com/ensnare-org/ensnare/commit/95db90375b6d31707dc92658aa6f046cb6716b4e
+<https://github.com/ensnare-org/ensnare/commit/95db90375b6d31707dc92658aa6f046cb6716b4e>
 
 Option #1: Just do it. For example, you're a slider. You mutate the variable and
 return Response::changed(). End of story.
@@ -110,26 +110,63 @@ I haven't figured out a non-clunky way to let them share that knowledge.
 
 Another path:
 
-  - EntityStore stores ControlTrips directly. This simply moves storage rather
+- EntityStore stores ControlTrips directly. This simply moves storage rather
     than adding or removing, no net change.
-  - Orchestrator treats ControlTrips like any other IsController (except for
+- Orchestrator treats ControlTrips like any other IsController (except for
     drawing, because they draw into the timeline). A tiny efficiency loss in a
     Vec of ControlTrips becoming a set of hash lookups, but that's
     insignificant.
-  - SignalChainWidget needs to be taught not to ask DisplaysInTimeline entities
+- SignalChainWidget needs to be taught not to ask DisplaysInTimeline entities
     to draw. It currently checks to see what's in track.timeline_entities, but
     ControlTrips are not full timeline entities (ugh, this is getting brittle).
-  - ControlAtlas's drawing code becomes a ControlRouter widget. This solves the
+- ControlAtlas's drawing code becomes a ControlRouter widget. This solves the
     problem of ControlAtlas needing access to ControlRouter during drawing. (The
     widget would need access to EntityStore, though.)
-  - After writing this out, I don't think this improves anything.
+- After writing this out, I don't think this improves anything.
 
 Yet another approach:
 
-  - Keep ControlAtlas, but Track is in charge of drawing it. So it creates the
+- Keep ControlAtlas, but Track is in charge of drawing it. So it creates the
     widget, and because it has access to ControlRouter, it can gracefully share
     access. This undoes some of the work I did to genericize
     DisplaysWithTimeline entities, but I haven't really seen any benefits from
     that, so maybe it wasn't actually valuable.
 
-I could also unify ControlAtlas and ControlRouter. 
+I could also unify ControlAtlas and ControlRouter.
+
+# Drag and drop
+
+I can see that DnD is going to be a problem. My current code is based on the
+egui DnD sample code. I have to manually instrument every drag source and drop
+target, and because not everyone knows enough about themselves (e.g., entity
+uids and absolute parameter indexes for control links), there is a lot of
+passing of nearly identical messages up and down the rendering call stack.
+
+The ideal DnD solution:
+
+  1. For every source, let me declare a tag that uniquely identifies it.
+  2. For every target, same -- generate a tag.
+  3. A central area gets a notification when a source is dropped on a target,
+     and it kicks off whatever needs to happen.
+
+Usage examples:
+
+- Automation: an Entity generates a signal that should be linked to another
+    Entity's indexed parameter. source_uid, target_uid, index.
+- Instruments: add a new Entity of this type to this Track at this position.
+    EntityKey, TrackUid, index.
+- Instruments: move this entity to this new Track position. EntityUid,
+    TrackUid, index.
+
+Problems:
+
+- I need to come up with a way for something like a DCA widget to create its
+    drop-target description without breaking encapsulation, and without the
+    caller needing to know everything about the DCA widget (and its potential
+    children). I think this means that the widget gets passed a Uid and a
+    parameter index base, and it assembles its drop-target description from
+    that.
+
+Observations:
+
+- I wish that egui did this for us.

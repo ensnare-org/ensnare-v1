@@ -2,7 +2,7 @@
 
 use super::parts::MIDI_NOTE_F32_RANGE;
 use crate::{
-    drag_drop::{DragDropManager, DragDropSource},
+    drag_drop::{DragDropManager, DragSource},
     midi::MidiNote,
     piano_roll::{Note, Pattern, PatternUid},
     prelude::*,
@@ -206,7 +206,7 @@ impl<'a> Displays for Carousel<'a> {
                     DragDropManager::drag_source(
                         ui,
                         dd_id,
-                        DragDropSource::Pattern(*pattern_uid),
+                        DragSource::Pattern(*pattern_uid),
                         |ui| {
                             ui.add(draggable_icon());
                         },

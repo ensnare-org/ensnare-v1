@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{entities::prelude::*, piano_roll::PatternUid, prelude::*};
-use crossbeam_channel::Receiver;
 use eframe::{
     egui::{CursorIcon, Id as EguiId, InnerResponse, LayerId, Order, Sense, Ui},
     epaint::{self, Color32, Rect, Shape, Stroke, Vec2},
@@ -13,29 +12,27 @@ use strum_macros::Display;
 /// The one and only DragDropManager. Access it with `DragDropManager::global()`.
 static DD_MANAGER: OnceCell<Mutex<DragDropManager>> = OnceCell::new();
 
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Display, PartialEq, Eq)]
-pub enum DragDropSource {
+pub enum DragSource {
     NewDevice(EntityKey),
     Pattern(PatternUid),
     ControlTrip(Uid),
     ControlSource(Uid),
 }
 
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Display)]
-pub enum DragDropEvent {
-    TrackAddDevice(TrackUid, EntityKey),
-    TrackAddPattern(TrackUid, PatternUid, MusicalTime),
-    LinkControl(Uid, Uid, ControlIndex),
+#[derive(Clone, Debug, Display, PartialEq, Eq)]
+pub enum DropTarget {
+    Controllable(Uid, ControlIndex),
+    Track(TrackUid),
+    TrackPosition(TrackUid, MusicalTime),
 }
 
 // TODO: a way to express rules about what can and can't be dropped
 #[allow(missing_docs)]
 #[derive(Debug, Default)]
 pub struct DragDropManager {
-    event_channel: ChannelPair<DragDropEvent>,
-    source: Option<DragDropSource>,
+    source: Option<DragSource>,
+    target: Option<DropTarget>,
 }
 #[allow(missing_docs)]
 impl DragDropManager {
@@ -47,27 +44,33 @@ impl DragDropManager {
     }
 
     pub fn reset() {
-        Self::global().lock().unwrap().source = None;
+        if let Ok(mut dd) = Self::global().lock() {
+            dd.source = None;
+            dd.target = None;
+        }
     }
 
-    pub fn enqueue_event(event: DragDropEvent) {
-        let _ = Self::global()
-            .lock()
-            .unwrap()
-            .event_channel
-            .sender
-            .send(event);
-    }
-
-    pub fn receiver(&self) -> &Receiver<DragDropEvent> {
-        &self.event_channel.receiver
+    /// The main egui update() method should call this method once at the end of
+    /// rendering. If it returns something, then the user dragged the source
+    /// onto the target, and the app should handle accordingly. No matter what,
+    /// this method clears source/target so that it's ready for the next
+    /// update().  
+    pub fn check_and_clear_drop_event() -> Option<(DragSource, DropTarget)> {
+        if let Ok(mut dd) = Self::global().lock() {
+            if let Some(source) = dd.source.take() {
+                if let Some(target) = dd.target.take() {
+                    return Some((source, target));
+                }
+            }
+        }
+        None
     }
 
     // These two functions are based on egui_demo_lib/src/demo/drag_and_drop.rs
     pub fn drag_source(
         ui: &mut Ui,
         id: EguiId,
-        source: DragDropSource,
+        drag_source: DragSource,
         body: impl FnOnce(&mut Ui),
     ) {
         // This allows the app to avoid having to call reset() on every event
@@ -80,7 +83,7 @@ impl DragDropManager {
 
         if ui.memory(|mem| mem.is_being_dragged(id)) {
             // It is. So let's mark that it's the one.
-            Self::global().lock().unwrap().source = Some(source);
+            Self::global().lock().unwrap().source = Some(drag_source);
 
             // Indicate in UI that we're dragging.
             ui.ctx().set_cursor_icon(CursorIcon::Grabbing);
@@ -112,7 +115,7 @@ impl DragDropManager {
     pub fn drop_target<R>(
         ui: &mut Ui,
         can_accept_what_is_being_dragged: bool,
-        body: impl FnOnce(&mut Ui) -> R,
+        body: impl FnOnce(&mut Ui) -> (R, DropTarget),
     ) -> InnerResponse<R> {
         // Is there any drag source at all?
         let is_anything_dragged = Self::is_anything_being_dragged(ui);
@@ -129,7 +132,7 @@ impl DragDropManager {
 
         // Draw the potential target.
         let mut content_ui = ui.child_ui(inner_rect, *ui.layout());
-        let ret = body(&mut content_ui);
+        let (ret, drop_target) = body(&mut content_ui);
 
         // I think but am not sure that this calculates the actual boundaries of
         // what the body drew.
@@ -164,6 +167,10 @@ impl DragDropManager {
             epaint::RectShape::new(rect, style.rounding, fill, stroke),
         );
 
+        if Self::is_dropped(ui, &response) {
+            Self::global().lock().unwrap().target = Some(drop_target);
+        }
+
         InnerResponse::new(ret, response)
     }
 
@@ -182,7 +189,7 @@ impl DragDropManager {
             && Self::is_source_set()
     }
 
-    pub fn source() -> Option<DragDropSource> {
+    pub fn source() -> Option<DragSource> {
         Self::global().lock().unwrap().source.clone()
     }
 

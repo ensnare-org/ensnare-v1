@@ -29,12 +29,10 @@ fn main() -> anyhow::Result<()> {
     let _buffer = [StereoSample::SILENCE; 64];
 
     // ToyInstrument is a MIDI instrument that makes simple sounds.
-    let mut synth = ToyInstrument::default();
-    synth.set_uid(Uid(2001));
+    let synth = ToyInstrument::default();
 
     // An effect takes the edge off the synth.
-    let mut effect = ToyEffect::default();
-    effect.set_uid(Uid(2002));
+    let effect = ToyEffect::default();
 
     // Orchestrator understands the relationships among the instruments,
     // controllers, and effects, and uses them to produce a song.

@@ -140,6 +140,11 @@ impl OrchestratorPanel {
         std::thread::spawn(move || loop {
             let recv = receiver.recv();
             if let Ok(mut o) = orchestrator.lock() {
+                // TODO: when you have time, arrange for this thread to get a
+                // copy of egui::Context so that it can request a repaint after
+                // receiving a message. I think that's why drag and drop
+                // sometimes needs a wiggle for its results to appear.
+
                 match recv {
                     Ok(input) => match input {
                         OrchestratorInput::Midi(channel, message) => {
@@ -214,7 +219,8 @@ impl OrchestratorPanel {
                             let _ = o.add_pattern_to_track(&track_uid, &pattern_uid, position);
                         }
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
-                            if let Some(entity) = EntityFactory::global().new_entity(&key) {
+                            let uid = o.mint_entity_uid();
+                            if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
                                 let _ = o.add_entity(&track_uid, entity);
                             }
                         }
@@ -289,7 +295,8 @@ impl OrchestratorPanel {
                 // This used to expand/collapse, but that's gone.
             }
             OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
-                if let Some(entity) = EntityFactory::global().new_entity(&key) {
+                let uid = orchestrator.mint_entity_uid();
+                if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
                     let _ = orchestrator.add_entity(&track_uid, entity);
                 }
             }

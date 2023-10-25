@@ -55,7 +55,7 @@ impl Controls for ToyController {
                 if self.is_enabled && self.is_performing {
                     self.is_playing = true;
                     control_events_fn(
-                        self.uid,
+                        None,
                         EntityEvent::Midi(self.midi_channel_out, new_note_on(60, 127)),
                     );
                 }
@@ -63,7 +63,7 @@ impl Controls for ToyController {
             TestControllerAction::NoteOff => {
                 if self.is_playing {
                     control_events_fn(
-                        self.uid,
+                        None,
                         EntityEvent::Midi(self.midi_channel_out, new_note_off(60, 0)),
                     );
                 }
@@ -119,8 +119,13 @@ impl Displays for ToyController {
     }
 }
 impl ToyController {
-    pub fn new_with(_params: &ToyControllerParams, midi_channel_out: MidiChannel) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        _params: &ToyControllerParams,
+        midi_channel_out: MidiChannel,
+    ) -> Self {
         Self {
+            uid,
             midi_channel_out,
             ..Default::default()
         }
@@ -158,9 +163,9 @@ impl Controls for ToyControllerAlwaysSendsMidiMessage {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.is_performing {
             control_events_fn(
-                self.uid,
+                None,
                 EntityEvent::Midi(
-                    MidiChannel(0),
+                    MidiChannel::default(),
                     MidiMessage::NoteOn {
                         key: u7::from(self.midi_note),
                         vel: u7::from(127),
@@ -299,7 +304,7 @@ impl Controls for ToySequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
             if self.time_range.contains(&e.time) {
-                control_events_fn(Uid(0), EntityEvent::Midi(MidiChannel(0), e.message))
+                control_events_fn(None, EntityEvent::Midi(MidiChannel::default(), e.message))
             }
         });
     }

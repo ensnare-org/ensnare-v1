@@ -98,12 +98,12 @@ impl Displays for ToySynth {
     }
 }
 impl ToySynth {
-    pub fn new_with(params: &ToySynthParams) -> Self {
+    pub fn new_with(uid: Uid, params: &ToySynthParams) -> Self {
         let voice_store = VoiceStore::<ToyVoice>::new_with_voice(params.voice_count(), || {
             ToyVoice::new_with(params.waveform(), &params.envelope)
         });
         Self {
-            uid: Default::default(),
+            uid,
             voice_count: params.voice_count(),
             waveform: params.waveform(),
             envelope: Envelope::new_with(&params.envelope),

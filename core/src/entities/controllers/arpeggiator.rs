@@ -18,7 +18,7 @@ use std::{ops::Range, option::Option};
 /// order." You can also think of it as a hybrid MIDI instrument and MIDI
 /// controller; you play it with MIDI, but instead of producing audio, it
 /// produces more MIDI.
-#[derive(Debug, Control, IsController, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsController, Params, Uid, Serialize, Deserialize)]
 pub struct Arpeggiator {
     uid: Uid,
     midi_channel_out: MidiChannel,
@@ -135,12 +135,9 @@ impl Displays for Arpeggiator {
 impl Arpeggiator {
     pub fn new_with(params: &ArpeggiatorParams, midi_channel_out: MidiChannel) -> Self {
         Self {
-            uid: Default::default(),
             midi_channel_out,
             bpm: params.bpm,
-            sequencer: Default::default(),
-            is_sequencer_enabled: Default::default(),
-            note_semaphore: Default::default(),
+            ..Default::default()
         }
     }
 

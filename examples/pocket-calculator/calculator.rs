@@ -515,7 +515,7 @@ impl CalculatorEphemerals {
 /// audio. It draws the GUI and handles user input.
 #[derive(Control, IsControllerInstrument, Debug, Uid, Serialize, Deserialize)]
 pub struct Calculator {
-    /// Required for the [ensnare_core::traits::HasUid] trait.
+    /// Required for the [HasMetadata] trait.
     uid: Uid,
 
     /// Keeps the music data (notes, sequences, tempo).

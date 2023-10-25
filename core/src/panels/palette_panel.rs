@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    drag_drop::{DragDropManager, DragDropSource},
+    drag_drop::{DragDropManager, DragSource},
     entities::prelude::*,
     traits::prelude::*,
 };
@@ -16,7 +16,7 @@ impl Displays for PalettePanel {
                 DragDropManager::drag_source(
                     ui,
                     eframe::egui::Id::new(key),
-                    DragDropSource::NewDevice(key.clone()),
+                    DragSource::NewDevice(key.clone()),
                     |ui| {
                         ui.label(key.to_string());
                     },

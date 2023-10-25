@@ -2,7 +2,7 @@
 
 use crate::{
     control::ControlRouter,
-    drag_drop::{DragDropManager, DragDropSource},
+    drag_drop::{DragDropManager, DragSource},
     prelude::*,
     rng::Rng,
     traits::prelude::*,
@@ -24,7 +24,7 @@ pub use crate::entities::controllers::sequencers::{
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.
-#[derive(Debug, Control, IsController, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsController, Uid, Serialize, Deserialize)]
 pub struct Timer {
     uid: Uid,
 
@@ -44,11 +44,8 @@ impl Serializable for Timer {}
 impl Timer {
     pub fn new_with(duration: MusicalTime) -> Self {
         Self {
-            uid: Default::default(),
             duration,
-            is_performing: false,
-            is_finished: false,
-            end_time: Default::default(),
+            ..Default::default()
         }
     }
 
@@ -120,7 +117,7 @@ impl Controls for Trigger {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.timer.is_finished() && self.is_performing && !self.has_triggered {
             self.has_triggered = true;
-            control_events_fn(self.uid, EntityEvent::Control(self.value));
+            control_events_fn(None, EntityEvent::Control(self.value));
         }
     }
 
@@ -162,8 +159,8 @@ impl Trigger {
             uid: Default::default(),
             timer,
             value,
-            has_triggered: false,
-            is_performing: false,
+            has_triggered: Default::default(),
+            is_performing: Default::default(),
         }
     }
 
@@ -442,7 +439,7 @@ impl Controls for ControlTrip {
         if current_value != self.e.last_published_value {
             self.e.last_published_value = current_value;
             control_events_fn(
-                self.uid,
+                Some(self.uid),
                 EntityEvent::Control(ControlValue::from(current_value)),
             );
         }
@@ -723,7 +720,7 @@ impl<'a> Displays for ControlAtlasWidget<'a> {
                                             DragDropManager::drag_source(
                                                 ui,
                                                 ui.next_auto_id(),
-                                                DragDropSource::ControlTrip(t.uid()),
+                                                DragSource::ControlTrip(t.uid()),
                                                 |ui| {
                                                     ui.label("S");
                                                 },

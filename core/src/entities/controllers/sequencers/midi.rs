@@ -7,7 +7,6 @@ use crate::{
         Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
         SequencesMidi,
     },
-    uid::Uid,
 };
 
 #[derive(Debug, Default)]
@@ -68,7 +67,7 @@ impl Controls for MidiSequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
             if self.time_range.contains(&e.time) {
-                control_events_fn(Uid(0), EntityEvent::Midi(MidiChannel(0), e.message))
+                control_events_fn(None, EntityEvent::Midi(MidiChannel::default(), e.message))
             }
         });
     }

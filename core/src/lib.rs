@@ -66,7 +66,7 @@ pub mod prelude {
         orchestration::Orchestrator,
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
         track::{Track, TrackUid},
-        traits::{HasUid, Orchestrates},
+        traits::{HasMetadata, Orchestrates},
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
             SampleType, SignalType, StereoSample,

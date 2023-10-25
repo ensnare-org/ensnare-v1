@@ -145,7 +145,7 @@ impl Serializable for NoteSequencer {
         self.notes.iter().for_each(|note| {
             let events: Vec<MidiEvent> = note.clone().into();
             events.iter().for_each(|e| {
-                let _ = self.inner.record_midi_event(MidiChannel(0), *e);
+                let _ = self.inner.record_midi_event(MidiChannel::default(), *e);
             });
         });
     }

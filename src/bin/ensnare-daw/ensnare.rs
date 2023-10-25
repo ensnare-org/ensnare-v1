@@ -18,7 +18,11 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
-    app_version, arrangement::transport, panels::prelude::*, prelude::*, ui::DragDropEvent,
+    app_version,
+    arrangement::transport,
+    panels::prelude::*,
+    prelude::*,
+    ui::{DragSource, DropTarget},
 };
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use std::sync::{Arc, Mutex};
@@ -108,7 +112,7 @@ impl Ensnare {
             is_settings_panel_open: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
-        r.spawn_channel_aggregator(cc.egui_ctx.clone());
+        r.spawn_channel_aggregator();
         r
     }
 
@@ -215,11 +219,10 @@ impl Ensnare {
     /// Watches all the channel receivers we know about, and either handles them
     /// immediately off the UI thread or forwards them to the app's event
     /// channel.
-    fn spawn_channel_aggregator(&mut self, ctx: Context) {
+    fn spawn_channel_aggregator(&mut self) {
         let r0 = self.settings_panel.midi_panel().receiver().clone();
         let r1 = self.settings_panel.audio_panel().receiver().clone();
         let r2 = self.orchestrator_panel.receiver().clone();
-        let r3 = DragDropManager::global().lock().unwrap().receiver().clone();
 
         let app_sender = self.event_channel.sender.clone();
         let orchestrator_sender = self.orchestrator_panel.sender().clone();
@@ -229,7 +232,6 @@ impl Ensnare {
             let _ = sel.recv(&r0);
             let _ = sel.recv(&r1);
             let _ = sel.recv(&r2);
-            let _ = sel.recv(&r3);
 
             loop {
                 let operation = sel.select();
@@ -259,42 +261,6 @@ impl Ensnare {
                     2 => {
                         if let Ok(event) = operation.recv(&r2) {
                             let _ = app_sender.send(EnsnareMessage::OrchestratorEvent(event));
-                        }
-                    }
-                    3 => {
-                        if let Ok(event) = operation.recv(&r3) {
-                            match event {
-                                DragDropEvent::TrackAddDevice(track_uid, key) => {
-                                    let _ = orchestrator_sender
-                                        .send(OrchestratorInput::TrackAddEntity(track_uid, key));
-                                }
-                                DragDropEvent::TrackAddPattern(
-                                    track_uid,
-                                    pattern_uid,
-                                    position,
-                                ) => {
-                                    let _ = orchestrator_sender.send(
-                                        OrchestratorInput::TrackPatternAdd(
-                                            track_uid,
-                                            pattern_uid,
-                                            position,
-                                        ),
-                                    );
-                                }
-                                DragDropEvent::LinkControl(
-                                    source_uid,
-                                    target_uid,
-                                    control_index,
-                                ) => {
-                                    let _ =
-                                        orchestrator_sender.send(OrchestratorInput::LinkControl(
-                                            source_uid,
-                                            target_uid,
-                                            control_index,
-                                        ));
-                                }
-                            }
-                            ctx.request_repaint();
                         }
                     }
                     _ => {
@@ -502,6 +468,47 @@ impl Ensnare {
             }
         }
     }
+
+    fn check_drag_and_drop(&mut self) {
+        if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
+            let mut input = None;
+            match source {
+                DragSource::NewDevice(ref key) => match target {
+                    DropTarget::Controllable(_, _) => todo!(),
+                    DropTarget::Track(track_uid) => {
+                        input = Some(OrchestratorInput::TrackAddEntity(track_uid, key.clone()));
+                    }
+                    DropTarget::TrackPosition(_, _) => todo!(),
+                },
+                DragSource::Pattern(pattern_uid) => match target {
+                    DropTarget::Controllable(_, _) => todo!(),
+                    DropTarget::Track(_) => todo!(),
+                    DropTarget::TrackPosition(track_uid, position) => {
+                        input = Some(OrchestratorInput::TrackPatternAdd(
+                            track_uid,
+                            pattern_uid,
+                            position,
+                        ));
+                    }
+                },
+                DragSource::ControlTrip(_trip_uid) => todo!(),
+                DragSource::ControlSource(source_uid) => match target {
+                    DropTarget::Controllable(target_uid, index) => {
+                        input = Some(OrchestratorInput::LinkControl(
+                            source_uid, target_uid, index,
+                        ));
+                    }
+                    DropTarget::Track(_) => todo!(),
+                    DropTarget::TrackPosition(_, _) => todo!(),
+                },
+            }
+            if let Some(input) = input {
+                let _ = self.orchestrator_panel.send_to_service(input);
+            } else {
+                eprintln!("WARNING: unhandled DnD pair: {source:?} {target:?}");
+            }
+        }
+    }
 }
 impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
@@ -545,6 +552,8 @@ impl App for Ensnare {
         });
 
         self.show_settings_panel(ctx);
+
+        self.check_drag_and_drop();
 
         if self.exit_requested {
             frame.close();

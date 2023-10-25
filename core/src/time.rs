@@ -747,6 +747,7 @@ impl<'a> Displays for TransportWidget<'a> {
 mod tests {
     use crate::{
         control::{ControlIndex, ControlValue},
+        prelude::Orchestrator,
         traits::Controllable,
     };
 
@@ -1103,7 +1104,10 @@ mod tests {
 
     #[test]
     fn transport_is_automatable() {
-        let mut t = TransportBuilder::default().uid(Uid(1)).build().unwrap();
+        let mut t = TransportBuilder::default()
+            .uid(Orchestrator::TRANSPORT_UID)
+            .build()
+            .unwrap();
 
         assert_eq!(t.tempo(), Tempo::default());
 

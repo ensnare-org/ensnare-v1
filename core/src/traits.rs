@@ -18,8 +18,8 @@ use crate::{
 pub mod prelude {
     pub use super::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasSettings,
-        HasUid, IsAction, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice,
+        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
+        HasSettings, IsAction, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice,
         MidiMessagesFn, Orchestrates, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
         TransformsAudio,
     };
@@ -61,7 +61,7 @@ impl MessageBounds for EntityEvent {}
 /// process, or MIDI commands to handle. A performance ends once all
 /// [IsController] entities indicate that they've finished.
 pub trait IsController:
-    Controls + HandlesMidi + HasUid + Displays + Send + std::fmt::Debug
+    Controls + HandlesMidi + HasMetadata + Displays + Send + std::fmt::Debug
 {
 }
 
@@ -69,14 +69,20 @@ pub trait IsController:
 /// output. It does not get called unless there is audio input to provide to it
 /// (which can include silence, e.g., in the case of a muted instrument).
 pub trait IsEffect:
-    TransformsAudio + Controllable + Configurable + HasUid + Displays + Send + std::fmt::Debug
+    TransformsAudio + Controllable + Configurable + HasMetadata + Displays + Send + std::fmt::Debug
 {
 }
 
 /// An [IsInstrument] produces audio, usually upon request from MIDI or
 /// [IsController] input.
 pub trait IsInstrument:
-    Generates<StereoSample> + HandlesMidi + Controllable + HasUid + Displays + Send + std::fmt::Debug
+    Generates<StereoSample>
+    + HandlesMidi
+    + Controllable
+    + HasMetadata
+    + Displays
+    + Send
+    + std::fmt::Debug
 {
 }
 
@@ -151,14 +157,9 @@ pub trait Controllable {
     }
 }
 
-/// A HasUid has a [Uid], which is useful for one entity to refer to another
-/// without getting into icky Rust ownership questions. It's the foundation of
-/// any ECS (entity/component/system) design. We're not using any ECS, but our
-/// [Uid]s work similarly to how they do in an ECS.
-///
-/// TODO: name() is hitchhiking along with Uid for now.
-#[allow(missing_docs)]
-pub trait HasUid {
+/// A [HasMetadata] has basic information about an [Entity].
+pub trait HasMetadata {
+    fn uid(&self) -> Uid;
     fn set_uid(&mut self, uid: Uid);
     fn name(&self) -> &'static str;
 }
@@ -218,7 +219,7 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
 /// This might end up like MIDI routing: there are some things that ask others
 /// to do work, and there are some things that do work, and a transparent proxy
 /// API like we have now isn't appropriate.
-pub type ControlEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
+pub type ControlEventsFn<'a> = dyn FnMut(Option<Uid>, EntityEvent) + 'a;
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
 /// It also has a concept of a performance that has a beginning and an end. It
@@ -380,7 +381,7 @@ pub trait Serializable {
 #[allow(missing_docs)]
 #[typetag::serde(tag = "type")]
 pub trait Entity:
-    HasUid + Displays + Configurable + Serializable + std::fmt::Debug + Send + Sync
+    HasMetadata + Displays + Configurable + Serializable + std::fmt::Debug + Send + Sync
 {
     fn as_controller(&self) -> Option<&dyn IsController> {
         None
@@ -504,8 +505,16 @@ pub trait Orchestrates: Configurable {
     /// disposes of any owned [Entities](Entity).
     fn delete_tracks(&mut self, uids: &[TrackUid]);
 
-    /// Adds the given [Entity] to the end of the specified track.
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid>;
+    /// Adds the given [Entity] to the end of the specified track. The [Entity]
+    /// must have a valid [Uid].
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()>;
+
+    /// Assigns a new [Uid] to the given [Entity] and adds it to the end of the specified track.
+    fn assign_uid_and_add_entity(
+        &mut self,
+        track_uid: &TrackUid,
+        entity: Box<dyn Entity>,
+    ) -> anyhow::Result<Uid>;
 
     /// Removes the specified [Entity], returning ownership (if successful) to
     /// the caller.
@@ -705,13 +714,7 @@ pub(crate) mod tests {
         orchestrates.delete_track(&track_2_uid);
 
         let target_uid = orchestrates
-            .add_entity(
-                &track_uid,
-                Box::new(TestInstrument {
-                    uid: Uid(1), // TODO: remove
-                    sample_rate: Default::default(),
-                }),
-            )
+            .assign_uid_and_add_entity(&track_uid, Box::new(TestInstrument::default()))
             .unwrap();
         assert!(
             orchestrates
@@ -731,7 +734,9 @@ pub(crate) mod tests {
         let mut ids: HashSet<Uid> = HashSet::default();
         for _ in 0..64 {
             let e = Box::new(TestInstrument::default());
-            let uid = orchestrates.add_entity(&track_uid, e).unwrap();
+            let uid = orchestrates
+                .assign_uid_and_add_entity(&track_uid, e)
+                .unwrap();
             assert!(
                 !ids.contains(&uid),
                 "added entities should be assigned unique IDs"
@@ -837,7 +842,11 @@ pub(crate) mod tests {
         let mut do_nothing = |_, _| {};
 
         assert!(!sequences.is_recording());
-        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_ON_MESSAGE, &mut do_nothing);
+        sequences.handle_midi_message(
+            MidiChannel::default(),
+            SAMPLE_NOTE_ON_MESSAGE,
+            &mut do_nothing,
+        );
         assert!(
             replay_all_messages(sequences).is_empty(),
             "sequencer should ignore incoming messages when not recording"
@@ -846,9 +855,17 @@ pub(crate) mod tests {
         sequences.start_recording();
         assert!(sequences.is_recording());
         sequences.update_time(&(MusicalTime::new_with_beats(1)..MusicalTime::DURATION_QUARTER));
-        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_ON_MESSAGE, &mut do_nothing);
+        sequences.handle_midi_message(
+            MidiChannel::default(),
+            SAMPLE_NOTE_ON_MESSAGE,
+            &mut do_nothing,
+        );
         sequences.update_time(&(MusicalTime::new_with_beats(2)..MusicalTime::DURATION_QUARTER));
-        sequences.handle_midi_message(MidiChannel(0), SAMPLE_NOTE_OFF_MESSAGE, &mut do_nothing);
+        sequences.handle_midi_message(
+            MidiChannel::default(),
+            SAMPLE_NOTE_OFF_MESSAGE,
+            &mut do_nothing,
+        );
         assert_eq!(
             replay_all_messages(sequences).len(),
             2,

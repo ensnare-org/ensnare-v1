@@ -125,7 +125,7 @@ impl Serializable for PatternSequencer {
         for pattern in &self.patterns {
             let events: Vec<MidiEvent> = pattern.clone().into();
             events.iter().for_each(|&e| {
-                let _ = self.inner.record_midi_event(MidiChannel(0), e);
+                let _ = self.inner.record_midi_event(MidiChannel::default(), e);
             });
         }
     }
@@ -220,7 +220,7 @@ impl Controls for LivePatternSequencer {
         if let Ok(event) = self.channel.receiver.try_recv() {
             match event {
                 LivePatternEvent::Add(pattern_uid, position) => {
-                    let _ = self.record(MidiChannel(0), &pattern_uid, position);
+                    let _ = self.record(MidiChannel::default(), &pattern_uid, position);
                 }
             }
         }
@@ -327,12 +327,8 @@ impl DisplaysInTimeline for LivePatternSequencer {
 impl LivePatternSequencer {
     pub fn new_with(piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
         Self {
-            uid: Default::default(),
-            arrangements: Default::default(),
-            inner: Default::default(),
             piano_roll,
-            view_range: Default::default(),
-            channel: Default::default(),
+            ..Default::default()
         }
     }
 
@@ -342,7 +338,7 @@ impl LivePatternSequencer {
             if let Some(pattern) = piano_roll.get_pattern(&arrangement.pattern_uid) {
                 let _ = self
                     .inner
-                    .record(MidiChannel(0), pattern, arrangement.range.start);
+                    .record(MidiChannel::default(), pattern, arrangement.range.start);
             }
         });
     }
@@ -404,7 +400,7 @@ mod tests {
 
         let mut s = LivePatternSequencer::new_with(Arc::clone(&piano_roll));
         let _ = s.record(
-            MidiChannel(0),
+            MidiChannel::default(),
             &pattern_uid,
             MusicalTime::new_with_beats(20),
         );

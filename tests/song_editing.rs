@@ -67,17 +67,17 @@ fn edit_song() {
 
         // Pattern is good; add an instrument to the track.
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &rhythm_track_uid,
                 factory
-                    .new_entity(&EntityKey::from("toy-instrument"))
+                    .new_entity(&EntityKey::from("toy-instrument"), Uid::default())
                     .unwrap(),
             )
             .is_ok());
 
         // Arrange the drum pattern.
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &rhythm_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
@@ -103,33 +103,41 @@ fn edit_song() {
         let _ = piano_roll.insert(lead_pattern.clone());
 
         let welsh_synth_uid = orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &lead_track_uid,
-                factory.new_entity(&EntityKey::from("toy-synth")).unwrap(),
+                factory
+                    .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                    .unwrap(),
             )
             .unwrap();
 
         // Hmmm, we don't like the sound of that synth; let's replace it with another.
         let _ = orchestrator.remove_entity(&welsh_synth_uid);
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &lead_track_uid,
-                factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
+                factory
+                    .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                    .unwrap()
             )
             .is_ok());
 
         // That's better, but it needs an effect.
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &lead_track_uid,
-                factory.new_entity(&EntityKey::from("reverb")).unwrap()
+                factory
+                    .new_entity(&EntityKey::from("reverb"), Uid::default())
+                    .unwrap()
             )
             .is_ok());
         // And another.
         let lead_gain_uid = orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &lead_track_uid,
-                factory.new_entity(&EntityKey::from("gain")).unwrap(),
+                factory
+                    .new_entity(&EntityKey::from("gain"), Uid::default())
+                    .unwrap(),
             )
             .unwrap();
         // Sounds better if gain is first in chain.
@@ -137,7 +145,7 @@ fn edit_song() {
 
         // Arrange the lead pattern.
         assert!(orchestrator
-            .add_entity(
+            .assign_uid_and_add_entity(
                 &lead_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()

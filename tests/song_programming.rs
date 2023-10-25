@@ -32,7 +32,7 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Sequencer emits events on MIDI channel 0.
     let track_uid = o.create_track().unwrap();
     assert!(o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
             Box::new(
                 PatternSequencerBuilder::default()
@@ -45,20 +45,20 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Add the drumkit instrument to the track. By default, it listens on MIDI channel 0.
     assert!(o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
             factory
-                .new_entity(&EntityKey::from("toy-instrument"))
+                .new_entity(&EntityKey::from("toy-instrument"), Uid::default())
                 .unwrap(),
         )
         .is_ok());
 
     // Add an effect to the track's effect chain.
     let filter_uid = o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
             factory
-                .new_entity(&EntityKey::from("filter-low-pass-24db"))
+                .new_entity(&EntityKey::from("filter-low-pass-24db"), Uid::default())
                 .unwrap(),
         )
         .unwrap();
@@ -80,7 +80,7 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Arrange the lead pattern in a new MIDI track's Sequencer.
     let track_uid = o.create_track().unwrap();
     assert!(o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
             Box::new(
                 PatternSequencerBuilder::default()
@@ -93,17 +93,21 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 
     // Add a synth to play the pattern.
     assert!(o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
-            factory.new_entity(&EntityKey::from("toy-synth")).unwrap()
+            factory
+                .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                .unwrap()
         )
         .is_ok());
 
     // Make the synth sound better.
     let reverb_uid = o
-        .add_entity(
+        .assign_uid_and_add_entity(
             &track_uid,
-            factory.new_entity(&EntityKey::from("reverb")).unwrap(),
+            factory
+                .new_entity(&EntityKey::from("reverb"), Uid::default())
+                .unwrap(),
         )
         .unwrap();
     assert!(o.set_effect_humidity(reverb_uid, Normal::from(0.2)).is_ok());
