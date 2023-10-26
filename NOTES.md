@@ -116,8 +116,8 @@ Another path:
     drawing, because they draw into the timeline). A tiny efficiency loss in a
     Vec of ControlTrips becoming a set of hash lookups, but that's
     insignificant.
-- SignalChainWidget needs to be taught not to ask DisplaysInTimeline entities
-    to draw. It currently checks to see what's in track.timeline_entities, but
+- SignalChainWidget needs to be taught not to ask DisplaysInTimeline entities to
+    draw. It currently checks to see what's in track.timeline_entities, but
     ControlTrips are not full timeline entities (ugh, this is getting brittle).
 - ControlAtlas's drawing code becomes a ControlRouter widget. This solves the
     problem of ControlAtlas needing access to ControlRouter during drawing. (The
@@ -155,8 +155,8 @@ Usage examples:
     Entity's indexed parameter. source_uid, target_uid, index.
 - Instruments: add a new Entity of this type to this Track at this position.
     EntityKey, TrackUid, index.
-- Instruments: move this entity to this new Track position. EntityUid,
-    TrackUid, index.
+- Instruments: move this entity to this new Track position. EntityUid, TrackUid,
+    index.
 
 Problems:
 
@@ -170,3 +170,23 @@ Problems:
 Observations:
 
 - I wish that egui did this for us.
+
+# egui and the ui() method
+
+With the commit that added this comment, I carried out an egui pattern that is
+starting to emerge. There are some entities that shouldn't have a Displays
+trait. It's possible that these things are actually not Entities. An example is
+ControlAtlas, which at this instant is owned by Track, which puts a fake Uid
+into the timeline_entities list in an attempt to make it act a little like an
+Entity. The atlas widget needs some extra arguments to draw itself, so it's
+inappropriate for Displays, which means that ControlAtlas (the 1:1 parent of
+that widget) shouldn't have Displays, either. Rather, TrackWidget handles it
+specially.
+
+The rule or pattern is something like this: if an Entity's widget requires
+special arguments, then it isn't a generic Entity that's asked to draw itself
+through Displays, and we know that the only time it'll be asked to display
+itself is when custom code that knows that concrete Entity is doing the asking.
+So that thing isn't an Entity by the current definition of that thing, and it
+might make sense to either change Entity's definition or make these special
+Entities' Displays implementation explode.

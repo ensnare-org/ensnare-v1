@@ -528,27 +528,7 @@ impl Default for ControlAtlas {
         ControlAtlasBuilder::default().random().build().unwrap()
     }
 }
-impl Displays for ControlAtlas {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut control_router = ControlRouter::default(); // BAD BAD BAD BAD BAD
-        let mut action = None;
-        let response = ui.add(atlas(
-            self,
-            &mut control_router,
-            self.view_range.clone(),
-            &mut action,
-        ));
-        if let Some(action) = action {
-            match action {
-                ControlAtlasWidgetAction::AddTrip => {
-                    self.set_action(ControlAtlasAction::AddTrip);
-                    todo!("need to write handler for ControlAtlasAction::AddTrip");
-                }
-            }
-        }
-        response
-    }
-}
+impl Displays for ControlAtlas {}
 impl DisplaysInTimeline for ControlAtlas {
     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
         self.trips

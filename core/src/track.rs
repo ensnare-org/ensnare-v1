@@ -2,7 +2,9 @@
 
 use crate::{
     control::ControlRouter,
-    controllers::ControlAtlas,
+    controllers::{
+        atlas, ControlAtlas, ControlAtlasAction, ControlAtlasBuilder, ControlAtlasWidgetAction,
+    },
     drag_drop::{DragDropManager, DragSource, DropTarget},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
@@ -151,7 +153,7 @@ impl Default for Track {
             foreground_timeline_entity: Default::default(),
             midi_router: Default::default(),
             control_router: Default::default(),
-            control_atlas: Default::default(),
+            control_atlas: ControlAtlasBuilder::default().random().build().unwrap(),
             controllers: Default::default(),
             instruments: Default::default(),
             effects: Default::default(),
@@ -168,7 +170,6 @@ impl Track {
     /// A reserved Uid for the built-in ControlAtlas.
     const CONTROL_ATLAS_UID: Uid = Uid(1);
 
-    #[allow(dead_code)]
     fn timeline_entity(&self, uid: &Uid) -> Option<&dyn DisplaysInTimeline> {
         match *uid {
             Self::CONTROL_ATLAS_UID => self.control_atlas.as_displays_in_timeline(),
@@ -182,6 +183,7 @@ impl Track {
         }
     }
 
+    #[allow(dead_code)]
     fn timeline_entity_mut(&mut self, uid: &Uid) -> Option<&mut dyn DisplaysInTimeline> {
         match *uid {
             Self::CONTROL_ATLAS_UID => self.control_atlas.as_displays_in_timeline_mut(),
@@ -725,17 +727,20 @@ impl<'a> Displays for TrackWidget<'a> {
 
                                 // Draw the disabled timeline views.
                                 let enabled_uid = self.track.foreground_timeline_entity.clone();
-                                let entities: Vec<Uid> = self
+                                let entity_uids: Vec<Uid> = self
                                     .track
                                     .timeline_entities
                                     .iter()
                                     .filter(|uid| enabled_uid != Some(**uid))
                                     .cloned()
                                     .collect();
-                                entities.iter().for_each(|uid| {
-                                    if let Some(e) = self.track.timeline_entity_mut(uid) {
+                                entity_uids.iter().for_each(|uid| {
+                                    if self.track.timeline_entity(uid).is_some() {
                                         ui.add_enabled_ui(false, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                Self::ui_for_entity(ui, &mut self.track, *uid)
+                                            })
+                                            .inner
                                         })
                                         .inner;
                                     }
@@ -743,9 +748,12 @@ impl<'a> Displays for TrackWidget<'a> {
 
                                 // Draw the one enabled timeline view.
                                 if let Some(uid) = enabled_uid {
-                                    if let Some(e) = self.track.timeline_entity_mut(&uid) {
+                                    if self.track.timeline_entity(&uid).is_some() {
                                         ui.add_enabled_ui(true, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| e.ui(ui)).inner
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                Self::ui_for_entity(ui, &mut self.track, uid)
+                                            })
+                                            .inner
                                         })
                                         .inner;
                                     }
@@ -817,6 +825,42 @@ impl<'a> TrackWidget<'a> {
     fn is_selected(mut self, is_selected: bool) -> Self {
         self.is_selected = is_selected;
         self
+    }
+
+    fn ui_for_entity(
+        ui: &mut eframe::egui::Ui,
+        track: &mut Track,
+        uid: Uid,
+    ) -> eframe::egui::Response {
+        match uid {
+            Track::CONTROL_ATLAS_UID => {
+                let mut action = None;
+                let response = ui.add(atlas(
+                    &mut track.control_atlas,
+                    &mut track.control_router,
+                    track.e.view_range.clone(),
+                    &mut action,
+                ));
+                if let Some(action) = action {
+                    match action {
+                        ControlAtlasWidgetAction::AddTrip => {
+                            track.control_atlas.set_action(ControlAtlasAction::AddTrip);
+                            todo!("need to write handler for ControlAtlasAction::AddTrip");
+                        }
+                    }
+                }
+                response
+            }
+            _ => {
+                if let Some(entity) = track.entity_mut(&uid) {
+                    entity.ui(ui)
+                } else {
+                    eprintln!("WARNING: ui_for_entity({uid}) failed to find entity");
+                    // Synthesize an empty Response
+                    ui.label("")
+                }
+            }
+        }
     }
 
     // Looks at what's being dragged, if anything, and updates any state needed
