@@ -881,6 +881,10 @@ mod tests {
         check_entity_factory(factory);
     }
 
+    // TODO: if we want to re-enable this, then we need to change
+    // Sampler/Drumkit and anyone else to not load files when instantiated. This
+    // might not be practical for those instruments.
+    #[ignore = "This test requires Path hives to be set up properly, but they aren't on the CI machine."]
     #[test]
     fn creation_of_production_entities() {
         assert!(

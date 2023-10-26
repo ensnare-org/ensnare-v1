@@ -156,6 +156,9 @@ impl Configurable for Sampler {
     }
 }
 impl Sampler {
+    // TODO: This method panics under normal conditions (can't find the file).
+    // That's bad. The better behavior would be for the constructor to always
+    // succeed, but then have a load() method that has the usual Result<>.
     pub fn new_with(params: &SamplerParams, paths: &Paths) -> Self {
         let path = paths.build_sample(&Vec::default(), Path::new(&params.filename()));
         if let Ok(file) = paths.search_and_open(path.as_path()) {
@@ -192,12 +195,7 @@ impl Sampler {
                 panic!("Couldn't create second file handle to read metadata");
             }
         } else {
-            panic!(
-                "Couldn't read file {:?}. cwd is {:?} and hives are {:?}",
-                path,
-                Paths::cwd(),
-                Paths::default().hives()
-            );
+            panic!("Couldn't read file {path:?}.");
         }
     }
 
