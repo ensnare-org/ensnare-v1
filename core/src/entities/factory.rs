@@ -177,6 +177,11 @@ impl From<&str> for EntityKey {
         EntityKey(value.to_string())
     }
 }
+impl From<String> for EntityKey {
+    fn from(value: String) -> Self {
+        EntityKey(value)
+    }
+}
 
 type EntityFactoryFn = fn(Uid) -> Box<dyn Entity>;
 

@@ -4,25 +4,51 @@
 
 use anyhow::anyhow;
 use eframe::{
-    egui::{self, warn_if_debug_build, Layout, ScrollArea, Style, Ui},
+    egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style, Ui},
     emath::Align,
     CreationContext,
 };
 use ensnare::{app_version, prelude::*};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter};
 
+#[derive(Debug, Default, EnumIter, Display, PartialEq)]
+enum DisplayMode {
+    #[default]
+    Normal,
+    WithHeader,
+}
 #[derive(Debug, Default)]
-struct EntityExplorer {}
+struct EntityExplorer {
+    sorted_keys: Vec<EntityKey>,
+    selected_key: Option<EntityKey>,
+    entity: Option<Box<dyn Entity>>,
+    next_uid: AtomicUsize,
+    display_mode: DisplayMode,
+}
 impl EntityExplorer {
     pub const NAME: &'static str = "Entity Explorer";
 
     pub fn new(_cc: &CreationContext) -> Self {
         Self {
+            sorted_keys: Self::generate_entity_key_list(),
             ..Default::default()
         }
     }
 
+    fn generate_entity_key_list() -> Vec<EntityKey> {
+        let mut keys: Vec<String> = EntityFactory::global()
+            .keys()
+            .into_iter()
+            .map(|k| k.to_string())
+            .collect();
+        keys.sort();
+        keys.into_iter().map(|k| EntityKey::from(k)).collect()
+    }
+
     fn show_top(&mut self, ui: &mut Ui) {
-        ui.label("This is the top section");
+        self.debug_ui(ui);
     }
 
     fn show_bottom(&mut self, ui: &mut Ui) {
@@ -35,8 +61,19 @@ impl EntityExplorer {
     }
 
     fn show_left(&mut self, ui: &mut Ui) {
-        ui.label("This is the top section");
-        self.debug_ui(ui);
+        for key in self.sorted_keys.iter() {
+            if ui.button(key.to_string()).clicked() {
+                if self.selected_key != Some(key.clone()) {
+                    let uid = Uid(self.next_uid.fetch_add(1, Ordering::Relaxed));
+                    self.entity = EntityFactory::global().new_entity(key, uid);
+                    if self.entity.is_some() {
+                        self.selected_key = Some(key.clone());
+                    } else {
+                        self.selected_key = None;
+                    }
+                }
+            }
+        }
     }
 
     fn debug_ui(&mut self, ui: &mut Ui) {
@@ -55,13 +92,43 @@ impl EntityExplorer {
     }
 
     fn show_right(&mut self, ui: &mut Ui) {
+        for mode in DisplayMode::iter() {
+            let s = mode.to_string();
+            ui.radio_value(&mut self.display_mode, mode, s);
+        }
         ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
     fn show_center(&mut self, ui: &mut Ui) {
+        let available_height = ui.available_height();
         ScrollArea::vertical().show(ui, |ui| {
-            ui.label("This is the center section");
+            ui.set_max_height(available_height / 2.0);
+            if let Some(entity) = self.entity.as_mut() {
+                ui.with_layout(
+                    Layout::default().with_cross_align(Align::Center),
+                    |ui| match self.display_mode {
+                        DisplayMode::Normal => {
+                            ui.group(|ui| entity.ui(ui));
+                        }
+                        DisplayMode::WithHeader => {
+                            CollapsingHeader::new(entity.name())
+                                .default_open(true)
+                                .show_unindented(ui, |ui| entity.ui(ui));
+                        }
+                    },
+                );
+            } else {
+                ui.with_layout(Layout::default().with_cross_align(Align::Center), |ui| {
+                    ui.label("Click an entity in the sidebar");
+                });
+            }
+
+            ui.allocate_space(ui.available_size_before_wrap());
         });
+        ui.separator();
+        if let Some(entity) = self.entity.as_mut() {
+            ui.label(format!("{entity:?}"));
+        }
     }
 }
 impl eframe::App for EntityExplorer {
