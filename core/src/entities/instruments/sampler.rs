@@ -9,7 +9,6 @@ use crate::{
     voices::{VoiceCount, VoiceStore},
 };
 use anyhow::{anyhow, Result};
-use eframe::egui::Ui;
 use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use hound::WavReader;
 use serde::{Deserialize, Serialize};
@@ -107,7 +106,7 @@ impl SamplerVoice {
     }
 }
 
-#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
+#[derive(Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct Sampler {
     uid: Uid,
 
@@ -122,6 +121,16 @@ pub struct Sampler {
     root: FrequencyHz,
 
     calculated_root: FrequencyHz,
+}
+impl std::fmt::Debug for Sampler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Sampler")
+            .field("uid", &self.uid)
+            .field("filename", &self.filename)
+            .field("root", &self.root)
+            .field("calculated_root", &self.calculated_root)
+            .finish()
+    }
 }
 impl HandlesMidi for Sampler {
     fn handle_midi_message(
@@ -335,11 +344,7 @@ impl Sampler {
         self.filename = filename;
     }
 }
-impl Displays for Sampler {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        ui.label(self.name())
-    }
-}
+impl Displays for Sampler {}
 
 #[cfg(test)]
 mod tests {

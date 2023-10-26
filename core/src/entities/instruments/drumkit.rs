@@ -16,7 +16,7 @@ use std::{path::Path, sync::Arc};
 
 use super::sampler::{Sampler, SamplerVoice};
 
-#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
+#[derive(Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct Drumkit {
     #[params]
     name: String,
@@ -28,6 +28,16 @@ pub struct Drumkit {
     #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
+impl std::fmt::Debug for Drumkit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Drumkit")
+            .field("name", &self.name)
+            .field("uid", &self.uid)
+            .field("paths", &self.paths)
+            .finish()
+    }
+}
+
 impl Generates<StereoSample> for Drumkit {
     fn value(&self) -> StereoSample {
         self.inner_synth.value()
