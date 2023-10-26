@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! The `explorer` example is a sandbox for developing egui components and
+//! The `widget-explorer` example is a sandbox for developing egui Ensnare
 //! widgets.
 
 use anyhow::anyhow;
@@ -728,7 +728,7 @@ impl Default for SampleClip {
 }
 
 #[derive(Debug, Default)]
-struct Explorer {
+struct WidgetExplorer {
     legend: LegendSettings,
     grid: GridSettings,
     track_widget: TrackSettings,
@@ -748,17 +748,13 @@ struct Explorer {
     toy_effect: ToyEffectSettings,
     toy_instrument: ToyInstrumentSettings,
 }
-impl Explorer {
-    pub const NAME: &'static str = "Explorer";
+impl WidgetExplorer {
+    pub const NAME: &'static str = "Widget Explorer";
 
     pub fn new(_cc: &CreationContext) -> Self {
         Self {
             ..Default::default()
         }
-    }
-
-    fn show_top(&mut self, ui: &mut Ui) {
-        ui.label("This is the top section");
     }
 
     fn show_bottom(&mut self, ui: &mut Ui) {
@@ -841,10 +837,6 @@ impl Explorer {
         }
     }
 
-    fn show_right(&mut self, ui: &mut Ui) {
-        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
-    }
-
     fn show_center(&mut self, ui: &mut Ui) {
         ScrollArea::vertical().show(ui, |ui| {
             self.track_widget.set_view_range(&self.legend.range);
@@ -903,11 +895,8 @@ impl Explorer {
         });
     }
 }
-impl eframe::App for Explorer {
+impl eframe::App for WidgetExplorer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let top = egui::TopBottomPanel::top("top-panel")
-            .resizable(false)
-            .exact_height(64.0);
         let bottom = egui::TopBottomPanel::bottom("bottom-panel")
             .resizable(false)
             .exact_height(24.0);
@@ -915,23 +904,13 @@ impl eframe::App for Explorer {
             .resizable(true)
             .default_width(160.0)
             .width_range(160.0..=480.0);
-        let right = egui::SidePanel::right("right-panel")
-            .resizable(true)
-            .default_width(160.0)
-            .width_range(160.0..=480.0);
         let center = egui::CentralPanel::default();
 
-        top.show(ctx, |ui| {
-            self.show_top(ui);
-        });
         bottom.show(ctx, |ui| {
             self.show_bottom(ui);
         });
         left.show(ctx, |ui| {
             self.show_left(ui);
-        });
-        right.show(ctx, |ui| {
-            self.show_right(ui);
         });
         center.show(ctx, |ui| {
             self.show_center(ui);
@@ -984,9 +963,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Err(e) = eframe::run_native(
-        Explorer::NAME,
+        WidgetExplorer::NAME,
         options,
-        Box::new(|cc| Box::new(Explorer::new(cc))),
+        Box::new(|cc| Box::new(WidgetExplorer::new(cc))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {
