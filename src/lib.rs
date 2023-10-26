@@ -78,8 +78,8 @@ pub mod entities {
         //! [IsController](crate::traits::IsController).
         pub use ensnare_core::{
             controllers::{
-                atlas, ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
-                ControlTripPath,
+                atlas, ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTrip,
+                ControlTripBuilder, ControlTripPath,
             },
             entities::factory::test_entities::TestController,
             entities::{
@@ -96,7 +96,7 @@ pub mod entities {
         //! Built-in effects. Effects transform audio. Examples are reverb and
         //! delay. Effects implement [IsEffect](crate::traits::IsEffect).
         pub use ensnare_core::entities::{
-            effects::*,
+            effects::{gain::Gain, reverb::Reverb},
             factory::test_entities::{TestEffect, TestEffectNegatesInput},
             toys::{ToyEffect, ToyEffectParams},
         };

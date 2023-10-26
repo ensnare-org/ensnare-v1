@@ -8,7 +8,7 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
-use ensnare::{app_version, prelude::*};
+use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -38,9 +38,12 @@ impl EntityExplorer {
     }
 
     fn generate_entity_key_list() -> Vec<EntityKey> {
+        let skips = vec![EntityKey::from(ControlTrip::ENTITY_NAME)];
+
         let mut keys: Vec<String> = EntityFactory::global()
             .keys()
             .into_iter()
+            .filter(|k| !skips.contains(k))
             .map(|k| k.to_string())
             .collect();
         keys.sort();

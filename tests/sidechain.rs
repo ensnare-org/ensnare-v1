@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{entities::controllers::PatternSequencerBuilder, prelude::*};
+use ensnare::{
+    entities::{controllers::PatternSequencerBuilder, effects::Gain, instruments::ToySynth},
+    prelude::*,
+};
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
@@ -43,7 +46,7 @@ fn demo_sidechaining() {
             .assign_uid_and_add_entity(
                 &sidechain_track_uid,
                 factory
-                    .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap()
             )
             .is_ok());
@@ -93,13 +96,13 @@ fn demo_sidechaining() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from("toy-synth"), Uid::default())
+                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap()
             )
             .is_ok());
 
         let entity = factory
-            .new_entity(&EntityKey::from("gain"), Uid::default())
+            .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
             .unwrap();
         let gain_ceiling_param_index = entity
             .as_controllable()

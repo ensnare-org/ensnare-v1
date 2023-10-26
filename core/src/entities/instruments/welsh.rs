@@ -15,7 +15,7 @@ use eframe::{
     egui::{CollapsingHeader, Response, Sense, Ui},
     epaint::{Color32, Stroke, Vec2},
 };
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
@@ -318,7 +318,7 @@ impl WelshVoice {
     }
 }
 
-#[derive(Debug, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct WelshSynth {
     uid: Uid,
 

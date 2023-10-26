@@ -13,7 +13,7 @@ use crate::{
     uid::Uid,
 };
 use derive_builder::Builder;
-use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Uid};
+use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Metadata};
 use serde::{Deserialize, Serialize};
 
 impl NoteSequencerBuilder {
@@ -44,7 +44,9 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Builder, IsControllerWithTimelineDisplay, Uid)]
+#[derive(
+    Debug, Default, Serialize, Deserialize, Builder, IsControllerWithTimelineDisplay, Metadata,
+)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
     #[builder(default)]

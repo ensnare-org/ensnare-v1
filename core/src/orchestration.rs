@@ -185,6 +185,9 @@ impl Orchestrator {
     /// The fixed [Uid] for the global transport.
     pub const TRANSPORT_UID: Uid = Uid(2);
 
+    pub const ENTITY_NAME: &'static str = "Orchestrator";
+    pub const ENTITY_KEY: &'static str = "orchestrator";
+
     /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
     /// specified position to the given track's sequencer.
     pub fn add_pattern_to_track(
@@ -751,7 +754,10 @@ impl HasMetadata for Orchestrator {
         panic!("Orchestrator's UID is reserved and should never change.")
     }
     fn name(&self) -> &'static str {
-        "Orchestrator"
+        Self::ENTITY_NAME
+    }
+    fn key(&self) -> &'static str {
+        Self::ENTITY_KEY
     }
 }
 impl Generates<StereoSample> for Orchestrator {

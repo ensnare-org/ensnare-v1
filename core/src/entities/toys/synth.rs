@@ -11,12 +11,12 @@ use crate::{
     widgets::audio::waveform,
 };
 use eframe::egui::{self, Ui};
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// Implements a very small, but complete, synthesizer. This means it implements
 /// a polyphonic [IsInstrument] with [Controllable] parameters.
-#[derive(Control, Debug, Default, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Control, Debug, Default, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct ToySynth {
     uid: Uid,
 

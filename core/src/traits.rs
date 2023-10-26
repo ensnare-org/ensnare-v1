@@ -157,11 +157,21 @@ pub trait Controllable {
     }
 }
 
-/// A [HasMetadata] has basic information about an [Entity].
+/// A [HasMetadata] has basic information about an [Entity]. Some methods apply
+/// to the "class" of [Entity] (for example, all `ToyInstrument`s share the name
+/// "ToyInstrument"), and others apply to each instance of a class (for example,
+/// one ToyInstrument instance might be Uid 42, and another Uid 43).
 pub trait HasMetadata {
+    /// The [Uid] is a globally unique identifier for an instance of an
+    /// [Entity].
     fn uid(&self) -> Uid;
+    /// Assigns a [Uid].
     fn set_uid(&mut self, uid: Uid);
+    /// A string that describes this class of [Entity]. Suitable for debugging
+    /// or quick-and-dirty UIs.
     fn name(&self) -> &'static str;
+    /// A kebab-case string that identifies this class of [Entity].
+    fn key(&self) -> &'static str;
 }
 
 /// Something that is [Configurable] is interested in staying in sync with
@@ -509,7 +519,8 @@ pub trait Orchestrates: Configurable {
     /// must have a valid [Uid].
     fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()>;
 
-    /// Assigns a new [Uid] to the given [Entity] and adds it to the end of the specified track.
+    /// Assigns a new [Uid] to the given [Entity] and adds it to the end of the
+    /// specified track.
     fn assign_uid_and_add_entity(
         &mut self,
         track_uid: &TrackUid,
@@ -594,13 +605,14 @@ pub trait HandlesMidi {
 /// allows simple implementations to use plain vectors rather than sets.
 pub trait SequencesMidi: Controls + Configurable + HandlesMidi {
     // /// Returns the default [MidiChannel], which is used by recording methods
-    // /// that take an optional channel.
-    // fn default_midi_recording_channel(&self) -> MidiChannel;
+    // /// that take an optional channel. fn
+    // default_midi_recording_channel(&self) -> MidiChannel;
 
-    // /// Sets the default [MidiChannel] for recording.
-    // fn set_default_midi_recording_channel(&mut self, channel: MidiChannel);
+    // /// Sets the default [MidiChannel] for recording. fn
+    // set_default_midi_recording_channel(&mut self, channel: MidiChannel);
 
-    /// Records a [MidiMessage] at the given [MusicalTime] on the given [MidiChannel].
+    /// Records a [MidiMessage] at the given [MusicalTime] on the given
+    /// [MidiChannel].
     fn record_midi_message(
         &mut self,
         channel: MidiChannel,

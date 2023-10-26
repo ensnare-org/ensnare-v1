@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     traits::prelude::*,
 };
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use strum_macros::Display;
@@ -30,7 +30,7 @@ pub struct ToyInstrumentEphemerals {
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
 /// [Oscillator] to produce sound. Its "envelope" is just a boolean that
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
-#[derive(Debug, Default, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct ToyInstrument {
     uid: Uid,
 

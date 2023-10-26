@@ -7,11 +7,11 @@ use crate::{
     widgets::controllers::lfo_controller,
 };
 use eframe::egui::{Response, Ui};
-use ensnare_proc_macros::{Control, IsController, Params, Uid};
+use ensnare_proc_macros::{Control, IsController, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Control, IsController, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsController, Params, Metadata, Serialize, Deserialize)]
 pub struct LfoController {
     uid: Uid,
 

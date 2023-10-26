@@ -2,10 +2,10 @@
 
 use crate::{prelude::*, traits::prelude::*};
 use eframe::egui::{Slider, Ui};
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct Limiter {
     uid: Uid,
 

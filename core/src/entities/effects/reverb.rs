@@ -6,12 +6,12 @@ use crate::{
     traits::prelude::*,
 };
 use eframe::egui::Ui;
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct Reverb {
     uid: Uid,
 

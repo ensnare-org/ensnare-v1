@@ -2,11 +2,11 @@
 
 use crate::{prelude::*, traits::prelude::*, types::FrequencyRange};
 use eframe::egui::{Slider, Ui};
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterLowPass24db {
     #[control]
     #[params]
@@ -166,7 +166,7 @@ impl BiQuadFilterLowPass24dbChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterLowPass12db {
     #[control]
     #[params]
@@ -265,7 +265,7 @@ impl BiQuadFilterLowPass12dbChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterHighPass {
     #[control]
     #[params]
@@ -366,7 +366,7 @@ impl BiQuadFilterHighPassChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterAllPass {
     #[control]
     #[params]
@@ -464,7 +464,7 @@ impl BiQuadFilterAllPassChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterBandPass {
     #[control]
     #[params]
@@ -562,7 +562,7 @@ impl BiQuadFilterBandPassChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterBandStop {
     #[control]
     #[params]
@@ -662,7 +662,7 @@ impl BiQuadFilterBandStopChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterPeakingEq {
     #[control]
     #[params]
@@ -770,7 +770,7 @@ impl BiQuadFilterPeakingEqChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterLowShelf {
     #[control]
     #[params]
@@ -870,7 +870,7 @@ impl BiQuadFilterLowShelfChannel {
     }
 }
 
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterHighShelf {
     #[control]
     #[params]
@@ -972,7 +972,7 @@ impl BiQuadFilterHighShelfChannel {
 
 /// This filter does nothing, expensively. It exists for debugging. I might
 /// delete it later.
-#[derive(Debug, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct BiQuadFilterNone {
     uid: Uid,
     #[serde(skip)]

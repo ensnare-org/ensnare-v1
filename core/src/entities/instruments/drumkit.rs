@@ -10,13 +10,13 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::egui::Ui;
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
 use super::sampler::{Sampler, SamplerVoice};
 
-#[derive(Debug, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct Drumkit {
     #[params]
     name: String,

@@ -7,7 +7,7 @@ use crate::{
     traits::{prelude::*, Sequences, SequencesMidi},
 };
 use eframe::egui::Slider;
-use ensnare_proc_macros::{Control, IsController, Params, Uid};
+use ensnare_proc_macros::{Control, IsController, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
 
@@ -19,7 +19,7 @@ enum TestControllerAction {
 
 /// An [IsController](ensnare_core::traits::IsController) that emits a MIDI
 /// note-on event on each beat, and a note-off event on each half-beat.
-#[derive(Debug, Default, Control, IsController, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsController, Params, Metadata, Serialize, Deserialize)]
 pub struct ToyController {
     uid: Uid,
 
@@ -147,7 +147,7 @@ impl ToyController {
     }
 }
 
-#[derive(Debug, Default, Uid, IsController, Serialize, Deserialize)]
+#[derive(Debug, Default, Metadata, IsController, Serialize, Deserialize)]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     uid: Uid,
 

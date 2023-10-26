@@ -36,24 +36,25 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     // TODO: might be nice to move HasUid::name() to be a function.
 
     // Controllers
-    factory.register_entity(EntityKey::from("arpeggiator"), |_uid| {
+    factory.register_entity(EntityKey::from(Arpeggiator::ENTITY_KEY), |_uid| {
         Box::new(Arpeggiator::new_with(
             &ArpeggiatorParams::default(),
             MidiChannel::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("control-trip"), |_uid| {
+    factory.register_entity(EntityKey::from(ControlTrip::ENTITY_KEY), |_uid| {
         Box::<ControlTrip>::default()
     });
-    factory.register_entity(EntityKey::from("lfo"), |_uid| {
+    factory.register_entity(EntityKey::from(LfoController::ENTITY_KEY), |_uid| {
         Box::new(LfoController::new_with(&LfoControllerParams {
             frequency: FrequencyHz::from(0.2),
             waveform: Waveform::Sawtooth,
         }))
     });
-    factory.register_entity(EntityKey::from("signal-passthrough"), |_uid| {
-        Box::<SignalPassthroughController>::default()
-    });
+    factory.register_entity(
+        EntityKey::from(SignalPassthroughController::ENTITY_KEY),
+        |_uid| Box::<SignalPassthroughController>::default(),
+    );
     factory.register_entity(EntityKey::from("signal-amplitude-passthrough"), |_uid| {
         Box::new(SignalPassthroughController::new_amplitude_passthrough_type())
     });
@@ -61,16 +62,16 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         EntityKey::from("signal-amplitude-inverted-passthrough"),
         |_uid| Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type()),
     );
-    factory.register_entity(EntityKey::from("timer"), |_uid| {
+    factory.register_entity(EntityKey::from(Timer::ENTITY_KEY), |_uid| {
         Box::new(Timer::new_with(MusicalTime::DURATION_QUARTER))
     });
-    factory.register_entity(EntityKey::from("trigger"), |_uid| {
+    factory.register_entity(EntityKey::from(Trigger::ENTITY_KEY), |_uid| {
         Box::new(Trigger::new_with(
             Timer::new_with(MusicalTime::DURATION_QUARTER),
             ControlValue(1.0),
         ))
     });
-    factory.register_entity(EntityKey::from("toy-controller"), |_uid| {
+    factory.register_entity(EntityKey::from(ToyController::ENTITY_KEY), |_uid| {
         Box::<ToyController>::default()
     });
     factory.register_entity(EntityKey::from("toy-controller-noisy"), |_uid| {
@@ -78,10 +79,10 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     });
 
     // Effects
-    factory.register_entity(EntityKey::from("bitcrusher"), |_uid| {
+    factory.register_entity(EntityKey::from(Bitcrusher::ENTITY_KEY), |_uid| {
         Box::<Bitcrusher>::default()
     });
-    factory.register_entity(EntityKey::from("compressor"), |_uid| {
+    factory.register_entity(EntityKey::from(Compressor::ENTITY_KEY), |_uid| {
         Box::<Compressor>::default()
     });
     factory.register_entity(EntityKey::from("filter-low-pass-24db"), |_uid| {
@@ -89,13 +90,17 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             &BiQuadFilterLowPass24dbParams::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("gain"), |_uid| {
+    factory.register_entity(EntityKey::from(Gain::ENTITY_KEY), |_uid| {
         Box::new(Gain::new_with(&GainParams {
             ceiling: Normal::from(0.5),
         }))
     });
-    factory.register_entity(EntityKey::from("limiter"), |_uid| Box::<Limiter>::default());
-    factory.register_entity(EntityKey::from("mixer"), |_uid| Box::<Mixer>::default());
+    factory.register_entity(EntityKey::from(Limiter::ENTITY_KEY), |_uid| {
+        Box::<Limiter>::default()
+    });
+    factory.register_entity(EntityKey::from(Mixer::ENTITY_KEY), |_uid| {
+        Box::<Mixer>::default()
+    });
     // TODO: this is lazy. It's too hard right now to adjust parameters within
     // code, so I'm creating a special instrument with the parameters I want.
     factory.register_entity(EntityKey::from("mute"), |_uid| {
@@ -103,18 +108,18 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             ceiling: Normal::minimum(),
         }))
     });
-    factory.register_entity(EntityKey::from("reverb"), |_uid| {
+    factory.register_entity(EntityKey::from(Reverb::ENTITY_KEY), |_uid| {
         Box::new(Reverb::new_with(&ReverbParams {
             attenuation: Normal::from(0.8),
             seconds: 1.0,
         }))
     });
-    factory.register_entity(EntityKey::from("toy-effect"), |_uid| {
+    factory.register_entity(EntityKey::from(ToyEffect::ENTITY_KEY), |_uid| {
         Box::<ToyEffect>::default()
     });
 
     // Instruments
-    factory.register_entity(EntityKey::from("toy-synth"), |uid| {
+    factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
         Box::new(ToySynth::new_with(
             uid,
             &ToySynthParams {
@@ -125,16 +130,16 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             },
         ))
     });
-    factory.register_entity(EntityKey::from("toy-instrument"), |_uid| {
+    factory.register_entity(EntityKey::from(ToyInstrument::ENTITY_KEY), |_uid| {
         Box::<ToyInstrument>::default()
     });
-    factory.register_entity(EntityKey::from("drumkit"), |_uid| {
+    factory.register_entity(EntityKey::from(Drumkit::ENTITY_KEY), |_uid| {
         Box::new(Drumkit::new_with(
             &DrumkitParams::default(),
             &Paths::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("fm-synth"), |_uid| {
+    factory.register_entity(EntityKey::from(FmSynth::ENTITY_KEY), |_uid| {
         // A crisp, classic FM sound that brings me back to 1985.
         Box::new(FmSynth::new_with(&FmSynthParams {
             depth: 1.0.into(),
@@ -145,7 +150,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             dca: DcaParams::default(),
         }))
     });
-    factory.register_entity(EntityKey::from("sampler"), |_uid| {
+    factory.register_entity(EntityKey::from(Sampler::ENTITY_KEY), |_uid| {
         Box::new(Sampler::new_with(
             &SamplerParams {
                 filename: "stereo-pluck.wav".to_string(),
@@ -154,7 +159,7 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
             &Paths::default(),
         ))
     });
-    factory.register_entity(EntityKey::from("welsh-synth"), |uid| {
+    factory.register_entity(EntityKey::from(WelshSynth::ENTITY_KEY), |uid| {
         Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))
     });
 
@@ -227,7 +232,7 @@ impl EntityFactory {
         if self.keys.insert(key.clone()) {
             self.entities.insert(key, f);
         } else {
-            panic!("register_entity({}): duplicate key. Exiting.", key);
+            panic!("register_entity({key}): duplicate key. Exiting.");
         }
     }
 
@@ -246,6 +251,7 @@ impl EntityFactory {
             entity.set_uid(uid);
             Some(entity)
         } else {
+            eprintln!("WARNING: {key} for uid {uid} produced no entity");
             None
         }
     }
@@ -458,12 +464,12 @@ pub mod test_entities {
         prelude::*,
         traits::{prelude::*, GeneratesEnvelope, MidiMessagesFn},
     };
-    use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Params, Uid};
+    use ensnare_proc_macros::{Control, IsController, IsEffect, IsInstrument, Metadata, Params};
     use serde::{Deserialize, Serialize};
     use std::sync::{Arc, Mutex};
 
     /// The smallest possible [IsController].
-    #[derive(Debug, Default, IsController, Serialize, Deserialize, Uid)]
+    #[derive(Debug, Default, IsController, Serialize, Deserialize, Metadata)]
     pub struct TestController {
         uid: Uid,
     }
@@ -474,7 +480,7 @@ pub mod test_entities {
     impl Serializable for TestController {}
 
     /// The smallest possible [IsInstrument].
-    #[derive(Debug, Default, IsInstrument, Serialize, Deserialize, Uid)]
+    #[derive(Debug, Default, IsInstrument, Serialize, Deserialize, Metadata)]
     pub struct TestInstrument {
         pub uid: Uid,
         pub sample_rate: SampleRate,
@@ -505,7 +511,7 @@ pub mod test_entities {
 
     /// Produces a constant audio signal. Used for ensuring that a known signal
     /// value gets all the way through the pipeline.
-    #[derive(Debug, Default, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+    #[derive(Debug, Default, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
     pub struct TestAudioSource {
         uid: Uid,
 
@@ -566,7 +572,7 @@ pub mod test_entities {
     impl Displays for TestAudioSource {}
 
     /// The smallest possible [IsEffect].
-    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Uid)]
+    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Metadata)]
     pub struct TestEffect {
         uid: Uid,
     }
@@ -577,7 +583,7 @@ pub mod test_entities {
     impl TransformsAudio for TestEffect {}
 
     /// An effect that negates the input.
-    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Uid)]
+    #[derive(Debug, Default, IsEffect, Serialize, Deserialize, Metadata)]
     pub struct TestEffectNegatesInput {
         uid: Uid,
     }
@@ -592,7 +598,7 @@ pub mod test_entities {
     }
 
     /// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many MIDI messages it has received.
-    #[derive(Debug, Default, IsInstrument, Uid, Serialize, Deserialize)]
+    #[derive(Debug, Default, IsInstrument, Metadata, Serialize, Deserialize)]
     pub struct TestInstrumentCountsMidiMessages {
         uid: Uid,
         pub received_midi_message_count: Arc<Mutex<usize>>,
@@ -629,7 +635,7 @@ pub mod test_entities {
     }
     impl Displays for TestInstrumentCountsMidiMessages {}
 
-    #[derive(Debug, Default, IsInstrument, Uid, Serialize, Deserialize)]
+    #[derive(Debug, Default, IsInstrument, Metadata, Serialize, Deserialize)]
     pub struct TestControllable {
         uid: Uid,
 
@@ -787,11 +793,17 @@ pub mod test_entities {
 
 #[cfg(test)]
 mod tests {
-    use super::test_entities::{TestController, TestEffect, TestInstrument};
-    use super::EntityStore;
-    use crate::entities::factory::register_factory_entities;
-    use crate::entities::toys::register_toy_factory_entities;
-    use crate::{entities::prelude::*, prelude::*, traits::prelude::*};
+    use super::{
+        test_entities::{TestController, TestEffect, TestInstrument},
+        EntityStore,
+    };
+    use crate::{
+        entities::{
+            factory::register_factory_entities, prelude::*, toys::register_toy_factory_entities,
+        },
+        prelude::*,
+        traits::prelude::*,
+    };
 
     /// Registers all [EntityFactory]'s entities. Note that the function returns an
     /// &EntityFactory. This encourages usage like this:
@@ -804,13 +816,13 @@ mod tests {
     /// This makes the factory immutable once it's set up.
     #[must_use]
     pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-        factory.register_entity(EntityKey::from("instrument"), |_uid| {
+        factory.register_entity(EntityKey::from(TestInstrument::ENTITY_KEY), |_uid| {
             Box::new(TestInstrument::default())
         });
-        factory.register_entity(EntityKey::from("controller"), |_uid| {
+        factory.register_entity(EntityKey::from(TestController::ENTITY_KEY), |_uid| {
             Box::new(TestController::default())
         });
-        factory.register_entity(EntityKey::from("effect"), |_uid| {
+        factory.register_entity(EntityKey::from(TestEffect::ENTITY_KEY), |_uid| {
             Box::new(TestEffect::default())
         });
 
@@ -917,7 +929,7 @@ mod tests {
         let factory = register_test_factory_entities(EntityFactory::default());
 
         let entity = factory
-            .new_entity(&EntityKey::from("instrument"), Uid::default())
+            .new_entity(&EntityKey::from(TestInstrument::ENTITY_KEY), Uid::default())
             .unwrap();
         assert_eq!(
             entity.sample_rate(),

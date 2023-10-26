@@ -4,25 +4,25 @@
 
 use control::impl_control_derive;
 use entity::{parse_and_generate_entity, EntityType, ImplementsDisplaysInTimeline};
+use metadata::impl_metadata;
 use params::impl_params_derive;
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
 use std::collections::HashSet;
 use syn::Ident;
-use uid::impl_uid_derive;
 
 mod control;
 mod entity;
+mod metadata;
 mod params;
-mod uid;
 
-/// The [Uid] macro derives the boilerplate necessary for the HasUid trait. If a
-/// device needs to interoperate with Orchestrator, then it needs to have a
-/// unique ID. Deriving with this macro makes that happen.
-#[proc_macro_derive(Uid)]
-pub fn uid_derive(input: TokenStream) -> TokenStream {
-    impl_uid_derive(input)
+/// The `Metadata` macro derives the boilerplate necessary for the `HasMetadata`
+/// trait. If a device needs to interoperate with Orchestrator, then it needs to
+/// have a unique ID. Deriving with this macro makes that happen.
+#[proc_macro_derive(Metadata)]
+pub fn metadata_derive(input: TokenStream) -> TokenStream {
+    impl_metadata(input)
 }
 
 /// The [Params] macro generates helper structs that are useful for handing

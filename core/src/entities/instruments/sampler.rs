@@ -10,7 +10,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use eframe::egui::Ui;
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use hound::WavReader;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufReader, path::Path, sync::Arc};
@@ -107,7 +107,7 @@ impl SamplerVoice {
     }
 }
 
-#[derive(Debug, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct Sampler {
     uid: Uid,
 

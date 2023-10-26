@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::prelude::*, widgets::core::drag_normal};
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// An [IsEffect](ensnare::traits::IsEffect) that applies a negative gain.
-#[derive(Debug, Default, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct ToyEffect {
     uid: Uid,
 

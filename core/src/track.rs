@@ -984,7 +984,7 @@ mod tests {
     use crate::entities::factory::test_entities::{
         TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
     };
-    use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Uid};
+    use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Metadata};
 
     #[test]
     fn basic_track_operations() {
@@ -1090,7 +1090,7 @@ mod tests {
     }
 
     #[derive(
-        Default, Debug, Control, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize,
+        Default, Debug, Control, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize,
     )]
     struct TimelineDisplayer {
         uid: Uid,

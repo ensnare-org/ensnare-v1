@@ -13,7 +13,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Rect, Stroke},
 };
-use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Uid};
+use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Metadata};
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -24,7 +24,7 @@ pub use crate::entities::controllers::sequencers::{
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.
-#[derive(Debug, Default, Control, IsController, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsController, Metadata, Serialize, Deserialize)]
 pub struct Timer {
     uid: Uid,
 
@@ -97,7 +97,7 @@ impl Displays for Timer {}
 
 // TODO: needs tests!
 /// [Trigger] issues a control signal after a specified amount of time.
-#[derive(Debug, Control, IsController, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsController, Metadata, Serialize, Deserialize)]
 pub struct Trigger {
     uid: Uid,
 
@@ -283,7 +283,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Uid, Builder)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Metadata, Builder)]
 pub struct ControlTrip {
     uid: Uid,
 
@@ -507,7 +507,7 @@ impl IsAction for ControlAtlasAction {}
 
 /// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
 /// maps.)
-#[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Uid)]
+#[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Metadata)]
 pub struct ControlAtlas {
     #[builder(default)]
     uid: Uid,

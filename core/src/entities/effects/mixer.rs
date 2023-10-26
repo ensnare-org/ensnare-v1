@@ -2,11 +2,11 @@
 
 use crate::{prelude::*, traits::prelude::*};
 use eframe::egui::Ui;
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 // TODO: I don't think Mixer needs to exist.
-#[derive(Debug, Default, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct Mixer {
     uid: Uid,
 }

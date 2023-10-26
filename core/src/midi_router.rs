@@ -84,11 +84,11 @@ impl MidiRouter {
 mod tests {
     use super::MidiRouter;
     use crate::{entities::prelude::*, midi::prelude::*, prelude::*, traits::prelude::*};
-    use ensnare_proc_macros::{Control, IsInstrument, Uid};
+    use ensnare_proc_macros::{Control, IsInstrument, Metadata};
     use serde::{Deserialize, Serialize};
     use std::sync::{Arc, RwLock};
 
-    #[derive(Debug, Control, Default, IsInstrument, Uid, Serialize, Deserialize)]
+    #[derive(Debug, Control, Default, IsInstrument, Metadata, Serialize, Deserialize)]
     struct TestHandlesMidi {
         uid: Uid,
 

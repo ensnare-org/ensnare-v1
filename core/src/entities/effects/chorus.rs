@@ -3,12 +3,12 @@
 use super::delay::{DelayLine, Delays};
 use crate::{prelude::*, traits::prelude::*};
 use eframe::egui::Ui;
-use ensnare_proc_macros::{Control, IsEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control, IsEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct Chorus {
     uid: Uid,
 

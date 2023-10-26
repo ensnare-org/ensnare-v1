@@ -12,7 +12,7 @@ use eframe::{
     egui::{DragValue, Frame, Label, Margin, RichText, TextStyle, Ui},
     epaint::{Color32, Stroke, Vec2},
 };
-use ensnare_proc_macros::{Control, IsController, Uid};
+use ensnare_proc_macros::{Control, IsController, Metadata};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -576,7 +576,9 @@ pub struct TransportEphemerals {
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
 
-#[derive(Serialize, Deserialize, Clone, Control, IsController, Debug, Default, Uid, Builder)]
+#[derive(
+    Serialize, Deserialize, Clone, Control, IsController, Debug, Default, Metadata, Builder,
+)]
 pub struct Transport {
     /// The entity's uid.
     uid: Uid,

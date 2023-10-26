@@ -3,10 +3,10 @@
 use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
 use crossbeam_channel::Sender;
 use eframe::egui::{Event, Key};
-use ensnare_proc_macros::Uid;
+use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Uid, Serialize, Deserialize)]
+#[derive(Debug, Metadata, Serialize, Deserialize)]
 pub struct KeyboardController {
     uid: Uid,
 

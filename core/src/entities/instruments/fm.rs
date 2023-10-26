@@ -10,7 +10,7 @@ use crate::{
     voices::StealingVoiceStore,
 };
 use eframe::egui::{CollapsingHeader, DragValue, Ui};
-use ensnare_proc_macros::{Control, IsInstrument, Params, Uid};
+use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
@@ -201,7 +201,7 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Control, IsInstrument, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
 pub struct FmSynth {
     #[control]
     #[params]
@@ -345,7 +345,6 @@ impl FmSynth {
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
-        ui.heading(self.name());
         let mut depth = self.depth.to_percentage();
         let depth_response = ui.add(
             DragValue::new(&mut depth)

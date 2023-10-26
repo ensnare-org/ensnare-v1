@@ -20,7 +20,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Rect, RectShape, Shape},
 };
-use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Uid};
+use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Metadata};
 use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
@@ -37,7 +37,9 @@ use std::{
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default, Builder, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize)]
+#[derive(
+    Debug, Default, Builder, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize,
+)]
 pub struct PatternSequencer {
     #[builder(setter(skip))]
     uid: Uid,
@@ -155,7 +157,7 @@ pub enum LivePatternEvent {
     Add(PatternUid, MusicalTime),
 }
 
-#[derive(Debug, Default, IsControllerWithTimelineDisplay, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize)]
 pub struct LivePatternSequencer {
     uid: Uid,
     arrangements: Vec<LivePatternArrangement>,

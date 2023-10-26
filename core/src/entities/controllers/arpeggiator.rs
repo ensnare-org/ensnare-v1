@@ -8,7 +8,7 @@ use crate::{
     traits::{prelude::*, Sequences},
 };
 use eframe::egui::{self, ComboBox, Ui};
-use ensnare_proc_macros::{Control, IsController, Params, Uid};
+use ensnare_proc_macros::{Control, IsController, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, option::Option};
 
@@ -18,7 +18,7 @@ use std::{ops::Range, option::Option};
 /// order." You can also think of it as a hybrid MIDI instrument and MIDI
 /// controller; you play it with MIDI, but instead of producing audio, it
 /// produces more MIDI.
-#[derive(Debug, Default, Control, IsController, Params, Uid, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsController, Params, Metadata, Serialize, Deserialize)]
 pub struct Arpeggiator {
     uid: Uid,
     midi_channel_out: MidiChannel,

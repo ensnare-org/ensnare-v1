@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::prelude::*};
-use ensnare_proc_macros::{Control, IsControllerEffect, Params, Uid};
+use ensnare_proc_macros::{Control, IsControllerEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 pub use keyboard::KeyboardController;
@@ -32,7 +32,7 @@ pub enum SignalPassthroughType {
 /// Uses an input signal as a control source. Transformation depends on
 /// configuration. Uses the standard Sample::from(StereoSample) methodology of
 /// averaging the two channels to create a single signal.
-#[derive(Control, Debug, Default, IsControllerEffect, Params, Uid, Serialize, Deserialize)]
+#[derive(Control, Debug, Default, IsControllerEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct SignalPassthroughController {
     uid: Uid,
     passthrough_type: SignalPassthroughType,
