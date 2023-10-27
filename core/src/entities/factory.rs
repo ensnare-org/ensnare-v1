@@ -151,13 +151,12 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
         }))
     });
     factory.register_entity(EntityKey::from(Sampler::ENTITY_KEY), |_uid| {
-        Box::new(Sampler::new_with(
-            &SamplerParams {
-                filename: "stereo-pluck.wav".to_string(),
-                root: 0.0.into(),
-            },
-            &Paths::default(),
-        ))
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "stereo-pluck.wav".to_string(),
+            root: 0.0.into(),
+        });
+        let _ = sampler.load(&Paths::default()); // TODO: we're ignoring the error
+        Box::new(sampler)
     });
     factory.register_entity(EntityKey::from(WelshSynth::ENTITY_KEY), |uid| {
         Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))

@@ -110,9 +110,6 @@ impl SamplerVoice {
 pub struct Sampler {
     uid: Uid,
 
-    #[serde(skip)]
-    inner_synth: Synthesizer<SamplerVoice>,
-
     #[params]
     filename: String,
 
@@ -120,7 +117,11 @@ pub struct Sampler {
     #[params]
     root: FrequencyHz,
 
+    #[serde(skip)]
     calculated_root: FrequencyHz,
+
+    #[serde(skip)]
+    inner_synth: Synthesizer<SamplerVoice>,
 }
 impl std::fmt::Debug for Sampler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -165,46 +166,49 @@ impl Configurable for Sampler {
     }
 }
 impl Sampler {
-    // TODO: This method panics under normal conditions (can't find the file).
-    // That's bad. The better behavior would be for the constructor to always
-    // succeed, but then have a load() method that has the usual Result<>.
-    pub fn new_with(params: &SamplerParams, paths: &Paths) -> Self {
-        let path = paths.build_sample(&Vec::default(), Path::new(&params.filename()));
-        if let Ok(file) = paths.search_and_open(path.as_path()) {
-            if let Ok(mut f2) = file.try_clone() {
-                if let Ok(samples) = Self::read_samples_from_file(&file) {
-                    let samples = Arc::new(samples);
+    pub fn load(&mut self, paths: &Paths) -> anyhow::Result<()> {
+        let path = paths.build_sample(&Vec::default(), Path::new(&self.filename));
+        let file = paths.search_and_open(path.as_path())?;
+        let samples = Self::read_samples_from_file(&file)?;
+        let samples = Arc::new(samples);
 
-                    let calculated_root_frequency = if params.root().0 > 0.0 {
-                        params.root()
-                    } else if let Ok(embedded_root_note) = Self::read_riff_metadata(&mut f2) {
-                        FrequencyHz::from(u7::from(embedded_root_note))
-                    } else {
-                        FrequencyHz::from(440.0)
-                    };
+        self.calculated_root = if self.root.0 > 0.0 {
+            self.root
+        } else
+        // if let Ok(embedded_root_note) = Self::read_riff_metadata(&mut f2) {
+        //  FrequencyHz::from(u7::from(embedded_root_note))
+        //} else
+        {
+            FrequencyHz::from(440.0)
+        };
 
-                    Self {
-                        uid: Default::default(),
-                        inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
-                            VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
-                                SamplerVoice::new_with_samples(
-                                    Arc::clone(&samples),
-                                    calculated_root_frequency,
-                                )
-                            }),
-                        )),
-                        filename: params.filename().to_string(),
-                        root: params.root(),
-                        calculated_root: calculated_root_frequency,
-                    }
-                } else {
-                    panic!("Couldn't load sample {}", &params.filename());
-                }
-            } else {
-                panic!("Couldn't create second file handle to read metadata");
-            }
+        self.inner_synth = Synthesizer::<SamplerVoice>::new_with(Box::new(VoiceStore::<
+            SamplerVoice,
+        >::new_with_voice(
+            VoiceCount::from(8),
+            || SamplerVoice::new_with_samples(Arc::clone(&samples), self.calculated_root),
+        )));
+
+        Ok(())
+    }
+
+    pub fn new_with(params: &SamplerParams) -> Self {
+        let samples = Arc::new(Vec::default());
+        let calculated_root = if params.root().0 > 0.0 {
+            params.root
         } else {
-            panic!("Couldn't read file {path:?}.");
+            FrequencyHz::from(440.0)
+        };
+        Self {
+            uid: Default::default(),
+            inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
+                VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
+                    SamplerVoice::new_with_samples(Arc::clone(&samples), calculated_root)
+                }),
+            )),
+            filename: params.filename().to_string(),
+            root: params.root(),
+            calculated_root,
         }
     }
 
@@ -238,6 +242,7 @@ impl Sampler {
     // **                      //are we sure about the order?? usually its num/denom
     // ** 4 bytes (float)      tempo
     // **
+    #[allow(dead_code)]
     fn read_riff_metadata(_file: &mut File) -> Result<u8> {
         Err(anyhow!("riff_io crate is excluded"))
         // let riff = riff_io::RiffFile::open_with_file_handle(file)?;
@@ -361,13 +366,11 @@ mod tests {
     #[test]
     fn loading() {
         let paths = paths_with_test_data_dir();
-        let sampler = Sampler::new_with(
-            &SamplerParams {
-                filename: "stereo-pluck.wav".to_string(),
-                root: 0.0.into(),
-            },
-            &paths,
-        );
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "stereo-pluck.wav".to_string(),
+            root: 0.0.into(),
+        });
+        assert!(sampler.load(&paths).is_ok());
         assert_eq!(sampler.calculated_root(), FrequencyHz::from(440.0));
     }
 
@@ -400,13 +403,11 @@ mod tests {
     #[ignore = "riff_io crate is disabled, so we can't read root frequencies from files"]
     fn loading_with_root_frequency() {
         let paths = paths_with_test_data_dir();
-        let sampler = Sampler::new_with(
-            &SamplerParams {
-                filename: "riff-acidized.wav".to_string(),
-                root: 0.0.into(),
-            },
-            &paths,
-        );
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "riff-acidized.wav".to_string(),
+            root: 0.0.into(),
+        });
+        assert!(sampler.load(&paths).is_ok());
         eprintln!("calculated {} ", sampler.calculated_root());
         assert_eq!(
             sampler.calculated_root(),
@@ -414,39 +415,33 @@ mod tests {
             "acidized WAV should produce sample with embedded root note"
         );
 
-        let sampler = Sampler::new_with(
-            &SamplerParams {
-                filename: "riff-acidized.wav".to_string(),
-                root: 123.0.into(),
-            },
-            &paths,
-        );
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "riff-acidized.wav".to_string(),
+            root: 123.0.into(),
+        });
+        assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
             FrequencyHz::from(123.0),
             "specified parameter should override acidized WAV's embedded root note"
         );
 
-        let sampler = Sampler::new_with(
-            &SamplerParams {
-                filename: "riff-not-acidized.wav".to_string(),
-                root: 123.0.into(),
-            },
-            &paths,
-        );
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "riff-not-acidized.wav".to_string(),
+            root: 123.0.into(),
+        });
+        assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
             FrequencyHz::from(123.0),
             "specified parameter should be used for non-acidized WAV"
         );
 
-        let sampler = Sampler::new_with(
-            &SamplerParams {
-                filename: "riff-not-acidized.wav".to_string(),
-                root: 0.0.into(),
-            },
-            &paths,
-        );
+        let mut sampler = Sampler::new_with(&SamplerParams {
+            filename: "riff-not-acidized.wav".to_string(),
+            root: 0.0.into(),
+        });
+        assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
             MidiNote::A4.into(),
