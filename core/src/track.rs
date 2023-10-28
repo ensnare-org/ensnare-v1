@@ -454,21 +454,6 @@ impl GeneratesToInternalBuffer<StereoSample> for Track {
             return 0;
         }
 
-        // TODO: When I ditched TrackType, I lost the ability to be explicit
-        // about the track type (wow). I'm still developing the heuristics for
-        // aux vs. non-aux tracks. This is a good thing, though, because I'm
-        // starting to think that the distinction was artificial (for example, I
-        // just realized that aux tracks of course should be automatable, which
-        // means that they have a timeline view).
-        if self.instruments.is_empty() {
-            // This track won't be generating any signal internally; rather,
-            // it'll only process what that caller has already put there. That's fine.
-        } else {
-            // This track has instruments, each of which will be adding signal
-            // to the buffer. Let's start with a clean one.
-            self.e.buffer.0.fill(StereoSample::SILENCE);
-        }
-
         for uid in self.instruments.iter() {
             if let Some(e) = self.entity_store.get_mut(uid) {
                 if let Some(e) = e.as_instrument_mut() {

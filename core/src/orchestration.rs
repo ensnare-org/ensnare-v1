@@ -31,7 +31,7 @@ use eframe::egui::ScrollArea;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Debug,
     ops::Range,
     path::PathBuf,
@@ -55,9 +55,9 @@ pub enum OrchestratorAction {
 }
 impl IsAction for OrchestratorAction {}
 
-/// A grouping mechanism to declare parts of [Orchestrator] that Serde
-/// shouldn't be serializing. Exists so we don't have to spray #[serde(skip)]
-/// all over the place.
+/// A grouping mechanism to declare parts of [Orchestrator] that Serde shouldn't
+/// be serializing. Exists so we don't have to spray #[serde(skip)] all over the
+/// place.
 #[derive(Debug, Default)]
 pub struct OrchestratorEphemerals {
     range: std::ops::Range<MusicalTime>,
@@ -112,10 +112,6 @@ pub struct Orchestrator {
     /// All [Track]s, indexed by their [TrackUid].
     tracks: HashMap<TrackUid, Track>,
 
-    /// Which tracks are aux type.
-    #[deprecated = "Check whether we can infer the right behavior from other track elements"]
-    aux_track_uids: HashSet<TrackUid>,
-
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
     // feature enabled for Serde.
@@ -156,7 +152,6 @@ impl Default for Orchestrator {
             control_router: Default::default(),
             tracks: Default::default(),
             track_uids: Default::default(),
-            aux_track_uids: Default::default(),
             piano_roll,
             bus_station: Default::default(),
             entity_uid_to_track_uid: Default::default(),
@@ -248,15 +243,9 @@ impl Orchestrator {
     /// tracks can *send* their output audio. Returns the new track's [TrackUid]
     /// if successful.
     pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
-        match self.new_base_track(|track_uid, track| {
+        self.new_base_track(|track_uid, track| {
             track.title = TrackTitle(format!("Aux {}", track_uid));
-        }) {
-            Ok(track_uid) => {
-                self.aux_track_uids.insert(track_uid);
-                Ok(track_uid)
-            }
-            Err(err) => Err(err),
-        }
+        })
     }
 
     /// Adds a set of tracks that make sense for a new project.
@@ -324,7 +313,8 @@ impl Orchestrator {
         let buffers_requested =
             (samples_requested + Self::SAMPLE_BUFFER_SIZE - 1) / Self::SAMPLE_BUFFER_SIZE;
         for _ in 0..buffers_requested {
-            // Generate a buffer only if there's enough room in the queue for it.
+            // Generate a buffer only if there's enough room in the queue for
+            // it.
             if queue.capacity() - queue.len() >= Self::SAMPLE_BUFFER_SIZE {
                 let mut samples = [StereoSample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
                 if false {
@@ -332,8 +322,8 @@ impl Orchestrator {
                 } else {
                     self.render(&mut samples, control_events_fn);
                 }
-                // No need to do the Arc deref each time through the loop.
-                // TODO: is there a queue type that allows pushing a batch?
+                // No need to do the Arc deref each time through the loop. TODO:
+                // is there a queue type that allows pushing a batch?
                 let queue = queue.as_ref();
                 let mut mono_samples = [Sample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
                 for (index, sample) in samples.into_iter().enumerate() {
@@ -775,11 +765,13 @@ impl Generates<StereoSample> for Orchestrator {
         // TODO: I couldn't figure out how to filter() and then spawn the
         // parallel iteration on the results, so it looks like we're wasting
         // time spinning up threads on tracks that we know have no work to do.
-        self.tracks.par_iter_mut().for_each(|(track_uid, track)| {
-            if self.aux_track_uids.contains(track_uid) {
-                // As long as we've got a thread, clear out the aux-track buffers.
-                track.buffer_mut().0.fill(StereoSample::SILENCE);
+        self.tracks.par_iter_mut().for_each(|(_, track)| {
+            track.buffer_mut().0.fill(StereoSample::SILENCE);
+            if track.instruments.is_empty() {
+                // This looks like an aux track. We won't call it yet.
             } else {
+                // This looks like a non-aux track. It's time for it to generate
+                // its signal.
                 track.generate_batch_values(len);
             }
         });
@@ -813,8 +805,8 @@ impl Generates<StereoSample> for Orchestrator {
         //
         // We don't currently support an aux returning to another aux. It's just
         // regular tracks sending to aux, then aux returning to main. See #143
-        self.tracks.par_iter_mut().for_each(|(track_uid, track)| {
-            if self.aux_track_uids.contains(track_uid) {
+        self.tracks.par_iter_mut().for_each(|(_, track)| {
+            if track.instruments.is_empty() {
                 track.generate_batch_values(len);
             }
         });
@@ -1029,9 +1021,9 @@ impl Displays for Orchestrator {
                     }
                 }
 
-                // The timeline needs to be aligned with the track
-                // content, so we create an empty track title bar to
-                // match with the real ones.
+                // The timeline needs to be aligned with the track content, so
+                // we create an empty track title bar to match with the real
+                // ones.
                 ui.horizontal(|ui| {
                     ui.add_enabled(false, track::title_bar(None));
                     ui.add(timeline::legend(&mut self.view_range));
