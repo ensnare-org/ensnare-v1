@@ -471,7 +471,7 @@ impl Ensnare {
 
     fn check_drag_and_drop(&mut self) {
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            let mut input = None;
+            let input;
             match source {
                 DragSource::NewDevice(ref key) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
