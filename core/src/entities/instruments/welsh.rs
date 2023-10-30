@@ -11,10 +11,7 @@ use crate::{
     voices::StealingVoiceStore,
 };
 use core::fmt::Debug;
-use eframe::{
-    egui::{CollapsingHeader, Response, Sense, Ui},
-    epaint::{Color32, Stroke, Vec2},
-};
+use eframe::egui::{CollapsingHeader, Response, Ui};
 use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
@@ -440,92 +437,81 @@ impl WelshSynth {
 
 impl Displays for WelshSynth {
     fn ui(&mut self, ui: &mut Ui) -> Response {
-        // TODO: LED should be a reusable widget
-        const LED_SIZE: Vec2 = Vec2::splat(5.0);
-        let (rect, response) = ui.allocate_exact_size(LED_SIZE, Sense::hover());
-        ui.painter().rect(
-            rect,
-            ui.style().visuals.noninteractive().rounding,
-            if self.inner_synth.is_midi_recently_active() {
-                Color32::YELLOW
-            } else {
-                Color32::DARK_GRAY
-            },
-            Stroke::NONE,
-        );
-        self.voice.show(ui, &mut self.inner_synth);
-        response
+        self.voice.show(ui, &mut self.inner_synth)
     }
 }
 
 impl WelshVoice {
-    fn show(&mut self, ui: &mut Ui, synth: &mut Synthesizer<Self>) {
-        ui.vertical(|ui| {
-            // TODO: the set_waveform() calls don't capture the whole set of things
-            // that the oscillator widget might change. We need to figure out how to
-            // update the live oscillator parameters without doing things like
-            // resetting the period.
-            CollapsingHeader::new("Oscillator 1")
-                .default_open(true)
-                .id_source(ui.next_auto_id())
-                .show(ui, |ui| {
-                    if ui.add(oscillator(&mut self.oscillator_1)).changed() {
-                        synth
-                            .voices_mut()
-                            .for_each(|v| v.oscillator_1.set_waveform(self.oscillator_1.waveform()))
-                    }
-                });
-            CollapsingHeader::new("Oscillator 2")
-                .default_open(true)
-                .id_source(ui.next_auto_id())
-                .show(ui, |ui| {
-                    if ui.add(oscillator(&mut self.oscillator_2)).changed() {
-                        synth
-                            .voices_mut()
-                            .for_each(|v| v.oscillator_2.set_waveform(self.oscillator_2.waveform()))
-                    }
-                });
+    fn show(&mut self, ui: &mut Ui, synth: &mut Synthesizer<Self>) -> eframe::egui::Response {
+        // TODO: the set_waveform() calls don't capture the whole set of things
+        // that the oscillator widget might change. We need to figure out how to
+        // update the live oscillator parameters without doing things like
+        // resetting the period.
+        let mut response = CollapsingHeader::new("Oscillator 1")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if ui.add(oscillator(&mut self.oscillator_1)).changed() {
+                    synth
+                        .voices_mut()
+                        .for_each(|v| v.oscillator_1.set_waveform(self.oscillator_1.waveform()))
+                }
+            })
+            .header_response;
+        response |= CollapsingHeader::new("Oscillator 2")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if ui.add(oscillator(&mut self.oscillator_2)).changed() {
+                    synth
+                        .voices_mut()
+                        .for_each(|v| v.oscillator_2.set_waveform(self.oscillator_2.waveform()))
+                }
+            })
+            .header_response;
 
-            // TODO: this doesn't get propagated to the voices, because the
-            // single DCA will be responsible for turning mono voice output to
-            // stereo.
-            //
-            // TODO: hmmm but it sure looks like we are propagating....
-            CollapsingHeader::new("DCA")
-                .default_open(true)
-                .id_source(ui.next_auto_id())
-                .show(ui, |ui| {
-                    if ui.add(dca(&mut self.dca, self.parent_uid)).changed() {
-                        synth.voices_mut().for_each(|v| {
-                            v.dca.update_from_params(&self.dca.to_params());
-                        })
-                    }
-                });
-            CollapsingHeader::new("Amplitude")
-                .default_open(true)
-                .id_source(ui.next_auto_id())
-                .show(ui, |ui| {
-                    if self.amp_envelope.ui(ui).changed() {
-                        synth.voices_mut().for_each(|v| {
-                            v.amp_envelope_mut()
-                                .update_from_params(&self.amp_envelope.to_params());
-                        })
-                    }
-                });
-            CollapsingHeader::new("LPF")
-                .default_open(true)
-                .id_source(ui.next_auto_id())
-                .show(ui, |ui| {
-                    let filter_changed = self.filter.ui(ui).changed();
-                    let filter_envelope_changed = self.filter_envelope.ui(ui).changed();
-                    if filter_changed || filter_envelope_changed {
-                        synth.voices_mut().for_each(|v| {
-                            v.filter_mut().update_from_params(&self.filter.to_params());
-                        })
-                    }
-                });
-        })
-        .inner
+        // TODO: this doesn't get propagated to the voices, because the
+        // single DCA will be responsible for turning mono voice output to
+        // stereo.
+        //
+        // TODO: hmmm but it sure looks like we are propagating....
+        response |= CollapsingHeader::new("DCA")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if ui.add(dca(&mut self.dca, self.parent_uid)).changed() {
+                    synth.voices_mut().for_each(|v| {
+                        v.dca.update_from_params(&self.dca.to_params());
+                    })
+                }
+            })
+            .header_response;
+        response |= CollapsingHeader::new("Amplitude")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                if self.amp_envelope.ui(ui).changed() {
+                    synth.voices_mut().for_each(|v| {
+                        v.amp_envelope_mut()
+                            .update_from_params(&self.amp_envelope.to_params());
+                    })
+                }
+            })
+            .header_response;
+        response |= CollapsingHeader::new("LPF")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                let filter_changed = self.filter.ui(ui).changed();
+                let filter_envelope_changed = self.filter_envelope.ui(ui).changed();
+                if filter_changed || filter_envelope_changed {
+                    synth.voices_mut().for_each(|v| {
+                        v.filter_mut().update_from_params(&self.filter.to_params());
+                    })
+                }
+            })
+            .header_response;
+        response
     }
 }
 
