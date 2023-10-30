@@ -4,7 +4,7 @@ use crate::{
     generators::Waveform, prelude::*, rng::Rng, traits::prelude::*, types::FrequencyRange,
 };
 use eframe::{
-    egui::{self, ComboBox, DragValue, Sense},
+    egui::{self, ComboBox, Sense, Slider},
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, RectShape, Rounding, Stroke},
 };
@@ -283,11 +283,10 @@ impl<'a> FrequencyWidget<'a> {
 impl<'a> Displays for FrequencyWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(
-            DragValue::new(self.frequency)
-                .clamp_range(self.range.as_range())
+            Slider::new(self.frequency, self.range.as_range_frequency_hz())
                 .fixed_decimals(self.range.fixed_digit_count())
-                .suffix("Hz")
-                .prefix("Frequency: "),
+                .suffix(FrequencyHz::UNITS_SUFFIX)
+                .text("Frequency"),
         )
     }
 }

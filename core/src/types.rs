@@ -505,6 +505,8 @@ impl FrequencyHz {
     pub const FREQUENCY_TO_LINEAR_BASE: ParameterType = 800.0;
     pub const FREQUENCY_TO_LINEAR_COEFFICIENT: ParameterType = 25.0;
 
+    pub const UNITS_SUFFIX: &'static str = " Hz";
+
     // https://docs.google.com/spreadsheets/d/1uQylh2h77-fuJ6OM0vjF7yjRXflLFP0yQEnv5wbaP2c/edit#gid=0
     // =LOGEST(Sheet1!B2:B23, Sheet1!A2:A23,true, false)
     //
@@ -646,6 +648,11 @@ impl FrequencyRange {
             FrequencyRange::Audible => 20.0..=22500.0,
             FrequencyRange::Processing => (22500.0 / 8.0)..=(1024.0 * 256.0),
         }
+    }
+
+    pub fn as_range_frequency_hz(&self) -> RangeInclusive<FrequencyHz> {
+        let range = self.as_range();
+        FrequencyHz(*range.start())..=FrequencyHz(*range.end())
     }
 
     /// The recommended number of digits after the decimal point for this range.

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{DragValue, Ui};
+use eframe::egui::{Slider, Ui};
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -111,41 +111,33 @@ impl Displays for Compressor {
         let mut attack = self.attack();
         let mut release = self.release();
         let threshold_response = ui.add(
-            DragValue::new(&mut threshold)
+            Slider::new(&mut threshold, Normal::range())
                 .fixed_decimals(2)
-                .clamp_range(Normal::range())
-                .speed(0.01)
-                .prefix("Threshold: "),
+                .text("Threshold"),
         );
         if threshold_response.changed() {
             self.set_threshold(threshold.into());
         };
         let ratio_response = ui.add(
-            DragValue::new(&mut ratio)
+            Slider::new(&mut ratio, Normal::range())
                 .fixed_decimals(2)
-                .clamp_range(Normal::range())
-                .speed(0.01)
-                .prefix("Ratio: "),
+                .text("Ratio"),
         );
         if ratio_response.changed() {
             self.set_ratio(ratio);
         };
         let attack_response = ui.add(
-            DragValue::new(&mut attack)
+            Slider::new(&mut attack, Normal::range())
                 .fixed_decimals(2)
-                .clamp_range(Normal::range())
-                .speed(0.01)
-                .prefix("Attack: "),
+                .text("Attack"),
         );
         if attack_response.changed() {
             self.set_attack(attack);
         };
         let release_response = ui.add(
-            DragValue::new(&mut release)
+            Slider::new(&mut release, Normal::range())
                 .fixed_decimals(2)
-                .clamp_range(Normal::range())
-                .speed(0.01)
-                .prefix("Release: "),
+                .text("Release"),
         );
         if release_response.changed() {
             self.set_release(release);

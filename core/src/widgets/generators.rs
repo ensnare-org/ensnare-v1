@@ -47,7 +47,7 @@ impl<'a> Displays for EnvelopeShaperWidget<'a> {
         Frame::canvas(ui.style())
             .show(ui, |ui| {
                 let (mut response, painter) =
-                    ui.allocate_painter(Vec2::new(ui.available_width(), 64.0), Sense::hover());
+                    ui.allocate_painter(Vec2::new(128.0, 64.0), Sense::hover());
 
                 let to_screen = emath::RectTransform::from_to(
                     Rect::from_min_size(Pos2::ZERO, response.rect.size()),

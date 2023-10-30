@@ -100,7 +100,6 @@ impl EntityGuiExplorer {
             let s = mode.to_string();
             ui.radio_value(&mut self.display_mode, mode, s);
         }
-        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
     fn show_center(&mut self, ui: &mut Ui) {
@@ -112,7 +111,9 @@ impl EntityGuiExplorer {
                     Layout::default().with_cross_align(Align::Center),
                     |ui| match self.display_mode {
                         DisplayMode::Normal => {
-                            ui.group(|ui| entity.ui(ui));
+                            ui.vertical(|ui| {
+                                ui.group(|ui| entity.ui(ui));
+                            });
                         }
                         DisplayMode::WithHeader => {
                             CollapsingHeader::new(entity.name())

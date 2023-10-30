@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{DragValue, Ui};
+use eframe::egui::{Slider, Ui};
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -40,10 +40,10 @@ impl Displays for Gain {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
         let mut ceiling = self.ceiling().to_percentage();
         let response = ui.add(
-            DragValue::new(&mut ceiling)
-                .clamp_range(0.0..=100.0)
+            Slider::new(&mut ceiling, 0.0..=100.0)
                 .fixed_decimals(2)
-                .suffix(" %"),
+                .suffix(" %")
+                .text("Ceiling"),
         );
         if response.changed() {
             self.set_ceiling(Normal::from_percentage(ceiling));

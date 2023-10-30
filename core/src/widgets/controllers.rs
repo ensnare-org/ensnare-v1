@@ -18,8 +18,8 @@ struct LfoControllerWidget<'a> {
 }
 impl<'a> Displays for LfoControllerWidget<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
-            | ui.add(waveform(self.waveform))
+        ui.add(waveform(self.waveform))
+            | ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
     }
 }
 impl<'a> LfoControllerWidget<'a> {

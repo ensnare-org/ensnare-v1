@@ -1211,8 +1211,11 @@ impl Displays for BiQuadFilterLowPass24db {
     fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
         let mut cutoff = self.cutoff().0;
         let mut pbr = self.passband_ripple();
-        let cutoff_response =
-            ui.add(Slider::new(&mut cutoff, FrequencyRange::Audible.as_range()).text("Cutoff"));
+        let cutoff_response = ui.add(
+            Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
+                .text("Cutoff")
+                .suffix(FrequencyHz::UNITS_SUFFIX),
+        );
         if cutoff_response.changed() {
             self.set_cutoff(cutoff.into());
         };
