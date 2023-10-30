@@ -11,6 +11,17 @@ use eframe::egui::{self, ComboBox, Ui};
 use ensnare_proc_macros::{Control, IsController, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, option::Option};
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, FromRepr};
+
+#[derive(
+    Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Display, EnumIter, FromRepr,
+)]
+pub enum ArpeggioMode {
+    #[default]
+    Major,
+    Minor,
+}
 
 /// [Arpeggiator] creates [arpeggios](https://en.wikipedia.org/wiki/Arpeggio),
 /// which "is a type of broken chord in which the notes that compose a chord are
@@ -28,6 +39,9 @@ pub struct Arpeggiator {
     #[control]
     #[params]
     bpm: ParameterType,
+
+    #[params(leaf = true)]
+    mode: ArpeggioMode,
 
     // A poor-man's semaphore that allows note-off events to overlap with the
     // current note without causing it to shut off. Example is a legato
@@ -126,10 +140,18 @@ impl HandlesMidi for Arpeggiator {
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
-        let alternatives = ["major", "minor"];
-        let mut selected = 1;
+        let mut selected = self.mode as usize;
         ComboBox::from_label("Scale")
-            .show_index(ui, &mut selected, alternatives.len(), |i| alternatives[i])
+            .selected_text(self.mode.to_string())
+            .show_ui(ui, |ui| {
+                for mode in ArpeggioMode::iter() {
+                    ui.selectable_value(&mut selected, mode as usize, mode.to_string());
+                }
+            });
+        if let Some(mode) = ArpeggioMode::from_repr(selected) {
+            self.mode = mode;
+        }
+        ui.label("hi")
     }
 }
 impl Arpeggiator {
@@ -154,7 +176,10 @@ impl Arpeggiator {
 
         let start_beat = MusicalTime::START; // TODO: this is wrong, but I'm just trying to get this code to build for now
         let duration = MusicalTime::new_with_parts(4); // TODO: we're ignoring time signature!
-        let scale_notes = [0, 2, 4, 5, 7, 9, 11];
+        let scale_notes = match self.mode {
+            ArpeggioMode::Major => [0, 2, 4, 5, 7, 9, 11], // W W H W W W H
+            ArpeggioMode::Minor => [0, 2, 3, 5, 7, 8, 10], // W H W W H W W
+        };
         for (index, offset) in scale_notes.iter().enumerate() {
             // TODO - more examples of needing wider range for smaller parts
             let when = start_beat + MusicalTime::new_with_parts(4 * index);
@@ -168,5 +193,9 @@ impl Arpeggiator {
 
     pub fn set_bpm(&mut self, bpm: ParameterType) {
         self.bpm = bpm;
+    }
+
+    pub fn mode(&self) -> ArpeggioMode {
+        self.mode
     }
 }
