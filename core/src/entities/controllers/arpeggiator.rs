@@ -12,10 +12,21 @@ use ensnare_proc_macros::{Control, IsController, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, option::Option};
 use strum::IntoEnumIterator;
-use strum_macros::{Display, EnumIter, FromRepr};
+use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
 
 #[derive(
-    Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Display, EnumIter, FromRepr,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Display,
+    EnumCountMacro,
+    EnumIter,
+    FromRepr,
+    IntoStaticStr,
+    PartialEq,
+    Serialize,
 )]
 pub enum ArpeggioMode {
     #[default]
@@ -140,18 +151,27 @@ impl HandlesMidi for Arpeggiator {
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
-        let mut selected = self.mode as usize;
-        ComboBox::from_label("Scale")
+        let mut r = ComboBox::from_label("Scale")
             .selected_text(self.mode.to_string())
             .show_ui(ui, |ui| {
+                let mut bool_response = false;
                 for mode in ArpeggioMode::iter() {
-                    ui.selectable_value(&mut selected, mode as usize, mode.to_string());
+                    let mode_str: &'static str = mode.into();
+                    if ui
+                        .selectable_value(&mut self.mode, mode, mode_str)
+                        .changed()
+                    {
+                        bool_response = true;
+                    }
                 }
+                bool_response
             });
-        if let Some(mode) = ArpeggioMode::from_repr(selected) {
-            self.mode = mode;
+        if let Some(inner) = r.inner {
+            if inner {
+                r.response.mark_changed();
+            }
         }
-        ui.label("hi")
+        r.response
     }
 }
 impl Arpeggiator {

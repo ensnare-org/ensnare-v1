@@ -24,14 +24,14 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     Copy,
     Debug,
     Default,
+    Deserialize,
     Display,
     EnumCountMacro,
     EnumIter,
     FromRepr,
-    PartialEq,
     IntoStaticStr,
+    PartialEq,
     Serialize,
-    Deserialize,
 )]
 #[serde(rename = "waveform", rename_all = "kebab-case")]
 pub enum Waveform {
