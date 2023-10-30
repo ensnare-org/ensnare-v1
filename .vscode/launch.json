@@ -138,15 +138,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Entity Explorer example",
+            "name": "Entity GUI Explorer example",
             "cargo": {
                 "args": [
                     "build",
-                    "--example=entity-explorer",
+                    "--example=entity-gui-explorer",
                     "--package=ensnare",
                 ],
                 "filter": {
-                    "name": "entity-explorer",
+                    "name": "entity-gui-explorer",
                     "kind": "example"
                 }
             },

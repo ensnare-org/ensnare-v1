@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! The `entity-explorer` example is a sandbox for developing Ensnare [Entities](Entity).
+//! The `entity-explorer` example is a sandbox for developing the GUI part of
+//! Ensnare [Entities](Entity).
 
 use anyhow::anyhow;
 use eframe::{
@@ -20,15 +21,15 @@ enum DisplayMode {
     WithHeader,
 }
 #[derive(Debug, Default)]
-struct EntityExplorer {
+struct EntityGuiExplorer {
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
     entity: Option<Box<dyn Entity>>,
     next_uid: AtomicUsize,
     display_mode: DisplayMode,
 }
-impl EntityExplorer {
-    pub const NAME: &'static str = "Entity Explorer";
+impl EntityGuiExplorer {
+    pub const NAME: &'static str = "Entity GUI Explorer";
 
     pub fn new(_cc: &CreationContext) -> Self {
         Self {
@@ -38,7 +39,7 @@ impl EntityExplorer {
     }
 
     fn generate_entity_key_list() -> Vec<EntityKey> {
-        let skips = vec![EntityKey::from(ControlTrip::ENTITY_NAME)];
+        let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
 
         let mut keys: Vec<String> = EntityFactory::global()
             .keys()
@@ -134,7 +135,7 @@ impl EntityExplorer {
         }
     }
 }
-impl eframe::App for EntityExplorer {
+impl eframe::App for EntityGuiExplorer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let top = egui::TopBottomPanel::top("top-panel")
             .resizable(false)
@@ -185,9 +186,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Err(e) = eframe::run_native(
-        EntityExplorer::NAME,
+        EntityGuiExplorer::NAME,
         options,
-        Box::new(|cc| Box::new(EntityExplorer::new(cc))),
+        Box::new(|cc| Box::new(EntityGuiExplorer::new(cc))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {
