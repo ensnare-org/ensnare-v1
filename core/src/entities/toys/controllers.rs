@@ -356,7 +356,10 @@ impl ToySequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
+    use crate::{
+        entities::controllers::sequencers::tests::validate_sequences_notes_trait,
+        traits::tests::validate_sequences_midi_trait,
+    };
 
     #[test]
     fn toy_passes_sequences_trait_validation() {
