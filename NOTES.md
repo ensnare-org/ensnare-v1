@@ -190,3 +190,43 @@ itself is when custom code that knows that concrete Entity is doing the asking.
 So that thing isn't an Entity by the current definition of that thing, and it
 might make sense to either change Entity's definition or make these special
 Entities' Displays implementation explode.
+
+# Composition and serialization
+
+My very first design for this project had the core instrument functionality
+isolated and very streamlined, and then I layered the Entity concept and serde
+serialization on top of it in other places. I moved away from that because it
+was a lot of work, and I was getting a YAGNI feeling that I was optimizing for a
+need that would never really arise.
+
+I am now thinking that the original instinct was correct.
+
+**Entity**: I am pretty sure I could compose Entities like this:
+
+```rust
+struct MyInstrument {
+  ...
+}
+
+#[derive(Metadata)]
+struct MyInstrumentEntity {
+  uid: Uid,
+  inner: MyInstrument
+}
+```
+
+This is what I'm trying now with PianoRoll, which doesn't need to be an Entity
+in the real world, but which is easier to manage in the Entity GUI Explorer
+example. So far it doesn't seem to be any more work. It feels cleaner because
+the core functionality once again has very little boilerplate.
+
+**Serialization**: the reason for separating this out is different (though it
+was also the reason I originally did it separately). It's becoming very clear
+that the disk serialization format will be a real nightmare to maintain if it's
+just a #[derive(Serialize, Deserialize)] on top of the core struct. I'm not
+paying that price now because I don't yet care about it, but I can see it's
+going to be awful, not just because things move around a lot, but also because
+the serialized structs aren't even the right way to serialize the project.
+
+I don't think I need to do a major all-at-once refactor right now, but I do
+think it's the way forward, incrementally.

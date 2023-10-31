@@ -10,6 +10,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
+use ensnare_core::piano_roll::PianoRollEntity;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
 
@@ -181,10 +182,8 @@ fn main() -> anyhow::Result<()> {
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
     let mut factory = EntityFactory::default();
-    factory.register_entity_with_str_key(PianoRoll::ENTITY_KEY, |uid| {
-        let mut x = PianoRoll::default();
-        x.set_uid(uid);
-        Box::new(x)
+    factory.register_entity_with_str_key(PianoRollEntity::ENTITY_KEY, |uid| {
+        Box::new(PianoRollEntity::new(uid))
     });
 
     if EntityFactory::initialize(register_factory_entities(factory)).is_err() {

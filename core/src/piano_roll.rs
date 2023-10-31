@@ -468,9 +468,8 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Deserialize, Serialize, Metadata)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PianoRoll {
-    uid: Uid,
     uid_factory: UidFactory<PatternUid>,
     uids_to_patterns: HashMap<PatternUid, Pattern>,
     ordered_pattern_uids: Vec<PatternUid>,
@@ -479,7 +478,6 @@ pub struct PianoRoll {
 impl Default for PianoRoll {
     fn default() -> Self {
         let mut r = Self {
-            uid: Default::default(),
             uid_factory: Default::default(),
             uids_to_patterns: Default::default(),
             ordered_pattern_uids: Default::default(),
@@ -549,10 +547,6 @@ impl Displays for PianoRoll {
         .response
     }
 }
-#[typetag::serde]
-impl Entity for PianoRoll {}
-impl Serializable for PianoRoll {}
-impl Configurable for PianoRoll {}
 
 // TODO: move back to tests mod when everything is integrated
 impl PianoRoll {
@@ -605,6 +599,29 @@ impl PianoRoll {
         let len = pattern.notes().len();
         let duration = pattern.duration();
         (self.insert(pattern), len, duration)
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Metadata)]
+pub struct PianoRollEntity {
+    uid: Uid,
+    inner: PianoRoll,
+}
+#[typetag::serde]
+impl Entity for PianoRollEntity {}
+impl Serializable for PianoRollEntity {}
+impl Configurable for PianoRollEntity {}
+impl Displays for PianoRollEntity {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        self.inner.ui(ui)
+    }
+}
+impl PianoRollEntity {
+    pub fn new(uid: Uid) -> Self {
+        Self {
+            uid,
+            ..Default::default()
+        }
     }
 }
 
