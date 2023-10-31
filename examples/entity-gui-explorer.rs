@@ -11,6 +11,7 @@ use eframe::{
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
 use ensnare_core::piano_roll::PianoRollEntity;
+use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
 
@@ -24,9 +25,9 @@ enum DisplayMode {
 struct EntityGuiExplorer {
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
-    entity: Option<Box<dyn Entity>>,
     uid_factory: UidFactory<Uid>,
     display_mode: DisplayMode,
+    entities: HashMap<EntityKey, Box<dyn Entity>>,
 }
 impl EntityGuiExplorer {
     pub const NAME: &'static str = "Entity GUI Explorer";
@@ -68,13 +69,15 @@ impl EntityGuiExplorer {
         for key in self.sorted_keys.iter() {
             if ui.button(key.to_string()).clicked() {
                 if self.selected_key != Some(key.clone()) {
-                    let uid = self.uid_factory.mint_next();
-                    self.entity = EntityFactory::global().new_entity(key, uid);
-                    if self.entity.is_some() {
-                        self.selected_key = Some(key.clone());
-                    } else {
-                        self.selected_key = None;
+                    if !self.entities.contains_key(key) {
+                        let uid = self.uid_factory.mint_next();
+                        if let Some(entity) = EntityFactory::global().new_entity(key, uid) {
+                            self.entities.insert(key.clone(), entity);
+                        } else {
+                            panic!("Couldn't create new entity {key}")
+                        }
                     }
+                    self.selected_key = Some(key.clone());
                 }
             }
         }
@@ -106,22 +109,23 @@ impl EntityGuiExplorer {
         let available_height = ui.available_height();
         ScrollArea::vertical().show(ui, |ui| {
             ui.set_max_height(available_height / 2.0);
-            if let Some(entity) = self.entity.as_mut() {
-                ui.with_layout(
-                    Layout::default().with_cross_align(Align::Center),
-                    |ui| match self.display_mode {
-                        DisplayMode::Normal => {
-                            ui.vertical(|ui| {
-                                ui.group(|ui| entity.ui(ui));
-                            });
+            if let Some(key) = self.selected_key.as_ref() {
+                if let Some(entity) = self.entities.get_mut(key) {
+                    ui.with_layout(Layout::default().with_cross_align(Align::Center), |ui| {
+                        match self.display_mode {
+                            DisplayMode::Normal => {
+                                ui.vertical(|ui| {
+                                    ui.group(|ui| entity.ui(ui));
+                                });
+                            }
+                            DisplayMode::WithHeader => {
+                                CollapsingHeader::new(entity.name())
+                                    .default_open(true)
+                                    .show_unindented(ui, |ui| entity.ui(ui));
+                            }
                         }
-                        DisplayMode::WithHeader => {
-                            CollapsingHeader::new(entity.name())
-                                .default_open(true)
-                                .show_unindented(ui, |ui| entity.ui(ui));
-                        }
-                    },
-                );
+                    });
+                }
             } else {
                 ui.with_layout(Layout::default().with_cross_align(Align::Center), |ui| {
                     ui.label("Click an entity in the sidebar");
@@ -131,8 +135,10 @@ impl EntityGuiExplorer {
             ui.allocate_space(ui.available_size_before_wrap());
         });
         ui.separator();
-        if let Some(entity) = self.entity.as_mut() {
-            ui.label(format!("{entity:?}"));
+        if let Some(key) = self.selected_key.as_ref() {
+            if let Some(entity) = self.entities.get_mut(key) {
+                ui.label(format!("{entity:?}"));
+            }
         }
     }
 }
