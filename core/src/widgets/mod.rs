@@ -1,16 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 pub mod prelude {
-    pub use super::{
-        audio, controllers, core, generators, parts::*, pattern, placeholder, timeline, track,
-    };
+    pub use super::{audio, core, generators, parts::*, pattern, placeholder, timeline, track};
 }
 
 /// Contains widgets that help visualize audio.
 pub mod audio;
-
-/// Contains widgets that support Controller views.
-pub mod controllers;
 
 /// Various widgets used throughout the system.
 pub mod core;
