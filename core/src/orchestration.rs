@@ -5,8 +5,11 @@ use crate::{
     control::{ControlIndex, ControlRouter, ControlValue},
     controllers::LivePatternSequencer,
     entities::{controllers::KeyboardController, factory::EntityKey},
+    humidifier::Humidifier,
     midi::{MidiChannel, MidiMessage},
+    modulators::MainMixer,
     piano_roll::{PatternUid, PianoRoll},
+    prelude::EntityStore,
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     track::{
@@ -18,7 +21,7 @@ use crate::{
         IsAction, MidiMessagesFn, Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
-    uid::Uid,
+    uid::{Uid, UidFactory},
     widgets::{
         timeline::{self, timeline_icon_strip, TimelineIconStripAction},
         track,
@@ -35,10 +38,7 @@ use std::{
     fmt::Debug,
     ops::Range,
     path::PathBuf,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
-    },
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec::Vec,
 };
 use strum_macros::Display;
@@ -95,22 +95,19 @@ pub struct OrchestratorEphemerals {
 pub struct Orchestrator {
     /// The user-supplied name of this project.
     #[builder(setter, default)]
-    title: Option<String>,
+    pub title: Option<String>,
 
-    /// The value of the next Entity [Uid] to be assigned.
-    next_entity_uid: AtomicUsize,
+    entity_uid_factory: UidFactory<Uid>,
+    track_uid_factory: UidFactory<TrackUid>,
 
-    /// The value of the next [TrackUid] to be assigned.
-    next_track_uid: AtomicUsize,
-
-    transport: Transport,
+    pub transport: Transport,
     control_router: ControlRouter,
 
     /// An ordered list of [TrackUid]s in the order they appear in the UI.
-    track_uids: Vec<TrackUid>,
+    pub track_uids: Vec<TrackUid>,
 
     /// All [Track]s, indexed by their [TrackUid].
-    tracks: HashMap<TrackUid, Track>,
+    pub tracks: HashMap<TrackUid, Track>,
 
     // This is the owned and serialized instance of PianoRoll. Because we're
     // using Arc<> in a struct that Serde serializes, we need to have the `rc`
@@ -127,6 +124,8 @@ pub struct Orchestrator {
     // range, and it's nicer to remember it when the project is loaded and
     // saved.
     view_range: std::ops::Range<MusicalTime>,
+
+    main_mixer: MainMixer,
 
     //////////////////////////////////////////////////////
     // Nothing below this comment should be serialized. //
@@ -146,8 +145,8 @@ impl Default for Orchestrator {
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: None,
-            next_entity_uid: AtomicUsize::new(Self::FIRST_ENTITY_UID),
-            next_track_uid: AtomicUsize::new(Self::FIRST_TRACK_UID),
+            entity_uid_factory: UidFactory::new(Self::FIRST_ENTITY_UID),
+            track_uid_factory: UidFactory::new(Self::FIRST_TRACK_UID),
             transport,
             control_router: Default::default(),
             tracks: Default::default(),
@@ -156,6 +155,7 @@ impl Default for Orchestrator {
             bus_station: Default::default(),
             entity_uid_to_track_uid: Default::default(),
             view_range,
+            main_mixer: Default::default(),
 
             e: Default::default(),
         }
@@ -191,7 +191,7 @@ impl Orchestrator {
         pattern_uid: &PatternUid,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        if let Some(track) = self.get_track_mut(track_uid) {
+        if let Some(track) = self.tracks.get_mut(track_uid) {
             track.add_pattern(pattern_uid, position)
         } else {
             Err(anyhow!("Couldn't find track {track_uid}"))
@@ -199,11 +199,11 @@ impl Orchestrator {
     }
 
     pub fn mint_entity_uid(&self) -> Uid {
-        Uid(self.next_entity_uid.fetch_add(1, Ordering::Relaxed))
+        self.entity_uid_factory.mint_next()
     }
 
     fn mint_track_uid(&mut self) -> TrackUid {
-        TrackUid(self.next_track_uid.fetch_add(1, Ordering::Relaxed))
+        self.track_uid_factory.mint_next()
     }
 
     fn new_base_track(
@@ -262,7 +262,7 @@ impl Orchestrator {
 
     /// Sets a new title for the track.
     pub fn set_track_title(&mut self, uid: TrackUid, title: TrackTitle) {
-        if let Some(track) = self.get_track_mut(&uid) {
+        if let Some(track) = self.tracks.get_mut(&uid) {
             track.set_title(title);
         }
     }
@@ -363,36 +363,6 @@ impl Orchestrator {
         self.track_uids.as_ref()
     }
 
-    /// Returns an iterator of all [Track]s in arbitrary order.
-    pub fn track_iter(&self) -> impl Iterator<Item = &Track> {
-        self.tracks.values()
-    }
-
-    /// Returns an iterator of all [Track]s in arbitrary order. Mutable version.
-    pub fn track_iter_mut(&mut self) -> impl Iterator<Item = &mut Track> {
-        self.tracks.values_mut()
-    }
-
-    /// Returns the specified [Track].
-    pub fn get_track(&self, uid: &TrackUid) -> Option<&Track> {
-        self.tracks.get(uid)
-    }
-
-    /// Returns the specified mutable [Track].
-    fn get_track_mut(&mut self, uid: &TrackUid) -> Option<&mut Track> {
-        self.tracks.get_mut(uid)
-    }
-
-    /// Returns the global [Transport].
-    pub fn transport(&self) -> &Transport {
-        &self.transport
-    }
-
-    #[allow(missing_docs)]
-    pub fn transport_mut(&mut self) -> &mut Transport {
-        &mut self.transport
-    }
-
     /// Returns the current [Tempo].
     pub fn tempo(&self) -> Tempo {
         self.transport.tempo()
@@ -402,16 +372,6 @@ impl Orchestrator {
     /// always 2 (stereo audio stream).
     pub fn channels(&self) -> u16 {
         2
-    }
-
-    /// Returns the name of the project.
-    pub fn title(&self) -> Option<&String> {
-        self.title.as_ref()
-    }
-
-    /// Sets the name of the project.
-    pub fn set_title(&mut self, title: Option<String>) {
-        self.title = title;
     }
 
     fn calculate_is_finished(&self) -> bool {
@@ -504,7 +464,7 @@ impl Orchestrator {
                 self.e.action = Some(OrchestratorAction::NewDeviceForTrack(uid, key))
             }
             TrackAction::LinkControl(source_uid, target_uid, control_index) => {
-                if let Some(track) = self.get_track_mut(&uid) {
+                if let Some(track) = self.tracks.get_mut(&uid) {
                     track
                         .control_router
                         .link_control(source_uid, target_uid, control_index);
@@ -693,7 +653,7 @@ impl Orchestrates for Orchestrator {
         }
     }
 
-    fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
+    fn set_effect_position(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
         if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
             if let Some(track) = self.tracks.get_mut(track_uid) {
                 track.move_effect(uid, index)
@@ -705,7 +665,7 @@ impl Orchestrates for Orchestrator {
         }
     }
 
-    fn send_to_aux(
+    fn send(
         &mut self,
         send_track_uid: TrackUid,
         aux_track_uid: TrackUid,
@@ -718,6 +678,31 @@ impl Orchestrates for Orchestrator {
                 amount: send_amount,
             },
         )
+    }
+
+    fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid) {
+        self.bus_station
+            .remove_send_route(&send_track_uid, &aux_track_uid);
+    }
+
+    fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+        self.main_mixer.set_track_output(track_uid, output)
+    }
+
+    fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+        self.main_mixer.mute_track(track_uid, muted)
+    }
+
+    fn solo_track(&self) -> Option<TrackUid> {
+        self.main_mixer.solo_track()
+    }
+
+    fn set_solo_track(&mut self, track_uid: TrackUid) {
+        self.main_mixer.set_solo_track(track_uid)
+    }
+
+    fn end_solo(&mut self) {
+        self.main_mixer.end_solo()
     }
 }
 impl Acts for Orchestrator {
@@ -1011,7 +996,7 @@ impl Displays for Orchestrator {
                             // has an independent mode, and we a single button
                             // advances each track, with no regard for keeping
                             // them in sync.
-                            for track in self.track_iter_mut() {
+                            for track in self.tracks.values_mut() {
                                 track.select_next_foreground_timeline_entity();
                             }
                         }
@@ -1087,6 +1072,249 @@ impl Displays for Orchestrator {
     }
 }
 
+#[derive(Debug)]
+pub struct NewOrchestrator {
+    entity_uid_factory: UidFactory<Uid>,
+    track_uid_factory: UidFactory<TrackUid>,
+
+    transport: Transport,
+
+    track_uids: Vec<TrackUid>,
+    track_for_entity: HashMap<Uid, TrackUid>,
+
+    entity_store: EntityStore,
+    controller_uids: HashMap<TrackUid, Vec<Uid>>,
+    instrument_uids: HashMap<TrackUid, Vec<Uid>>,
+    effect_uids: HashMap<TrackUid, Vec<Uid>>,
+
+    control_router: ControlRouter,
+    humidifier: Humidifier,
+    bus_station: BusStation,
+    main_mixer: MainMixer,
+}
+impl Default for NewOrchestrator {
+    fn default() -> Self {
+        Self {
+            entity_uid_factory: UidFactory::new(1024),
+            track_uid_factory: Default::default(),
+            transport: Default::default(),
+            track_uids: Default::default(),
+            track_for_entity: Default::default(),
+            entity_store: Default::default(),
+            controller_uids: Default::default(),
+            instrument_uids: Default::default(),
+            effect_uids: Default::default(),
+            control_router: Default::default(),
+            humidifier: Default::default(),
+            bus_station: Default::default(),
+            main_mixer: Default::default(),
+        }
+    }
+}
+impl Orchestrates for NewOrchestrator {
+    fn create_track(&mut self) -> anyhow::Result<TrackUid> {
+        let track_uid = self.track_uid_factory.mint_next();
+        self.track_uids.push(track_uid);
+        Ok(track_uid)
+    }
+
+    fn track_uids(&self) -> &[TrackUid] {
+        &self.track_uids
+    }
+
+    fn set_track_position(
+        &mut self,
+        track_uid: TrackUid,
+        new_position: usize,
+    ) -> anyhow::Result<()> {
+        if !self.track_uids.contains(&track_uid) {
+            return Err(anyhow!("Track Uid {track_uid} not found"));
+        }
+        self.track_uids.retain(|t| *t != track_uid);
+        self.track_uids.insert(new_position, track_uid);
+        Ok(())
+    }
+
+    fn delete_track(&mut self, track_uid: &TrackUid) {
+        self.track_uids.retain(|t| *t != *track_uid);
+        self.track_for_entity.retain(|_, v| *v != *track_uid);
+    }
+
+    fn delete_tracks(&mut self, uids: &[TrackUid]) {
+        // TODO something something O(n^2) something
+        self.track_uids.retain(|t| !uids.contains(t));
+        self.track_for_entity.retain(|_, v| !uids.contains(v));
+    }
+
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
+        let uid = entity.uid();
+        if uid.0 == 0 {
+            return Err(anyhow!("Entity has invalid Uid {}", uid));
+        }
+        self.track_for_entity.insert(uid, *track_uid);
+        if entity.as_controller().is_some() {
+            self.controller_uids
+                .entry(*track_uid)
+                .or_default()
+                .push(uid);
+        }
+        if entity.as_instrument().is_some() {
+            self.instrument_uids
+                .entry(*track_uid)
+                .or_default()
+                .push(uid);
+        }
+        if entity.as_effect().is_some() {
+            self.effect_uids.entry(*track_uid).or_default().push(uid);
+        }
+        self.entity_store.add(entity, uid)
+    }
+
+    fn assign_uid_and_add_entity(
+        &mut self,
+        track_uid: &TrackUid,
+        mut entity: Box<dyn Entity>,
+    ) -> anyhow::Result<Uid> {
+        let uid = self.entity_uid_factory.mint_next();
+        entity.set_uid(uid);
+        self.add_entity(track_uid, entity)?;
+        Ok(uid)
+    }
+
+    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
+        if let Some(entity) = self.entity_store.remove(uid) {
+            if let Some(track_uid) = self.track_for_entity.get(uid) {
+                self.controller_uids
+                    .entry(*track_uid)
+                    .or_default()
+                    .retain(|uid| *uid != entity.uid());
+                self.instrument_uids
+                    .entry(*track_uid)
+                    .or_default()
+                    .retain(|uid| *uid != entity.uid());
+                self.effect_uids
+                    .entry(*track_uid)
+                    .or_default()
+                    .retain(|uid| *uid != entity.uid());
+            }
+            Ok(entity)
+        } else {
+            Err(anyhow!("Entity Uid {uid} not found"))
+        }
+    }
+
+    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+        if self.track_for_entity.get(uid).is_some() {
+            self.track_for_entity.remove(uid);
+            self.track_for_entity.insert(*uid, *new_track_uid);
+            Ok(())
+        } else {
+            Err(anyhow!("Entity Uid {uid} not found"))
+        }
+    }
+
+    fn link_control(
+        &mut self,
+        source_uid: Uid,
+        target_uid: Uid,
+        control_index: ControlIndex,
+    ) -> anyhow::Result<()> {
+        self.control_router
+            .link_control(source_uid, target_uid, control_index);
+        Ok(())
+    }
+
+    fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
+        self.control_router
+            .unlink_control(source_uid, target_uid, control_index)
+    }
+
+    fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
+        if let Some(entity) = self.entity_store.get(&uid) {
+            if entity.as_effect().is_some() {
+                self.humidifier.set_humidity_by_uid(uid, humidity);
+                Ok(())
+            } else {
+                Err(anyhow!("Entity Uid {uid} does not implement as_effect()"))
+            }
+        } else {
+            Err(anyhow!("Entity Uid {uid} not found"))
+        }
+    }
+
+    fn set_effect_position(&mut self, uid: Uid, new_position: usize) -> anyhow::Result<()> {
+        if let Some(track_uid) = self.track_for_entity.get(&uid) {
+            let effect_uids = self.effect_uids.entry(*track_uid).or_default();
+            if effect_uids.contains(&uid) {
+                effect_uids.retain(|e| *e != uid);
+                effect_uids.insert(new_position, uid);
+                Ok(())
+            } else {
+                Err(anyhow!("Entity Uid {uid} not found in effects chain"))
+            }
+        } else {
+            Err(anyhow!("Entity Uid {uid} not found"))
+        }
+    }
+
+    fn send(
+        &mut self,
+        send_track_uid: TrackUid,
+        aux_track_uid: TrackUid,
+        send_amount: Normal,
+    ) -> anyhow::Result<()> {
+        self.bus_station.add_send_route(
+            send_track_uid,
+            BusRoute {
+                aux_track_uid,
+                amount: send_amount,
+            },
+        )
+    }
+
+    fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid) {
+        self.bus_station
+            .remove_send_route(&send_track_uid, &aux_track_uid);
+    }
+
+    fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+        self.main_mixer.set_track_output(track_uid, output)
+    }
+
+    fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+        self.main_mixer.mute_track(track_uid, muted)
+    }
+
+    fn solo_track(&self) -> Option<TrackUid> {
+        self.main_mixer.solo_track()
+    }
+
+    fn set_solo_track(&mut self, track_uid: TrackUid) {
+        self.main_mixer.set_solo_track(track_uid)
+    }
+
+    fn end_solo(&mut self) {
+        self.main_mixer.end_solo()
+    }
+}
+impl Configurable for NewOrchestrator {
+    fn sample_rate(&self) -> SampleRate {
+        self.transport.sample_rate()
+    }
+
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.transport.update_sample_rate(sample_rate)
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.transport.update_tempo(tempo)
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.transport.update_time_signature(time_signature)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1131,7 +1359,7 @@ mod tests {
     fn exposes_traits_ergonomically() {
         let mut o = Orchestrator::default();
         let tuid = o.new_midi_track().unwrap();
-        let track = o.get_track_mut(&tuid).unwrap();
+        let track = o.tracks.get_mut(&tuid).unwrap();
 
         const TIMER_DURATION: MusicalTime = MusicalTime::new_with_beats(1);
         let _ = track.append_entity(Box::new(Timer::new_with(TIMER_DURATION)), Uid(459));
@@ -1142,7 +1370,7 @@ mod tests {
             if o.is_finished() {
                 break;
             }
-            _prior_start_time = o.transport().current_time();
+            _prior_start_time = o.transport.current_time();
             let mut samples = [StereoSample::SILENCE; 1];
             o.render_and_ignore_events(&mut samples);
         }
@@ -1151,7 +1379,7 @@ mod tests {
         // `prior_start_time..o.transport().current_time()`, but that failed
         // just now. I am not sure why it would have ever passed. Consider
         // bisecting to see how it did.
-        let prior_range = MusicalTime::TIME_ZERO..o.transport().current_time();
+        let prior_range = MusicalTime::TIME_ZERO..o.transport.current_time();
         assert!(
             prior_range.contains(&TIMER_DURATION),
             "Expected the covered range {:?} to include the duration {:?}",
@@ -1178,19 +1406,13 @@ mod tests {
         assert!(o.create_starter_tracks().is_ok());
         let track_count = o.track_uids().len();
 
-        assert_eq!(
-            o.track_iter().count(),
-            track_count,
-            "Track iterator count should match number of track UIDs."
-        );
-
         // Make sure we can call this and that nothing explodes.
         let mut count = 0;
-        o.track_iter_mut().for_each(|t| {
+        o.tracks.values_mut().for_each(|t| {
             t.play();
             count += 1;
         });
-        assert_eq!(count, 4);
+        assert_eq!(count, track_count);
     }
 
     #[test]
@@ -1250,7 +1472,7 @@ mod tests {
 
         {
             let new_uid = o.mint_entity_uid();
-            let track = o.get_track_mut(&midi_track_uid).unwrap();
+            let track = o.tracks.get_mut(&midi_track_uid).unwrap();
             assert!(track
                 .append_entity(
                     Box::new(TestAudioSource::new_with(&TestAudioSourceParams {
@@ -1269,7 +1491,7 @@ mod tests {
         );
 
         assert!(o
-            .send_to_aux(midi_track_uid, aux_track_uid, Normal::from(0.5))
+            .send(midi_track_uid, aux_track_uid, Normal::from(0.5))
             .is_ok());
         let mut samples = [StereoSample::SILENCE; TrackBuffer::LEN];
         o.render_and_ignore_events(&mut samples);
@@ -1280,7 +1502,7 @@ mod tests {
 
         // Add an effect to the aux track.
         {
-            let track = o.get_track_mut(&aux_track_uid).unwrap();
+            let track = o.tracks.get_mut(&aux_track_uid).unwrap();
             assert!(track
                 .append_entity(Box::new(TestEffectNegatesInput::default()), Uid(405))
                 .is_ok());
@@ -1299,7 +1521,7 @@ mod tests {
         let mut o = Orchestrator::default();
         let track_uid = o.new_midi_track().unwrap();
 
-        let track = o.get_track_mut(&track_uid).unwrap();
+        let track = o.tracks.get_mut(&track_uid).unwrap();
         let instrument = TestInstrumentCountsMidiMessages::default();
         let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
         let _ = track.append_entity(Box::new(instrument), Uid(345));
@@ -1334,14 +1556,15 @@ mod tests {
         let track_b_uid = o.new_midi_track().unwrap();
 
         // On Track 1, put a sender and receiver.
-        let _ = o.get_track_mut(&track_a_uid).unwrap().append_entity(
+        let _ = o.tracks.get_mut(&track_a_uid).unwrap().append_entity(
             Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
             Uid(10001),
         );
         let receiver_1 = TestInstrumentCountsMidiMessages::default();
         let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
         let _ = o
-            .get_track_mut(&track_a_uid)
+            .tracks
+            .get_mut(&track_a_uid)
             .unwrap()
             .append_entity(Box::new(receiver_1), Uid(10002));
 
@@ -1349,7 +1572,8 @@ mod tests {
         let receiver_2 = TestInstrumentCountsMidiMessages::default();
         let counter_2 = Arc::clone(receiver_2.received_midi_message_count_mutex());
         let _ = o
-            .get_track_mut(&track_b_uid)
+            .tracks
+            .get_mut(&track_b_uid)
             .unwrap()
             .append_entity(Box::new(receiver_2), Uid(20001));
 
@@ -1372,6 +1596,22 @@ mod tests {
     #[test]
     fn orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::default();
+        validate_orchestrates_trait(&mut orchestrator);
+
+        // This used to be in validate_orchestrates_trait(), but upon reflection
+        // I don't think I want to specify less-egregious errors in the trait
+        // tests.
+        assert!(
+            orchestrator
+                .link_control(Uid(999), Uid(888), ControlIndex(7))
+                .is_err(),
+            "Linking control to an unknown Uid should fail"
+        );
+    }
+
+    #[test]
+    fn new_orchestrator_orchestrates() {
+        let mut orchestrator = NewOrchestrator::default();
         validate_orchestrates_trait(&mut orchestrator);
     }
 

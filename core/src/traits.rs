@@ -565,18 +565,40 @@ pub trait Orchestrates: Configurable {
     /// effects operate sequentially. Thus, the first effect operates on the
     /// output of the mixed instruments, and the second effect operates on the
     /// output of the first effect, and so on.
-    fn move_effect(&mut self, uid: Uid, index: usize) -> anyhow::Result<()>;
+    fn set_effect_position(&mut self, uid: Uid, index: usize) -> anyhow::Result<()>;
 
     /// Configures a send from the given track to the given aux track. The
     /// `send_amount` parameter indicates how much signal attenuation should
     /// happen before reaching the aux: 1.0 means the full signal should reach
     /// it, and 0.0 means that none of it should.
-    fn send_to_aux(
+    ///
+    /// Note that send_to_aux(1, 2, Normal(0.0)) can be implemented as
+    /// remove_send_to_aux(1, 2), because the behavior is identical.
+    fn send(
         &mut self,
         send_track_uid: TrackUid,
         aux_track_uid: TrackUid,
         send_amount: Normal,
     ) -> anyhow::Result<()>;
+
+    /// Removes a send configuration.
+    fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
+
+    /// Sets the level of audio from the given track that reaches the main
+    /// mixer.
+    fn set_track_output(&mut self, track_uid: TrackUid, output: Normal);
+
+    /// Sets whether the given track is muted.
+    fn mute_track(&mut self, track_uid: TrackUid, muted: bool);
+
+    /// Returns which track, if any, is soloing.
+    fn solo_track(&self) -> Option<TrackUid>;
+
+    /// Sets the current track that is soloing.
+    fn set_solo_track(&mut self, track_uid: TrackUid);
+
+    /// Ends any soloing.
+    fn end_solo(&mut self);
 }
 
 /// The callback signature for handle_midi_message().
@@ -699,8 +721,8 @@ pub(crate) mod tests {
             orchestrates.track_uids().is_empty(),
             "Initial impl should have no tracks"
         );
-        let track_uid = orchestrates.create_track().unwrap();
-        assert_gt!(track_uid.0, 0, "new track's uid should be nonzero");
+        let track_1_uid = orchestrates.create_track().unwrap();
+        assert_gt!(track_1_uid.0, 0, "new track's uid should be nonzero");
         assert_eq!(
             orchestrates.track_uids().len(),
             1,
@@ -716,13 +738,13 @@ pub(crate) mod tests {
         assert!(orchestrates.set_track_position(track_2_uid, 0).is_ok());
         assert_eq!(
             orchestrates.track_uids(),
-            vec![track_2_uid, track_uid],
+            vec![track_2_uid, track_1_uid],
             "order of track uids should be as expected after move"
         );
         orchestrates.delete_track(&track_2_uid);
 
         let target_uid = orchestrates
-            .assign_uid_and_add_entity(&track_uid, Box::new(TestInstrument::default()))
+            .assign_uid_and_add_entity(&track_1_uid, Box::new(TestInstrument::default()))
             .unwrap();
         assert!(
             orchestrates
@@ -743,7 +765,7 @@ pub(crate) mod tests {
         for _ in 0..64 {
             let e = Box::new(TestInstrument::default());
             let uid = orchestrates
-                .assign_uid_and_add_entity(&track_uid, e)
+                .assign_uid_and_add_entity(&track_1_uid, e)
                 .unwrap();
             assert!(
                 !ids.contains(&uid),
@@ -752,17 +774,26 @@ pub(crate) mod tests {
             ids.insert(uid);
         }
 
-        orchestrates.delete_track(&track_uid);
+        orchestrates.delete_track(&track_1_uid);
         assert!(
             orchestrates.track_uids().is_empty(),
             "Deleting track should change track count"
         );
 
         assert!(
-            orchestrates
-                .link_control(Uid(999), Uid(888), ControlIndex(7))
-                .is_err(),
-            "Linking control to an unknown Uid should fail"
+            orchestrates.solo_track().is_none(),
+            "No track should be soloing at first"
+        );
+        orchestrates.set_solo_track(track_1_uid);
+        assert_eq!(
+            orchestrates.solo_track(),
+            Some(track_1_uid),
+            "set_solo_track() should work"
+        );
+        orchestrates.end_solo();
+        assert!(
+            orchestrates.solo_track().is_none(),
+            "No track should be soloing after end_solo()"
         );
     }
 

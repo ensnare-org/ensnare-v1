@@ -148,7 +148,7 @@ fn edit_song() {
             )
             .unwrap();
         // Sounds better if gain is first in chain.
-        let _ = orchestrator.move_effect(lead_gain_uid, 0);
+        let _ = orchestrator.set_effect_position(lead_gain_uid, 0);
 
         // Arrange the lead pattern.
         assert!(orchestrator

@@ -373,7 +373,7 @@ impl Ensnare {
         ui.separator();
         ui.horizontal_centered(|ui| {
             if let Ok(mut o) = self.orchestrator.lock() {
-                ui.add(transport(o.transport_mut()));
+                ui.add(transport(&mut o.transport));
             }
             self.control_panel.ui(ui);
         });

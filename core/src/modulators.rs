@@ -9,6 +9,7 @@ use crate::{
 use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
@@ -118,6 +119,34 @@ impl<'a> DcaWidget<'a> {
             dca,
             controllable_uid,
         }
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct MainMixer {
+    track_output: HashMap<TrackUid, Normal>,
+    track_mute: HashMap<TrackUid, bool>,
+    solo_track: Option<TrackUid>,
+}
+impl MainMixer {
+    pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+        self.track_output.insert(track_uid, output);
+    }
+
+    pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+        self.track_mute.insert(track_uid, muted);
+    }
+
+    pub fn solo_track(&self) -> Option<TrackUid> {
+        self.solo_track
+    }
+
+    pub fn set_solo_track(&mut self, track_uid: TrackUid) {
+        self.solo_track = Some(track_uid)
+    }
+
+    pub fn end_solo(&mut self) {
+        self.solo_track = None
     }
 }
 

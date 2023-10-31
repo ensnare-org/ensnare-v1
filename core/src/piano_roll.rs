@@ -26,10 +26,10 @@ use std::{collections::HashMap, fmt::Display, ops::Add};
     Copy, Clone, Debug, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
 )]
 pub struct PatternUid(pub usize);
-impl IsUid for PatternUid {
-    fn increment(&mut self) -> &Self {
-        self.0 += 1;
-        self
+impl IsUid for PatternUid {}
+impl From<usize> for PatternUid {
+    fn from(value: usize) -> Self {
+        Self(value)
     }
 }
 impl Display for PatternUid {

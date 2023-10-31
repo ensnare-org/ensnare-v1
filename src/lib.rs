@@ -177,7 +177,7 @@ pub mod types {
     pub use ensnare_core::{
         time::{MusicalTime, SampleRate, Tempo, TimeSignature},
         types::*,
-        uid::Uid,
+        uid::{Uid, UidFactory},
     };
 }
 
@@ -230,7 +230,7 @@ pub mod prelude {
         },
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeSignature, Uid,
+            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory,
         },
         ui::DragDropManager,
     };

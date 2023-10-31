@@ -43,10 +43,10 @@ impl Default for TrackUid {
         Self(1)
     }
 }
-impl IsUid for TrackUid {
-    fn increment(&mut self) -> &Self {
-        self.0 += 1;
-        self
+impl IsUid for TrackUid {}
+impl From<usize> for TrackUid {
+    fn from(value: usize) -> Self {
+        Self(value)
     }
 }
 impl Display for TrackUid {

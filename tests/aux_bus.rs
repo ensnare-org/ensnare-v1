@@ -128,8 +128,8 @@ fn aux_bus() {
                 .unwrap()
         };
 
-        let _ = orchestrator.send_to_aux(track_uid_1, aux_track_uid, Normal::from(1.0));
-        let _ = orchestrator.send_to_aux(track_uid_2, aux_track_uid, Normal::from(1.0));
+        let _ = orchestrator.send(track_uid_1, aux_track_uid, Normal::from(1.0));
+        let _ = orchestrator.send(track_uid_2, aux_track_uid, Normal::from(1.0));
     }
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
     let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "aux-bus.wav"]

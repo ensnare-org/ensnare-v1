@@ -722,7 +722,7 @@ impl MiniDaw {
             Self::APP_NAME,
             if let Some(title) = {
                 if let Ok(o) = self.orchestrator_panel.orchestrator().lock() {
-                    o.title().cloned()
+                    o.title.clone()
                 } else {
                     None
                 }

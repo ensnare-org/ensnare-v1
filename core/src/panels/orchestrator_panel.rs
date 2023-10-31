@@ -165,7 +165,7 @@ impl OrchestratorPanel {
                                     o.prepare_successor(&mut mo);
                                     *o = mo;
                                     let _ = sender
-                                        .send(OrchestratorEvent::Loaded(path, o.title().cloned()));
+                                        .send(OrchestratorEvent::Loaded(path, o.title.clone()));
                                 }
                                 Err(err) => {
                                     let _ = sender.send(OrchestratorEvent::LoadError(path, err));

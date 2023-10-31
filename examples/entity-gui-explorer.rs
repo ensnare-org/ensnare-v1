@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! The `entity-explorer` example is a sandbox for developing the GUI part of
-//! Ensnare [Entities](Entity).
+//! The `entity-gui-explorer` example is a sandbox for developing the GUI part
+//! of Ensnare [Entities](Entity).
 
 use anyhow::anyhow;
 use eframe::{
@@ -10,7 +10,6 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
 
@@ -25,7 +24,7 @@ struct EntityGuiExplorer {
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
     entity: Option<Box<dyn Entity>>,
-    next_uid: AtomicUsize,
+    uid_factory: UidFactory<Uid>,
     display_mode: DisplayMode,
 }
 impl EntityGuiExplorer {
@@ -68,7 +67,7 @@ impl EntityGuiExplorer {
         for key in self.sorted_keys.iter() {
             if ui.button(key.to_string()).clicked() {
                 if self.selected_key != Some(key.clone()) {
-                    let uid = Uid(self.next_uid.fetch_add(1, Ordering::Relaxed));
+                    let uid = self.uid_factory.mint_next();
                     self.entity = EntityFactory::global().new_entity(key, uid);
                     if self.entity.is_some() {
                         self.selected_key = Some(key.clone());
