@@ -18,6 +18,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
 };
+use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add};
 
@@ -467,8 +468,9 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Metadata)]
 pub struct PianoRoll {
+    uid: Uid,
     uid_factory: UidFactory<PatternUid>,
     uids_to_patterns: HashMap<PatternUid, Pattern>,
     ordered_pattern_uids: Vec<PatternUid>,
@@ -477,6 +479,7 @@ pub struct PianoRoll {
 impl Default for PianoRoll {
     fn default() -> Self {
         let mut r = Self {
+            uid: Default::default(),
             uid_factory: Default::default(),
             uids_to_patterns: Default::default(),
             ordered_pattern_uids: Default::default(),
@@ -546,6 +549,10 @@ impl Displays for PianoRoll {
         .response
     }
 }
+#[typetag::serde]
+impl Entity for PianoRoll {}
+impl Serializable for PianoRoll {}
+impl Configurable for PianoRoll {}
 
 // TODO: move back to tests mod when everything is integrated
 impl PianoRoll {

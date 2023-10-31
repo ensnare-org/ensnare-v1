@@ -178,7 +178,16 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    if EntityFactory::initialize(register_factory_entities(EntityFactory::default())).is_err() {
+    // We want to add internal entities here, so we do it here and then hand the
+    // result to register_factory_entities().
+    let mut factory = EntityFactory::default();
+    factory.register_entity_with_str_key(PianoRoll::ENTITY_KEY, |uid| {
+        let mut x = PianoRoll::default();
+        x.set_uid(uid);
+        Box::new(x)
+    });
+
+    if EntityFactory::initialize(register_factory_entities(factory)).is_err() {
         return Err(anyhow!("Couldn't initialize EntityFactory"));
     }
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
