@@ -10,7 +10,13 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
-use ensnare_core::piano_roll::PianoRollEntity;
+use ensnare_core::{
+    controllers::{atlas, ControlAtlasWidgetAction},
+    piano_roll::PianoRollEntity,
+    traits::Serializable,
+};
+use ensnare_proc_macros::Metadata;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -178,6 +184,42 @@ impl eframe::App for EntityGuiExplorer {
     }
 }
 
+#[derive(Debug, Metadata, Serialize, Deserialize)]
+struct ControlAtlasWrapper {
+    uid: Uid,
+    inner: ControlAtlas,
+    router: ControlRouter,
+    view_range: std::ops::Range<MusicalTime>,
+
+    #[serde(skip)]
+    action: Option<ControlAtlasWidgetAction>,
+}
+impl ControlAtlasWrapper {
+    pub fn new(uid: Uid) -> Self {
+        Self {
+            uid,
+            inner: ControlAtlasBuilder::default().random().build().unwrap(),
+            router: ControlRouter::default(),
+            view_range: MusicalTime::START..(MusicalTime::DURATION_WHOLE * 4 * 16),
+            action: Default::default(),
+        }
+    }
+}
+#[typetag::serde]
+impl Entity for ControlAtlasWrapper {}
+impl Configurable for ControlAtlasWrapper {}
+impl Serializable for ControlAtlasWrapper {}
+impl Displays for ControlAtlasWrapper {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(atlas(
+            &mut self.inner,
+            &mut self.router,
+            self.view_range.clone(),
+            &mut self.action,
+        ))
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions {
@@ -190,6 +232,9 @@ fn main() -> anyhow::Result<()> {
     let mut factory = EntityFactory::default();
     factory.register_entity_with_str_key(PianoRollEntity::ENTITY_KEY, |uid| {
         Box::new(PianoRollEntity::new(uid))
+    });
+    factory.register_entity_with_str_key(ControlAtlas::ENTITY_KEY, |uid| {
+        Box::new(ControlAtlasWrapper::new(uid))
     });
 
     if EntityFactory::initialize(register_factory_entities(factory)).is_err() {
