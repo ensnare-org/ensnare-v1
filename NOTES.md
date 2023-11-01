@@ -251,3 +251,21 @@ required `uid` field, there isn't a whole lot of superfluous stuff.
 
 That said, I'm still enamored of the idea that core structs might not have to
 know anything about egui. Maybe that can be the dividing line.
+
+**Update after thinking more**: "can't get rid of #[derive(Serialize,
+Deserialize)]" is incorrect if the serialized version is explicitly distinct
+from the in-memory result. I won't be composing anything out of that; that's the
+point. Rather, the serialization struct exists only as scaffolding for Serde,
+and it presumably implements appropriate From<> traits to transform to/from the
+in-memory versions. (Yet another reason why the `Params` macro needs to die).
+
+So this means we could have the following:
+
+  - The core struct that implements the actual audio business logic.
+  - A wrapper that turns the core struct into an Entity: it has a Uid, it maps
+    from Control to fields, maybe it provides a buffer so that we don't have to
+    keep flipping the core struct back and forth between internal/external
+    buffers, and so on. I am still unsure whether this it better than how it is
+    now.
+  - A settings struct that is Serde-friendly and transforms to/from working
+    structs.
