@@ -2,9 +2,7 @@
 
 use crate::{
     control::ControlRouter,
-    controllers::{
-        atlas, ControlAtlas, ControlAtlasAction, ControlAtlasBuilder, ControlAtlasWidgetAction,
-    },
+    controllers::{trip, ControlTrip},
     drag_drop::{DragDropManager, DragSource, DropTarget},
     entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
@@ -28,6 +26,7 @@ use eframe::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fmt::Display,
     ops::Range,
     option::Option,
@@ -114,26 +113,19 @@ pub struct TrackEphemerals {
 
 /// A collection of instruments, effects, and controllers that combine to
 /// produce a single source of audio.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Track {
     pub title: TrackTitle,
 
     pub(crate) entity_store: EntityStore,
-
-    /// The entities in the [EntityStore] that are capable of displaying in the timeline.
-    pub(crate) timeline_entities: Vec<Uid>,
 
     /// If present, the one timeline entity that should be foreground during rendering.
     pub(crate) foreground_timeline_entity: Option<Uid>,
 
     midi_router: MidiRouter,
 
-    /// [ControlRouter] manages the destinations of Control events. It does not
-    /// generate events, but when events are generated, it knows where to route
-    /// them. [ControlAtlas] manages the sources of Control events. It generates
-    /// events but does not handle their routing.
     pub(crate) control_router: ControlRouter,
-    pub(crate) control_atlas: ControlAtlas,
+    pub(crate) control_trips: HashMap<Uid, ControlTrip>,
 
     pub(crate) controllers: Vec<Uid>,
     pub(crate) instruments: Vec<Uid>,
@@ -144,59 +136,7 @@ pub struct Track {
     #[serde(skip)]
     pub(crate) e: TrackEphemerals,
 }
-impl Default for Track {
-    fn default() -> Self {
-        let mut r = Self {
-            title: Default::default(),
-            entity_store: Default::default(),
-            timeline_entities: Default::default(),
-            foreground_timeline_entity: Default::default(),
-            midi_router: Default::default(),
-            control_router: Default::default(),
-            control_atlas: ControlAtlasBuilder::default().random().build().unwrap(),
-            controllers: Default::default(),
-            instruments: Default::default(),
-            effects: Default::default(),
-            humidifier: Default::default(),
-            e: Default::default(),
-        };
-
-        r.timeline_entities.push(Self::CONTROL_ATLAS_UID);
-        r.select_next_foreground_timeline_entity();
-        r
-    }
-}
 impl Track {
-    /// A reserved Uid for the built-in ControlAtlas.
-    const CONTROL_ATLAS_UID: Uid = Uid(1);
-
-    fn timeline_entity(&self, uid: &Uid) -> Option<&dyn DisplaysInTimeline> {
-        match *uid {
-            Self::CONTROL_ATLAS_UID => self.control_atlas.as_displays_in_timeline(),
-            _ => {
-                if let Some(e) = self.entity_store.get(&uid) {
-                    e.as_displays_in_timeline()
-                } else {
-                    None
-                }
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    fn timeline_entity_mut(&mut self, uid: &Uid) -> Option<&mut dyn DisplaysInTimeline> {
-        match *uid {
-            Self::CONTROL_ATLAS_UID => self.control_atlas.as_displays_in_timeline_mut(),
-            _ => {
-                if let Some(e) = self.entity_store.get_mut(&uid) {
-                    e.as_displays_in_timeline_mut()
-                } else {
-                    None
-                }
-            }
-        }
-    }
-
     // TODO: for now the only way to add something new to a Track is to append it.
     #[allow(missing_docs)]
     pub fn append_entity(&mut self, entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
@@ -215,52 +155,7 @@ impl Track {
             // TODO: for now, everyone's on channel 0
             self.midi_router.connect(uid, MidiChannel::default());
         }
-        if entity.as_displays_in_timeline().is_some() {
-            self.record_timeline_entity(uid);
-        }
-
         self.entity_store.add(entity, uid)
-    }
-
-    fn record_timeline_entity(&mut self, uid: Uid) {
-        self.timeline_entities.push(uid);
-        if self.foreground_timeline_entity.is_none() {
-            self.select_next_foreground_timeline_entity();
-        }
-    }
-
-    fn remove_timeline_entity(&mut self, uid: &Uid) {
-        if *uid == Self::CONTROL_ATLAS_UID {
-            panic!("Tried to remove permanent entity ControlAtlas");
-        }
-
-        if self.foreground_timeline_entity == Some(*uid) {
-            self.select_next_foreground_timeline_entity();
-        }
-        // It's important to remove this one after picking the next one, because
-        // we need its position to determine the next one.
-        self.timeline_entities.retain(|e| e != uid);
-
-        if self.timeline_entities.is_empty() {
-            self.foreground_timeline_entity = None;
-        }
-    }
-
-    pub fn select_next_foreground_timeline_entity(&mut self) {
-        if let Some(foreground_uid) = self.foreground_timeline_entity {
-            if let Some(position) = self
-                .timeline_entities
-                .iter()
-                .position(|uid| *uid == foreground_uid)
-            {
-                self.foreground_timeline_entity =
-                    Some(self.timeline_entities[(position + 1) % self.timeline_entities.len()]);
-            } else {
-                self.foreground_timeline_entity = None;
-            }
-        } else {
-            self.foreground_timeline_entity = self.timeline_entities.first().copied();
-        }
     }
 
     #[allow(missing_docs)]
@@ -274,9 +169,6 @@ impl Track {
             }
             if entity.as_instrument().is_some() {
                 self.instruments.retain(|e| e != uid);
-            }
-            if entity.as_displays_in_timeline().is_some() {
-                self.remove_timeline_entity(uid);
             }
             Some(entity)
         } else {
@@ -362,11 +254,6 @@ impl Track {
         }
     }
 
-    /// Returns the [ControlRouter].
-    pub fn control_router_mut(&mut self) -> &mut ControlRouter {
-        &mut self.control_router
-    }
-
     /// Returns an immutable reference to the internal buffer.
     pub fn buffer(&self) -> &TrackBuffer {
         &self.e.buffer
@@ -375,10 +262,6 @@ impl Track {
     /// Returns a writable version of the internal buffer.
     pub fn buffer_mut(&mut self) -> &mut TrackBuffer {
         &mut self.e.buffer
-    }
-
-    pub fn title_mut(&mut self) -> &mut TrackTitle {
-        &mut self.title
     }
 
     pub fn view_range(&self) -> &std::ops::Range<MusicalTime> {
@@ -532,6 +415,9 @@ impl HandlesMidi for Track {
 impl Controls for Track {
     fn update_time(&mut self, range: &Range<MusicalTime>) {
         self.entity_store.update_time(range);
+        self.control_trips
+            .values_mut()
+            .for_each(|ct| ct.update_time(range));
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -553,9 +439,9 @@ impl Controls for Track {
 
         // Let everyone work and possibly generate messages.
         self.entity_store.work(&mut handler);
-
-        // Don't forget Controls that we own.
-        self.control_atlas.work(&mut handler);
+        self.control_trips
+            .values_mut()
+            .for_each(|ct| ct.work(&mut handler));
 
         // We've accumulated all the MIDI messages. Route them to our own
         // MidiRouter. They've already been forwarded to the caller via
@@ -568,23 +454,29 @@ impl Controls for Track {
     }
 
     fn is_finished(&self) -> bool {
-        self.entity_store.is_finished()
+        self.entity_store.is_finished() && self.control_trips.values().all(|ct| ct.is_finished())
     }
 
     fn play(&mut self) {
         self.entity_store.play();
+        self.control_trips.values_mut().for_each(|ct| ct.play());
     }
 
     fn stop(&mut self) {
         self.entity_store.stop();
+        self.control_trips.values_mut().for_each(|ct| ct.stop());
     }
 
     fn skip_to_start(&mut self) {
         self.entity_store.skip_to_start();
+        self.control_trips
+            .values_mut()
+            .for_each(|ct| ct.skip_to_start());
     }
 
     fn is_performing(&self) -> bool {
         self.entity_store.is_performing()
+            || self.control_trips.values().any(|ct| ct.is_performing())
     }
 }
 impl Serializable for Track {
@@ -592,6 +484,9 @@ impl Serializable for Track {
         // TODO: I think here is where we'd tell the sequencer about the piano
         // roll again (which will be hard).
         self.entity_store.after_deser();
+        self.control_trips
+            .values_mut()
+            .for_each(|ct| ct.after_deser());
     }
 }
 impl DisplaysInTimeline for Track {
@@ -601,6 +496,10 @@ impl DisplaysInTimeline for Track {
                 e.set_view_range(view_range);
             }
         });
+        self.control_trips
+            .values_mut()
+            .for_each(|ct| ct.set_view_range(view_range));
+
         self.e.view_range = view_range.clone();
     }
 }
@@ -679,91 +578,89 @@ impl<'a> Displays for TrackWidget<'a> {
 
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
-                        // Do we need to draw the timeline view?
-                        if !self.track.timeline_entities.is_empty() {
-                            let can_accept = self.check_drag_source_for_timeline();
-                            let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
-                                // Determine the rectangle that all the composited layers will use.
-                                let desired_size =
-                                    vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
-                                let (_id, rect) = ui.allocate_space(desired_size);
+                        let can_accept = self.check_drag_source_for_timeline();
+                        let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
+                            // Determine the rectangle that all the composited layers will use.
+                            let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
+                            let (_id, rect) = ui.allocate_space(desired_size);
 
-                                let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
-                                let view_range = self.track.view_range().clone();
+                            let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
+                            let view_range = self.track.view_range().clone();
 
-                                let from_screen = RectTransform::from_to(
-                                    rect,
-                                    Rect::from_x_y_ranges(
-                                        view_range.start.total_units() as f32
-                                            ..=view_range.end.total_units() as f32,
-                                        rect.top()..=rect.bottom(),
-                                    ),
-                                );
+                            let from_screen = RectTransform::from_to(
+                                rect,
+                                Rect::from_x_y_ranges(
+                                    view_range.start.total_units() as f32
+                                        ..=view_range.end.total_units() as f32,
+                                    rect.top()..=rect.bottom(),
+                                ),
+                            );
 
-                                // The Grid is always disabled and drawn first.
-                                let _ = ui
-                                    .allocate_ui_at_rect(rect, |ui| {
-                                        ui.add(grid(
-                                            temp_range.clone(),
-                                            self.track.view_range().clone(),
-                                        ))
-                                    })
-                                    .inner;
+                            // The Grid is always disabled and drawn first.
+                            let _ = ui
+                                .allocate_ui_at_rect(rect, |ui| {
+                                    ui.add(grid(
+                                        temp_range.clone(),
+                                        self.track.view_range().clone(),
+                                    ))
+                                })
+                                .inner;
 
-                                // Draw the disabled timeline views.
-                                let enabled_uid = self.track.foreground_timeline_entity.clone();
-                                let entity_uids: Vec<Uid> = self
-                                    .track
-                                    .timeline_entities
-                                    .iter()
-                                    .filter(|uid| enabled_uid != Some(**uid))
-                                    .cloned()
-                                    .collect();
-                                entity_uids.iter().for_each(|uid| {
-                                    if self.track.timeline_entity(uid).is_some() {
+                            // Draw the disabled timeline views.
+                            let controllers = self.track.controllers.clone();
+                            controllers.iter().for_each(|uid| {
+                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
+                                    if entity.as_displays_in_timeline().is_some() {
                                         ui.add_enabled_ui(false, |ui| {
                                             ui.allocate_ui_at_rect(rect, |ui| {
-                                                Self::ui_for_entity(ui, &mut self.track, *uid)
+                                                if let Some(entity) = self.track.entity_mut(uid) {
+                                                    entity.ui(ui)
+                                                } else {
+                                                    ui.label("Missing entity {uid}")
+                                                }
                                             })
                                             .inner
                                         })
                                         .inner;
                                     }
+                                }
+                            });
+
+                            // Draw control trips.
+                            self.track.control_trips.values_mut().for_each(|t| {
+                                ui.add_enabled_ui(false, |ui| {
+                                    ui.allocate_ui_at_rect(rect, |ui| {
+                                        ui.add(trip(
+                                            t,
+                                            &mut self.track.control_router,
+                                            view_range.clone(),
+                                        ));
+                                    });
                                 });
+                            });
 
-                                // Draw the one enabled timeline view.
-                                if let Some(uid) = enabled_uid {
-                                    if self.track.timeline_entity(&uid).is_some() {
-                                        ui.add_enabled_ui(true, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| {
-                                                Self::ui_for_entity(ui, &mut self.track, uid)
-                                            })
-                                            .inner
+                            // Draw the one enabled timeline view.
+                            // TODO: repeat prior code but with just the one that is active
+
+                            // Finally, if it's present, draw the cursor.
+                            if let Some(position) = self.cursor {
+                                if view_range.contains(&position) {
+                                    let _ = ui
+                                        .allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(cursor(position, view_range.clone()))
                                         })
                                         .inner;
-                                    }
                                 }
-
-                                // Finally, if it's present, draw the cursor.
-                                if let Some(position) = self.cursor {
-                                    if view_range.contains(&position) {
-                                        let _ = ui
-                                            .allocate_ui_at_rect(rect, |ui| {
-                                                ui.add(cursor(position, view_range.clone()))
-                                            })
-                                            .inner;
-                                    }
-                                }
-                                if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
-                                    let time_pos = from_screen * pointer_pos;
-                                    let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                    ((), DropTarget::TrackPosition(self.track_uid, time))
-                                } else {
-                                    ((), DropTarget::Track(self.track_uid))
-                                }
-                            })
-                            .response;
-                        }
+                            }
+                            if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                                let time_pos = from_screen * pointer_pos;
+                                let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                ((), DropTarget::TrackPosition(self.track_uid, time))
+                            } else {
+                                ((), DropTarget::Track(self.track_uid))
+                            }
+                        })
+                        .response;
 
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
@@ -810,42 +707,6 @@ impl<'a> TrackWidget<'a> {
     fn is_selected(mut self, is_selected: bool) -> Self {
         self.is_selected = is_selected;
         self
-    }
-
-    fn ui_for_entity(
-        ui: &mut eframe::egui::Ui,
-        track: &mut Track,
-        uid: Uid,
-    ) -> eframe::egui::Response {
-        match uid {
-            Track::CONTROL_ATLAS_UID => {
-                let mut action = None;
-                let response = ui.add(atlas(
-                    &mut track.control_atlas,
-                    &mut track.control_router,
-                    track.e.view_range.clone(),
-                    &mut action,
-                ));
-                if let Some(action) = action {
-                    match action {
-                        ControlAtlasWidgetAction::AddTrip => {
-                            track.control_atlas.set_action(ControlAtlasAction::AddTrip);
-                            todo!("need to write handler for ControlAtlasAction::AddTrip");
-                        }
-                    }
-                }
-                response
-            }
-            _ => {
-                if let Some(entity) = track.entity_mut(&uid) {
-                    entity.ui(ui)
-                } else {
-                    eprintln!("WARNING: ui_for_entity({uid}) failed to find entity");
-                    // Synthesize an empty Response
-                    ui.label("")
-                }
-            }
-        }
     }
 
     // Looks at what's being dragged, if anything, and updates any state needed
@@ -918,31 +779,33 @@ impl<'a> Displays for SignalChainWidget<'a> {
                                 .iter()
                                 .chain(self.track.effects.iter()),
                         )
-                        .filter(|e| !self.track.timeline_entities.contains(e))
                         .for_each(|uid| {
                             if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                if entity.as_controller().is_some() {
-                                    DragDropManager::drag_source(
-                                        ui,
-                                        eframe::egui::Id::new(entity.name()),
-                                        DragSource::ControlSource(*uid),
-                                        |ui| {
-                                            if ui.button(entity.name()).clicked() {
-                                                *self.action =
-                                                    Some(SignalChainWidgetAction::EntitySelected(
-                                                        *uid,
-                                                        entity.name().to_string(),
-                                                    ));
-                                            }
-                                        },
-                                    )
-                                } else {
-                                    if ui.button(entity.name()).clicked() {
-                                        *self.action =
-                                            Some(SignalChainWidgetAction::EntitySelected(
-                                                *uid,
-                                                entity.name().to_string(),
-                                            ));
+                                if entity.as_displays_in_timeline().is_none() {
+                                    if entity.as_controller().is_some() {
+                                        DragDropManager::drag_source(
+                                            ui,
+                                            eframe::egui::Id::new(entity.name()),
+                                            DragSource::ControlSource(*uid),
+                                            |ui| {
+                                                if ui.button(entity.name()).clicked() {
+                                                    *self.action = Some(
+                                                        SignalChainWidgetAction::EntitySelected(
+                                                            *uid,
+                                                            entity.name().to_string(),
+                                                        ),
+                                                    );
+                                                }
+                                            },
+                                        )
+                                    } else {
+                                        if ui.button(entity.name()).clicked() {
+                                            *self.action =
+                                                Some(SignalChainWidgetAction::EntitySelected(
+                                                    *uid,
+                                                    entity.name().to_string(),
+                                                ));
+                                        }
                                     }
                                 }
                             }
@@ -1087,85 +950,5 @@ mod tests {
     impl Displays for TimelineDisplayer {}
     impl DisplaysInTimeline for TimelineDisplayer {
         fn set_view_range(&mut self, _view_range: &std::ops::Range<MusicalTime>) {}
-    }
-
-    #[test]
-    fn track_picks_next_foreground_entity() {
-        let e1_uid = Uid(1000);
-        let e2_uid = Uid(2000);
-        let e3_uid = Uid(3000);
-        let e1 = Box::new(TimelineDisplayer::default());
-        let e2 = Box::new(TimelineDisplayer::default());
-        let e3 = Box::new(TimelineDisplayer::default());
-
-        // TODO: reenable these after we decide what behavior we're actually looking for.
-
-        let mut t = Track::default();
-        // assert!(
-        //     t.foreground_timeline_entity.is_none(),
-        //     "should be none foreground at creation"
-        // );
-        let _ = t.append_entity(e1, e1_uid);
-        // assert!(
-        //     t.foreground_timeline_entity.is_some(),
-        //     "adding one should make it foreground"
-        // );
-        let e1 = t.remove_entity(&e1_uid).unwrap();
-        // assert!(
-        //     t.foreground_timeline_entity.is_none(),
-        //     "removing the last one should make none foreground"
-        // );
-        let _ = t.append_entity(e1, e1_uid);
-        // assert_eq!(
-        //     t.foreground_timeline_entity,
-        //     Some(e1_uid),
-        //     "adding first one should make it foreground"
-        // );
-        let _ = t.append_entity(e2, e2_uid);
-        // assert_eq!(
-        //     t.foreground_timeline_entity,
-        //     Some(e1_uid),
-        //     "adding a second shouldn't change which is foreground"
-        // );
-        let _ = t.append_entity(e3, e3_uid);
-        // assert_eq!(
-        //     t.foreground_timeline_entity,
-        //     Some(e1_uid),
-        //     "adding a third shouldn't change which is foreground"
-        // );
-        let e3 = t.remove_entity(&e3_uid).unwrap();
-        // assert_eq!(
-        //     t.foreground_timeline_entity,
-        //     Some(e1_uid),
-        //     "removing the third shouldn't change which is foreground"
-        // );
-        let _e1 = t.remove_entity(&e1_uid).unwrap();
-        // assert_eq!(
-        //     t.foreground_timeline_entity,
-        //     Some(e2_uid),
-        //     "removing the first/foreground should pick the new first one"
-        // );
-
-        let _ = t.append_entity(e3, e3_uid);
-        t.select_next_foreground_timeline_entity();
-        assert_eq!(
-            t.foreground_timeline_entity,
-            Some(e2_uid),
-            "selecting next after built-in should pick the second (first was removed)"
-        );
-
-        t.select_next_foreground_timeline_entity();
-        assert_eq!(
-            t.foreground_timeline_entity,
-            Some(e3_uid),
-            "selecting next after second should pick the third"
-        );
-
-        t.select_next_foreground_timeline_entity();
-        assert_eq!(
-            t.foreground_timeline_entity,
-            Some(Track::CONTROL_ATLAS_UID),
-            "selecting next after third should wrap back to built-in"
-        );
     }
 }

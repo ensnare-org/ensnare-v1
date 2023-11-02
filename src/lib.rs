@@ -77,10 +77,7 @@ pub mod entities {
         //! which generate control signals. Controllers implement
         //! [IsController](crate::traits::IsController).
         pub use ensnare_core::{
-            controllers::{
-                atlas, ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTrip,
-                ControlTripBuilder, ControlTripPath,
-            },
+            controllers::{ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath},
             entities::factory::test_entities::TestController,
             entities::{
                 controllers::sequencers::{
@@ -211,10 +208,7 @@ pub mod prelude {
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         entities::{
-            controllers::{
-                ControlAtlas, ControlAtlasBuilder, ControlStepBuilder, ControlTripBuilder,
-                ControlTripPath,
-            },
+            controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
             register_factory_entities, EntityFactory, EntityKey, EntityStore,
         },
         generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},

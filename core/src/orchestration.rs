@@ -3,7 +3,7 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control::{ControlIndex, ControlRouter, ControlValue},
-    controllers::LivePatternSequencer,
+    controllers::{ControlTripBuilder, LivePatternSequencer},
     entities::{controllers::KeyboardController, factory::EntityKey},
     humidifier::Humidifier,
     midi::{MidiChannel, MidiMessage},
@@ -224,10 +224,18 @@ impl Orchestrator {
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
         let sequencer = Box::new(LivePatternSequencer::new_with(Arc::clone(&self.piano_roll)));
         let entity_uid = self.mint_entity_uid();
+        let trip_uid = self.mint_entity_uid();
         self.new_base_track(|track_uid, track| {
             track.title = TrackTitle(format!("MIDI {}", track_uid));
             track.set_sequencer_channel(sequencer.sender());
             let _ = track.append_entity(sequencer, entity_uid);
+            track.control_trips.insert(
+                trip_uid,
+                ControlTripBuilder::default()
+                    .random(MusicalTime::START)
+                    .build()
+                    .unwrap(),
+            );
         })
     }
 
@@ -610,7 +618,7 @@ impl Orchestrates for Orchestrator {
             if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
                 if let Some(track) = self.tracks.get_mut(track_uid) {
                     track
-                        .control_router_mut()
+                        .control_router
                         .link_control(source_uid, target_uid, control_index);
                     Ok(())
                 } else {
@@ -631,11 +639,9 @@ impl Orchestrates for Orchestrator {
         } else {
             if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
                 if let Some(track) = self.tracks.get_mut(track_uid) {
-                    track.control_router_mut().unlink_control(
-                        source_uid,
-                        target_uid,
-                        control_index,
-                    );
+                    track
+                        .control_router
+                        .unlink_control(source_uid, target_uid, control_index);
                 }
             }
         }
@@ -990,15 +996,7 @@ impl Displays for Orchestrator {
                 if let Some(action) = action {
                     match action {
                         TimelineIconStripAction::NextTimelineView => {
-                            // TODO: I don't know whether the foreground entity
-                            // should be different for each track. For now we're
-                            // going with the worst of all worlds: each track
-                            // has an independent mode, and we a single button
-                            // advances each track, with no regard for keeping
-                            // them in sync.
-                            for track in self.tracks.values_mut() {
-                                track.select_next_foreground_timeline_entity();
-                            }
+                            panic!("get rid of this")
                         }
                         TimelineIconStripAction::ShowPianoRoll => {
                             self.e.is_piano_roll_open = !self.e.is_piano_roll_open;

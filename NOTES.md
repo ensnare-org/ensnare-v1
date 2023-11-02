@@ -269,3 +269,23 @@ So this means we could have the following:
     now.
   - A settings struct that is Serde-friendly and transforms to/from working
     structs.
+
+# 2023-11-01: more on ControlAtlas
+
+I had a new thought after the prior entry on this topic. ControlRouter *is* the
+repository of ControlTrips. It doesn't own the actual Entities, but it does know
+their Uids. It could work like this:
+
+  - Something creates a ControlTrip with a Uid. Maybe it's a right-click on a
+    controllable thing. When it creates it, it hands it to EntityStore, and it
+    also adds source/target/index to ControlRouter.
+  - When it's appropriate, we render the ControlTrip within a DisplaysInTimeline
+    context, which includes editing it. This is probably the TrackWidget.
+  - "Appropriate" could include the controlled thing being highlighted, or
+    cycling through all a track's automations. The way we do that would be (1)
+    find all the entities in the track, (2) for each entity, ask ControlRouter
+    for links where that entity is the target, (3) render those links.
+
+Basically this means kill ControlAtlas ASAP. It also might be the end of
+DisplaysInTimeline, because we seem to be converging on specialized widgets that
+were never going to be asked to Displays::ui() in a generic context.

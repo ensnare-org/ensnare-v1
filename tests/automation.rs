@@ -129,11 +129,6 @@ fn demo_control_trips() {
     // valid. I'm still letting this idea soak in, so I'm keeping the comment
     // here rather than deleting it without checking it in.
 
-    // Orchestrates doesn't specify a way to generate Uids, so if we want to
-    // make one, we need to do it on the concrete Orchestrator before we erase
-    // its type and deal only with Orchestrates.
-    let trip_uid = orchestrator.mint_entity_uid();
-
     // We scope this block so that we can work with Orchestrator only as
     // something implementing the [Orchestrates] trait. This makes sure we're
     // testing the generic trait behavior as much as possible.
@@ -186,7 +181,6 @@ fn demo_control_trips() {
         // Create a ControlTrip that ramps from zero to max over the desired
         // amount of time.
         let trip = ControlTripBuilder::default()
-            .uid(trip_uid)
             .step(
                 ControlStepBuilder::default()
                     .value(ControlValue::MIN)
@@ -205,8 +199,9 @@ fn demo_control_trips() {
             )
             .build()
             .unwrap();
-        let atlas = ControlAtlasBuilder::default().trip(trip).build().unwrap();
-        let _ = orchestrator.assign_uid_and_add_entity(&track_uid, Box::new(atlas));
+        let trip_uid = orchestrator
+            .assign_uid_and_add_entity(&track_uid, Box::new(trip))
+            .unwrap();
 
         // Hook up that ControlTrip to the pan parameter.
         assert!(orchestrator

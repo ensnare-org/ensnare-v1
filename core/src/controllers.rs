@@ -1,17 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    control::ControlRouter,
-    drag_drop::{DragDropManager, DragSource},
-    prelude::*,
-    rng::Rng,
-    traits::prelude::*,
-};
+use crate::{control::ControlRouter, prelude::*, rng::Rng, traits::prelude::*};
 use derive_builder::Builder;
 use eframe::{
-    egui::{self, Layout, Sense},
+    egui::{self, Sense},
     emath::RectTransform,
-    epaint::{pos2, vec2, Color32, Rect, Stroke},
+    epaint::{pos2, Color32, Rect, Stroke},
 };
 use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Metadata};
 use serde::{Deserialize, Serialize};
@@ -283,8 +277,18 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Metadata, Builder)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Clone,
+    Debug,
+    Default,
+    IsControllerWithTimelineDisplay,
+    Metadata,
+    Builder,
+)]
 pub struct ControlTrip {
+    #[builder(default)]
     uid: Uid,
 
     /// The [ControlStep]s that make up this trip. They must be in ascending
@@ -486,253 +490,119 @@ pub struct ControlStep {
     pub path: ControlTripPath,
 }
 
-impl ControlAtlasBuilder {
-    pub fn random(&mut self) -> &mut Self {
-        self.trip(
-            ControlTripBuilder::default()
-                .uid(Uid(Rng::default().0.rand_range(100..100000) as usize))
-                .random(MusicalTime::START)
-                .build()
-                .unwrap(),
-        );
-        self
-    }
-}
-
-#[derive(Debug, Display)]
-pub enum ControlAtlasAction {
-    AddTrip,
-}
-impl IsAction for ControlAtlasAction {}
-
-/// A [ControlAtlas] manages a group of [ControlTrip]s. (An atlas is a book of
-/// maps.)
-#[derive(Serialize, Deserialize, IsControllerWithTimelineDisplay, Builder, Debug, Metadata)]
-pub struct ControlAtlas {
-    #[builder(default)]
-    uid: Uid,
-
-    #[builder(default, setter(each(name = "trip", into)))]
-    trips: Vec<ControlTrip>,
-
-    #[serde(skip)]
-    #[builder(setter(skip))]
-    view_range: std::ops::Range<MusicalTime>,
-
-    #[serde(skip)]
-    #[builder(setter(skip))]
-    action: Option<ControlAtlasAction>,
-}
-impl Default for ControlAtlas {
-    fn default() -> Self {
-        ControlAtlasBuilder::default().random().build().unwrap()
-    }
-}
-impl Displays for ControlAtlas {}
-impl DisplaysInTimeline for ControlAtlas {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.trips
-            .iter_mut()
-            .for_each(|t| t.set_view_range(view_range));
-        self.view_range = view_range.clone();
-    }
-}
-impl HandlesMidi for ControlAtlas {}
-impl Controls for ControlAtlas {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
-        self.trips.iter_mut().for_each(|t| t.update_time(range));
-    }
-
-    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.trips
-            .iter_mut()
-            .for_each(|t| t.work(control_events_fn));
-    }
-
-    fn is_finished(&self) -> bool {
-        self.trips.iter().all(|ct| ct.is_finished())
-    }
-
-    fn is_performing(&self) -> bool {
-        false
-    }
-
-    fn play(&mut self) {
-        self.trips.iter_mut().for_each(|t| t.play());
-    }
-
-    fn stop(&mut self) {
-        self.trips.iter_mut().for_each(|t| t.stop());
-    }
-
-    fn skip_to_start(&mut self) {
-        self.trips.iter_mut().for_each(|t| t.skip_to_start());
-    }
-}
-impl Serializable for ControlAtlas {}
-impl Configurable for ControlAtlas {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.trips
-            .iter_mut()
-            .for_each(|t| t.update_sample_rate(sample_rate));
-    }
-
-    fn update_tempo(&mut self, tempo: Tempo) {
-        self.trips.iter_mut().for_each(|t| t.update_tempo(tempo));
-    }
-
-    fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.trips
-            .iter_mut()
-            .for_each(|t| t.update_time_signature(time_signature));
-    }
-}
-impl Acts for ControlAtlas {
-    type Action = ControlAtlasAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        self.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.action.take()
-    }
-}
-impl ControlAtlas {
-    /// Adds the given [ControlTrip] to this atlas. TODO: specify any ordering constraints
-    pub fn add_trip(&mut self, trip: ControlTrip) -> anyhow::Result<()> {
-        self.trips.push(trip);
-        Ok(())
-    }
-
-    /// Removes the given [ControlTrip] from this atlas.
-    pub fn remove_trip(&mut self, uid: Uid) {
-        self.trips.retain(|t| t.uid != uid);
-    }
-
-    #[allow(missing_docs)]
-    pub fn trips_mut(&mut self) -> &mut Vec<ControlTrip> {
-        &mut self.trips
-    }
-}
-
-/// Wraps a [ControlAtlasWidget] as a [Widget](eframe::egui::Widget).
-pub fn atlas<'a>(
-    control_atlas: &'a mut ControlAtlas,
-    control_router: &'a mut ControlRouter,
-    view_range: std::ops::Range<MusicalTime>,
-    action: &'a mut Option<ControlAtlasWidgetAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        ControlAtlasWidget::new(control_atlas, control_router, view_range, action).ui(ui)
-    }
-}
+// /// Wraps a [ControlAtlasWidget] as a [Widget](eframe::egui::Widget).
+// pub fn atlas<'a>(
+//     control_router: &'a mut ControlRouter,
+//     view_range: std::ops::Range<MusicalTime>,
+//     action: &'a mut Option<ControlAtlasWidgetAction>,
+// ) -> impl eframe::egui::Widget + 'a {
+//     move |ui: &mut eframe::egui::Ui| {
+//         ControlAtlasWidget::new(control_atlas, control_router, view_range, action).ui(ui)
+//     }
+// }
 
 #[derive(Debug, Display)]
 pub enum ControlAtlasWidgetAction {
     AddTrip,
 }
 
-#[derive(Debug)]
-struct ControlAtlasWidget<'a> {
-    control_atlas: &'a mut ControlAtlas,
-    control_router: &'a mut ControlRouter,
-    view_range: std::ops::Range<MusicalTime>,
-    action: &'a mut Option<ControlAtlasWidgetAction>,
-}
-impl<'a> ControlAtlasWidget<'a> {
-    fn new(
-        control_atlas: &'a mut ControlAtlas,
-        control_router: &'a mut ControlRouter,
-        view_range: std::ops::Range<MusicalTime>,
-        action: &'a mut Option<ControlAtlasWidgetAction>,
-    ) -> Self {
-        Self {
-            control_atlas,
-            control_router,
-            view_range,
-            action,
-        }
-    }
-}
-impl<'a> DisplaysInTimeline for ControlAtlasWidget<'a> {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
-    }
-}
-impl<'a> Displays for ControlAtlasWidget<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        // This push_id() was needed to avoid an ID conflict. I think it is
-        // because we're drawing widgets on top of each other, but I'm honestly
-        // not sure.
-        ui.push_id(ui.next_auto_id(), |ui| {
-            let (_id, rect) = ui.allocate_space(vec2(ui.available_width(), 64.0));
-            let response = ui
-                .allocate_ui_at_rect(rect, |ui| {
-                    let mut remove_uid = None;
-                    self.control_atlas.trips_mut().iter_mut().for_each(|t| {
-                        ui.allocate_ui_at_rect(rect, |ui| {
-                            ui.add(trip(t, self.control_router, self.view_range.clone()));
+// #[derive(Debug)]
+// struct ControlAtlasWidget<'a> {
+//     control_router: &'a mut ControlRouter,
+//     view_range: std::ops::Range<MusicalTime>,
+//     action: &'a mut Option<ControlAtlasWidgetAction>,
+// }
+// impl<'a> ControlAtlasWidget<'a> {
+//     fn new(
+//         control_router: &'a mut ControlRouter,
+//         view_range: std::ops::Range<MusicalTime>,
+//         action: &'a mut Option<ControlAtlasWidgetAction>,
+//     ) -> Self {
+//         Self {
+//             control_router,
+//             view_range,
+//             action,
+//         }
+//     }
+// }
+// impl<'a> DisplaysInTimeline for ControlAtlasWidget<'a> {
+//     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+//         self.view_range = view_range.clone();
+//     }
+// }
+// impl<'a> Displays for ControlAtlasWidget<'a> {
+//     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+//         // This push_id() was needed to avoid an ID conflict. I think it is
+//         // because we're drawing widgets on top of each other, but I'm honestly
+//         // not sure.
+//         ui.push_id(ui.next_auto_id(), |ui| {
+//             let (_id, rect) = ui.allocate_space(vec2(ui.available_width(), 64.0));
+//             let response = ui
+//                 .allocate_ui_at_rect(rect, |ui| {
+//                     let mut remove_uid = None;
+//                     self.control_atlas.trips_mut().iter_mut().for_each(|t| {
+//                         ui.allocate_ui_at_rect(rect, |ui| {
+//                             ui.add(trip(t, self.control_router, self.view_range.clone()));
 
-                            // Draw the trip controls.
-                            if ui.is_enabled() {
-                                // TODO: I don't know why this isn't flush with
-                                // the right side of the component.
-                                let controls_rect = Rect::from_points(&[
-                                    rect.right_top(),
-                                    pos2(
-                                        rect.right()
-                                            - ui.ctx().style().spacing.interact_size.x * 2.0,
-                                        rect.top(),
-                                    ),
-                                ]);
-                                ui.allocate_ui_at_rect(controls_rect, |ui| {
-                                    ui.allocate_ui_with_layout(
-                                        ui.available_size(),
-                                        Layout::right_to_left(eframe::emath::Align::Center),
-                                        |ui| {
-                                            if ui.button("x").clicked() {
-                                                remove_uid = Some(t.uid());
-                                            }
-                                            // TODO: this will be what you drag
-                                            // to things you want this trip to
-                                            // control
-                                            DragDropManager::drag_source(
-                                                ui,
-                                                ui.next_auto_id(),
-                                                DragSource::ControlTrip(t.uid()),
-                                                |ui| {
-                                                    ui.label("S");
-                                                },
-                                            );
-                                        },
-                                    );
-                                });
-                            }
-                        });
-                    });
-                    if let Some(uid) = remove_uid {
-                        self.control_atlas.remove_trip(uid);
-                    }
-                })
-                .response;
-            if ui.is_enabled() {
-                response.context_menu(|ui| {
-                    if ui.button("Add trip").clicked() {
-                        ui.close_menu();
-                        *self.action = Some(ControlAtlasWidgetAction::AddTrip);
-                    }
-                })
-            } else {
-                response
-            }
-        })
-        .inner
-    }
-}
+//                             // Draw the trip controls.
+//                             if ui.is_enabled() {
+//                                 // TODO: I don't know why this isn't flush with
+//                                 // the right side of the component.
+//                                 let controls_rect = Rect::from_points(&[
+//                                     rect.right_top(),
+//                                     pos2(
+//                                         rect.right()
+//                                             - ui.ctx().style().spacing.interact_size.x * 2.0,
+//                                         rect.top(),
+//                                     ),
+//                                 ]);
+//                                 ui.allocate_ui_at_rect(controls_rect, |ui| {
+//                                     ui.allocate_ui_with_layout(
+//                                         ui.available_size(),
+//                                         Layout::right_to_left(eframe::emath::Align::Center),
+//                                         |ui| {
+//                                             if ui.button("x").clicked() {
+//                                                 remove_uid = Some(t.uid());
+//                                             }
+//                                             // TODO: this will be what you drag
+//                                             // to things you want this trip to
+//                                             // control
+//                                             DragDropManager::drag_source(
+//                                                 ui,
+//                                                 ui.next_auto_id(),
+//                                                 DragSource::ControlTrip(t.uid()),
+//                                                 |ui| {
+//                                                     ui.label("S");
+//                                                 },
+//                                             );
+//                                         },
+//                                     );
+//                                 });
+//                             }
+//                         });
+//                     });
+//                     if let Some(uid) = remove_uid {
+//                         self.control_atlas.remove_trip(uid);
+//                     }
+//                 })
+//                 .response;
+//             if ui.is_enabled() {
+//                 response.context_menu(|ui| {
+//                     if ui.button("Add trip").clicked() {
+//                         ui.close_menu();
+//                         *self.action = Some(ControlAtlasWidgetAction::AddTrip);
+//                     }
+//                 })
+//             } else {
+//                 response
+//             }
+//         })
+//         .inner
+//     }
+// }
 
 /// Wraps a [ControlTrip] as a [Widget](eframe::egui::Widget).
-fn trip<'a>(
+pub fn trip<'a>(
     trip: &'a mut ControlTrip,
     control_router: &'a mut ControlRouter,
     view_range: std::ops::Range<MusicalTime>,
@@ -782,9 +652,9 @@ impl<'a> Displays for Trip<'a> {
                 },
             );
         let stroke = if ui.is_enabled() {
-            ui.ctx().style().visuals.widgets.active.bg_stroke
+            ui.ctx().style().visuals.widgets.active.fg_stroke
         } else {
-            ui.ctx().style().visuals.widgets.inactive.bg_stroke
+            ui.ctx().style().visuals.widgets.inactive.fg_stroke
         };
         let steps_len = self.control_trip.steps().len();
         self.control_trip

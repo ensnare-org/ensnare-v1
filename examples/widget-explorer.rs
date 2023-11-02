@@ -18,7 +18,7 @@ use ensnare::{
     arrangement::{signal_chain, track_widget, TrackAction},
     entities::{
         controllers::{
-            atlas, LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
+            LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
             ToyControllerParams,
         },
         effects::{ToyEffect, ToyEffectParams},
@@ -112,19 +112,12 @@ impl Default for TrackSettings {
             Box::new(NoteSequencerBuilder::default().build().unwrap()),
             Uid(345),
         );
-        let _ = r.track.append_entity(
-            Box::new(ControlAtlasBuilder::default().build().unwrap()),
-            Uid(346),
-        );
         r
     }
 }
 impl Displays for TrackSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
-        if ui.button("Next").clicked() {
-            self.track.select_next_foreground_timeline_entity();
-        }
         ui.label("Range");
         let mut range_start = self.range.start.total_beats();
         let mut range_end = self.range.end.total_beats();
@@ -325,49 +318,6 @@ impl PatternIconSettings {
                     ui.add(pattern::icon(self.duration, &self.notes, self.is_selected));
                 },
             );
-        }
-    }
-}
-
-#[derive(Debug)]
-struct ControlAtlasSettings {
-    hide: bool,
-    control_atlas: ControlAtlas,
-    control_router: ControlRouter,
-    view_range: std::ops::Range<MusicalTime>,
-}
-impl Default for ControlAtlasSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            control_atlas: ControlAtlasBuilder::default().random().build().unwrap(),
-            control_router: Default::default(),
-            view_range: Default::default(),
-        }
-    }
-}
-impl Displays for ControlAtlasSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
-        ui.checkbox(&mut self.hide, "Hide")
-    }
-}
-impl DisplaysInTimeline for ControlAtlasSettings {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
-    }
-}
-impl ControlAtlasSettings {
-    const NAME: &'static str = "Control Atlas";
-
-    fn show(&mut self, ui: &mut Ui) {
-        if !self.hide {
-            let mut action = None;
-            ui.add(atlas(
-                &mut self.control_atlas,
-                &mut self.control_router,
-                self.view_range.clone(),
-                &mut action,
-            ));
         }
     }
 }
@@ -734,7 +684,6 @@ struct WidgetExplorer {
     track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
     signal_chain: SignalChainSettings,
-    control_atlas: ControlAtlasSettings,
     live_pattern_sequencer: LivePatternSequencerSettings,
     note_sequencer: NoteSequencerSettings,
     pattern_icon: PatternIconSettings,
@@ -781,9 +730,6 @@ impl WidgetExplorer {
             Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
             Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
-            Self::wrap_settings(ControlAtlasSettings::NAME, ui, |ui| {
-                self.control_atlas.ui(ui)
-            });
             Self::wrap_settings(LivePatternSequencerSettings::NAME, ui, |ui| {
                 self.live_pattern_sequencer.ui(ui)
             });
@@ -840,7 +786,6 @@ impl WidgetExplorer {
     fn show_center(&mut self, ui: &mut Ui) {
         ScrollArea::vertical().show(ui, |ui| {
             self.track_widget.set_view_range(&self.legend.range);
-            self.control_atlas.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);
             self.live_pattern_sequencer
                 .set_view_range(&self.legend.range);
@@ -870,9 +815,6 @@ impl WidgetExplorer {
             Self::wrap_item(GridSettings::NAME, ui, |ui| self.grid.show(ui));
             Self::wrap_item(PatternIconSettings::NAME, ui, |ui| {
                 self.pattern_icon.show(ui)
-            });
-            Self::wrap_item(ControlAtlasSettings::NAME, ui, |ui| {
-                self.control_atlas.show(ui)
             });
             Self::wrap_item(LivePatternSequencerSettings::NAME, ui, |ui| {
                 self.live_pattern_sequencer.show(ui)
