@@ -5,14 +5,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput};
 
-#[derive(Copy, Clone)]
-pub(crate) enum ImplementsDisplaysInTimeline {
-    DoesImplement,
-    DoesNotImplement,
-}
-
 pub(crate) enum EntityType {
-    Controller(ImplementsDisplaysInTimeline),
+    Controller,
     Effect,
     Instrument,
     ControllerEffect,
@@ -33,7 +27,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
         let core_crate = format_ident!("{}", core_crate_name());
 
         let top_level_trait_names = match ty {
-            EntityType::Controller(..) => vec![quote! {#core_crate::traits::IsController}],
+            EntityType::Controller => vec![quote! {#core_crate::traits::IsController}],
             EntityType::Effect => vec![quote! {#core_crate::traits::IsEffect}],
             EntityType::Instrument => vec![quote! {#core_crate::traits::IsInstrument}],
             EntityType::ControllerEffect => vec![
@@ -47,29 +41,13 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
         };
         let common_items = quote! {};
         let type_specific_items = match ty {
-            EntityType::Controller(displays_in_timeline) => match displays_in_timeline {
-                ImplementsDisplaysInTimeline::DoesImplement => quote! {
-                    fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
-                        Some(self)
-                    }
-                    fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
-                        Some(self)
-                    }
-                    fn as_displays_in_timeline(&self) -> Option<&dyn #core_crate::traits::DisplaysInTimeline> {
-                        Some(self)
-                    }
-                    fn as_displays_in_timeline_mut(&mut self) -> Option<&mut dyn #core_crate::traits::DisplaysInTimeline> {
-                        Some(self)
-                    }
-                },
-                ImplementsDisplaysInTimeline::DoesNotImplement => quote! {
-                    fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
-                        Some(self)
-                    }
-                    fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
-                        Some(self)
-                    }
-                },
+            EntityType::Controller => quote! {
+                fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
+                    Some(self)
+                }
+                fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
+                    Some(self)
+                }
             },
             EntityType::Effect => quote! {
                 fn as_effect(&self) -> Option<&dyn #core_crate::traits::IsEffect> {
@@ -117,7 +95,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
             },
         };
         let handles_midi_items = match ty {
-            EntityType::Controller(..)
+            EntityType::Controller
             | EntityType::Instrument
             | EntityType::ControllerEffect
             | EntityType::ControllerInstrument => quote! {
@@ -131,7 +109,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
             EntityType::Effect => quote! {},
         };
         let controllable_items = match ty {
-            EntityType::Controller(..) => quote! {},
+            EntityType::Controller => quote! {},
             EntityType::Effect
             | EntityType::Instrument
             | EntityType::ControllerEffect
