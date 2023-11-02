@@ -64,7 +64,7 @@ pub mod prelude {
         control::{ControlIndex, ControlName, ControlValue},
         entities::factory::{EntityFactory, EntityKey, EntityStore},
         orchestration::Orchestrator,
-        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
+        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
         track::{Track, TrackUid},
         traits::{HasMetadata, Orchestrates},
         types::{

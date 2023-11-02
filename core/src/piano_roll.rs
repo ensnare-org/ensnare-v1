@@ -47,7 +47,7 @@ pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
     /// The range of time when this note should play.
-    pub range: std::ops::Range<MusicalTime>,
+    pub range: ViewRange,
 }
 impl Note {
     /// Creates a [Note] from a u8.

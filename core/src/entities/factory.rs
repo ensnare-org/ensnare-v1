@@ -360,7 +360,7 @@ impl Configurable for EntityStore {
     }
 }
 impl Controls for EntityStore {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.iter_mut().for_each(|t| {
             if let Some(t) = t.as_controller_mut() {
                 t.update_time(range);

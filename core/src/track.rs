@@ -4,6 +4,7 @@ use crate::{
     control::ControlRouter,
     controllers::{trip, ControlTrip, LivePatternSequencer},
     drag_drop::{DragDropManager, DragSource, DropTarget},
+    entities::controllers::sequencers::live_pattern_sequencer_widget,
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
@@ -101,7 +102,7 @@ pub struct TrackEphemerals {
     buffer: TrackBuffer,
     pub(crate) piano_roll: Arc<RwLock<PianoRoll>>,
     pub(crate) action: Option<TrackAction>,
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
     pub(crate) title_font_galley: Option<Arc<eframe::epaint::Galley>>,
 }
 
@@ -261,7 +262,7 @@ impl Track {
         &mut self.e.buffer
     }
 
-    pub fn view_range(&self) -> &std::ops::Range<MusicalTime> {
+    pub fn view_range(&self) -> &ViewRange {
         &self.e.view_range
     }
 
@@ -486,20 +487,6 @@ impl Serializable for Track {
             .for_each(|ct| ct.after_deser());
     }
 }
-// impl DisplaysInTimeline for Track {
-//     fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
-//         self.entity_store.iter_mut().for_each(|e| {
-//             if let Some(e) = e.as_displays_in_timeline_mut() {
-//                 e.set_view_range(view_range);
-//             }
-//         });
-//         self.control_trips
-//             .values_mut()
-//             .for_each(|ct| ct.set_view_range(view_range));
-
-//         self.e.view_range = view_range.clone();
-//     }
-// }
 impl Displays for Track {}
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
@@ -508,7 +495,7 @@ pub fn track_widget<'a>(
     track: &'a mut Track,
     is_selected: bool,
     cursor: Option<MusicalTime>,
-    view_range: Range<MusicalTime>,
+    view_range: &'a ViewRange,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
@@ -530,7 +517,7 @@ struct TrackWidget<'a> {
     track: &'a mut Track,
     is_selected: bool,
     cursor: Option<MusicalTime>,
-    view_range: Range<MusicalTime>,
+    view_range: ViewRange,
     action: &'a mut Option<TrackWidgetAction>,
 }
 impl<'a> TrackWidget<'a> {
@@ -623,7 +610,10 @@ impl<'a> Displays for TrackWidget<'a> {
 
                             ui.add_enabled_ui(true, |ui| {
                                 ui.allocate_ui_at_rect(rect, |ui| {
-                                    self.track.sequencer.ui_timeline(ui, &self.view_range);
+                                    ui.add(live_pattern_sequencer_widget(
+                                        &mut self.track.sequencer,
+                                        &self.view_range,
+                                    ));
                                 });
                             });
 
@@ -696,7 +686,7 @@ impl<'a> TrackWidget<'a> {
         track_uid: TrackUid,
         track: &'a mut Track,
         cursor: Option<MusicalTime>,
-        view_range: Range<MusicalTime>,
+        view_range: &'a ViewRange,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
         Self {
@@ -704,7 +694,7 @@ impl<'a> TrackWidget<'a> {
             track,
             is_selected: false,
             cursor,
-            view_range,
+            view_range: view_range.clone(),
             action,
         }
     }

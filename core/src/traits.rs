@@ -10,7 +10,7 @@ use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     prelude::*,
-    time::{MusicalTime, SampleRate, TimeSignature},
+    time::{MusicalTime, SampleRate, TimeSignature, ViewRange},
     track::TrackUid,
 };
 
@@ -238,7 +238,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(Option<Uid>, EntityEvent) + 'a;
 #[allow(unused_variables)]
 pub trait Controls: Send {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
+    fn update_time(&mut self, range: &ViewRange) {}
 
     /// The entity should perform work for the time range specified in the
     /// previous [update_time()]. If the work produces any events, use

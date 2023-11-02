@@ -15,23 +15,17 @@ pub fn timeline_icon_strip<'a>(
 }
 
 /// Wraps a [Legend] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
-pub fn legend(view_range: &mut std::ops::Range<MusicalTime>) -> impl eframe::egui::Widget + '_ {
+pub fn legend(view_range: &mut ViewRange) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| Legend::new(view_range).ui(ui)
 }
 
 /// Wraps a [Grid] as a [Widget](eframe::egui::Widget).
-pub fn grid(
-    range: std::ops::Range<MusicalTime>,
-    view_range: std::ops::Range<MusicalTime>,
-) -> impl eframe::egui::Widget {
+pub fn grid<'a>(range: ViewRange, view_range: ViewRange) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| Grid::default().range(range).view_range(view_range).ui(ui)
 }
 
 /// Wraps a [Cursor] as a [Widget](eframe::egui::Widget).
-pub fn cursor(
-    position: MusicalTime,
-    view_range: std::ops::Range<MusicalTime>,
-) -> impl eframe::egui::Widget {
+pub fn cursor<'a>(position: MusicalTime, view_range: ViewRange) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
         Cursor::default()
             .position(position)
@@ -45,16 +39,14 @@ pub fn cursor(
 #[derive(Debug)]
 pub struct Legend<'a> {
     /// The GUI view's time range.
-    view_range: &'a mut std::ops::Range<MusicalTime>,
+    view_range: &'a mut ViewRange,
 }
 impl<'a> Legend<'a> {
-    fn new(view_range: &'a mut std::ops::Range<MusicalTime>) -> Self {
+    fn new(view_range: &'a mut ViewRange) -> Self {
         Self { view_range }
     }
 
-    fn steps(
-        view_range: &std::ops::Range<MusicalTime>,
-    ) -> std::iter::StepBy<std::ops::Range<usize>> {
+    fn steps(view_range: &ViewRange) -> std::iter::StepBy<std::ops::Range<usize>> {
         let beat_count = view_range.end.total_beats() - view_range.start.total_beats();
         let step = (beat_count as f32).log10().round() as usize;
         (view_range.start.total_beats()..view_range.end.total_beats()).step_by(step * 2)
@@ -111,17 +103,17 @@ impl<'a> Displays for Legend<'a> {
 #[derive(Debug, Default)]
 pub struct Grid {
     /// The timeline's full time range.
-    range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
 
     /// The GUI view's time range.
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 }
 impl Grid {
-    fn range(mut self, range: std::ops::Range<MusicalTime>) -> Self {
-        self.range = range.clone();
+    fn range(mut self, range: ViewRange) -> Self {
+        self.range = range;
         self
     }
-    fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
+    fn view_range(mut self, view_range: ViewRange) -> Self {
         self.view_range = view_range;
         self
     }
@@ -168,14 +160,14 @@ pub struct Cursor {
     position: MusicalTime,
 
     /// The GUI view's time range.
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 }
 impl Cursor {
     fn position(mut self, position: MusicalTime) -> Self {
         self.position = position;
         self
     }
-    fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
+    fn view_range(mut self, view_range: ViewRange) -> Self {
         self.view_range = view_range;
         self
     }

@@ -76,8 +76,8 @@ pub mod entities {
             entities::factory::test_entities::TestController,
             entities::{
                 controllers::sequencers::{
-                    LivePatternSequencer, MidiSequencer, NoteSequencer, NoteSequencerBuilder,
-                    PatternSequencer, PatternSequencerBuilder,
+                    live_pattern_sequencer_widget, LivePatternSequencer, MidiSequencer,
+                    NoteSequencer, NoteSequencerBuilder, PatternSequencer, PatternSequencerBuilder,
                 },
                 controllers::*,
                 toys::{ToyController, ToyControllerParams},
@@ -167,7 +167,7 @@ pub mod traits {
 pub mod types {
     //! Common data types used throughout the system.
     pub use ensnare_core::{
-        time::{MusicalTime, SampleRate, Tempo, TimeSignature},
+        time::{MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
         types::*,
         uid::{Uid, UidFactory},
     };
@@ -219,7 +219,7 @@ pub mod prelude {
         },
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory,
+            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory, ViewRange,
         },
         ui::DragDropManager,
     };

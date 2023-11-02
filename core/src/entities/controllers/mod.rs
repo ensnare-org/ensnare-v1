@@ -51,7 +51,7 @@ pub struct SignalPassthroughController {
 impl Serializable for SignalPassthroughController {}
 impl Configurable for SignalPassthroughController {}
 impl Controls for SignalPassthroughController {
-    fn update_time(&mut self, _range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, _range: &ViewRange) {
         // We can ignore because we already have our own de-duplicating logic.
     }
 

@@ -18,8 +18,8 @@ use ensnare::{
     arrangement::{signal_chain, track_widget, TrackAction},
     entities::{
         controllers::{
-            LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController,
-            ToyControllerParams,
+            live_pattern_sequencer_widget, LivePatternSequencer, NoteSequencer,
+            NoteSequencerBuilder, ToyController, ToyControllerParams,
         },
         effects::{ToyEffect, ToyEffectParams},
         instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
@@ -34,7 +34,7 @@ use ensnare::{
 #[derive(Debug)]
 struct LegendSettings {
     hide: bool,
-    range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
 }
 impl LegendSettings {
     const NAME: &'static str = "Legend";
@@ -75,8 +75,8 @@ impl Displays for LegendSettings {
 struct TrackSettings {
     hide: bool,
     track: Track,
-    range: std::ops::Range<MusicalTime>,
-    view_range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
+    view_range: ViewRange,
 }
 impl TrackSettings {
     const NAME: &'static str = "Track";
@@ -89,13 +89,13 @@ impl TrackSettings {
                 &mut self.track,
                 false,
                 Some(MusicalTime::new_with_beats(1)),
-                self.view_range.clone(),
+                &self.view_range,
                 &mut action,
             ));
         }
     }
 
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+    fn set_view_range(&mut self, view_range: &ViewRange) {
         self.view_range = view_range.clone();
     }
 }
@@ -231,8 +231,8 @@ impl Displays for SignalChainSettings {
 #[derive(Debug)]
 struct GridSettings {
     hide: bool,
-    range: std::ops::Range<MusicalTime>,
-    view_range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
+    view_range: ViewRange,
 }
 impl GridSettings {
     const NAME: &'static str = "Grid";
@@ -243,7 +243,7 @@ impl GridSettings {
         }
     }
 
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+    fn set_view_range(&mut self, view_range: &ViewRange) {
         self.view_range = view_range.clone();
     }
 }
@@ -324,7 +324,7 @@ impl PatternIconSettings {
 struct LivePatternSequencerSettings {
     hide: bool,
     sequencer: LivePatternSequencer,
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 }
 impl Displays for LivePatternSequencerSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
@@ -336,11 +336,14 @@ impl LivePatternSequencerSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            self.sequencer.ui_timeline(ui, &self.view_range);
+            ui.add(live_pattern_sequencer_widget(
+                &mut self.sequencer,
+                &self.view_range,
+            ));
         }
     }
 
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+    fn set_view_range(&mut self, view_range: &ViewRange) {
         self.view_range = view_range.clone();
     }
 }
@@ -349,7 +352,7 @@ impl LivePatternSequencerSettings {
 struct NoteSequencerSettings {
     hide: bool,
     sequencer: NoteSequencer,
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 }
 impl Default for NoteSequencerSettings {
     fn default() -> Self {
@@ -378,7 +381,7 @@ impl NoteSequencerSettings {
         }
     }
 
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+    fn set_view_range(&mut self, view_range: &ViewRange) {
         self.view_range = view_range.clone();
     }
 }

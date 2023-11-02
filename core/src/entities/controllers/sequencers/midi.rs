@@ -2,7 +2,7 @@
 
 use crate::{
     midi::{MidiChannel, MidiEvent, MidiMessage},
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature},
+    time::{MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
     traits::{
         Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
         SequencesMidi,
@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct MidiSequencer {
     events: Vec<MidiEvent>,
-    time_range: std::ops::Range<MusicalTime>,
+    time_range: ViewRange,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
@@ -59,7 +59,7 @@ impl Configurable for MidiSequencer {
     fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
 }
 impl Controls for MidiSequencer {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.time_range = range.clone();
     }
 

@@ -9,7 +9,6 @@ use eframe::{
 };
 use ensnare_proc_macros::{Control, IsController, Metadata};
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
 
 pub use crate::entities::controllers::sequencers::{
     LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
@@ -54,7 +53,7 @@ impl Timer {
 impl HandlesMidi for Timer {}
 impl Configurable for Timer {}
 impl Controls for Timer {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         if self.is_performing {
             if self.duration == MusicalTime::default() {
                 // Zero-length timers fire immediately.
@@ -104,7 +103,7 @@ pub struct Trigger {
 }
 impl Serializable for Trigger {}
 impl Controls for Trigger {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.timer.update_time(range)
     }
 
@@ -222,7 +221,7 @@ impl ControlTripPath {
 pub struct ControlTripEphemerals {
     /// The time range for this work slice. This is a copy of the value passed
     /// in Controls::update_time().
-    range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
 
     /// Which step we're currently processing.
     current_step: usize,
@@ -231,7 +230,7 @@ pub struct ControlTripEphemerals {
     /// The range of values for the current step.
     value_range: std::ops::RangeInclusive<ControlValue>,
     /// The timespan of the current step.
-    time_range: std::ops::Range<MusicalTime>,
+    time_range: ViewRange,
 
     /// The value that we last issued as a Control event. We keep track of this
     /// to avoid issuing consecutive identical events.
@@ -383,10 +382,6 @@ impl ControlTrip {
     pub fn uid(&self) -> Uid {
         self.uid
     }
-
-    // fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-    //     self.e.view_range = view_range.clone();
-    // }
 }
 impl Displays for ControlTrip {
     fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -395,7 +390,7 @@ impl Displays for ControlTrip {
 }
 impl HandlesMidi for ControlTrip {}
 impl Controls for ControlTrip {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         if range.start < self.e.range.start {
             // The cursor is jumping around. Mark things dirty.
             self.e.is_current_step_clean = false;
@@ -476,122 +471,11 @@ pub struct ControlStep {
     pub path: ControlTripPath,
 }
 
-// /// Wraps a [ControlAtlasWidget] as a [Widget](eframe::egui::Widget).
-// pub fn atlas<'a>(
-//     control_router: &'a mut ControlRouter,
-//     view_range: std::ops::Range<MusicalTime>,
-//     action: &'a mut Option<ControlAtlasWidgetAction>,
-// ) -> impl eframe::egui::Widget + 'a {
-//     move |ui: &mut eframe::egui::Ui| {
-//         ControlAtlasWidget::new(control_atlas, control_router, view_range, action).ui(ui)
-//     }
-// }
-
-#[derive(Debug, Display)]
-pub enum ControlAtlasWidgetAction {
-    AddTrip,
-}
-
-// #[derive(Debug)]
-// struct ControlAtlasWidget<'a> {
-//     control_router: &'a mut ControlRouter,
-//     view_range: std::ops::Range<MusicalTime>,
-//     action: &'a mut Option<ControlAtlasWidgetAction>,
-// }
-// impl<'a> ControlAtlasWidget<'a> {
-//     fn new(
-//         control_router: &'a mut ControlRouter,
-//         view_range: std::ops::Range<MusicalTime>,
-//         action: &'a mut Option<ControlAtlasWidgetAction>,
-//     ) -> Self {
-//         Self {
-//             control_router,
-//             view_range,
-//             action,
-//         }
-//     }
-// }
-// impl<'a> DisplaysInTimeline for ControlAtlasWidget<'a> {
-//     fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-//         self.view_range = view_range.clone();
-//     }
-// }
-// impl<'a> Displays for ControlAtlasWidget<'a> {
-//     fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-//         // This push_id() was needed to avoid an ID conflict. I think it is
-//         // because we're drawing widgets on top of each other, but I'm honestly
-//         // not sure.
-//         ui.push_id(ui.next_auto_id(), |ui| {
-//             let (_id, rect) = ui.allocate_space(vec2(ui.available_width(), 64.0));
-//             let response = ui
-//                 .allocate_ui_at_rect(rect, |ui| {
-//                     let mut remove_uid = None;
-//                     self.control_atlas.trips_mut().iter_mut().for_each(|t| {
-//                         ui.allocate_ui_at_rect(rect, |ui| {
-//                             ui.add(trip(t, self.control_router, self.view_range.clone()));
-
-//                             // Draw the trip controls.
-//                             if ui.is_enabled() {
-//                                 // TODO: I don't know why this isn't flush with
-//                                 // the right side of the component.
-//                                 let controls_rect = Rect::from_points(&[
-//                                     rect.right_top(),
-//                                     pos2(
-//                                         rect.right()
-//                                             - ui.ctx().style().spacing.interact_size.x * 2.0,
-//                                         rect.top(),
-//                                     ),
-//                                 ]);
-//                                 ui.allocate_ui_at_rect(controls_rect, |ui| {
-//                                     ui.allocate_ui_with_layout(
-//                                         ui.available_size(),
-//                                         Layout::right_to_left(eframe::emath::Align::Center),
-//                                         |ui| {
-//                                             if ui.button("x").clicked() {
-//                                                 remove_uid = Some(t.uid());
-//                                             }
-//                                             // TODO: this will be what you drag
-//                                             // to things you want this trip to
-//                                             // control
-//                                             DragDropManager::drag_source(
-//                                                 ui,
-//                                                 ui.next_auto_id(),
-//                                                 DragSource::ControlTrip(t.uid()),
-//                                                 |ui| {
-//                                                     ui.label("S");
-//                                                 },
-//                                             );
-//                                         },
-//                                     );
-//                                 });
-//                             }
-//                         });
-//                     });
-//                     if let Some(uid) = remove_uid {
-//                         self.control_atlas.remove_trip(uid);
-//                     }
-//                 })
-//                 .response;
-//             if ui.is_enabled() {
-//                 response.context_menu(|ui| {
-//                     if ui.button("Add trip").clicked() {
-//                         ui.close_menu();
-//                         *self.action = Some(ControlAtlasWidgetAction::AddTrip);
-//                     }
-//                 })
-//             } else {
-//                 response
-//             }
-//         })
-//         .inner
-//     }
-// }
-
 /// Wraps a [ControlTrip] as a [Widget](eframe::egui::Widget).
 pub fn trip<'a>(
     trip: &'a mut ControlTrip,
     control_router: &'a mut ControlRouter,
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| Trip::new(trip, control_router, view_range).ui(ui)
 }
@@ -600,13 +484,13 @@ pub fn trip<'a>(
 struct Trip<'a> {
     control_trip: &'a mut ControlTrip,
     control_router: &'a mut ControlRouter,
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 }
 impl<'a> Trip<'a> {
     fn new(
         control_trip: &'a mut ControlTrip,
         control_router: &'a mut ControlRouter,
-        view_range: std::ops::Range<MusicalTime>,
+        view_range: ViewRange,
     ) -> Self {
         Self {
             control_trip,

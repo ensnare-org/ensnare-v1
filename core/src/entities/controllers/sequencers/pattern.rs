@@ -4,16 +4,14 @@ use super::MidiSequencer;
 use crate::{
     midi::{MidiChannel, MidiEvent},
     piano_roll::{Note, Pattern, PatternUid, PianoRoll},
-    time::MusicalTime,
+    time::{MusicalTime, ViewRange},
     traits::{
         Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
         Serializable,
     },
-    types::ChannelPair,
     uid::Uid,
 };
 use anyhow::anyhow;
-use crossbeam_channel::Sender;
 use derive_builder::Builder;
 use eframe::{
     egui::{style::WidgetVisuals, Sense},
@@ -274,16 +272,37 @@ impl LivePatternSequencer {
             None
         }
     }
+}
 
-    pub fn ui_timeline(
-        &mut self,
-        ui: &mut eframe::egui::Ui,
-        view_range: &Range<MusicalTime>,
-    ) -> eframe::egui::Response {
+/// Wraps a [LivePatternSequencerWidget] as a [Widget](eframe::egui::Widget).
+pub fn live_pattern_sequencer_widget<'a>(
+    sequencer: &'a mut LivePatternSequencer,
+    view_range: &'a ViewRange,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| LivePatternSequencerWidget::new(sequencer, view_range).ui(ui)
+}
+
+/// An egui widget that draws a legend on the horizontal axis of the timeline
+/// view.
+#[derive(Debug)]
+pub struct LivePatternSequencerWidget<'a> {
+    sequencer: &'a mut LivePatternSequencer,
+    view_range: ViewRange,
+}
+impl<'a> LivePatternSequencerWidget<'a> {
+    fn new(sequencer: &'a mut LivePatternSequencer, view_range: &'a ViewRange) -> Self {
+        Self {
+            sequencer,
+            view_range: view_range.clone(),
+        }
+    }
+}
+impl<'a> Displays for LivePatternSequencerWidget<'a> {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
-            let x_range_f32 =
-                view_range.start.total_units() as f32..=view_range.end.total_units() as f32;
+            let x_range_f32 = self.view_range.start.total_units() as f32
+                ..=self.view_range.end.total_units() as f32;
             let y_range = i8::MAX as f32..=u8::MIN as f32;
             let local_space_rect = Rect::from_x_y_ranges(x_range_f32, y_range);
             let to_screen = RectTransform::from_to(local_space_rect, response.rect);
@@ -318,7 +337,8 @@ impl LivePatternSequencer {
 
             // Generate all the pattern note shapes
             let pattern_shapes: Vec<Shape> =
-                self.inner
+                self.sequencer
+                    .inner
                     .patterns
                     .iter()
                     .fold(Vec::default(), |mut v, pattern| {

@@ -34,7 +34,7 @@ pub struct ToyController {
     is_performing: bool,
 
     #[serde(skip)]
-    time_range: std::ops::Range<MusicalTime>,
+    time_range: ViewRange,
 
     #[serde(skip)]
     last_time_handled: MusicalTime,
@@ -202,7 +202,7 @@ impl Serializable for ToyControllerAlwaysSendsMidiMessage {}
 struct ToySequencer {
     events: Vec<MidiEvent>,
     notes: Vec<Note>,
-    time_range: std::ops::Range<MusicalTime>,
+    time_range: ViewRange,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
@@ -297,7 +297,7 @@ impl Sequences for ToySequencer {
 }
 impl Configurable for ToySequencer {}
 impl Controls for ToySequencer {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.time_range = range.clone();
     }
 

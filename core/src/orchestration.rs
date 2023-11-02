@@ -11,7 +11,7 @@ use crate::{
     piano_roll::{PatternUid, PianoRoll},
     prelude::EntityStore,
     selection_set::SelectionSet,
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
+    time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder, ViewRange},
     track::{
         track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUid, TrackWidgetAction,
     },
@@ -35,7 +35,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::Debug,
-    ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec::Vec,
@@ -59,7 +58,7 @@ impl IsAction for OrchestratorAction {}
 /// place.
 #[derive(Debug, Default)]
 pub struct OrchestratorEphemerals {
-    range: std::ops::Range<MusicalTime>,
+    range: ViewRange,
     events: Vec<(Uid, EntityEvent)>,
     is_finished: bool,
     is_performing: bool,
@@ -122,7 +121,7 @@ pub struct Orchestrator {
     // DisplaysInTimeline, because this field determines the timeline view
     // range, and it's nicer to remember it when the project is loaded and
     // saved.
-    view_range: std::ops::Range<MusicalTime>,
+    view_range: ViewRange,
 
     main_mixer: MainMixer,
 
@@ -866,7 +865,7 @@ impl HandlesMidi for Orchestrator {
     }
 }
 impl Controls for Orchestrator {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.e.range = range.clone();
 
         for track in self.tracks.values_mut() {
@@ -1032,7 +1031,7 @@ impl Displays for Orchestrator {
                                     track,
                                     is_selected,
                                     cursor,
-                                    self.view_range.clone(),
+                                    &self.view_range,
                                     &mut track_widget_action,
                                 ));
                                 if let Some(track_widget_action) = track_widget_action {

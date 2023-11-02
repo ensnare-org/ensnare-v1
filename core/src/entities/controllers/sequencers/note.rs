@@ -5,7 +5,7 @@ use crate::{
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     piano_roll::Note,
     rng::Rng,
-    time::MusicalTime,
+    time::{MusicalTime, ViewRange},
     traits::{
         Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
         Serializable,
@@ -29,7 +29,7 @@ impl NoteSequencerBuilder {
     }
 
     /// Produces a random sequence of quarter-note notes. For debugging.
-    pub fn random(&mut self, range: std::ops::Range<MusicalTime>) -> &mut Self {
+    pub fn random(&mut self, range: ViewRange) -> &mut Self {
         let mut rng = Rng::default();
 
         for _ in 0..32 {
@@ -108,7 +108,7 @@ impl Sequences for NoteSequencer {
     }
 }
 impl Controls for NoteSequencer {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.inner.update_time(range)
     }
 

@@ -178,42 +178,6 @@ impl eframe::App for EntityGuiExplorer {
     }
 }
 
-// #[derive(Debug, Metadata, Serialize, Deserialize)]
-// struct ControlAtlasWrapper {
-//     uid: Uid,
-//     inner: ControlAtlas,
-//     router: ControlRouter,
-//     view_range: std::ops::Range<MusicalTime>,
-
-//     #[serde(skip)]
-//     action: Option<ControlAtlasWidgetAction>,
-// }
-// impl ControlAtlasWrapper {
-//     pub fn new(uid: Uid) -> Self {
-//         Self {
-//             uid,
-//             inner: ControlAtlasBuilder::default().random().build().unwrap(),
-//             router: ControlRouter::default(),
-//             view_range: MusicalTime::START..(MusicalTime::DURATION_WHOLE * 4 * 16),
-//             action: Default::default(),
-//         }
-//     }
-// }
-// #[typetag::serde]
-// impl Entity for ControlAtlasWrapper {}
-// impl Configurable for ControlAtlasWrapper {}
-// impl Serializable for ControlAtlasWrapper {}
-// impl Displays for ControlAtlasWrapper {
-//     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-//         ui.add(atlas(
-//             &mut self.inner,
-//             &mut self.router,
-//             self.view_range.clone(),
-//             &mut self.action,
-//         ))
-//     }
-// }
-
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions {

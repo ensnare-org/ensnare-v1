@@ -477,6 +477,10 @@ impl Sub<Self> for MusicalTime {
     }
 }
 
+/// A [ViewRange] indicates a musical time range. It's used to determine what a
+/// widget should show when it's rendering something in a timeline.
+pub type ViewRange = std::ops::Range<MusicalTime>;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Seconds(pub f64);
 impl Seconds {
@@ -610,7 +614,7 @@ impl Transport {
 
     /// Advances the clock by the given number of frames. Returns the time range
     /// from the prior time to now.
-    pub fn advance(&mut self, frames: usize) -> std::ops::Range<MusicalTime> {
+    pub fn advance(&mut self, frames: usize) -> ViewRange {
         // Calculate the work time range. Note that the range can be zero, which
         // will happen if frames advance faster than MusicalTime units.
         let new_frames = self.e.current_frame + frames;
@@ -677,7 +681,7 @@ impl Configurable for Transport {
     }
 }
 impl Controls for Transport {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         // Nothing - we calculated the range, so we don't need to do anything with it.
         debug_assert!(
             self.e.current_time == range.end,

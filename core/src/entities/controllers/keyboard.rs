@@ -32,7 +32,7 @@ impl Displays for KeyboardController {
 }
 #[allow(unused_variables)]
 impl Controls for KeyboardController {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {}
+    fn update_time(&mut self, range: &ViewRange) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         while let Ok(event) = self.keyboard_events.receiver.try_recv() {

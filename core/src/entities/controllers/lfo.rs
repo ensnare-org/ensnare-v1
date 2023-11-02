@@ -29,7 +29,7 @@ pub struct LfoController {
     is_performing: bool,
 
     #[serde(skip)]
-    time_range: std::ops::Range<MusicalTime>,
+    time_range: ViewRange,
 
     #[serde(skip)]
     last_frame: usize,
@@ -44,7 +44,7 @@ impl Configurable for LfoController {
     }
 }
 impl Controls for LfoController {
-    fn update_time(&mut self, range: &std::ops::Range<MusicalTime>) {
+    fn update_time(&mut self, range: &ViewRange) {
         self.time_range = range.clone();
     }
 
