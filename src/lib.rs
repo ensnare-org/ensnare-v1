@@ -39,11 +39,6 @@ pub mod control {
     //! All values that pass through the control subsystem are normalized to
     //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for
     //! all applicable types in the system.
-    //!
-    //! Alert! [ControlAtlas](crate::entities::controllers::ControlAtlas) might
-    //! seem like it should be here, but it is actually in the `controllers`
-    //! module. This is because it is a device rather than part of the
-    //! infrastructure.
 
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlRouter, ControlValue};
 }
@@ -218,9 +213,9 @@ pub mod prelude {
         },
         modulators::{Dca, DcaParams},
         traits::{
-            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays,
-            DisplaysInTimeline, Entity, EntityEvent, HandlesMidi, HasMetadata, HasSettings,
-            IsAction, IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
+            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity,
+            EntityEvent, HandlesMidi, HasMetadata, HasSettings, IsAction, IsController, IsEffect,
+            IsInstrument, MidiMessagesFn, Orchestrates,
         },
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,

@@ -78,12 +78,6 @@ struct TrackSettings {
     range: std::ops::Range<MusicalTime>,
     view_range: std::ops::Range<MusicalTime>,
 }
-impl DisplaysInTimeline for TrackSettings {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.track.set_view_range(view_range);
-        self.view_range = view_range.clone();
-    }
-}
 impl TrackSettings {
     const NAME: &'static str = "Track";
 
@@ -95,9 +89,14 @@ impl TrackSettings {
                 &mut self.track,
                 false,
                 Some(MusicalTime::new_with_beats(1)),
+                self.view_range.clone(),
                 &mut action,
             ));
         }
+    }
+
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.view_range = view_range.clone();
     }
 }
 impl Default for TrackSettings {
@@ -243,6 +242,10 @@ impl GridSettings {
             ui.add(timeline::grid(self.range.clone(), self.view_range.clone()));
         }
     }
+
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.view_range = view_range.clone();
+    }
 }
 impl Default for GridSettings {
     fn default() -> Self {
@@ -251,11 +254,6 @@ impl Default for GridSettings {
             range: MusicalTime::START..MusicalTime::new_with_beats(128),
             view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
         }
-    }
-}
-impl DisplaysInTimeline for GridSettings {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
     }
 }
 impl Displays for GridSettings {
@@ -326,15 +324,11 @@ impl PatternIconSettings {
 struct LivePatternSequencerSettings {
     hide: bool,
     sequencer: LivePatternSequencer,
+    view_range: std::ops::Range<MusicalTime>,
 }
 impl Displays for LivePatternSequencerSettings {
     fn ui(&mut self, ui: &mut Ui) -> egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
-    }
-}
-impl DisplaysInTimeline for LivePatternSequencerSettings {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.sequencer.set_view_range(view_range);
     }
 }
 impl LivePatternSequencerSettings {
@@ -342,8 +336,12 @@ impl LivePatternSequencerSettings {
 
     fn show(&mut self, ui: &mut Ui) {
         if !self.hide {
-            self.sequencer.ui(ui);
+            self.sequencer.ui_timeline(ui, &self.view_range);
         }
+    }
+
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.view_range = view_range.clone();
     }
 }
 
@@ -371,11 +369,6 @@ impl Displays for NoteSequencerSettings {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
-impl DisplaysInTimeline for NoteSequencerSettings {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
-    }
-}
 impl NoteSequencerSettings {
     const NAME: &'static str = "Note Sequencer";
 
@@ -383,6 +376,10 @@ impl NoteSequencerSettings {
         if !self.hide {
             self.sequencer.ui(ui);
         }
+    }
+
+    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+        self.view_range = view_range.clone();
     }
 }
 

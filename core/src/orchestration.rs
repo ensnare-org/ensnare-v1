@@ -16,9 +16,9 @@ use crate::{
         track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUid, TrackWidgetAction,
     },
     traits::{
-        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
-        IsAction, MidiMessagesFn, Orchestrates, Serializable, Ticks,
+        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityEvent,
+        Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, IsAction, MidiMessagesFn,
+        Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::{Uid, UidFactory},
@@ -222,13 +222,12 @@ impl Orchestrator {
     /// Adds a new MIDI track, which can contain controllers, instruments, and
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        let sequencer = Box::new(LivePatternSequencer::new_with(Arc::clone(&self.piano_roll)));
-        let entity_uid = self.mint_entity_uid();
+        let sequencer =
+            LivePatternSequencer::new_with(self.mint_entity_uid(), Arc::clone(&self.piano_roll));
         let trip_uid = self.mint_entity_uid();
         self.new_base_track(|track_uid, track| {
             track.title = TrackTitle(format!("MIDI {}", track_uid));
-            track.set_sequencer_channel(sequencer.sender());
-            let _ = track.append_entity(sequencer, entity_uid);
+            track.set_sequencer(sequencer);
             track.control_trips.insert(
                 trip_uid,
                 ControlTripBuilder::default()
@@ -962,14 +961,6 @@ impl Serializable for Orchestrator {
         });
     }
 }
-impl DisplaysInTimeline for Orchestrator {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
-        self.tracks
-            .values_mut()
-            .for_each(|t| t.set_view_range(view_range));
-    }
-}
 impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         eframe::egui::Window::new("Piano Roll")
@@ -1020,7 +1011,6 @@ impl Displays for Orchestrator {
                         let mut track_action_track_uid = None;
                         for track_uid in self.track_uids.iter() {
                             if let Some(track) = self.tracks.get_mut(track_uid) {
-                                track.set_view_range(&self.view_range);
                                 let is_selected = self.e.track_selection_set.contains(track_uid);
                                 let cursor = if self.transport.is_performing() {
                                     Some(self.transport.current_time())
@@ -1034,6 +1024,7 @@ impl Displays for Orchestrator {
                                     track,
                                     is_selected,
                                     cursor,
+                                    self.view_range.clone(),
                                     &mut track_widget_action,
                                 ));
                                 if let Some(track_widget_action) = track_widget_action {

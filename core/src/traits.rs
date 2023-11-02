@@ -17,10 +17,10 @@ use crate::{
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, DisplaysInTimeline,
-        Entity, EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
-        HasSettings, IsAction, IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, Orchestrates, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
+        Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityEvent,
+        Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings, IsAction,
+        IsController, IsEffect, IsInstrument, IsStereoSampleVoice, IsVoice, MidiMessagesFn,
+        Orchestrates, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
         TransformsAudio,
     };
 }
@@ -423,12 +423,6 @@ pub trait Entity:
     fn as_controllable_mut(&mut self) -> Option<&mut dyn Controllable> {
         None
     }
-    fn as_displays_in_timeline(&self) -> Option<&dyn DisplaysInTimeline> {
-        None
-    }
-    fn as_displays_in_timeline_mut(&mut self) -> Option<&mut dyn DisplaysInTimeline> {
-        None
-    }
 }
 
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
@@ -458,14 +452,6 @@ pub trait Displays {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label("Coming soon!")
     }
-}
-
-/// Something that can display a portion of itself in a timeline view.
-#[allow(unused_variables)]
-pub trait DisplaysInTimeline: Displays {
-    /// Sets the range of time on the track timeline that the next ui() call
-    /// should visualize.
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {}
 }
 
 /// Reports an action requested during [Displays::ui()].

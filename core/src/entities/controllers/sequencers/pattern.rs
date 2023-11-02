@@ -6,8 +6,8 @@ use crate::{
     piano_roll::{Note, Pattern, PatternUid, PianoRoll},
     time::MusicalTime,
     traits::{
-        Configurable, ControlEventsFn, Controls, Displays, DisplaysInTimeline, HandlesMidi,
-        Sequences, SequencesMidi, Serializable,
+        Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
+        Serializable,
     },
     types::ChannelPair,
     uid::Uid,
@@ -20,7 +20,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Rect, RectShape, Shape},
 };
-use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Metadata};
+use ensnare_proc_macros::{IsController, Metadata};
 use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
@@ -37,9 +37,7 @@ use std::{
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(
-    Debug, Default, Builder, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize,
-)]
+#[derive(Debug, Default, Builder, IsController, Metadata, Serialize, Deserialize)]
 pub struct PatternSequencer {
     #[builder(setter(skip))]
     uid: Uid,
@@ -120,7 +118,6 @@ impl Controls for PatternSequencer {
 }
 impl Configurable for PatternSequencer {}
 impl Displays for PatternSequencer {}
-impl DisplaysInTimeline for PatternSequencer {}
 impl HandlesMidi for PatternSequencer {}
 impl Serializable for PatternSequencer {
     fn after_deser(&mut self) {
@@ -157,7 +154,7 @@ pub enum LivePatternEvent {
     Add(PatternUid, MusicalTime),
 }
 
-#[derive(Debug, Default, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default, IsController, Metadata, Serialize, Deserialize)]
 pub struct LivePatternSequencer {
     uid: Uid,
     arrangements: Vec<LivePatternArrangement>,
@@ -166,8 +163,6 @@ pub struct LivePatternSequencer {
     inner: PatternSequencer,
     #[serde(skip)]
     piano_roll: Arc<RwLock<PianoRoll>>,
-    #[serde(skip)]
-    view_range: Range<MusicalTime>,
 
     #[serde(skip)]
     channel: ChannelPair<LivePatternEvent>,
@@ -226,7 +221,14 @@ impl Controls for LivePatternSequencer {
                 }
             }
         }
-        self.inner.work(control_events_fn)
+
+        // The inner sequencers don't know our Uid, so here's where we override
+        // what they passed into us.
+        let mut inner_control_events_fn = |_, event| {
+            control_events_fn(Some(self.uid), event);
+        };
+
+        self.inner.work(&mut inner_control_events_fn)
     }
 
     fn is_finished(&self) -> bool {
@@ -256,12 +258,52 @@ impl Serializable for LivePatternSequencer {
 }
 impl Configurable for LivePatternSequencer {}
 impl HandlesMidi for LivePatternSequencer {}
-impl Displays for LivePatternSequencer {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Displays for LivePatternSequencer {}
+impl LivePatternSequencer {
+    pub fn new_with(uid: Uid, piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+        Self {
+            uid,
+            piano_roll,
+            ..Default::default()
+        }
+    }
+
+    fn replay(&mut self) {
+        let piano_roll = self.piano_roll.read().unwrap();
+        self.arrangements.iter().for_each(|arrangement| {
+            if let Some(pattern) = piano_roll.get_pattern(&arrangement.pattern_uid) {
+                let _ = self
+                    .inner
+                    .record(MidiChannel::default(), pattern, arrangement.range.start);
+            }
+        });
+    }
+
+    pub fn pattern_uid_for_position(&self, position: MusicalTime) -> Option<PatternUid> {
+        if let Some(arrangement) = self
+            .arrangements
+            .iter()
+            .find(|a| a.range.contains(&position))
+        {
+            Some(arrangement.pattern_uid)
+        } else {
+            None
+        }
+    }
+
+    pub fn sender(&self) -> &Sender<LivePatternEvent> {
+        &self.channel.sender
+    }
+
+    pub fn ui_timeline(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        view_range: &Range<MusicalTime>,
+    ) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
-            let x_range_f32 = self.view_range.start.total_units() as f32
-                ..=self.view_range.end.total_units() as f32;
+            let x_range_f32 =
+                view_range.start.total_units() as f32..=view_range.end.total_units() as f32;
             let y_range = i8::MAX as f32..=u8::MIN as f32;
             let local_space_rect = Rect::from_x_y_ranges(x_range_f32, y_range);
             let to_screen = RectTransform::from_to(local_space_rect, response.rect);
@@ -321,46 +363,6 @@ impl Displays for LivePatternSequencer {
         .inner
     }
 }
-impl DisplaysInTimeline for LivePatternSequencer {
-    fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
-        self.view_range = view_range.clone();
-    }
-}
-impl LivePatternSequencer {
-    pub fn new_with(piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
-        Self {
-            piano_roll,
-            ..Default::default()
-        }
-    }
-
-    fn replay(&mut self) {
-        let piano_roll = self.piano_roll.read().unwrap();
-        self.arrangements.iter().for_each(|arrangement| {
-            if let Some(pattern) = piano_roll.get_pattern(&arrangement.pattern_uid) {
-                let _ = self
-                    .inner
-                    .record(MidiChannel::default(), pattern, arrangement.range.start);
-            }
-        });
-    }
-
-    pub fn pattern_uid_for_position(&self, position: MusicalTime) -> Option<PatternUid> {
-        if let Some(arrangement) = self
-            .arrangements
-            .iter()
-            .find(|a| a.range.contains(&position))
-        {
-            Some(arrangement.pattern_uid)
-        } else {
-            None
-        }
-    }
-
-    pub fn sender(&self) -> &Sender<LivePatternEvent> {
-        &self.channel.sender
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -400,7 +402,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let mut s = LivePatternSequencer::new_with(Arc::clone(&piano_roll));
+        let mut s = LivePatternSequencer::new_with(Uid(1024), Arc::clone(&piano_roll));
         let _ = s.record(
             MidiChannel::default(),
             &pattern_uid,

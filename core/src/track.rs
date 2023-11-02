@@ -2,15 +2,14 @@
 
 use crate::{
     control::ControlRouter,
-    controllers::{trip, ControlTrip},
+    controllers::{trip, ControlTrip, LivePatternSequencer},
     drag_drop::{DragDropManager, DragSource, DropTarget},
-    entities::{controllers::sequencers::LivePatternEvent, prelude::*},
     humidifier::Humidifier,
     midi::prelude::*,
     midi_router::MidiRouter,
     piano_roll::{PatternUid, PianoRoll},
     prelude::*,
-    traits::prelude::*,
+    traits::{prelude::*, Sequences},
     uid::IsUid,
     widgets::{
         timeline::{cursor, grid},
@@ -18,7 +17,6 @@ use crate::{
     },
 };
 use anyhow::anyhow;
-use crossbeam_channel::Sender;
 use eframe::{
     egui::{Frame, Margin},
     emath::RectTransform,
@@ -105,10 +103,6 @@ pub struct TrackEphemerals {
     pub(crate) action: Option<TrackAction>,
     view_range: std::ops::Range<MusicalTime>,
     pub(crate) title_font_galley: Option<Arc<eframe::epaint::Galley>>,
-
-    // TODO: we need a story for how this gets restored on deserialization. We
-    // have given up the type info by this point, so how do we recognize it?
-    pattern_event_sender: Option<Sender<LivePatternEvent>>,
 }
 
 /// A collection of instruments, effects, and controllers that combine to
@@ -119,8 +113,7 @@ pub struct Track {
 
     pub(crate) entity_store: EntityStore,
 
-    /// If present, the one timeline entity that should be foreground during rendering.
-    pub(crate) foreground_timeline_entity: Option<Uid>,
+    sequencer: LivePatternSequencer,
 
     midi_router: MidiRouter,
 
@@ -174,6 +167,10 @@ impl Track {
         } else {
             None
         }
+    }
+
+    pub fn set_sequencer(&mut self, sequencer: LivePatternSequencer) {
+        self.sequencer = sequencer;
     }
 
     /// Returns the [Entity] having the given [Uid], if it exists.
@@ -285,16 +282,8 @@ impl Track {
         pattern_uid: &PatternUid,
         position: MusicalTime,
     ) -> Result<(), anyhow::Error> {
-        if let Some(sender) = &self.e.pattern_event_sender {
-            let _ = sender.send(LivePatternEvent::Add(*pattern_uid, position));
-            Ok(())
-        } else {
-            Err(anyhow!("No pattern event sender"))
-        }
-    }
-
-    pub(crate) fn set_sequencer_channel(&mut self, sender: &Sender<LivePatternEvent>) {
-        self.e.pattern_event_sender = Some(sender.clone());
+        self.sequencer
+            .record(MidiChannel::default(), pattern_uid, position)
     }
 
     /// Draws the given owned [Entity].
@@ -414,10 +403,11 @@ impl HandlesMidi for Track {
 }
 impl Controls for Track {
     fn update_time(&mut self, range: &Range<MusicalTime>) {
-        self.entity_store.update_time(range);
+        self.sequencer.update_time(range);
         self.control_trips
             .values_mut()
             .for_each(|ct| ct.update_time(range));
+        self.entity_store.update_time(range);
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -438,10 +428,11 @@ impl Controls for Track {
         };
 
         // Let everyone work and possibly generate messages.
-        self.entity_store.work(&mut handler);
+        self.sequencer.work(&mut handler);
         self.control_trips
             .values_mut()
             .for_each(|ct| ct.work(&mut handler));
+        self.entity_store.work(&mut handler);
 
         // We've accumulated all the MIDI messages. Route them to our own
         // MidiRouter. They've already been forwarded to the caller via
@@ -454,29 +445,35 @@ impl Controls for Track {
     }
 
     fn is_finished(&self) -> bool {
-        self.entity_store.is_finished() && self.control_trips.values().all(|ct| ct.is_finished())
+        self.sequencer.is_finished()
+            && self.control_trips.values().all(|ct| ct.is_finished())
+            && self.entity_store.is_finished()
     }
 
     fn play(&mut self) {
-        self.entity_store.play();
+        self.sequencer.play();
         self.control_trips.values_mut().for_each(|ct| ct.play());
+        self.entity_store.play();
     }
 
     fn stop(&mut self) {
-        self.entity_store.stop();
+        self.sequencer.stop();
         self.control_trips.values_mut().for_each(|ct| ct.stop());
+        self.entity_store.stop();
     }
 
     fn skip_to_start(&mut self) {
-        self.entity_store.skip_to_start();
+        self.sequencer.skip_to_start();
         self.control_trips
             .values_mut()
             .for_each(|ct| ct.skip_to_start());
+        self.entity_store.skip_to_start();
     }
 
     fn is_performing(&self) -> bool {
-        self.entity_store.is_performing()
+        self.sequencer.is_performing()
             || self.control_trips.values().any(|ct| ct.is_performing())
+            || self.entity_store.is_performing()
     }
 }
 impl Serializable for Track {
@@ -489,20 +486,20 @@ impl Serializable for Track {
             .for_each(|ct| ct.after_deser());
     }
 }
-impl DisplaysInTimeline for Track {
-    fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
-        self.entity_store.iter_mut().for_each(|e| {
-            if let Some(e) = e.as_displays_in_timeline_mut() {
-                e.set_view_range(view_range);
-            }
-        });
-        self.control_trips
-            .values_mut()
-            .for_each(|ct| ct.set_view_range(view_range));
+// impl DisplaysInTimeline for Track {
+//     fn set_view_range(&mut self, view_range: &Range<MusicalTime>) {
+//         self.entity_store.iter_mut().for_each(|e| {
+//             if let Some(e) = e.as_displays_in_timeline_mut() {
+//                 e.set_view_range(view_range);
+//             }
+//         });
+//         self.control_trips
+//             .values_mut()
+//             .for_each(|ct| ct.set_view_range(view_range));
 
-        self.e.view_range = view_range.clone();
-    }
-}
+//         self.e.view_range = view_range.clone();
+//     }
+// }
 impl Displays for Track {}
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
@@ -511,10 +508,11 @@ pub fn track_widget<'a>(
     track: &'a mut Track,
     is_selected: bool,
     cursor: Option<MusicalTime>,
+    view_range: Range<MusicalTime>,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        TrackWidget::new(track_uid, track, cursor, action)
+        TrackWidget::new(track_uid, track, cursor, view_range, action)
             .is_selected(is_selected)
             .ui(ui)
     }
@@ -532,6 +530,7 @@ struct TrackWidget<'a> {
     track: &'a mut Track,
     is_selected: bool,
     cursor: Option<MusicalTime>,
+    view_range: Range<MusicalTime>,
     action: &'a mut Option<TrackWidgetAction>,
 }
 impl<'a> TrackWidget<'a> {
@@ -585,13 +584,12 @@ impl<'a> Displays for TrackWidget<'a> {
                             let (_id, rect) = ui.allocate_space(desired_size);
 
                             let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
-                            let view_range = self.track.view_range().clone();
 
                             let from_screen = RectTransform::from_to(
                                 rect,
                                 Rect::from_x_y_ranges(
-                                    view_range.start.total_units() as f32
-                                        ..=view_range.end.total_units() as f32,
+                                    self.view_range.start.total_units() as f32
+                                        ..=self.view_range.end.total_units() as f32,
                                     rect.top()..=rect.bottom(),
                                 ),
                             );
@@ -599,44 +597,49 @@ impl<'a> Displays for TrackWidget<'a> {
                             // The Grid is always disabled and drawn first.
                             let _ = ui
                                 .allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(grid(
-                                        temp_range.clone(),
-                                        self.track.view_range().clone(),
-                                    ))
+                                    ui.add(grid(temp_range.clone(), self.view_range.clone()))
                                 })
                                 .inner;
 
                             // Draw the disabled timeline views.
-                            let controllers = self.track.controllers.clone();
-                            controllers.iter().for_each(|uid| {
-                                if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                    if entity.as_displays_in_timeline().is_some() {
-                                        ui.add_enabled_ui(false, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| {
-                                                if let Some(entity) = self.track.entity_mut(uid) {
-                                                    entity.ui(ui)
-                                                } else {
-                                                    ui.label("Missing entity {uid}")
-                                                }
-                                            })
-                                            .inner
-                                        })
-                                        .inner;
-                                    }
-                                }
+                            // let controllers = self.track.controllers.clone();
+                            // controllers.iter().for_each(|uid| {
+                            //     if let Some(entity) = self.track.entity_store.get_mut(uid) {
+                            //         if entity.as_displays_in_timeline().is_some() {
+                            //             ui.add_enabled_ui(false, |ui| {
+                            //                 ui.allocate_ui_at_rect(rect, |ui| {
+                            //                     if let Some(entity) = self.track.entity_mut(uid) {
+                            //                         entity.ui(ui)
+                            //                     } else {
+                            //                         ui.label("Missing entity {uid}")
+                            //                     }
+                            //                 })
+                            //                 .inner
+                            //             })
+                            //             .inner;
+                            //         }
+                            //     }
+                            // });
+
+                            ui.add_enabled_ui(true, |ui| {
+                                ui.allocate_ui_at_rect(rect, |ui| {
+                                    self.track.sequencer.ui_timeline(ui, &self.view_range);
+                                });
                             });
 
                             // Draw control trips.
+                            let mut should_show = false;
                             self.track.control_trips.values_mut().for_each(|t| {
-                                ui.add_enabled_ui(false, |ui| {
+                                ui.add_enabled_ui(should_show, |ui| {
                                     ui.allocate_ui_at_rect(rect, |ui| {
                                         ui.add(trip(
                                             t,
                                             &mut self.track.control_router,
-                                            view_range.clone(),
+                                            self.view_range.clone(),
                                         ));
                                     });
                                 });
+                                should_show = false;
                             });
 
                             // Draw the one enabled timeline view.
@@ -644,10 +647,10 @@ impl<'a> Displays for TrackWidget<'a> {
 
                             // Finally, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
-                                if view_range.contains(&position) {
+                                if self.view_range.contains(&position) {
                                     let _ = ui
                                         .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(position, view_range.clone()))
+                                            ui.add(cursor(position, self.view_range.clone()))
                                         })
                                         .inner;
                                 }
@@ -693,6 +696,7 @@ impl<'a> TrackWidget<'a> {
         track_uid: TrackUid,
         track: &'a mut Track,
         cursor: Option<MusicalTime>,
+        view_range: Range<MusicalTime>,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
         Self {
@@ -700,6 +704,7 @@ impl<'a> TrackWidget<'a> {
             track,
             is_selected: false,
             cursor,
+            view_range,
             action,
         }
     }
@@ -781,31 +786,28 @@ impl<'a> Displays for SignalChainWidget<'a> {
                         )
                         .for_each(|uid| {
                             if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                if entity.as_displays_in_timeline().is_none() {
-                                    if entity.as_controller().is_some() {
-                                        DragDropManager::drag_source(
-                                            ui,
-                                            eframe::egui::Id::new(entity.name()),
-                                            DragSource::ControlSource(*uid),
-                                            |ui| {
-                                                if ui.button(entity.name()).clicked() {
-                                                    *self.action = Some(
-                                                        SignalChainWidgetAction::EntitySelected(
-                                                            *uid,
-                                                            entity.name().to_string(),
-                                                        ),
-                                                    );
-                                                }
-                                            },
-                                        )
-                                    } else {
-                                        if ui.button(entity.name()).clicked() {
-                                            *self.action =
-                                                Some(SignalChainWidgetAction::EntitySelected(
-                                                    *uid,
-                                                    entity.name().to_string(),
-                                                ));
-                                        }
+                                if entity.as_controller().is_some() {
+                                    DragDropManager::drag_source(
+                                        ui,
+                                        eframe::egui::Id::new(entity.name()),
+                                        DragSource::ControlSource(*uid),
+                                        |ui| {
+                                            if ui.button(entity.name()).clicked() {
+                                                *self.action =
+                                                    Some(SignalChainWidgetAction::EntitySelected(
+                                                        *uid,
+                                                        entity.name().to_string(),
+                                                    ));
+                                            }
+                                        },
+                                    )
+                                } else {
+                                    if ui.button(entity.name()).clicked() {
+                                        *self.action =
+                                            Some(SignalChainWidgetAction::EntitySelected(
+                                                *uid,
+                                                entity.name().to_string(),
+                                            ));
                                     }
                                 }
                             }
@@ -829,10 +831,11 @@ impl<'a> Displays for SignalChainWidget<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::factory::test_entities::{
-        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
+    use crate::entities::{
+        factory::test_entities::{TestEffect, TestInstrument, TestInstrumentCountsMidiMessages},
+        prelude::ToyControllerAlwaysSendsMidiMessage,
     };
-    use ensnare_proc_macros::{Control, IsControllerWithTimelineDisplay, Metadata};
+    use ensnare_proc_macros::{Control, IsController, Metadata};
 
     #[test]
     fn basic_track_operations() {
@@ -937,9 +940,7 @@ mod tests {
         );
     }
 
-    #[derive(
-        Default, Debug, Control, IsControllerWithTimelineDisplay, Metadata, Serialize, Deserialize,
-    )]
+    #[derive(Default, Debug, Control, IsController, Metadata, Serialize, Deserialize)]
     struct TimelineDisplayer {
         uid: Uid,
     }
@@ -948,7 +949,4 @@ mod tests {
     impl Configurable for TimelineDisplayer {}
     impl HandlesMidi for TimelineDisplayer {}
     impl Displays for TimelineDisplayer {}
-    impl DisplaysInTimeline for TimelineDisplayer {
-        fn set_view_range(&mut self, _view_range: &std::ops::Range<MusicalTime>) {}
-    }
 }

@@ -122,13 +122,8 @@ impl Grid {
         self
     }
     fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
-        self.set_view_range(&view_range);
+        self.view_range = view_range;
         self
-    }
-}
-impl DisplaysInTimeline for Grid {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
     }
 }
 impl Displays for Grid {
@@ -181,13 +176,8 @@ impl Cursor {
         self
     }
     fn view_range(mut self, view_range: std::ops::Range<MusicalTime>) -> Self {
-        self.set_view_range(&view_range);
+        self.view_range = view_range;
         self
-    }
-}
-impl DisplaysInTimeline for Cursor {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.view_range = view_range.clone();
     }
 }
 impl Displays for Cursor {

@@ -7,13 +7,13 @@ use crate::{
     rng::Rng,
     time::MusicalTime,
     traits::{
-        Configurable, ControlEventsFn, Controls, Displays, DisplaysInTimeline, HandlesMidi,
-        Sequences, SequencesMidi, Serializable,
+        Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
+        Serializable,
     },
     uid::Uid,
 };
 use derive_builder::Builder;
-use ensnare_proc_macros::{IsControllerWithTimelineDisplay, Metadata};
+use ensnare_proc_macros::{IsController, Metadata};
 use serde::{Deserialize, Serialize};
 
 impl NoteSequencerBuilder {
@@ -44,9 +44,7 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(
-    Debug, Default, Serialize, Deserialize, Builder, IsControllerWithTimelineDisplay, Metadata,
-)]
+#[derive(Debug, Default, Serialize, Deserialize, Builder, IsController, Metadata)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
     #[builder(default)]
@@ -153,7 +151,6 @@ impl Serializable for NoteSequencer {
     }
 }
 impl Displays for NoteSequencer {}
-impl DisplaysInTimeline for NoteSequencer {}
 
 #[cfg(test)]
 mod tests {

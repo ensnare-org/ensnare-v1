@@ -7,7 +7,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, Stroke},
 };
-use ensnare_proc_macros::{Control, IsController, IsControllerWithTimelineDisplay, Metadata};
+use ensnare_proc_macros::{Control, IsController, Metadata};
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -224,9 +224,6 @@ pub struct ControlTripEphemerals {
     /// in Controls::update_time().
     range: std::ops::Range<MusicalTime>,
 
-    /// The GUI view's time range.
-    view_range: std::ops::Range<MusicalTime>,
-
     /// Which step we're currently processing.
     current_step: usize,
     /// The type of path we should be following.
@@ -249,7 +246,6 @@ impl Default for ControlTripEphemerals {
     fn default() -> Self {
         Self {
             range: Default::default(),
-            view_range: Default::default(),
             current_step: Default::default(),
             current_path: Default::default(),
             value_range: ControlValue::default()..=ControlValue::default(),
@@ -277,16 +273,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    Default,
-    IsControllerWithTimelineDisplay,
-    Metadata,
-    Builder,
-)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Metadata, Builder)]
 pub struct ControlTrip {
     #[builder(default)]
     uid: Uid,
@@ -396,11 +383,10 @@ impl ControlTrip {
     pub fn uid(&self) -> Uid {
         self.uid
     }
-}
-impl DisplaysInTimeline for ControlTrip {
-    fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
-        self.e.view_range = view_range.clone();
-    }
+
+    // fn set_view_range(&mut self, view_range: &std::ops::Range<MusicalTime>) {
+    //     self.e.view_range = view_range.clone();
+    // }
 }
 impl Displays for ControlTrip {
     fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
