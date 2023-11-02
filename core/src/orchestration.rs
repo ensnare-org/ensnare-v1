@@ -30,7 +30,6 @@ use crate::{
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use derive_builder::Builder;
-use eframe::egui::ScrollArea;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -965,11 +964,20 @@ impl Displays for Orchestrator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         eframe::egui::Window::new("Piano Roll")
             .open(&mut self.e.is_piano_roll_open)
+            .default_width(ui.available_width())
+            .anchor(
+                eframe::emath::Align2::LEFT_BOTTOM,
+                eframe::epaint::vec2(5.0, 5.0),
+            )
             .show(ui.ctx(), |ui| self.piano_roll.write().unwrap().ui(ui));
 
         eframe::egui::Window::new(&self.e.entity_detail_title)
             .id(eframe::egui::Id::from("Entity Detail"))
             .open(&mut self.e.is_entity_detail_open)
+            .anchor(
+                eframe::emath::Align2::RIGHT_BOTTOM,
+                eframe::epaint::vec2(5.0, 5.0),
+            )
             .show(ui.ctx(), |ui| {
                 if let Some(uid) = &self.e.selected_entity_uid {
                     if let Some(track_uid) = self.entity_uid_to_track_uid.get(uid) {
@@ -1004,7 +1012,7 @@ impl Displays for Orchestrator {
                 });
 
                 // Create a scrolling area for all the tracks.
-                ScrollArea::vertical()
+                eframe::egui::ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
                     .show(ui, |ui| {
                         let mut track_action = None;
