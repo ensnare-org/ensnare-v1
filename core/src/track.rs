@@ -131,7 +131,8 @@ pub struct Track {
     pub(crate) e: TrackEphemerals,
 }
 impl Track {
-    // TODO: for now the only way to add something new to a Track is to append it.
+    // TODO: for now the only way to add something new to a Track is to append
+    // it.
     #[allow(missing_docs)]
     pub fn append_entity(&mut self, entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
         // Some entities are hybrids, so they can appear in multiple lists.
@@ -545,8 +546,8 @@ impl<'a> Displays for TrackWidget<'a> {
                     ui.set_min_height(Self::TRACK_HEIGHT);
 
                     // The `Response` is based on the title bar, so
-                    // clicking/dragging on the title bar affects the `Track` as a
-                    // whole.
+                    // clicking/dragging on the title bar affects the `Track` as
+                    // a whole.
                     let font_galley = self
                         .track
                         .e
@@ -566,7 +567,8 @@ impl<'a> Displays for TrackWidget<'a> {
                     ui.vertical(|ui| {
                         let can_accept = self.check_drag_source_for_timeline();
                         let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
-                            // Determine the rectangle that all the composited layers will use.
+                            // Determine the rectangle that all the composited
+                            // layers will use.
                             let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
                             let (_id, rect) = ui.allocate_space(desired_size);
 
@@ -588,25 +590,18 @@ impl<'a> Displays for TrackWidget<'a> {
                                 })
                                 .inner;
 
-                            // Draw the disabled timeline views.
-                            // let controllers = self.track.controllers.clone();
-                            // controllers.iter().for_each(|uid| {
-                            //     if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                            //         if entity.as_displays_in_timeline().is_some() {
-                            //             ui.add_enabled_ui(false, |ui| {
-                            //                 ui.allocate_ui_at_rect(rect, |ui| {
-                            //                     if let Some(entity) = self.track.entity_mut(uid) {
-                            //                         entity.ui(ui)
-                            //                     } else {
-                            //                         ui.label("Missing entity {uid}")
-                            //                     }
-                            //                 })
-                            //                 .inner
-                            //             })
-                            //             .inner;
-                            //         }
-                            //     }
-                            // });
+                            // The following code is incomplete. I want to check
+                            // in anyway because the changes are getting too
+                            // big.
+                            //
+                            // The intent is this (similar to code from a couple
+                            // revs ago):
+                            //
+                            // 1. Have a way of representing which item is
+                            //    frontmost. Maybe a smart enum.
+                            // 2. Cycle through and render all but the frontmost
+                            //    item, but disabled.
+                            // 3. Render the frontmost, enabled.
 
                             ui.add_enabled_ui(true, |ui| {
                                 ui.allocate_ui_at_rect(rect, |ui| {
@@ -618,9 +613,9 @@ impl<'a> Displays for TrackWidget<'a> {
                             });
 
                             // Draw control trips.
-                            let mut should_show = false;
+                            let mut enabled = false;
                             self.track.control_trips.values_mut().for_each(|t| {
-                                ui.add_enabled_ui(should_show, |ui| {
+                                ui.add_enabled_ui(enabled, |ui| {
                                     ui.allocate_ui_at_rect(rect, |ui| {
                                         ui.add(trip(
                                             t,
@@ -629,11 +624,8 @@ impl<'a> Displays for TrackWidget<'a> {
                                         ));
                                     });
                                 });
-                                should_show = false;
+                                enabled = false;
                             });
-
-                            // Draw the one enabled timeline view.
-                            // TODO: repeat prior code but with just the one that is active
 
                             // Finally, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
@@ -669,7 +661,8 @@ impl<'a> Displays for TrackWidget<'a> {
                             }
                         });
 
-                        // This must be last. It makes sure we fill the remaining space.
+                        // This must be last. It makes sure we fill the
+                        // remaining space.
                         ui.allocate_space(ui.available_size());
 
                         response
@@ -716,7 +709,7 @@ impl<'a> TrackWidget<'a> {
     }
 }
 
-/// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget). Mutates many things.
+/// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget).
 pub fn signal_chain<'a>(
     track_uid: TrackUid,
     track: &'a mut Track,
