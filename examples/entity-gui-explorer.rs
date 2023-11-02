@@ -191,9 +191,6 @@ fn main() -> anyhow::Result<()> {
     factory.register_entity_with_str_key(PianoRollEntity::ENTITY_KEY, |uid| {
         Box::new(PianoRollEntity::new(uid))
     });
-    // factory.register_entity_with_str_key(ControlAtlas::ENTITY_KEY, |uid| {
-    //     Box::new(ControlAtlasWrapper::new(uid))
-    // });
 
     if EntityFactory::initialize(register_factory_entities(factory)).is_err() {
         return Err(anyhow!("Couldn't initialize EntityFactory"));
