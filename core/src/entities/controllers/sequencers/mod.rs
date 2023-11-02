@@ -2,9 +2,7 @@
 
 pub use midi::MidiSequencer;
 pub use note::{NoteSequencer, NoteSequencerBuilder};
-pub use pattern::{
-    LivePatternEvent, LivePatternSequencer, PatternSequencer, PatternSequencerBuilder,
-};
+pub use pattern::{LivePatternSequencer, PatternSequencer, PatternSequencerBuilder};
 
 mod midi;
 mod note;

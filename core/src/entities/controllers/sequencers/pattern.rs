@@ -149,11 +149,6 @@ pub struct LivePatternArrangement {
     range: Range<MusicalTime>,
 }
 
-#[derive(Debug)]
-pub enum LivePatternEvent {
-    Add(PatternUid, MusicalTime),
-}
-
 #[derive(Debug, Default, IsController, Metadata, Serialize, Deserialize)]
 pub struct LivePatternSequencer {
     uid: Uid,
@@ -163,9 +158,6 @@ pub struct LivePatternSequencer {
     inner: PatternSequencer,
     #[serde(skip)]
     piano_roll: Arc<RwLock<PianoRoll>>,
-
-    #[serde(skip)]
-    channel: ChannelPair<LivePatternEvent>,
 }
 impl Sequences for LivePatternSequencer {
     type MU = PatternUid;
@@ -214,14 +206,6 @@ impl Controls for LivePatternSequencer {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        if let Ok(event) = self.channel.receiver.try_recv() {
-            match event {
-                LivePatternEvent::Add(pattern_uid, position) => {
-                    let _ = self.record(MidiChannel::default(), &pattern_uid, position);
-                }
-            }
-        }
-
         // The inner sequencers don't know our Uid, so here's where we override
         // what they passed into us.
         let mut inner_control_events_fn = |_, event| {
@@ -289,10 +273,6 @@ impl LivePatternSequencer {
         } else {
             None
         }
-    }
-
-    pub fn sender(&self) -> &Sender<LivePatternEvent> {
-        &self.channel.sender
     }
 
     pub fn ui_timeline(
