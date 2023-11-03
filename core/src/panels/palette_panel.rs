@@ -17,9 +17,7 @@ impl Displays for PalettePanel {
                     ui,
                     eframe::egui::Id::new(key),
                     DragSource::NewDevice(key.clone()),
-                    |ui| {
-                        ui.label(key.to_string());
-                    },
+                    |ui| ui.label(key.to_string()),
                 );
             }
         })

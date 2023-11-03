@@ -769,29 +769,18 @@ impl<'a> Displays for SignalChainWidget<'a> {
                         )
                         .for_each(|uid| {
                             if let Some(entity) = self.track.entity_store.get_mut(uid) {
-                                if entity.as_controller().is_some() {
-                                    DragDropManager::drag_source(
-                                        ui,
-                                        eframe::egui::Id::new(entity.name()),
-                                        DragSource::ControlSource(*uid),
-                                        |ui| {
-                                            if ui.button(entity.name()).clicked() {
-                                                *self.action =
-                                                    Some(SignalChainWidgetAction::EntitySelected(
-                                                        *uid,
-                                                        entity.name().to_string(),
-                                                    ));
-                                            }
-                                        },
-                                    )
-                                } else {
-                                    if ui.button(entity.name()).clicked() {
-                                        *self.action =
-                                            Some(SignalChainWidgetAction::EntitySelected(
-                                                *uid,
-                                                entity.name().to_string(),
-                                            ));
-                                    }
+                                if ui
+                                    .add(signal_chain_item(
+                                        *uid,
+                                        entity.name(),
+                                        entity.as_controller().is_some(),
+                                    ))
+                                    .clicked()
+                                {
+                                    *self.action = Some(SignalChainWidgetAction::EntitySelected(
+                                        *uid,
+                                        entity.name().to_string(),
+                                    ));
                                 }
                             }
                         });
@@ -808,6 +797,46 @@ impl<'a> Displays for SignalChainWidget<'a> {
             })
             .response;
         response
+    }
+}
+
+/// Wraps a [SignalChainItem] as a [Widget](eframe::egui::Widget).
+pub fn signal_chain_item<'a>(
+    uid: Uid,
+    name: &'static str,
+    is_control_source: bool,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| SignalChainItem::new(uid, name, is_control_source).ui(ui)
+}
+
+struct SignalChainItem {
+    uid: Uid,
+    name: &'static str,
+    is_control_source: bool,
+}
+impl SignalChainItem {
+    fn new(uid: Uid, name: &'static str, is_control_source: bool) -> Self {
+        Self {
+            uid,
+            name,
+            is_control_source,
+        }
+    }
+}
+impl Displays for SignalChainItem {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        if self.is_control_source {
+            DragDropManager::drag_source(
+                ui,
+                eframe::egui::Id::new(self.name),
+                DragSource::ControlSource(self.uid),
+                |ui| {
+                    ui.button(self.name)
+                },
+            )
+        } else {
+            ui.button(self.name)
+        }
     }
 }
 

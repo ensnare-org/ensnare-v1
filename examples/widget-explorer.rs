@@ -158,9 +158,7 @@ impl<'a> Displays for PretendDevicePalette<'a> {
                                 ui,
                                 Id::new(key),
                                 DragSource::NewDevice(key.clone()),
-                                |ui| {
-                                    ui.label(key.to_string());
-                                },
+                                |ui| ui.label(key.to_string()),
                             );
                         }
                     })
@@ -312,9 +310,7 @@ impl PatternIconSettings {
                 ui,
                 Id::new("pattern icon"),
                 DragSource::Pattern(PatternUid(99)),
-                |ui| {
-                    ui.add(pattern::icon(self.duration, &self.notes, self.is_selected));
-                },
+                |ui| ui.add(pattern::icon(self.duration, &self.notes, self.is_selected)),
             );
         }
     }

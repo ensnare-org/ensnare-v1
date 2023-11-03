@@ -207,9 +207,7 @@ impl<'a> Displays for Carousel<'a> {
                         ui,
                         dd_id,
                         DragSource::Pattern(*pattern_uid),
-                        |ui| {
-                            ui.add(draggable_icon());
-                        },
+                        |ui| ui.add(draggable_icon()),
                     );
                 });
             });

@@ -71,8 +71,8 @@ impl DragDropManager {
         ui: &mut Ui,
         id: EguiId,
         drag_source: DragSource,
-        body: impl FnOnce(&mut Ui),
-    ) {
+        body: impl FnOnce(&mut Ui) -> eframe::egui::Response,
+    ) -> eframe::egui::Response {
         // This allows the app to avoid having to call reset() on every event
         // loop iteration, and fixes the bug that a drop target could see only
         // the drag sources that were instantiated earlier in the main event
@@ -92,16 +92,20 @@ impl DragDropManager {
             let layer_id = LayerId::new(Order::Tooltip, id);
 
             // Draw the body and grab the response.
-            let response = ui.with_layer_id(layer_id, body).response;
+            let response = ui.with_layer_id(layer_id, body);
+            let (response, inner) = (response.response, response.inner);
 
             // Shift the entire tooltip layer to keep up with mouse movement.
             if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                 let delta = pointer_pos - response.rect.center();
                 ui.ctx().translate_layer(layer_id, delta);
             }
+
+            inner
         } else {
             // Let the body draw itself, but scope to undo any style changes.
-            let response = ui.scope(body).response;
+            let response = ui.scope(body);
+            let (response, inner) = (response.response, response.inner);
 
             // If the mouse is still over the item, change cursor to indicate
             // that user could drag.
@@ -109,6 +113,8 @@ impl DragDropManager {
             if response.hovered() {
                 ui.ctx().set_cursor_icon(CursorIcon::Grab);
             }
+
+            inner
         }
     }
 
