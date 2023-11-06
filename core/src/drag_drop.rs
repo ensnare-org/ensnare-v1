@@ -16,7 +16,6 @@ static DD_MANAGER: OnceCell<Mutex<DragDropManager>> = OnceCell::new();
 pub enum DragSource {
     NewDevice(EntityKey),
     Pattern(PatternUid),
-    ControlTrip(Uid),
     ControlSource(Uid),
 }
 

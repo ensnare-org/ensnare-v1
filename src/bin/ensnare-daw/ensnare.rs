@@ -491,7 +491,6 @@ impl Ensnare {
                         ));
                     }
                 },
-                DragSource::ControlTrip(_trip_uid) => todo!(),
                 DragSource::ControlSource(source_uid) => match target {
                     DropTarget::Controllable(target_uid, index) => {
                         input = Some(OrchestratorInput::LinkControl(
