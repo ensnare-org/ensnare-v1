@@ -6,7 +6,7 @@ use crate::{
     widgets::audio::{frequency_domain, time_domain, CircularSampleBuffer},
 };
 use eframe::{
-    egui::{Layout, Response, Ui},
+    egui::{ImageButton, Layout, Response, Ui},
     epaint::vec2,
 };
 use ensnare_egui_widgets::activity_indicator;
@@ -69,22 +69,52 @@ impl ControlPanel {
 impl Displays for ControlPanel {
     fn ui(&mut self, ui: &mut Ui) -> Response {
         ui.horizontal_centered(|ui| {
-            if ui.button("play").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/play_arrow.png"
+                )))
+                .on_hover_text("Start playback")
+                .clicked()
+            {
                 self.action = Some(ControlPanelAction::Play);
             }
-            if ui.button("stop").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/stop.png"
+                )))
+                .on_hover_text("Stop playback")
+                .clicked()
+            {
                 self.action = Some(ControlPanelAction::Stop);
             }
             ui.separator();
-            if ui.button("new").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/new_window.png"
+                )))
+                .on_hover_text("New project")
+                .clicked()
+            {
                 self.action = Some(ControlPanelAction::New);
             }
-            if ui.button("open").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/file_open.png"
+                )))
+                .on_hover_text("Open project")
+                .clicked()
+            {
                 self.action = Some(ControlPanelAction::Open(PathBuf::from(
                     "my-ensnare-project.json",
                 )));
             }
-            if ui.button("save").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/file_save.png"
+                )))
+                .on_hover_text("Save project")
+                .clicked()
+            {
                 self.action = Some(ControlPanelAction::Save(PathBuf::from(
                     "my-ensnare-project.json",
                 )));

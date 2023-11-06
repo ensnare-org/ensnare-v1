@@ -19,7 +19,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use eframe::{
-    egui::{Frame, Margin},
+    egui::{Frame, ImageButton, Margin},
     emath::RectTransform,
     epaint::{vec2, Color32, Rect, Stroke, Vec2},
 };
@@ -826,14 +826,19 @@ impl SignalChainItem {
 impl Displays for SignalChainItem {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.is_control_source {
-            DragDropManager::drag_source(
-                ui,
-                eframe::egui::Id::new(self.name),
-                DragSource::ControlSource(self.uid),
-                |ui| {
-                    ui.button(self.name)
-                },
-            )
+            ui.horizontal(|ui| {
+                let icon =
+                    eframe::egui::include_image!("../../res/images/md-symbols/drag_indicator.png");
+                let response = ui.button(self.name);
+                DragDropManager::drag_source(
+                    ui,
+                    eframe::egui::Id::new(self.name),
+                    DragSource::ControlSource(self.uid),
+                    |ui| ui.add(ImageButton::new(icon).tint(ui.ctx().style().visuals.text_color())),
+                );
+                response
+            })
+            .inner
         } else {
             ui.button(self.name)
         }
