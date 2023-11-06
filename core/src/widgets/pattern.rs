@@ -10,9 +10,9 @@ use crate::{
     traits::prelude::*,
 };
 use eframe::{
-    egui::{Id as EguiId, Response, Ui},
+    egui::{Id as EguiId, ImageButton, Response, Ui},
     emath::RectTransform,
-    epaint::{pos2, RectShape, Shape},
+    epaint::{pos2, RectShape, Shape, Vec2},
 };
 use std::collections::HashMap;
 
@@ -139,24 +139,12 @@ impl DraggableIcon {
 }
 impl Displays for DraggableIcon {
     fn ui(&mut self, ui: &mut Ui) -> Response {
-        let desired_size = ui.spacing().interact_size.y * eframe::egui::vec2(3.0, 1.0);
-        let (rect, response) =
-            ui.allocate_exact_size(desired_size, eframe::egui::Sense::click_and_drag());
+        let desired_size = ui.spacing().interact_size * Vec2::splat(1.25);
+        let icon =
+            eframe::egui::include_image!("../../../res/images/md-symbols/drag_indicator.png");
+        ui.add_sized(desired_size, ImageButton::new(icon))
 
-        let visuals = if ui.is_enabled() {
-            ui.ctx().style().visuals.widgets.active
-        } else {
-            ui.ctx().style().visuals.widgets.inactive
-        };
-
-        ui.painter().rect(
-            rect,
-            visuals.rounding,
-            visuals.weak_bg_fill,
-            visuals.bg_stroke,
-        );
-
-        response
+        // response
     }
 }
 
