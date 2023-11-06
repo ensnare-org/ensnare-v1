@@ -79,6 +79,7 @@ impl Ensnare {
         Self::initialize_fonts(&cc.egui_ctx);
         Self::initialize_visuals(&cc.egui_ctx);
         Self::initialize_style(&cc.egui_ctx);
+        egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
         let orchestrator_panel = OrchestratorPanel::default();
