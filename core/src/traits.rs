@@ -188,9 +188,19 @@ pub trait Configurable {
     #[allow(unused_variables)]
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {}
 
+    /// Returns the [Entity]'s [Tempo].
+    fn tempo(&self) -> Tempo {
+        unimplemented!("Someone forgot to implement tempo()")
+    }
+
     /// Tempo (beats per minute) changed.
     #[allow(unused_variables)]
     fn update_tempo(&mut self, tempo: Tempo) {}
+
+    /// Returns the [Entity]'s [TimeSignature].
+    fn time_signature(&self) -> TimeSignature {
+        unimplemented!("Someone forgot to implement time_signature()")
+    }
 
     /// The global time signature changed. Recipients are free to ignore this if
     /// they are dancing to their own rhythm (e.g., a polyrhythmic pattern), but
@@ -469,7 +479,7 @@ pub trait Acts: Displays {
 pub trait IsAction: std::fmt::Debug + std::fmt::Display {}
 
 /// Manages relationships among [Entities](Entity) to produce a song.
-pub trait Orchestrates: Configurable {
+pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
     /// Creates a new track, returning its [TrackUid] if successful. A track is
     /// a group of musical instruments that together produce a single sample for
     /// every frame of audio. Each track's frame sample is then merged into a
@@ -585,6 +595,16 @@ pub trait Orchestrates: Configurable {
 
     /// Ends any soloing.
     fn end_solo(&mut self);
+
+    /// Given the number of digital audio samples that we want, returns the next
+    /// slice of musical time that we should render in this performance.
+    fn next_range(&mut self, sample_count: usize) -> std::ops::Range<MusicalTime>;
+
+    /// Connect the specified Entity to the given MIDI channel.
+    fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()>;
+
+    /// Disconnect the specified Entity from the given MIDI channel.
+    fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel);
 }
 
 /// The callback signature for handle_midi_message().

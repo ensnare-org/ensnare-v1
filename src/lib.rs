@@ -7,9 +7,9 @@
 pub mod arrangement {
     //! Organization of musical elements.
     pub use ensnare_core::{
-        orchestration::{Orchestrator, OrchestratorBuilder},
-        time::{transport, Transport},
-        track::{signal_chain, track_widget, Track, TrackAction, TrackTitle, TrackUid},
+        orchestration::Orchestrator,
+        time::Transport,
+        track::{Track, TrackAction, TrackTitle, TrackUid},
     };
 }
 
@@ -101,6 +101,7 @@ pub mod entities {
         pub use ensnare_core::{
             entities::{
                 factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
+                instruments::drumkit::{Drumkit, DrumkitParams},
                 instruments::*,
                 toys::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
             },
@@ -139,24 +140,33 @@ pub mod modulators {
 }
 
 pub mod panels {
-    //! Subsystems that typically run in their own thread and use crossbeam
-    //! channels for communication. They also generally implement
-    //! [Displays](crate::traits::Displays), so they also provide a UI panel
-    //! that helps visualize and manage the subsystem.
+    //! This module is being migrated to `systems`.
 
     /// `use ensnare::panels::prelude::*;` when working with panels.
     pub mod prelude {
         pub use super::{
             AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction,
-            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
-            OrchestratorInput, OrchestratorPanel, PalettePanel,
+            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, PalettePanel,
         };
     }
     pub use ensnare_core::panels::{
         AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction, MidiPanel,
-        MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput,
-        OrchestratorPanel, PalettePanel,
+        MidiPanelEvent, MidiSettings, NeedsAudioFn, PalettePanel,
     };
+}
+
+pub mod systems {
+    //! Subsystems that typically run in their own thread and use crossbeam
+    //! channels for communication. They also generally implement
+    //! [Displays](crate::traits::Displays), so they also provide a UI panel
+    //! that helps visualize and manage the subsystem.
+
+    /// `use ensnare::systems::prelude::*;` when working with systems.
+    pub mod prelude {
+        pub use super::{OrchestratorEvent, OrchestratorInput, OrchestratorPanel};
+    }
+
+    pub use ensnare_systems::{OrchestratorEvent, OrchestratorInput, OrchestratorPanel};
 }
 
 pub mod traits {
@@ -191,15 +201,17 @@ pub mod utils {
     pub use ensnare_core::utils::Paths;
 }
 
-mod version;
-
+pub use project::Project;
 pub use version::app_version;
+
+mod project;
+mod version;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        arrangement::{Orchestrator, OrchestratorBuilder, Track, TrackTitle, TrackUid, Transport},
+        arrangement::{Orchestrator, Track, TrackTitle, TrackUid, Transport},
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         entities::{
@@ -212,6 +224,7 @@ pub mod prelude {
             u4, u7, MidiChannel, MidiMessage, MidiNote,
         },
         modulators::{Dca, DcaParams},
+        project::{Project, ProjectTitle},
         traits::{
             Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity,
             EntityEvent, HandlesMidi, HasMetadata, HasSettings, IsAction, IsController, IsEffect,

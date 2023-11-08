@@ -294,3 +294,35 @@ were never going to be asked to Displays::ui() in a generic context.
 
 Another test: drop targets. If it can have multiple, then it must be a
 component. If it can only be a single drop target, then it's probably a widget.
+
+# 2023-11-07: More on concrete vs trait
+
+I just noticed that I broke all the integration tests with the switch to
+integrated LivePatternSequencer. They are all adding their own programmed
+sequencers, so we ended up with two sequencers. They broke because not everyone
+was using the same singleton PianoRoll. I updated a test to use the integrated
+sequencer, but I'm not happy with how it turned out; there are too many
+intricate and fragile ordering requirements.
+
+So now for the Nth time I'm rethinking everything. Maybe this will work:
+
+- `Orchestrator`'s core job is to accept the Entities it is given, and keep
+  calling them in the right sequence until they're done.
+- `Orchestrator`'s non-jobs: egui rendering, serialization.
+- `OrchestratorHelper` takes an `Orchestrates` and does stuff like rendering to
+  audio.
+- `Project`'s job is to convert serialized Project to/from Orchestrator and
+  anything else, like PianoRoll.
+- `OrchestratorMegaWidget`'s job is to render the entire Orchestrator view and
+  allow editing.
+
+What I did today:
+
+- Made a new `Orchestrator` and renamed the old one to `OldOrchestrator`. The
+  new one *almost* does nothing but implement the trait.
+- Made `Project` that doesn't quite do anything yet.
+- Started separating out egui code into a new crate.
+- Created `OrchestratorHelper` and moved the rendering methods there.
+
+I'm going to commit this on a branch because it has a lot of roughness, and I'll
+lose track of which still need work if I commit on main.

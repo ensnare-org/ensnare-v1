@@ -4,6 +4,7 @@ use ensnare::{
     entities::{controllers::PatternSequencerBuilder, effects::Gain, instruments::ToySynth},
     prelude::*,
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
@@ -13,10 +14,7 @@ fn demo_sidechaining() {
     let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
     let factory = EntityFactory::global();
 
-    let mut orchestrator = OrchestratorBuilder::default()
-        .title(Some("Sidechaining".to_string()))
-        .build()
-        .unwrap();
+    let mut orchestrator = Orchestrator::default();
 
     {
         let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
@@ -36,7 +34,10 @@ fn demo_sidechaining() {
                 &sidechain_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
-                        .pattern(sidechain_pattern.clone() + MusicalTime::START)
+                        .pattern((
+                            MidiChannel(0),
+                            sidechain_pattern.clone() + MusicalTime::START
+                        ))
                         .build()
                         .unwrap(),
                 )
@@ -86,7 +87,7 @@ fn demo_sidechaining() {
                 &lead_track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
-                        .pattern(lead_pattern.clone() + MusicalTime::START)
+                        .pattern((MidiChannel(0), lead_pattern.clone() + MusicalTime::START))
                         .build()
                         .unwrap()
                 )
@@ -122,5 +123,6 @@ fn demo_sidechaining() {
     let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "sidechaining.wav"]
         .iter()
         .collect();
-    assert!(orchestrator.write_to_file(&output_path).is_ok());
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    assert!(orchestrator_helper.write_to_file(&output_path).is_ok());
 }

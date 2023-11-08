@@ -10,7 +10,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
-use ensnare_core::piano_roll::PianoRollEntity;
+use ensnare_core::{piano_roll::PianoRollEntity, uid::EntityUidFactory}; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -25,7 +25,7 @@ enum DisplayMode {
 struct EntityGuiExplorer {
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
-    uid_factory: UidFactory<Uid>,
+    uid_factory: EntityUidFactory,
     display_mode: DisplayMode,
     entities: HashMap<EntityKey, Box<dyn Entity>>,
 }

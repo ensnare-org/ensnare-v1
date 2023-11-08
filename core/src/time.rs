@@ -1,18 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    traits::{Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Serializable},
+    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
     types::ParameterType,
     uid::Uid,
 };
 use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
-use eframe::{
-    egui::{DragValue, Frame, Label, Margin, RichText, TextStyle, Ui},
-    epaint::{Color32, Stroke, Vec2},
-};
-use ensnare_proc_macros::{Control, IsController, Metadata};
+use ensnare_proc_macros::{Control, Metadata};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -104,36 +100,6 @@ impl BeatValue {
         } else {
             Err(anyhow!("divisor {} is out of range", divisor))
         }
-    }
-}
-impl Displays for BeatValue {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.allocate_ui(Vec2::new(60.0, 24.0), |ui| {
-            Self::show_beat_value(ui, &format!("{} beats", BeatValue::divisor(self.clone())));
-        })
-        .response
-    }
-}
-impl BeatValue {
-    fn show_beat_value(ui: &mut Ui, label: &str) {
-        Frame::none()
-            .stroke(Stroke::new(2.0, Color32::GRAY))
-            .fill(Color32::DARK_GRAY)
-            .inner_margin(Margin::same(2.0))
-            .outer_margin(Margin {
-                left: 0.0,
-                right: 0.0,
-                top: 0.0,
-                bottom: 5.0,
-            })
-            .show(ui, |ui| {
-                ui.label(label);
-            });
-    }
-
-    #[allow(missing_docs)]
-    pub fn show_inherited(ui: &mut Ui) {
-        Self::show_beat_value(ui, "inherited");
     }
 }
 
@@ -580,9 +546,7 @@ pub struct TransportEphemerals {
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
 
-#[derive(
-    Serialize, Deserialize, Clone, Control, IsController, Debug, Default, Metadata, Builder,
-)]
+#[derive(Serialize, Deserialize, Clone, Control, Debug, Default, Metadata, Builder)]
 pub struct Transport {
     /// The entity's uid.
     uid: Uid,
@@ -594,7 +558,7 @@ pub struct Transport {
     /// The current beats per minute.
     #[builder(default)]
     #[control]
-    pub(crate) tempo: Tempo,
+    pub tempo: Tempo,
 
     #[serde(skip)]
     #[builder(setter(skip))]
@@ -603,12 +567,12 @@ pub struct Transport {
 impl HandlesMidi for Transport {}
 impl Transport {
     /// Returns the current [Tempo].
-    pub fn tempo(&self) -> Tempo {
+    pub(crate) fn tempo(&self) -> Tempo {
         self.tempo
     }
 
     /// Sets a new [Tempo].
-    pub fn set_tempo(&mut self, tempo: Tempo) {
+    pub(crate) fn set_tempo(&mut self, tempo: Tempo) {
         self.tempo = tempo;
     }
 
@@ -655,11 +619,6 @@ impl Transport {
 
     pub fn time_signature(&self) -> TimeSignature {
         self.time_signature
-    }
-}
-impl Displays for Transport {
-    fn ui(&mut self, _ui: &mut Ui) -> eframe::egui::Response {
-        unimplemented!("use transport widget instead")
     }
 }
 impl Serializable for Transport {}
@@ -714,38 +673,6 @@ impl Controls for Transport {
 
     fn is_performing(&self) -> bool {
         self.e.is_performing
-    }
-}
-
-/// Wraps a [Transport] as a [Widget](eframe::egui::Widget).
-pub fn transport(transport: &mut Transport) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| TransportWidget::new(transport).ui(ui)
-}
-
-#[derive(Debug)]
-struct TransportWidget<'a> {
-    transport: &'a mut Transport,
-}
-impl<'a> TransportWidget<'a> {
-    fn new(transport: &'a mut Transport) -> Self {
-        Self { transport }
-    }
-}
-impl<'a> Displays for TransportWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.horizontal_centered(|ui| {
-            ui.add(
-                DragValue::new(&mut self.transport.tempo.0)
-                    .clamp_range(Tempo::range())
-                    .min_decimals(1)
-                    .speed(0.1)
-                    .suffix(" BPM"),
-            ) | ui.add(Label::new(
-                RichText::new(format!("{}", self.transport.current_time()))
-                    .text_style(TextStyle::Monospace),
-            ))
-        })
-        .inner
     }
 }
 

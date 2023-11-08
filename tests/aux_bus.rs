@@ -8,6 +8,7 @@ use ensnare::{
     },
     prelude::*,
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 
 // Demonstrates use of aux buses.
 #[test]
@@ -15,10 +16,7 @@ fn aux_bus() {
     let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
     let factory = EntityFactory::global();
 
-    let mut orchestrator = OrchestratorBuilder::default()
-        .title(Some("Auxiliary Buses".to_string()))
-        .build()
-        .unwrap();
+    let mut orchestrator = Orchestrator::default();
 
     {
         let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
@@ -52,7 +50,7 @@ fn aux_bus() {
                     &track_uid_1,
                     Box::new(
                         PatternSequencerBuilder::default()
-                            .pattern(synth_pattern_1.clone())
+                            .pattern((MidiChannel(0), synth_pattern_1.clone()))
                             .build()
                             .unwrap(),
                     )
@@ -86,7 +84,7 @@ fn aux_bus() {
                     &track_uid_2,
                     Box::new(
                         PatternSequencerBuilder::default()
-                            .pattern(synth_pattern_2.clone())
+                            .pattern((MidiChannel(0), synth_pattern_2.clone()))
                             .build()
                             .unwrap(),
                     )
@@ -135,5 +133,6 @@ fn aux_bus() {
     let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "aux-bus.wav"]
         .iter()
         .collect();
-    assert!(orchestrator.write_to_file(&output_path).is_ok());
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    assert!(orchestrator_helper.write_to_file(&output_path).is_ok());
 }

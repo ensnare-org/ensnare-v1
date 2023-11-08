@@ -7,6 +7,7 @@ use ensnare::{
     entities::{effects::ToyEffect, instruments::ToyInstrument},
     prelude::*,
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]
@@ -67,7 +68,8 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
 
     // Once everything is set up, the orchestrator renders an audio stream.
-    let _ = orchestrator.write_to_file(&std::path::PathBuf::from("output.wav"));
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    let _ = orchestrator_helper.write_to_file(&std::path::PathBuf::from("output.wav"));
 
     Ok(())
 }

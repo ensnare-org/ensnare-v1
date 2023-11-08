@@ -20,7 +20,7 @@ use eframe::{
 };
 use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Add};
+use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 
 /// Identifies a [Pattern].
 #[derive(
@@ -36,6 +36,18 @@ impl From<usize> for PatternUid {
 impl Display for PatternUid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.0))
+    }
+}
+pub type PatternUidFactory = UidFactory<PatternUid>;
+impl UidFactory<PatternUid> {
+    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
+}
+impl Default for UidFactory<PatternUid> {
+    fn default() -> Self {
+        Self {
+            next_uid_value: Self::FIRST_UID,
+            _phantom: Default::default(),
+        }
     }
 }
 
@@ -470,7 +482,7 @@ impl Pattern {
 /// [PianoRoll] manages all [Pattern]s.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PianoRoll {
-    uid_factory: UidFactory<PatternUid>,
+    uid_factory: PatternUidFactory,
     uids_to_patterns: HashMap<PatternUid, Pattern>,
     ordered_pattern_uids: Vec<PatternUid>,
     pattern_selection_set: SelectionSet<PatternUid>,

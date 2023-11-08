@@ -10,6 +10,7 @@ use ensnare::{
     traits::{Displays, EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -113,7 +114,9 @@ impl SettingsPanel {
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    o.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
+                    let mut o: &mut Orchestrator = &mut o;
+                    let mut helper = OrchestratorHelper::new_with(o);
+                    helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
                         if let EntityEvent::Midi(channel, message) = event {
                             let _ =
                                 midi_panel_sender.send(MidiInterfaceInput::Midi(channel, message));

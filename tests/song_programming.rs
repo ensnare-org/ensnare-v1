@@ -2,62 +2,72 @@
 
 use ensnare::{
     entities::{
-        controllers::PatternSequencerBuilder,
-        effects::Reverb,
-        instruments::{ToyInstrument, ToySynth},
+        controllers::PatternSequencerBuilder, effects::Reverb, instruments::Drumkit,
+        instruments::ToySynth,
     },
     prelude::*,
 };
+use ensnare_core::{
+    controllers::PatternSequencer, orchestration::OrchestratorHelper, prelude::Orchestrator,
+    traits::Sequences,
+};
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
+    // Create the track and set it to 50% gain, because we'll have two tracks total.
+    let track_uid = o.create_track().unwrap();
+    o.set_track_output(track_uid, Normal::from(0.5));
+
+    // Rest
+    const RR: u8 = 255;
+
     // Add the drum pattern to the PianoRoll.
     // We need to scope piano_roll to satisfy the borrow checker.
     let drum_pattern = PatternBuilder::default()
         .note_sequence(
             vec![
-                35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
+                35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
+                35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
             ],
             None,
         )
         .note_sequence(
             vec![
-                255, 255, 255, 255, 39, 255, 255, 255, 255, 255, 255, 255, 39, 255, 255, 255,
+                RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
+                RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
             ],
             None,
         )
         .note_sequence(
             vec![
                 // Bug: if we do note on every 16th, we get only the first one
-                42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255, 42, 255,
+                42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
+                42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
             ],
             None,
         )
         .build()
         .unwrap();
 
-    // Arrange the drum pattern in a new MIDI track's Sequencer. By default, the
-    // Sequencer emits events on MIDI channel 0.
-    let track_uid = o.create_track().unwrap();
+    // Arrange the drum pattern in a new MIDI track's Sequencer.
+    let mut sequencer = PatternSequencer::default();
+    assert!(sequencer
+        .record(MidiChannel(10), &drum_pattern, MusicalTime::START)
+        .is_ok());
     assert!(o
-        .assign_uid_and_add_entity(
-            &track_uid,
-            Box::new(
-                PatternSequencerBuilder::default()
-                    .pattern(drum_pattern.clone())
-                    .build()
-                    .unwrap(),
-            )
-        )
+        .assign_uid_and_add_entity(&track_uid, Box::new(sequencer))
         .is_ok());
 
-    // Add the drumkit instrument to the track. By default, it listens on MIDI channel 0.
-    assert!(o
+    // Add the drumkit instrument to the track.
+    let drumkit_uid = o
         .assign_uid_and_add_entity(
             &track_uid,
             factory
-                .new_entity(&EntityKey::from(ToyInstrument::ENTITY_KEY), Uid::default())
+                .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
         )
+        .unwrap();
+    assert!(o
+        .connect_midi_receiver(drumkit_uid, MidiChannel(10))
         .is_ok());
 
     // Add an effect to the track's effect chain.
@@ -69,15 +79,23 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
                 .unwrap(),
         )
         .unwrap();
-    assert!(o.set_effect_humidity(filter_uid, Normal::from(0.2)).is_ok());
+    assert!(o.set_effect_humidity(filter_uid, Normal::from(0.0)).is_ok());
 }
 
 fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
+    // Create the track and set it to 50% gain, because we'll have two tracks total.
+    let track_uid = o.create_track().unwrap();
+    o.set_track_output(track_uid, Normal::from(0.5));
+
+    // Rest
+    const RR: u8 = 255;
+
     // Add the lead pattern to the PianoRoll.
     let scale_pattern = PatternBuilder::default()
         .note_sequence(
             vec![
-                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+                60, RR, 62, RR, 64, RR, 65, RR, 67, RR, 69, RR, 71, RR, 72, RR, //
+                72, RR, 71, RR, 69, RR, 67, RR, 65, RR, 64, RR, 62, RR, 60, RR, //
             ],
             None,
         )
@@ -85,13 +103,12 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
         .unwrap();
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
-    let track_uid = o.create_track().unwrap();
     assert!(o
         .assign_uid_and_add_entity(
             &track_uid,
             Box::new(
                 PatternSequencerBuilder::default()
-                    .pattern(scale_pattern.clone())
+                    .pattern((MidiChannel(0), scale_pattern.clone()))
                     .build()
                     .unwrap()
             )
@@ -99,16 +116,17 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
         .is_ok());
 
     // Add a synth to play the pattern.
-    assert!(o
+    let synth_uid = o
         .assign_uid_and_add_entity(
             &track_uid,
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
-                .unwrap()
+                .unwrap(),
         )
-        .is_ok());
+        .unwrap();
+    assert!(o.connect_midi_receiver(synth_uid, MidiChannel(0)).is_ok());
 
-    // Make the synth sound better.
+    // Make the synth sound grittier.
     let reverb_uid = o
         .assign_uid_and_add_entity(
             &track_uid,
@@ -129,11 +147,9 @@ fn program_song() {
     let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
     let factory = EntityFactory::global();
 
-    let mut orchestrator = OrchestratorBuilder::default()
-        .title(Some("Simple Song".to_string()))
-        .build()
-        .unwrap();
+    let mut orchestrator = Orchestrator::default();
 
+    // Work with just the Orchestrates trait for a while.
     {
         let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
 
@@ -147,5 +163,6 @@ fn program_song() {
     let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "simple-song.wav"]
         .iter()
         .collect();
-    assert!(orchestrator.write_to_file(&output_path).is_ok());
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    assert!(orchestrator_helper.write_to_file(&output_path).is_ok());
 }

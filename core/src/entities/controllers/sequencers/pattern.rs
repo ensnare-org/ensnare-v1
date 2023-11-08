@@ -25,6 +25,19 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+impl PatternSequencerBuilder {
+    /// Builds the [PatternSequencer].
+    pub fn build(&self) -> Result<PatternSequencer, PatternSequencerBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 /// A sequencer that works in terms of static copies of [Pattern]s. Recording a
 /// [Pattern] and then later changing it won't change what's recorded in this
 /// sequencer.
@@ -36,6 +49,7 @@ use std::{
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
 #[derive(Debug, Default, Builder, IsController, Metadata, Serialize, Deserialize)]
+#[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
     #[builder(setter(skip))]
     uid: Uid,
@@ -45,7 +59,7 @@ pub struct PatternSequencer {
     inner: MidiSequencer,
 
     #[builder(default, setter(each(name = "pattern", into)))]
-    patterns: Vec<Pattern>,
+    patterns: Vec<(MidiChannel, Pattern)>,
 }
 impl Sequences for PatternSequencer {
     type MU = Pattern;
@@ -61,7 +75,7 @@ impl Sequences for PatternSequencer {
         events.iter().for_each(|&e| {
             let _ = self.inner.record_midi_event(channel, e);
         });
-        self.patterns.push(pattern);
+        self.patterns.push((channel, pattern));
         Ok(())
     }
 
@@ -76,7 +90,8 @@ impl Sequences for PatternSequencer {
         events.iter().for_each(|&e| {
             let _ = self.inner.remove_midi_event(channel, e);
         });
-        self.patterns.retain(|p| p != &pattern);
+        self.patterns
+            .retain(|(c, p)| *c != channel || *p != pattern);
         Ok(())
     }
 
@@ -119,10 +134,10 @@ impl Displays for PatternSequencer {}
 impl HandlesMidi for PatternSequencer {}
 impl Serializable for PatternSequencer {
     fn after_deser(&mut self) {
-        for pattern in &self.patterns {
+        for (channel, pattern) in &self.patterns {
             let events: Vec<MidiEvent> = pattern.clone().into();
             events.iter().for_each(|&e| {
-                let _ = self.inner.record_midi_event(MidiChannel::default(), e);
+                let _ = self.inner.record_midi_event(*channel, e);
             });
         }
     }
@@ -336,23 +351,21 @@ impl<'a> Displays for LivePatternSequencerWidget<'a> {
             //     .collect();
 
             // Generate all the pattern note shapes
-            let pattern_shapes: Vec<Shape> =
-                self.sequencer
-                    .inner
-                    .patterns
-                    .iter()
-                    .fold(Vec::default(), |mut v, pattern| {
-                        pattern.notes().iter().for_each(|note| {
-                            let note = Note {
-                                key: note.key,
-                                range: (note.range.start)..(note.range.end),
-                            };
-                            v.push(PatternSequencer::shape_for_note(
-                                &to_screen, &visuals, &note,
-                            ));
-                        });
-                        v
+            let pattern_shapes: Vec<Shape> = self.sequencer.inner.patterns.iter().fold(
+                Vec::default(),
+                |mut v, (_channel, pattern)| {
+                    pattern.notes().iter().for_each(|note| {
+                        let note = Note {
+                            key: note.key,
+                            range: (note.range.start)..(note.range.end),
+                        };
+                        v.push(PatternSequencer::shape_for_note(
+                            &to_screen, &visuals, &note,
+                        ));
                     });
+                    v
+                },
+            );
 
             // Paint all the shapes
             //            painter.extend(note_shapes);

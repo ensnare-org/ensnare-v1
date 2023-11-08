@@ -182,8 +182,8 @@ type EntityFactoryFn = fn(Uid) -> Box<dyn Entity>;
 /// The one and only EntityFactory. Access it with `EntityFactory::global()`.
 static FACTORY: OnceCell<EntityFactory> = OnceCell::new();
 
-/// [EntityFactory] accepts [Key]s and creates instruments, controllers, and
-/// effects. It makes sure every entity has a proper [Uid].
+/// [EntityFactory] accepts [EntityKey]s and creates instruments, controllers,
+/// and effects. It makes sure every entity has a proper [Uid].
 #[derive(Debug)]
 pub struct EntityFactory {
     entities: HashMap<EntityKey, EntityFactoryFn>,
@@ -213,7 +213,7 @@ impl EntityFactory {
             .expect("EntityFactory has not been initialized")
     }
 
-    /// Registers a new type for the given [Key] using the given closure.
+    /// Registers a new type for the given [EntityKey] using the given closure.
     pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn) {
         if self.is_registration_complete {
             panic!("attempt to register an entity after registration completed");
@@ -225,8 +225,8 @@ impl EntityFactory {
         }
     }
 
-    /// Registers a new type for the given [Key] using the given closure, but
-    /// takes a &str and creates the [Key] from it.
+    /// Registers a new type for the given [EntityKey] using the given closure,
+    /// but takes a &str and creates the [EntityKey] from it.
     pub fn register_entity_with_str_key(&mut self, key: &str, f: EntityFactoryFn) {
         self.register_entity(EntityKey::from(key), f)
     }
@@ -239,7 +239,8 @@ impl EntityFactory {
         self.sorted_keys.sort();
     }
 
-    /// Creates a new entity of the type corresponding to the given [Key].
+    /// Creates a new entity of the type corresponding to the given [EntityKey]
+    /// with the given [Uid].
     pub fn new_entity(&self, key: &EntityKey, uid: Uid) -> Option<Box<dyn Entity>> {
         if let Some(f) = self.entities.get(key) {
             let mut entity = f(uid);
@@ -251,17 +252,18 @@ impl EntityFactory {
         }
     }
 
-    /// Returns the [HashSet] of all [Key]s.
+    /// Returns the [HashSet] of all [EntityKey]s.
     pub fn keys(&self) -> &HashSet<EntityKey> {
         &self.keys
     }
 
-    /// Returns the [HashMap] for all [Key] and entity pairs.
+    /// Returns the [HashMap] for all [EntityKey] and entity pairs.
     pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn> {
         &self.entities
     }
 
-    /// Returns all the [Key]s in sorted order for consistent display in the UI.
+    /// Returns all the [EntityKey]s in sorted order for consistent display in
+    /// the UI.
     pub fn sorted_keys(&self) -> &[EntityKey] {
         if !self.is_registration_complete {
             panic!("sorted_keys() can be called only after registration is complete.")
@@ -329,6 +331,30 @@ impl EntityStore {
     pub fn is_empty(&self) -> bool {
         self.entities.is_empty()
     }
+
+    pub fn as_controllable_mut(&mut self, uid: &Uid) -> Option<&mut dyn Controllable> {
+        if let Some(e) = self.get_mut(uid) {
+            e.as_controllable_mut()
+        } else {
+            None
+        }
+    }
+
+    pub fn as_instrument_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsInstrument> {
+        if let Some(e) = self.get_mut(uid) {
+            e.as_instrument_mut()
+        } else {
+            None
+        }
+    }
+
+    pub fn as_effect_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsEffect> {
+        if let Some(e) = self.get_mut(uid) {
+            e.as_effect_mut()
+        } else {
+            None
+        }
+    }
 }
 impl Ticks for EntityStore {
     fn tick(&mut self, tick_count: usize) {
@@ -372,7 +398,9 @@ impl Controls for EntityStore {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             if let Some(e) = entity.as_controller_mut() {
                 e.work(&mut |claimed_uid, message| {
-                    //    debug_assert!(claimed_uid.is_none(), "Entities controlled by EntityStore should not know or claim to know their own Uid");
+                    //    debug_assert!(claimed_uid.is_none(), "Entities
+                    //    controlled by EntityStore should not know or claim to
+                    //    know their own Uid");
 
                     // Here is where we substitute the known Uid of the Entity
                     // that we just called for the None that should have been
@@ -510,8 +538,8 @@ pub mod test_entities {
     pub struct TestAudioSource {
         uid: Uid,
 
-        // This should be a Normal, but we use this audio source for testing edge
-        // conditions. Thus we need to let it go out of range.
+        // This should be a Normal, but we use this audio source for testing
+        // edge conditions. Thus we need to let it go out of range.
         #[control]
         #[params]
         level: ParameterType,
@@ -592,7 +620,8 @@ pub mod test_entities {
         }
     }
 
-    /// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many MIDI messages it has received.
+    /// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many
+    /// MIDI messages it has received.
     #[derive(Debug, Default, IsInstrument, Metadata, Serialize, Deserialize)]
     pub struct TestInstrumentCountsMidiMessages {
         uid: Uid,
@@ -800,8 +829,8 @@ mod tests {
         traits::prelude::*,
     };
 
-    /// Registers all [EntityFactory]'s entities. Note that the function returns an
-    /// &EntityFactory. This encourages usage like this:
+    /// Registers all [EntityFactory]'s entities. Note that the function returns
+    /// an &EntityFactory. This encourages usage like this:
     ///
     /// ```
     /// let mut factory = EntityFactory::default();

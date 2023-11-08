@@ -124,9 +124,9 @@ impl<'a> DcaWidget<'a> {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MainMixer {
-    track_output: HashMap<TrackUid, Normal>,
-    track_mute: HashMap<TrackUid, bool>,
-    solo_track: Option<TrackUid>,
+    pub track_output: HashMap<TrackUid, Normal>,
+    pub track_mute: HashMap<TrackUid, bool>,
+    pub solo_track: Option<TrackUid>,
 }
 impl MainMixer {
     pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {

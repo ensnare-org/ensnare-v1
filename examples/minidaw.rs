@@ -22,9 +22,11 @@ use ensnare::{
     app_version,
     panels::prelude::*,
     prelude::*,
+    systems::prelude::*,
     ui::widgets::{audio_settings, midi_settings},
     ui::DragDropManager,
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Read, Write},
@@ -120,7 +122,9 @@ impl SettingsPanel {
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    o.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
+                    let o: &mut Orchestrator = &mut o;
+                    let mut helper = OrchestratorHelper::new_with(o);
+                    helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
                         if let EntityEvent::Midi(channel, message) = event {
                             let _ =
                                 midi_panel_sender.send(MidiInterfaceInput::Midi(channel, message));
@@ -357,6 +361,7 @@ impl MenuBar {
 
 struct MiniDaw {
     orchestrator: Arc<Mutex<Orchestrator>>,
+    title: ProjectTitle,
 
     menu_bar: MenuBar,
     control_panel: ControlPanel,
@@ -373,7 +378,6 @@ impl MiniDaw {
     pub const FONT_BOLD: &'static str = "font-bold";
     pub const FONT_MONO: &'static str = "font-mono";
     pub const APP_NAME: &'static str = "MiniDAW";
-    pub const DEFAULT_PROJECT_NAME: &'static str = "Untitled";
 
     pub fn new(cc: &CreationContext) -> Self {
         Self::initialize_fonts(cc);
@@ -385,6 +389,7 @@ impl MiniDaw {
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
             orchestrator,
+            title: Default::default(),
             menu_bar: Default::default(),
             control_panel: Default::default(),
             orchestrator_panel,
@@ -532,15 +537,14 @@ impl MiniDaw {
                     eprintln!("OrchestratorEvent::Quit")
                 }
                 OrchestratorEvent::Loaded(path, title) => {
+                    // TODO - it's unclear whether this event should still know
+                    // about the project title, since it now belongs to Project
+                    // rather than Orchestrator.
                     self.toasts.add(Toast {
                         kind: egui_toast::ToastKind::Success,
                         text: format!(
                             "Loaded {} from {}",
-                            if let Some(title) = title {
-                                title
-                            } else {
-                                Self::DEFAULT_PROJECT_NAME.to_string()
-                            },
+                            <ProjectTitle as Into<String>>::into(self.title.clone()),
                             path.display()
                         )
                         .into(),
@@ -720,17 +724,7 @@ impl MiniDaw {
         let full_title = format!(
             "{} - {}",
             Self::APP_NAME,
-            if let Some(title) = {
-                if let Ok(o) = self.orchestrator_panel.orchestrator().lock() {
-                    o.title.clone()
-                } else {
-                    None
-                }
-            } {
-                title
-            } else {
-                Self::DEFAULT_PROJECT_NAME.to_string()
-            }
+            <ProjectTitle as Into<String>>::into(self.title.clone())
         );
         frame.set_window_title(&full_title);
     }

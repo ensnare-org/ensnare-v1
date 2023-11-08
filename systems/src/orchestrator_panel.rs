@@ -1,9 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use anyhow::{anyhow, Result};
+use crossbeam_channel::{Receiver, Sender};
+use ensnare_core::{
     entities::prelude::*,
     midi::{MidiChannel, MidiMessage},
-    orchestration::{Orchestrator, OrchestratorAction, OrchestratorBuilder},
+    orchestration::{Orchestrator, OrchestratorAction},
     piano_roll::PatternUid,
     prelude::*,
     selection_set::SelectionSet,
@@ -11,8 +13,7 @@ use crate::{
     traits::prelude::*,
     types::ChannelPair,
 };
-use anyhow::{anyhow, Result};
-use crossbeam_channel::{Receiver, Sender};
+use ensnare_egui::prelude::*;
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, MutexGuard},
@@ -154,18 +155,18 @@ impl OrchestratorPanel {
                         OrchestratorInput::ProjectStop => o.stop(),
                         OrchestratorInput::ProjectNew => {
                             let mut mo = Orchestrator::default();
-                            o.prepare_successor(&mut mo);
-                            let _ = mo.create_starter_tracks(); // TODO: DRY this
+                            // o.prepare_successor(&mut mo);
+                            // let _ = mo.create_starter_tracks(); // TODO: DRY this
                             *o = mo;
                             let _ = sender.send(OrchestratorEvent::New);
                         }
                         OrchestratorInput::ProjectOpen(path) => {
                             match Self::handle_input_load(&path) {
                                 Ok(mut mo) => {
-                                    o.prepare_successor(&mut mo);
+                                    // o.prepare_successor(&mut mo);
                                     *o = mo;
-                                    let _ = sender
-                                        .send(OrchestratorEvent::Loaded(path, o.title.clone()));
+                                    // let _ = sender
+                                    //     .send(OrchestratorEvent::Loaded(path, o.title.clone()));
                                 }
                                 Err(err) => {
                                     let _ = sender.send(OrchestratorEvent::LoadError(path, err));
@@ -257,30 +258,32 @@ impl OrchestratorPanel {
         o.handle_midi_message(channel, message, &mut |_, _| {});
     }
 
-    fn handle_input_load(path: &PathBuf) -> Result<Orchestrator> {
-        match std::fs::read_to_string(path) {
-            Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
-                Ok(mut mo) => {
-                    mo.after_deser();
-                    anyhow::Ok(mo)
-                }
-                Err(err) => Err(anyhow!("Error while parsing: {}", err)),
-            },
-            Err(err) => Err(anyhow!("Error while reading: {}", err)),
-        }
+    fn handle_input_load(path: &PathBuf) -> anyhow::Result<Orchestrator> {
+        Err(anyhow!("FIX THIS"))
+        // match std::fs::read_to_string(path) {
+        //     Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
+        //         Ok(mut mo) => {
+        //             mo.after_deser();
+        //             anyhow::Ok(mo)
+        //         }
+        //         Err(err) => Err(anyhow!("Error while parsing: {}", err)),
+        //     },
+        //     Err(err) => Err(anyhow!("Error while reading: {}", err)),
+        // }
     }
 
-    fn handle_input_save(o: &MutexGuard<Orchestrator>, path: &PathBuf) -> Result<()> {
-        let o: &Orchestrator = o;
-        match serde_json::to_string_pretty(o)
-            .map_err(|_| anyhow::format_err!("Unable to serialize prefs JSON"))
-        {
-            Ok(json) => match std::fs::write(path, json) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(anyhow!("While writing project: {}", err)),
-            },
-            Err(err) => Err(anyhow!("While serializing project: {}", err)),
-        }
+    fn handle_input_save(o: &MutexGuard<Orchestrator>, path: &PathBuf) -> anyhow::Result<()> {
+        Err(anyhow!("FIX THIS"))
+        // let o: &Orchestrator = o;
+        // match serde_json::to_string_pretty(o)
+        //     .map_err(|_| anyhow::format_err!("Unable to serialize prefs JSON"))
+        // {
+        //     Ok(json) => match std::fs::write(path, json) {
+        //         Ok(_) => Ok(()),
+        //         Err(err) => Err(anyhow!("While writing project: {}", err)),
+        //     },
+        //     Err(err) => Err(anyhow!("While serializing project: {}", err)),
+        // }
     }
 
     fn handle_action(&self, orchestrator: &mut Orchestrator, action: OrchestratorAction) {
@@ -315,11 +318,14 @@ impl OrchestratorPanel {
 impl Displays for OrchestratorPanel {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut o = self.orchestrator.lock().unwrap();
-        o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
-        let response = o.ui(ui);
-        if let Some(action) = o.take_action() {
-            self.handle_action(&mut o, action);
-        }
+        //   o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
+        let response = ui.add(orchestrator(&mut o));
+
+        // TODO: now that we've moved over to a widget-heavy pattern, can we get
+        // rid of the Acts trait?
+        // if let Some(action) = o.take_action() {
+        //     self.handle_action(&mut o, action);
+        // }
 
         // If we're performing, then we know the screen is updating, so we
         // should draw it..
@@ -332,8 +338,8 @@ impl Displays for OrchestratorPanel {
 }
 impl Default for OrchestratorPanel {
     fn default() -> Self {
-        let mut orchestrator = OrchestratorBuilder::default().build().unwrap();
-        let _ = orchestrator.create_starter_tracks();
+        let mut orchestrator = Orchestrator::default();
+        //        let _ = orchestrator.create_starter_tracks();
         let mut r = Self {
             orchestrator: Arc::new(Mutex::new(orchestrator)),
             track_selection_set: Default::default(),

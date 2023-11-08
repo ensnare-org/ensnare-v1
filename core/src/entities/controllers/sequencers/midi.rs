@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct MidiSequencer {
-    events: Vec<MidiEvent>,
+    events: Vec<(MidiChannel, MidiEvent)>,
     time_range: ViewRange,
     is_recording: bool,
     is_performing: bool,
@@ -23,16 +23,16 @@ impl SequencesMidi for MidiSequencer {
         self.max_event_time = MusicalTime::default();
     }
 
-    fn record_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
-        self.events.push(event);
+    fn record_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
+        self.events.push((channel, event));
         if event.time > self.max_event_time {
             self.max_event_time = event.time;
         }
         Ok(())
     }
 
-    fn remove_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
-        self.events.retain(|e| *e != event);
+    fn remove_midi_event(&mut self, channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
+        self.events.retain(|e| *e != (channel, event));
         self.recalculate_max_time();
         Ok(())
     }
@@ -65,9 +65,9 @@ impl Controls for MidiSequencer {
 
     //    #[deprecated = "FIX THE CHANNEL!"]
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.events.iter().for_each(|e| {
-            if self.time_range.contains(&e.time) {
-                control_events_fn(None, EntityEvent::Midi(MidiChannel::default(), e.message))
+        self.events.iter().for_each(|(channel, event)| {
+            if self.time_range.contains(&event.time) {
+                control_events_fn(None, EntityEvent::Midi(*channel, event.message))
             }
         });
     }
@@ -108,7 +108,7 @@ impl HandlesMidi for MidiSequencer {
 }
 impl MidiSequencer {
     fn recalculate_max_time(&mut self) {
-        if let Some(max_event_time) = self.events.iter().map(|e| e.time).max() {
+        if let Some(max_event_time) = self.events.iter().map(|(_, event)| event.time).max() {
             self.max_event_time = max_event_time;
         } else {
             self.max_event_time = MusicalTime::default();

@@ -7,6 +7,7 @@ use ensnare::{
     },
     prelude::*,
 };
+use ensnare_core::orchestration::OrchestratorHelper;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -15,10 +16,7 @@ fn demo_automation() {
     let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
     let factory = EntityFactory::global();
 
-    let mut orchestrator = OrchestratorBuilder::default()
-        .title(Some("Automation".to_string()))
-        .build()
-        .unwrap();
+    let mut orchestrator = Orchestrator::default();
 
     // We scope this block so that we can work with Orchestrator only as
     // something implementing the [Orchestrates] trait. This makes sure we're
@@ -52,7 +50,7 @@ fn demo_automation() {
                 let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
                 Box::new(
                     PatternSequencerBuilder::default()
-                        .pattern(pattern)
+                        .pattern((MidiChannel(0), pattern))
                         .build()
                         .unwrap(),
                 )
@@ -104,7 +102,8 @@ fn demo_automation() {
     let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "automation.wav"]
         .iter()
         .collect();
-    assert!(orchestrator.write_to_file(&output_path).is_ok());
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    assert!(orchestrator_helper.write_to_file(&output_path).is_ok());
 }
 
 #[test]
@@ -112,10 +111,7 @@ fn demo_control_trips() {
     let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
     let factory = EntityFactory::global();
 
-    let mut orchestrator = OrchestratorBuilder::default()
-        .title(Some("Automation".to_string()))
-        .build()
-        .unwrap();
+    let mut orchestrator = Orchestrator::default();
 
     // Per my epiphany from a few days ago, Orchestrates (the trait) defines
     // arrangement of Entities, and doesn't get into the actual information that
@@ -157,7 +153,7 @@ fn demo_control_trips() {
                 &track_uid,
                 Box::new(
                     PatternSequencerBuilder::default()
-                        .pattern(scale_pattern.clone())
+                        .pattern((MidiChannel(0), scale_pattern.clone()))
                         .build()
                         .unwrap()
                 )
@@ -211,5 +207,6 @@ fn demo_control_trips() {
     let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "control-trips.wav"]
         .iter()
         .collect();
-    assert!(orchestrator.write_to_file(&output_path).is_ok());
+    let mut orchestrator_helper = OrchestratorHelper::new_with(&mut orchestrator);
+    assert!(orchestrator_helper.write_to_file(&output_path).is_ok());
 }

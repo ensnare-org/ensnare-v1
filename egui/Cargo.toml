@@ -1,0 +1,14 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
+[package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "egui logic for drawing ensnare entities"
+edition = "2021"
+name = "ensnare-egui"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+eframe = "0.23"
+ensnare-core = { path = "../core" }
+strum_macros = "0.25.2"

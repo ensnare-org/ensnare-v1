@@ -1,0 +1,19 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
+[package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "Subsystems"
+edition = "2021"
+name = "ensnare-systems"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1.0.75"
+crossbeam-channel = "0.5.8"
+eframe = "0.23"
+ensnare-core = { path = "../core" }
+ensnare-egui = { path = "../egui" }
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
+strum_macros = "0.25.2"

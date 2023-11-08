@@ -6,7 +6,7 @@ use crate::{
     menu::{MenuBar, MenuBarAction},
     settings::{Settings, SettingsPanel},
 };
-use crossbeam_channel::{Select, Sender};
+use crossbeam_channel::{unbounded, Select, Sender};
 use eframe::{
     egui::{
         CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, ScrollArea,
@@ -19,11 +19,12 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
-    arrangement::transport,
     panels::prelude::*,
     prelude::*,
+    systems::prelude::*,
     ui::{DragSource, DropTarget},
 };
+use ensnare_egui::prelude::*;
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use std::sync::{Arc, Mutex};
 
@@ -53,6 +54,8 @@ pub(super) struct Ensnare {
     keyboard_events_sender: Sender<Event>,
 
     pub is_settings_panel_open: bool,
+
+    new_orchestrator: Orchestrator,
 }
 impl Ensnare {
     /// The user-visible name of the application.
@@ -86,15 +89,16 @@ impl Ensnare {
         let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let control_panel = ControlPanel::default();
-        orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
-            Some(control_panel.sample_channel.sender.clone());
-        let keyboard_events_sender = orchestrator
-            .lock()
-            .unwrap()
-            .e
-            .keyboard_controller
-            .sender()
-            .clone();
+        // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
+        //     Some(control_panel.sample_channel.sender.clone());
+        // let keyboard_events_sender = orchestrator
+        //     .lock()
+        //     .unwrap()
+        //     .e
+        //     .keyboard_controller
+        //     .sender()
+        //     .clone();
+        let (keyboard_events_sender, receiver) = unbounded();
         let mut r = Self {
             event_channel: Default::default(),
             orchestrator,
@@ -111,6 +115,7 @@ impl Ensnare {
             exit_requested: Default::default(),
             keyboard_events_sender,
             is_settings_panel_open: Default::default(),
+            new_orchestrator: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator();
@@ -420,7 +425,8 @@ impl Ensnare {
     }
 
     fn show_right(&mut self, ui: &mut Ui) {
-        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
+        ui.add(orchestrator(&mut self.new_orchestrator));
+        //        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
     fn show_center(&mut self, ui: &mut Ui) {

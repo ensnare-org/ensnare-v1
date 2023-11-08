@@ -7,7 +7,8 @@ use std::{hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
 
-/// A [Uid] is an identifier that's unique within the current project.
+/// A [Uid] is an [Entity](crate::traits::Entity) identifier that is unique
+/// within the current project.
 #[derive(
     Clone,
     Copy,
@@ -30,19 +31,24 @@ impl From<usize> for Uid {
     }
 }
 
-/// Generates unique [Uid]s.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UidFactory<U: IsUid> {
-    next_uid_value: AtomicUsize,
-    _phantom: PhantomData<U>,
+pub type EntityUidFactory = UidFactory<Uid>;
+impl UidFactory<Uid> {
+    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1024);
 }
-impl<U: IsUid> Default for UidFactory<U> {
+impl Default for UidFactory<Uid> {
     fn default() -> Self {
         Self {
-            next_uid_value: AtomicUsize::new(1),
+            next_uid_value: Self::FIRST_UID,
             _phantom: Default::default(),
         }
     }
+}
+
+/// Generates unique [Uid]s.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UidFactory<U: IsUid> {
+    pub(crate) next_uid_value: AtomicUsize,
+    pub(crate) _phantom: PhantomData<U>,
 }
 impl<U: IsUid> UidFactory<U> {
     /// Creates a new UidFactory starting with the given [Uid] value.

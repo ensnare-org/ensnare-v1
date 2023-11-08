@@ -1,9 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! The `render` example generates a WAV file from a serialized [Orchestrator].
+//! The `render` example generates a WAV file from a serialized [Project].
 
 use clap::Parser;
 use ensnare::prelude::*;
+use ensnare_core::orchestration::OrchestratorHelper;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -29,8 +30,9 @@ fn main() -> anyhow::Result<()> {
 
     for input_filename in args.input {
         match std::fs::File::open(input_filename.clone()) {
-            Ok(f) => match serde_json::from_reader::<_, Orchestrator>(std::io::BufReader::new(f)) {
-                Ok(mut o) => {
+            Ok(f) => match serde_json::from_reader::<_, Project>(std::io::BufReader::new(f)) {
+                Ok(project) => {
+                    let (mut orchestrator, _title) = project.deserialize()?;
                     if args.wav {
                         let re = regex::Regex::new(r"\.json$").unwrap();
                         let output_filename = re.replace(&input_filename, ".wav");
@@ -38,7 +40,8 @@ fn main() -> anyhow::Result<()> {
                             panic!("would overwrite input file; couldn't generate output filename");
                         }
                         let output_path = std::path::PathBuf::from(output_filename.to_string());
-                        if let Err(e) = o.write_to_file(&output_path) {
+                        let mut helper = OrchestratorHelper::new_with(&mut orchestrator);
+                        if let Err(e) = helper.write_to_file(&output_path) {
                             eprintln!(
                                 "error while writing {input_filename} render to {}: {e:?}",
                                 output_path.display()

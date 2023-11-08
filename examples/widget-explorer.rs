@@ -15,7 +15,6 @@ use eframe::{
 };
 use ensnare::{
     app_version,
-    arrangement::{signal_chain, track_widget, TrackAction},
     entities::{
         controllers::{
             live_pattern_sequencer_widget, LivePatternSequencer, NoteSequencer,
@@ -30,6 +29,8 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
+use ensnare_core::track::TrackAction;
+use ensnare_egui::prelude::{signal_chain, track_widget};
 
 #[derive(Debug)]
 struct LegendSettings {

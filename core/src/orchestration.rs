@@ -7,25 +7,20 @@ use crate::{
     entities::{controllers::KeyboardController, factory::EntityKey},
     humidifier::Humidifier,
     midi::{MidiChannel, MidiMessage},
+    midi_router::MidiRouter,
     modulators::MainMixer,
     piano_roll::{PatternUid, PianoRoll},
     prelude::EntityStore,
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder, ViewRange},
-    track::{
-        track_widget, Track, TrackAction, TrackBuffer, TrackTitle, TrackUid, TrackWidgetAction,
-    },
+    track::{Track, TrackAction, TrackBuffer, TrackTitle, TrackUid, TrackUidFactory},
     traits::{
         Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityEvent,
         Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, IsAction, MidiMessagesFn,
         Orchestrates, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
-    uid::{Uid, UidFactory},
-    widgets::{
-        timeline::{self, timeline_icon_strip, TimelineIconStripAction},
-        track,
-    },
+    uid::{EntityUidFactory, Uid},
 };
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
@@ -35,8 +30,9 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::Debug,
+    ops::Range,
     path::PathBuf,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, RwLock},
     vec::Vec,
 };
 use strum_macros::Display;
@@ -62,41 +58,29 @@ pub struct OrchestratorEphemerals {
     events: Vec<(Uid, EntityEvent)>,
     is_finished: bool,
     is_performing: bool,
-    action: Option<OrchestratorAction>,
-    track_selection_set: SelectionSet<TrackUid>,
+    pub action: Option<OrchestratorAction>,
+    pub track_selection_set: SelectionSet<TrackUid>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
     pub keyboard_controller: KeyboardController,
-    is_piano_roll_open: bool, // TODO whether this should be serialized
-    is_entity_detail_open: bool,
-    entity_detail_title: String,
-    selected_entity_uid: Option<Uid>,
+    pub is_piano_roll_open: bool, // TODO whether this should be serialized
+    pub is_entity_detail_open: bool,
+    pub entity_detail_title: String,
+    pub selected_entity_uid: Option<Uid>,
 }
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
 /// relationships among them to create an audio performance.
-///
-/// ```
-/// use ensnare_core::prelude::*;
-/// use ensnare_core::entities::prelude::*;
-///
-/// let mut orchestrator = Orchestrator::default();
-/// let track_uid = orchestrator.create_track().unwrap();
-/// let instrument_uid = orchestrator.assign_uid_and_add_entity(&track_uid,
-///     Box::new(ToyInstrument::default())).unwrap();
-///
-/// let mut samples = [StereoSample::SILENCE; Orchestrator::SAMPLE_BUFFER_SIZE];
-/// orchestrator.render_and_ignore_events(&mut samples);
-/// ```
 #[derive(Serialize, Deserialize, Debug, Builder)]
 #[builder(setter(skip), default)]
 #[builder_struct_attr(allow(missing_docs))]
-pub struct Orchestrator {
+#[deprecated]
+pub struct OldOrchestrator {
     /// The user-supplied name of this project.
     #[builder(setter, default)]
     pub title: Option<String>,
 
-    entity_uid_factory: UidFactory<Uid>,
-    track_uid_factory: UidFactory<TrackUid>,
+    entity_uid_factory: EntityUidFactory,
+    track_uid_factory: TrackUidFactory,
 
     pub transport: Transport,
     control_router: ControlRouter,
@@ -121,7 +105,7 @@ pub struct Orchestrator {
     // DisplaysInTimeline, because this field determines the timeline view
     // range, and it's nicer to remember it when the project is loaded and
     // saved.
-    view_range: ViewRange,
+    pub view_range: ViewRange,
 
     main_mixer: MainMixer,
 
@@ -132,7 +116,7 @@ pub struct Orchestrator {
     #[serde(skip)]
     pub e: OrchestratorEphemerals,
 }
-impl Default for Orchestrator {
+impl Default for OldOrchestrator {
     fn default() -> Self {
         let transport = TransportBuilder::default()
             .uid(Self::TRANSPORT_UID)
@@ -142,9 +126,9 @@ impl Default for Orchestrator {
             MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4);
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
-            title: None,
-            entity_uid_factory: UidFactory::new(Self::FIRST_ENTITY_UID),
-            track_uid_factory: UidFactory::new(Self::FIRST_TRACK_UID),
+            title: Default::default(),
+            entity_uid_factory: Default::default(),
+            track_uid_factory: Default::default(),
             transport,
             control_router: Default::default(),
             tracks: Default::default(),
@@ -159,18 +143,12 @@ impl Default for Orchestrator {
         }
     }
 }
-impl Orchestrator {
+impl OldOrchestrator {
     /// The expected size of any buffer provided for samples.
     //
     // TODO: how hard would it be to make this dynamic? Does adjustability
     // matter?
     pub const SAMPLE_BUFFER_SIZE: usize = 64;
-
-    /// All [Uid]s below this value are reserved.
-    const FIRST_ENTITY_UID: usize = 1024;
-
-    /// All [TrackUid]s below this value are reserved.
-    const FIRST_TRACK_UID: usize = 1;
 
     /// The fixed [Uid] for this Orchestrator.
     pub const ORCHESTRATOR_UID: Uid = Uid(1);
@@ -357,7 +335,7 @@ impl Orchestrator {
 
     /// After loading a new Self from disk, we want to copy all the appropriate
     /// ephemeral state from this one to the next one.
-    pub fn prepare_successor(&self, new: &mut Orchestrator) {
+    pub fn prepare_successor(&self, new: &mut OldOrchestrator) {
         // Copy over the current sample rate, whose validity shouldn't change
         // because we loaded a new project.
         new.update_sample_rate(self.sample_rate());
@@ -371,12 +349,6 @@ impl Orchestrator {
     /// Returns the current [Tempo].
     pub fn tempo(&self) -> Tempo {
         self.transport.tempo()
-    }
-
-    /// Returns the number of channels in the audio stream. For now, this is
-    /// always 2 (stereo audio stream).
-    pub fn channels(&self) -> u16 {
-        2
     }
 
     fn calculate_is_finished(&self) -> bool {
@@ -417,53 +389,12 @@ impl Orchestrator {
         }
     }
 
-    /// Returns the one and only [PianoRoll].
-    pub fn piano_roll(&self) -> RwLockReadGuard<'_, PianoRoll> {
-        self.piano_roll.read().unwrap()
-    }
-
-    /// Returns the one and only [PianoRoll] (mutable).
-    pub fn piano_roll_mut(&self) -> RwLockWriteGuard<'_, PianoRoll> {
-        self.piano_roll.write().unwrap()
-    }
-
-    // TODO: this could be a feature so that we don't always need the hound
-    // dependency. Probably not important either way.
-    /// Writes the current performance to a WAV file. Intended for integration
-    /// tests only (for now).
-    pub fn write_to_file(&mut self, path: &PathBuf) -> anyhow::Result<()> {
-        let spec = hound::WavSpec {
-            channels: self.channels(),
-            sample_rate: self.sample_rate().into(),
-            bits_per_sample: 16,
-            sample_format: hound::SampleFormat::Int,
-        };
-        let mut writer = hound::WavWriter::create(path, spec).unwrap();
-
-        let mut buffer = [StereoSample::SILENCE; 64];
-        self.play();
-        loop {
-            if self.is_finished() {
-                break;
-            }
-            buffer.fill(StereoSample::SILENCE);
-            self.render_and_ignore_events(&mut buffer);
-            for sample in buffer {
-                let (left, right) = sample.into_i16();
-                let _ = writer.write_sample(left);
-                let _ = writer.write_sample(right);
-            }
-        }
-
-        Ok(())
-    }
-
     #[allow(missing_docs)]
     pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
         self.e.track_selection_set = track_selection_set;
     }
 
-    fn handle_track_action(&mut self, uid: TrackUid, action: TrackAction) {
+    pub fn handle_track_action(&mut self, uid: TrackUid, action: TrackAction) {
         match action {
             TrackAction::NewDevice(key) => {
                 self.e.action = Some(OrchestratorAction::NewDeviceForTrack(uid, key))
@@ -492,11 +423,13 @@ impl Orchestrator {
         }
     }
 }
-impl Orchestrates for Orchestrator {
+impl Orchestrates for OldOrchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
         let track_uid = self.mint_track_uid();
         self.track_uids.push(track_uid);
-        self.tracks.insert(track_uid, Track::default());
+        let mut track = Track::default();
+        track.e.piano_roll = Arc::clone(&self.piano_roll);
+        self.tracks.insert(track_uid, track);
         Ok(track_uid)
     }
 
@@ -707,8 +640,30 @@ impl Orchestrates for Orchestrator {
     fn end_solo(&mut self) {
         self.main_mixer.end_solo()
     }
+
+    fn next_range(&mut self, frame_count: usize) -> std::ops::Range<MusicalTime> {
+        self.transport.advance(frame_count)
+    }
+
+    fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.midi_router.connect(uid, channel);
+            }
+        }
+        Ok(())
+    }
+
+    fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
+        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.midi_router.disconnect(uid, channel);
+            }
+        }
+    }
 }
-impl Acts for Orchestrator {
+impl Displays for OldOrchestrator {}
+impl Acts for OldOrchestrator {
     type Action = OrchestratorAction;
 
     fn set_action(&mut self, action: Self::Action) {
@@ -724,7 +679,7 @@ impl Acts for Orchestrator {
         self.e.action.take()
     }
 }
-impl HasMetadata for Orchestrator {
+impl HasMetadata for OldOrchestrator {
     fn uid(&self) -> Uid {
         Self::ORCHESTRATOR_UID
     }
@@ -738,7 +693,7 @@ impl HasMetadata for Orchestrator {
         Self::ENTITY_KEY
     }
 }
-impl Generates<StereoSample> for Orchestrator {
+impl Generates<StereoSample> for OldOrchestrator {
     fn value(&self) -> StereoSample {
         StereoSample::SILENCE
     }
@@ -821,12 +776,12 @@ impl Generates<StereoSample> for Orchestrator {
         });
     }
 }
-impl Ticks for Orchestrator {
+impl Ticks for OldOrchestrator {
     fn tick(&mut self, _tick_count: usize) {
         panic!()
     }
 }
-impl Configurable for Orchestrator {
+impl Configurable for OldOrchestrator {
     fn sample_rate(&self) -> SampleRate {
         self.transport.sample_rate()
     }
@@ -847,7 +802,7 @@ impl Configurable for Orchestrator {
         self.transport.update_time_signature(time_signature);
     }
 }
-impl HandlesMidi for Orchestrator {
+impl HandlesMidi for OldOrchestrator {
     /// Accepts a [MidiMessage] and handles it, usually by forwarding it to
     /// controllers and instruments on the given [MidiChannel]. We implement
     /// this trait only for external messages; for ones generated internally, we
@@ -864,7 +819,7 @@ impl HandlesMidi for Orchestrator {
         self.route_midi_message(channel, message);
     }
 }
-impl Controls for Orchestrator {
+impl Controls for OldOrchestrator {
     fn update_time(&mut self, range: &ViewRange) {
         self.e.range = range.clone();
 
@@ -951,7 +906,7 @@ impl Controls for Orchestrator {
         self.e.is_performing
     }
 }
-impl Serializable for Orchestrator {
+impl Serializable for OldOrchestrator {
     fn after_deser(&mut self) {
         self.tracks.values_mut().for_each(|t| {
             t.e.piano_roll = Arc::clone(&self.piano_roll);
@@ -959,121 +914,16 @@ impl Serializable for Orchestrator {
         });
     }
 }
-impl Displays for Orchestrator {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        eframe::egui::Window::new("Piano Roll")
-            .open(&mut self.e.is_piano_roll_open)
-            .default_width(ui.available_width())
-            .anchor(
-                eframe::emath::Align2::LEFT_BOTTOM,
-                eframe::epaint::vec2(5.0, 5.0),
-            )
-            .show(ui.ctx(), |ui| self.piano_roll.write().unwrap().ui(ui));
 
-        eframe::egui::Window::new(&self.e.entity_detail_title)
-            .id(eframe::egui::Id::from("Entity Detail"))
-            .open(&mut self.e.is_entity_detail_open)
-            .anchor(
-                eframe::emath::Align2::RIGHT_BOTTOM,
-                eframe::epaint::vec2(5.0, 5.0),
-            )
-            .show(ui.ctx(), |ui| {
-                if let Some(uid) = &self.e.selected_entity_uid {
-                    if let Some(track_uid) = self.entity_uid_to_track_uid.get(uid) {
-                        if let Some(track) = self.tracks.get_mut(track_uid) {
-                            track.entity_ui(ui, uid);
-                        }
-                    }
-                }
-            });
+/// [NewOrchestrator] is a back-to-basics implementation that satisfies
+/// [Orchestrates]. It takes [Entities](Entity) and invokes them appropriately
+/// to produce an audio performance.
+#[derive(Debug, Default)]
+pub struct Orchestrator {
+    entity_uid_factory: EntityUidFactory,
+    track_uid_factory: TrackUidFactory,
 
-        eframe::egui::CentralPanel::default()
-            .show(ui.ctx(), |ui| {
-                let mut action = None;
-                ui.add(timeline_icon_strip(&mut action));
-                if let Some(action) = action {
-                    match action {
-                        TimelineIconStripAction::NextTimelineView => {
-                            panic!("get rid of this")
-                        }
-                        TimelineIconStripAction::ShowPianoRoll => {
-                            self.e.is_piano_roll_open = !self.e.is_piano_roll_open;
-                        }
-                    }
-                }
-
-                // The timeline needs to be aligned with the track content, so
-                // we create an empty track title bar to match with the real
-                // ones.
-                ui.horizontal(|ui| {
-                    ui.add_enabled(false, track::title_bar(None));
-                    ui.add(timeline::legend(&mut self.view_range));
-                });
-
-                // Create a scrolling area for all the tracks.
-                eframe::egui::ScrollArea::vertical()
-                    .id_source("orchestrator-scroller")
-                    .show(ui, |ui| {
-                        let mut track_action = None;
-                        let mut track_action_track_uid = None;
-                        for track_uid in self.track_uids.iter() {
-                            if let Some(track) = self.tracks.get_mut(track_uid) {
-                                let is_selected = self.e.track_selection_set.contains(track_uid);
-                                let cursor = if self.transport.is_performing() {
-                                    Some(self.transport.current_time())
-                                } else {
-                                    None
-                                };
-                                track.update_font_galley(ui);
-                                let mut track_widget_action = None;
-                                let response = ui.add(track_widget(
-                                    *track_uid,
-                                    track,
-                                    is_selected,
-                                    cursor,
-                                    &self.view_range,
-                                    &mut track_widget_action,
-                                ));
-                                if let Some(track_widget_action) = track_widget_action {
-                                    match track_widget_action {
-                                        TrackWidgetAction::EntitySelected(uid, name) => {
-                                            self.e.selected_entity_uid = Some(uid);
-                                            self.e.is_entity_detail_open = true;
-                                            self.e.entity_detail_title = name;
-                                        }
-                                    }
-                                }
-                                if response.double_clicked() {
-                                    self.e.action =
-                                        Some(OrchestratorAction::DoubleClickTrack(*track_uid));
-                                } else if response.clicked() {
-                                    self.e.action =
-                                        Some(OrchestratorAction::ClickTrack(*track_uid));
-                                }
-
-                                if let Some(action) = track.take_action() {
-                                    track_action = Some(action);
-                                    track_action_track_uid = Some(*track_uid);
-                                }
-                            }
-                        }
-                        if let Some(action) = track_action {
-                            if let Some(track_uid) = track_action_track_uid {
-                                self.handle_track_action(track_uid, action);
-                            }
-                        }
-                    });
-            })
-            .response
-    }
-}
-
-#[derive(Debug)]
-pub struct NewOrchestrator {
-    entity_uid_factory: UidFactory<Uid>,
-    track_uid_factory: UidFactory<TrackUid>,
-
-    transport: Transport,
+    pub transport: Transport,
 
     track_uids: Vec<TrackUid>,
     track_for_entity: HashMap<Uid, TrackUid>,
@@ -1084,32 +934,74 @@ pub struct NewOrchestrator {
     effect_uids: HashMap<TrackUid, Vec<Uid>>,
 
     control_router: ControlRouter,
+    midi_router: MidiRouter,
     humidifier: Humidifier,
     bus_station: BusStation,
     main_mixer: MainMixer,
 }
-impl Default for NewOrchestrator {
-    fn default() -> Self {
-        Self {
-            entity_uid_factory: UidFactory::new(1024),
-            track_uid_factory: Default::default(),
-            transport: Default::default(),
-            track_uids: Default::default(),
-            track_for_entity: Default::default(),
-            entity_store: Default::default(),
-            controller_uids: Default::default(),
-            instrument_uids: Default::default(),
-            effect_uids: Default::default(),
-            control_router: Default::default(),
-            humidifier: Default::default(),
-            bus_station: Default::default(),
-            main_mixer: Default::default(),
-        }
+impl Orchestrator {
+    /// The fixed [Uid] for the global transport.
+    pub(crate) const TRANSPORT_UID: Uid = Uid(2);
+
+    pub fn mint_entity_uid(&self) -> Uid {
+        self.entity_uid_factory.mint_next()
     }
+
+    fn mint_track_uid(&mut self) -> TrackUid {
+        self.track_uid_factory.mint_next()
+    }
+
+    //////////////////////////////// RECONSIDER
+    /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
+    /// specified position to the given track's sequencer.
+    pub fn add_pattern_to_track(
+        &mut self,
+        track_uid: &TrackUid,
+        pattern_uid: &PatternUid,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        // if let Some(track) = self.tracks.get_mut(track_uid) {
+        //     track.add_pattern(pattern_uid, position)
+        // } else {
+        Err(anyhow!("Couldn't find track {track_uid}"))
+        // }
+    }
+
+    /// Adds a new MIDI track, which can contain controllers, instruments, and
+    /// effects. Returns the new track's [TrackUid] if successful.
+    pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
+        self.create_track()
+    }
+
+    /// Adds a new audio track, which can contain audio clips and effects.
+    /// Returns the new track's [TrackUid] if successful.
+    pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
+        self.create_track()
+    }
+
+    /// Adds a new aux track, which contains only effects, and to which other
+    /// tracks can *send* their output audio. Returns the new track's [TrackUid]
+    /// if successful.
+    pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
+        self.create_track()
+    }
+
+    /// Adds a set of tracks that make sense for a new project.
+    pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
+        if !self.track_uids.is_empty() {
+            return Err(anyhow!("Must be invoked on an empty orchestrator."));
+        }
+        self.new_midi_track()?;
+        self.new_midi_track()?;
+        self.new_audio_track()?;
+        self.new_aux_track()?;
+        Ok(())
+    }
+    //////////////////////////////// RECONSIDER
 }
-impl Orchestrates for NewOrchestrator {
+impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.track_uid_factory.mint_next();
+        let track_uid = self.mint_track_uid();
         self.track_uids.push(track_uid);
         Ok(track_uid)
     }
@@ -1292,27 +1184,359 @@ impl Orchestrates for NewOrchestrator {
     fn end_solo(&mut self) {
         self.main_mixer.end_solo()
     }
+
+    fn next_range(&mut self, sample_count: usize) -> std::ops::Range<MusicalTime> {
+        // Note that advance() can return the same range twice, depending on
+        // sample rate. TODO: we should decide whose responsibility it is to
+        // handle that -- either we skip calling work() if the time range is the
+        // same as prior, or everyone who gets called needs to detect the case
+        // or be idempotent.
+        self.transport.advance(sample_count)
+    }
+
+    fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
+        self.midi_router.connect(uid, channel);
+        Ok(())
+    }
+
+    fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
+        self.midi_router.disconnect(uid, channel);
+    }
 }
-impl Configurable for NewOrchestrator {
+impl Configurable for Orchestrator {
     fn sample_rate(&self) -> SampleRate {
         self.transport.sample_rate()
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.transport.update_sample_rate(sample_rate)
+        self.transport.update_sample_rate(sample_rate);
+        self.entity_store.update_sample_rate(sample_rate);
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.transport.tempo()
     }
 
     fn update_tempo(&mut self, tempo: Tempo) {
-        self.transport.update_tempo(tempo)
+        self.transport.update_tempo(tempo);
+        self.entity_store.update_tempo(tempo);
+    }
+
+    fn time_signature(&self) -> TimeSignature {
+        self.transport.time_signature()
     }
 
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.transport.update_time_signature(time_signature)
+        self.transport.update_time_signature(time_signature);
+        self.entity_store.update_time_signature(time_signature);
+    }
+}
+impl Controls for Orchestrator {
+    fn update_time(&mut self, range: &ViewRange) {
+        self.transport.update_time(range);
+        self.entity_store.update_time(range);
+    }
+
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+        let mut events = Vec::default();
+
+        self.transport
+            .work(&mut |_, m| events.push((Self::TRANSPORT_UID, m)));
+
+        // By this point in the control_events_fn chain, `u` must be
+        // correctly assigned, which is why we know we can safely .unwrap()
+        // it. That's because each Track should know the Uid of the Entity
+        // that gave it the event, so it should be substituting that Uid
+        // into the `u` argument.
+        self.entity_store
+            .work(&mut |u, m| events.push((u.unwrap(), m)));
+
+        // Dispatch all the events accumulated during work().
+        while let Some((uid, event)) = events.pop() {
+            match event {
+                EntityEvent::Midi(channel, message) => {
+                    // Let the caller forward the MIDI message to external interfaces.
+                    control_events_fn(None, event);
+
+                    let _ = self
+                        .midi_router
+                        .route(&mut self.entity_store, channel, message);
+                }
+                EntityEvent::Control(value) => {
+                    let _ = self.control_router.route(
+                        &mut |target_uid, index, value| {
+                            if target_uid == &Self::TRANSPORT_UID {
+                                self.transport.control_set_param_by_index(index, value);
+                            } else {
+                                if let Some(entity) =
+                                    self.entity_store.as_controllable_mut(&target_uid)
+                                {
+                                    entity.control_set_param_by_index(index, value);
+                                }
+                            }
+                        },
+                        uid,
+                        value,
+                    );
+                }
+            }
+        }
+
+        if self.is_performing() && self.is_finished() {
+            self.stop();
+        }
+    }
+
+    fn is_finished(&self) -> bool {
+        self.transport.is_finished() && self.entity_store.is_finished()
+    }
+
+    fn play(&mut self) {
+        self.transport.play();
+        self.entity_store.play();
+    }
+
+    fn stop(&mut self) {
+        self.transport.stop();
+        self.entity_store.stop();
+    }
+
+    fn skip_to_start(&mut self) {
+        self.transport.skip_to_start();
+        self.entity_store.skip_to_start();
+    }
+
+    fn is_performing(&self) -> bool {
+        self.transport.is_performing() || self.entity_store.is_performing()
+    }
+}
+impl Ticks for Orchestrator {
+    fn tick(&mut self, tick_count: usize) {
+        self.entity_store.tick(tick_count);
+    }
+}
+impl Generates<StereoSample> for Orchestrator {
+    fn value(&self) -> StereoSample {
+        <StereoSample>::default()
+    }
+
+    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+        let solo_track_uid = self.main_mixer.solo_track;
+
+        for track_uid in self.track_uids.iter() {
+            // If we're soloing and this isn't the solo track, then skip.
+            if let Some(solo_track_uid) = solo_track_uid {
+                if *track_uid != solo_track_uid {
+                    continue;
+                }
+            }
+
+            // If this track is muted, skip.
+            if self
+                .main_mixer
+                .track_mute
+                .get(track_uid)
+                .cloned()
+                .unwrap_or_default()
+            {
+                continue;
+            }
+
+            // Start with a silent buffer.
+            let mut buffer = Vec::default();
+            buffer.resize(values.len(), StereoSample::SILENCE);
+
+            // Play each instrument. They add to the current buffer, so we don't
+            // have to worry about mixing.
+            if let Some(uids) = self.instrument_uids.get(track_uid) {
+                for uid in uids {
+                    if let Some(entity) = self.entity_store.as_instrument_mut(uid) {
+                        entity.generate_batch_values(&mut buffer);
+                    }
+                }
+            }
+
+            // Apply each effect.
+            if let Some(uids) = self.effect_uids.get(track_uid) {
+                for uid in uids {
+                    let humidity = self.humidifier.get_humidity_by_uid(uid);
+                    if humidity == Normal::zero() {
+                        continue;
+                    }
+                    if let Some(entity) = self.entity_store.as_effect_mut(uid) {
+                        self.humidifier
+                            .transform_batch(humidity, entity, &mut buffer);
+                    }
+                }
+            }
+
+            // Look up the track volume.
+            let output = self
+                .main_mixer
+                .track_output
+                .get(track_uid)
+                .cloned()
+                .unwrap_or_default();
+            if output != Normal::zero() {
+                for (dst, src) in values.iter_mut().zip(buffer.iter()) {
+                    *dst += *src * output;
+                }
+            }
+        }
+    }
+}
+impl HandlesMidi for Orchestrator {
+    fn handle_midi_message(
+        &mut self,
+        channel: MidiChannel,
+        message: MidiMessage,
+        midi_messages_fn: &mut MidiMessagesFn,
+    ) {
+        unimplemented!()
+    }
+}
+
+pub struct OrchestratorHelper<'a> {
+    orchestrator: &'a mut dyn Orchestrates,
+}
+impl<'a> OrchestratorHelper<'a> {
+    /// The expected size of any buffer provided for samples.
+    //
+    // TODO: how hard would it be to make this dynamic? Does adjustability
+    // matter?
+    pub const SAMPLE_BUFFER_SIZE: usize = 64;
+
+    pub fn new_with(orchestrator: &'a mut dyn Orchestrates) -> Self {
+        Self { orchestrator }
+    }
+
+    /// Returns the number of channels in the audio stream. For now, this is
+    /// always 2 (stereo audio stream).
+    pub fn channels(&self) -> u16 {
+        2
+    }
+
+    /// Renders the next set of samples into the provided buffer. This is the
+    /// main event loop.
+    pub fn render(
+        &mut self,
+        range: Range<MusicalTime>,
+        samples: &mut [StereoSample],
+        control_events_fn: &mut ControlEventsFn,
+    ) {
+        self.orchestrator.update_time(&range);
+        self.orchestrator.work(control_events_fn);
+        self.orchestrator.generate_batch_values(samples);
+    }
+
+    /// A convenience method for callers who would have ignored any
+    /// [EntityEvent]s produced by the render() method.
+    pub fn render_and_ignore_events(
+        &mut self,
+        range: Range<MusicalTime>,
+        samples: &mut [StereoSample],
+    ) {
+        self.render(range, samples, &mut |_, _| {});
+    }
+
+    /// Renders part of the project to audio, creating at least the requested
+    /// number of [StereoSample]s and inserting them in the given [AudioQueue].
+    /// Exceptions: the method operates only in [Self::SAMPLE_BUFFER_SIZE]
+    /// chunks, and it won't generate a chunk unless there is enough room in the
+    /// queue for it.
+    ///
+    /// This method expects to be called continuously, even when the project
+    /// isn't actively playing. In such cases, it will provide a stream of
+    /// silent samples.
+    //
+    // TODO: I don't think there's any reason why this must be limited to an
+    // `AudioQueue` rather than a more general `Vec`-like interface.
+    pub fn render_and_enqueue(
+        &mut self,
+        samples_requested: usize,
+        queue: &AudioQueue,
+        control_events_fn: &mut ControlEventsFn,
+    ) {
+        // Round up
+        let buffers_requested =
+            (samples_requested + Self::SAMPLE_BUFFER_SIZE - 1) / Self::SAMPLE_BUFFER_SIZE;
+        for _ in 0..buffers_requested {
+            // Generate a buffer only if there's enough room in the queue for
+            // it.
+            if queue.capacity() - queue.len() >= Self::SAMPLE_BUFFER_SIZE {
+                let mut samples = [StereoSample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
+                if false {
+                    self.render_debug(&mut samples);
+                } else {
+                    let range = self.orchestrator.next_range(samples.len());
+                    self.render(range, &mut samples, control_events_fn);
+                }
+                // No need to do the Arc deref each time through the loop. TODO:
+                // is there a queue type that allows pushing a batch?
+                let queue = queue.as_ref();
+                let mut mono_samples = [Sample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
+                for (index, sample) in samples.into_iter().enumerate() {
+                    let _ = queue.push(sample);
+                    mono_samples[index] = Sample::from(sample);
+                }
+
+                // TODO: can we do this work outside this critical loop? And can
+                // we have the recipient do the work of the stereo->mono
+                // conversion?
+                // if let Some(sender) = &self.e.sample_buffer_channel_sender {
+                //     let _ = sender.send(mono_samples);
+                // }
+            }
+        }
+    }
+
+    /// Fills in the given sample buffer with something simple and audible.
+    pub fn render_debug(&mut self, samples: &mut [StereoSample]) {
+        let len = samples.len() as f64;
+        for (i, s) in samples.iter_mut().enumerate() {
+            s.0 = Sample::from(i as f64 / len);
+            s.1 = Sample::from(i as f64 / -len);
+        }
+    }
+
+    // TODO: this could be a feature so that we don't always need the hound
+    // dependency. Probably not important either way.
+    /// Writes the current performance to a WAV file. Intended for integration
+    /// tests only (for now).
+    pub fn write_to_file(&mut self, path: &PathBuf) -> anyhow::Result<()> {
+        let spec = hound::WavSpec {
+            channels: self.channels(),
+            sample_rate: self.orchestrator.sample_rate().into(),
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut writer = hound::WavWriter::create(path, spec).unwrap();
+
+        self.orchestrator.play();
+        let mut samples = [StereoSample::SILENCE; 64];
+
+        loop {
+            if self.orchestrator.is_finished() {
+                break;
+            }
+            samples.fill(StereoSample::SILENCE);
+            let range = self.orchestrator.next_range(samples.len());
+            self.render_and_ignore_events(range, &mut samples);
+            for sample in samples {
+                let (left, right) = sample.into_i16();
+                let _ = writer.write_sample(left);
+                let _ = writer.write_sample(right);
+            }
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use ensnare_proc_macros::{IsController, Metadata};
+
     use super::*;
     use crate::{
         controllers::Timer,
@@ -1351,6 +1575,7 @@ mod tests {
         assert_eq!(o.tempo(), new_tempo, "Tempo should be settable");
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn exposes_traits_ergonomically() {
         let mut o = Orchestrator::default();
@@ -1384,6 +1609,7 @@ mod tests {
         );
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn starter_tracks() {
         let mut o = Orchestrator::default();
@@ -1396,6 +1622,7 @@ mod tests {
             "we should have two MIDI tracks, one audio track, and one aux track after create_starter_tracks().");
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn track_discovery() {
         let mut o = Orchestrator::default();
@@ -1411,6 +1638,7 @@ mod tests {
         assert_eq!(count, track_count);
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn track_crud() {
         let mut o = Orchestrator::default();
@@ -1450,15 +1678,14 @@ mod tests {
     fn zero_length_performance_ends_immediately() {
         let mut o = Orchestrator::default();
 
-        // This is actually undefined before play(), so we're cheating a bit in
-        // the Orchestrator implementation to allow testing of what we want to
-        // test.
-        assert!(!o.is_finished());
+        // Controls::is_finished() is undefined before play(), so no fair
+        // calling it before play().
 
         o.play();
         assert!(o.is_finished());
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn sends_send() {
         const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
@@ -1512,6 +1739,7 @@ mod tests {
         );
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn midi_routing_from_external_reaches_instruments() {
         let mut o = Orchestrator::default();
@@ -1545,6 +1773,7 @@ mod tests {
         };
     }
 
+    #[cfg(obsolete)]
     #[test]
     fn midi_messages_from_track_a_do_not_reach_track_b() {
         let mut o = Orchestrator::default();
@@ -1593,40 +1822,44 @@ mod tests {
     fn orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::default();
         validate_orchestrates_trait(&mut orchestrator);
-
-        // This used to be in validate_orchestrates_trait(), but upon reflection
-        // I don't think I want to specify less-egregious errors in the trait
-        // tests.
-        assert!(
-            orchestrator
-                .link_control(Uid(999), Uid(888), ControlIndex(7))
-                .is_err(),
-            "Linking control to an unknown Uid should fail"
-        );
     }
 
     #[test]
     fn new_orchestrator_orchestrates() {
-        let mut orchestrator = NewOrchestrator::default();
+        let mut orchestrator = Orchestrator::default();
         validate_orchestrates_trait(&mut orchestrator);
     }
+
+    /// An [IsController] that sends one Control event each time work() is called.
+    #[derive(Debug, Default, IsController, Serialize, Deserialize, Metadata)]
+    pub struct TestControllerSendsOneEvent {
+        uid: Uid,
+    }
+    impl Displays for TestControllerSendsOneEvent {}
+    impl HandlesMidi for TestControllerSendsOneEvent {}
+    impl Controls for TestControllerSendsOneEvent {
+        fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+            control_events_fn(None, EntityEvent::Control(ControlValue::MAX));
+        }
+    }
+    impl Configurable for TestControllerSendsOneEvent {}
+    impl Serializable for TestControllerSendsOneEvent {}
 
     #[test]
     fn orchestrator_handles_transport_control() {
         let mut orchestrator = Orchestrator::default();
         let track_uid = orchestrator.create_track().unwrap();
         let uid = orchestrator
-            .assign_uid_and_add_entity(&track_uid, Box::new(TestController::default()))
+            .assign_uid_and_add_entity(&track_uid, Box::new(TestControllerSendsOneEvent::default()))
             .unwrap();
-
-        assert_eq!(orchestrator.tempo(), Tempo::default());
 
         const TEMPO_INDEX: ControlIndex = ControlIndex(0);
         assert!(orchestrator
             .link_control(uid, Orchestrator::TRANSPORT_UID, TEMPO_INDEX)
             .is_ok());
 
-        orchestrator.route_control_change(uid, ControlValue::MAX);
+        assert_eq!(orchestrator.tempo(), Tempo::default());
+        orchestrator.work(&mut |_, _| {});
         assert_eq!(orchestrator.tempo(), Tempo::from(Tempo::MAX_VALUE));
     }
 }
