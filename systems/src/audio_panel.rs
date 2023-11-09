@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{CollapsingHeader};
+use eframe::egui::CollapsingHeader;
 use ensnare_core::{
     audio::{AudioInterfaceEvent, AudioInterfaceInput, AudioStreamService},
     prelude::*,

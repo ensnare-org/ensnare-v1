@@ -11,7 +11,7 @@ use crossbeam_channel::Select;
 use eframe::{
     egui::{
         self, warn_if_debug_build, Button, Context, Direction, FontData, FontDefinitions, Layout,
-        ScrollArea, TextStyle, 
+        ScrollArea, TextStyle,
     },
     emath::{Align, Align2},
     epaint::{FontFamily, FontId},

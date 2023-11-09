@@ -5,7 +5,7 @@
 
 use anyhow::anyhow;
 use eframe::{
-    egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style, },
+    egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style},
     emath::Align,
     CreationContext,
 };

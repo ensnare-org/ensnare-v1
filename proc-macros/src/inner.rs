@@ -156,6 +156,14 @@ pub(crate) fn impl_derive_inner_handles_midi(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::HandlesMidi for #struct_name #ty_generics {
+                fn handle_midi_message(
+                    &mut self,
+                    channel: MidiChannel,
+                    message: MidiMessage,
+                    midi_messages_fn: &mut MidiMessagesFn,
+                ) {
+                    self.inner.handle_midi_message(channel, message, midi_messages_fn)
+                }
             }
         };
         quote
