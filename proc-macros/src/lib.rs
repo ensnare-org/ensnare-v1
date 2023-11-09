@@ -2,10 +2,7 @@
 
 //! This crate provides macros that make Entity development easier.
 
-use control::impl_control_derive;
 use entity::{parse_and_generate_entity, EntityType};
-use metadata::impl_metadata;
-use params::impl_params_derive;
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
@@ -14,6 +11,7 @@ use syn::Ident;
 
 mod control;
 mod entity;
+mod inner;
 mod metadata;
 mod params;
 
@@ -22,7 +20,7 @@ mod params;
 /// have a unique ID. Deriving with this macro makes that happen.
 #[proc_macro_derive(Metadata)]
 pub fn metadata_derive(input: TokenStream) -> TokenStream {
-    impl_metadata(input)
+    metadata::impl_metadata(input)
 }
 
 /// The [Params] macro generates helper structs that are useful for handing
@@ -36,7 +34,7 @@ pub fn metadata_derive(input: TokenStream) -> TokenStream {
 /// #[params(leaf=true)], and it will be treated as a primitive.
 #[proc_macro_derive(Params, attributes(params))]
 pub fn params_derive(input: TokenStream) -> TokenStream {
-    impl_params_derive(input, &make_primitives())
+    params::impl_params_derive(input, &make_primitives())
 }
 
 /// Derives helper methods to access Entity traits associated with controllers.
@@ -111,7 +109,56 @@ fn make_primitives() -> HashSet<Ident> {
 /// #[control(leaf=true)] if it is neither a primitive nor #[derive(Control)].
 #[proc_macro_derive(Control, attributes(control))]
 pub fn derive_control(input: TokenStream) -> TokenStream {
-    impl_control_derive(input, &make_primitives())
+    control::impl_derive_control(input, &make_primitives())
+}
+
+/// Derives code that delegates the implementation of the [Configurable] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerConfigurable)]
+pub fn derive_inner_configurable(input: TokenStream) -> TokenStream {
+    inner::impl_inner_configurable_derive(input)
+}
+
+/// Derives code that delegates the implementation of the [Controllable] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerControllable)]
+pub fn derive_inner_controllable(input: TokenStream) -> TokenStream {
+    inner::impl_derive_inner_controllable(input)
+}
+
+/// Derives the code that delegates the implementation of the [Controls] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerControls)]
+pub fn derive_inner_controls(input: TokenStream) -> TokenStream {
+    inner::impl_derive_inner_controls(input)
+}
+
+/// Derives the code that delegates the implementation of the [HandlesMidi] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerHandlesMidi)]
+pub fn derive_inner_handles_midi(input: TokenStream) -> TokenStream {
+    inner::impl_derive_inner_handles_midi(input)
+}
+
+/// Derives the code that delegates the implementation of traits unique to [IsEffect]
+/// to an inner struct.
+#[proc_macro_derive(InnerEffect)]
+pub fn derive_inner_effect(input: TokenStream) -> TokenStream {
+    inner::impl_derive_inner_effect(input)
+}
+
+/// Derives the code that delegates the implementation of traits unique to [IsInstrument]
+/// to an inner struct.
+#[proc_macro_derive(InnerInstrument)]
+pub fn derive_inner_instrument(input: TokenStream) -> TokenStream {
+    inner::impl_derive_inner_instrument(input)
+}
+
+/// Derives code that delegates the implementation of the [Serializable] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerSerializable)]
+pub fn derive_inner_serializable(input: TokenStream) -> TokenStream {
+    inner::impl_inner_serializable_derive(input)
 }
 
 // Some of the code generated in these macros uses the ensnare crate, but

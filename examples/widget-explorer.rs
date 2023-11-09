@@ -16,12 +16,9 @@ use eframe::{
 use ensnare::{
     app_version,
     entities::{
-        controllers::{
-            live_pattern_sequencer_widget, LivePatternSequencer, NoteSequencer,
-            NoteSequencerBuilder, ToyController, ToyControllerParams,
-        },
-        effects::{ToyEffect, ToyEffectParams},
-        instruments::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
+        controllers::{LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController},
+        effects::ToyEffect,
+        instruments::{ToyInstrument, ToySynth},
     },
     prelude::*,
     ui::{
@@ -29,8 +26,11 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
-use ensnare_core::track::TrackAction;
-use ensnare_egui::prelude::{signal_chain, track_widget};
+use ensnare_core::{
+    stuff::toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
+    track::TrackAction,
+};
+use ensnare_egui::prelude::{live_pattern_sequencer_widget, signal_chain, track_widget};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -40,7 +40,7 @@ struct LegendSettings {
 impl LegendSettings {
     const NAME: &'static str = "Legend";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(timeline::legend(&mut self.range));
         }
@@ -55,7 +55,7 @@ impl Default for LegendSettings {
     }
 }
 impl Displays for LegendSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         ui.label("View range");
         let mut range_start = self.range.start.total_beats();
@@ -82,7 +82,7 @@ struct TrackSettings {
 impl TrackSettings {
     const NAME: &'static str = "Track";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             let mut action = None;
             ui.add(track_widget(
@@ -116,7 +116,7 @@ impl Default for TrackSettings {
     }
 }
 impl Displays for TrackSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         ui.label("Range");
         let mut range_start = self.range.start.total_beats();
@@ -148,7 +148,7 @@ impl<'a> PretendDevicePalette<'a> {
     }
 }
 impl<'a> Displays for PretendDevicePalette<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {
             ScrollArea::horizontal()
@@ -178,14 +178,14 @@ struct DevicePaletteSettings {
 impl DevicePaletteSettings {
     const NAME: &'static str = "Device Palette";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(pretend_device_palette(EntityFactory::global()));
         }
     }
 }
 impl Displays for DevicePaletteSettings {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
@@ -199,7 +199,7 @@ struct SignalChainSettings {
 impl SignalChainSettings {
     const NAME: &'static str = "Signal Chain";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.scope(|ui| {
                 // TODO: who should own this value?
@@ -222,7 +222,7 @@ impl SignalChainSettings {
     }
 }
 impl Displays for SignalChainSettings {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
     }
 }
@@ -236,7 +236,7 @@ struct GridSettings {
 impl GridSettings {
     const NAME: &'static str = "Grid";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(timeline::grid(self.range.clone(), self.view_range.clone()));
         }
@@ -256,7 +256,7 @@ impl Default for GridSettings {
     }
 }
 impl Displays for GridSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
@@ -290,7 +290,7 @@ impl Default for PatternIconSettings {
     }
 }
 impl Displays for PatternIconSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide Pattern Icon")
             | ui.checkbox(&mut self.is_selected, "Show selected")
     }
@@ -304,7 +304,7 @@ impl PatternIconSettings {
         }
     }
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         // Pattern Icon
         if !self.hide {
             DragDropManager::drag_source(
@@ -324,14 +324,14 @@ struct LivePatternSequencerSettings {
     view_range: ViewRange,
 }
 impl Displays for LivePatternSequencerSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl LivePatternSequencerSettings {
     const NAME: &'static str = "Live Pattern Sequencer";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(live_pattern_sequencer_widget(
                 &mut self.sequencer,
@@ -365,14 +365,14 @@ impl Default for NoteSequencerSettings {
 }
 
 impl Displays for NoteSequencerSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl NoteSequencerSettings {
     const NAME: &'static str = "Note Sequencer";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.sequencer.ui(ui);
         }
@@ -397,14 +397,14 @@ impl Default for ToySynthSettings {
     }
 }
 impl Displays for ToySynthSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl ToySynthSettings {
     const NAME: &'static str = "Toy Synth";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.toy_synth.ui(ui);
         }
@@ -429,14 +429,14 @@ impl Default for ToyControllerSettings {
     }
 }
 impl Displays for ToyControllerSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl ToyControllerSettings {
     const NAME: &'static str = "Toy Controller";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.toy.ui(ui);
         }
@@ -457,14 +457,14 @@ impl Default for ToyEffectSettings {
     }
 }
 impl Displays for ToyEffectSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl ToyEffectSettings {
     const NAME: &'static str = "Toy Effect";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.toy.ui(ui);
         }
@@ -485,14 +485,14 @@ impl Default for ToyInstrumentSettings {
     }
 }
 impl Displays for ToyInstrumentSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl ToyInstrumentSettings {
     const NAME: &'static str = "Toy Instrument";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.toy.ui(ui);
         }
@@ -507,7 +507,7 @@ struct TitleBarSettings {
 }
 
 impl Displays for TitleBarSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.font_galley.is_none() {
             self.font_galley = Some(track::make_title_bar_galley(ui, &self.title));
         }
@@ -522,7 +522,7 @@ impl Displays for TitleBarSettings {
 impl TitleBarSettings {
     const NAME: &'static str = "Title Bar";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             if let Some(font_galley) = &self.font_galley {
                 ui.add(track::title_bar(Some(std::sync::Arc::clone(font_galley))));
@@ -537,14 +537,14 @@ struct PianoRollSettings {
     piano_roll: PianoRoll,
 }
 impl Displays for PianoRollSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl PianoRollSettings {
     const NAME: &'static str = "Piano Roll";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             self.piano_roll.ui(ui);
         }
@@ -557,14 +557,14 @@ struct WigglerSettings {
 }
 
 impl Displays for WigglerSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 impl WigglerSettings {
     const NAME: &'static str = "Wiggler";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(placeholder::wiggler());
         }
@@ -590,7 +590,7 @@ impl Default for TimeDomainSettings {
 }
 
 impl Displays for TimeDomainSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
             | ui.add(DragValue::new(&mut self.max_width).prefix("width: "))
             | ui.add(DragValue::new(&mut self.max_height).prefix("height: "))
@@ -599,7 +599,7 @@ impl Displays for TimeDomainSettings {
 impl TimeDomainSettings {
     const NAME: &'static str = "Audio Time Domain";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         self.buffer.add_some_noise();
         if !self.hide {
             ui.scope(|ui| {
@@ -635,7 +635,7 @@ impl Default for FrequencyDomainSettings {
     }
 }
 impl Displays for FrequencyDomainSettings {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
             | ui.add(DragValue::new(&mut self.max_width).prefix("width: "))
             | ui.add(DragValue::new(&mut self.max_height).prefix("height: "))
@@ -644,7 +644,7 @@ impl Displays for FrequencyDomainSettings {
 impl FrequencyDomainSettings {
     const NAME: &'static str = "Audio Frequency Domain";
 
-    fn show(&mut self, ui: &mut Ui) {
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
         self.buffer.add_some_noise();
 
         // We act on 0 so that it's always initialized by the time we get to the
@@ -703,7 +703,7 @@ impl WidgetExplorer {
         }
     }
 
-    fn show_bottom(&mut self, ui: &mut Ui) {
+    fn show_bottom(&mut self, ui: &mut eframe::egui::Ui) {
         ui.horizontal(|ui| {
             warn_if_debug_build(ui);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -712,7 +712,7 @@ impl WidgetExplorer {
         });
     }
 
-    fn show_left(&mut self, ui: &mut Ui) {
+    fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::horizontal().show(ui, |ui| {
             Self::wrap_settings(TimeDomainSettings::NAME, ui, |ui| self.time_domain.ui(ui));
             Self::wrap_settings(FrequencyDomainSettings::NAME, ui, |ui| {
@@ -751,7 +751,7 @@ impl WidgetExplorer {
 
     fn wrap_settings(
         name: &str,
-        ui: &mut Ui,
+        ui: &mut eframe::egui::Ui,
         add_body: impl FnOnce(&mut Ui) -> eframe::egui::Response,
     ) {
         CollapsingHeader::new(name)
@@ -759,13 +759,13 @@ impl WidgetExplorer {
             .show_unindented(ui, add_body);
     }
 
-    fn wrap_item(name: &str, ui: &mut Ui, add_body: impl FnOnce(&mut Ui)) {
+    fn wrap_item(name: &str, ui: &mut eframe::egui::Ui, add_body: impl FnOnce(&mut Ui)) {
         ui.heading(name);
         add_body(ui);
         ui.separator();
     }
 
-    fn debug_ui(&mut self, ui: &mut Ui) {
+    fn debug_ui(&mut self, ui: &mut eframe::egui::Ui) {
         #[cfg(debug_assertions)]
         {
             let mut debug_on_hover = ui.ctx().debug_on_hover();
@@ -780,7 +780,7 @@ impl WidgetExplorer {
         }
     }
 
-    fn show_center(&mut self, ui: &mut Ui) {
+    fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::vertical().show(ui, |ui| {
             self.track_widget.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);

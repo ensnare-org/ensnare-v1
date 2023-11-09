@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{
-        controllers::{LfoController, LfoControllerParams, PatternSequencerBuilder},
-        instruments::ToySynth,
-    },
+    entities::{controllers::PatternSequencerBuilder, instruments::ToySynth},
     prelude::*,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
+use ensnare_core::{orchestration::OrchestratorHelper, stuff::lfo::LfoControllerParams};
+use ensnare_egui::prelude::*;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -72,10 +70,13 @@ fn demo_automation() {
             orchestrator
                 .assign_uid_and_add_entity(
                     &track_uid,
-                    Box::new(LfoController::new_with(&LfoControllerParams {
-                        frequency: FrequencyHz(2.0),
-                        waveform: Waveform::Sine,
-                    })),
+                    Box::new(LfoController::new_with(
+                        Uid::default(),
+                        &LfoControllerParams {
+                            frequency: FrequencyHz(2.0),
+                            waveform: Waveform::Sine,
+                        },
+                    )),
                 )
                 .unwrap()
         };

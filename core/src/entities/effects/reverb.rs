@@ -3,15 +3,13 @@
 use crate::{
     entities::effects::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine},
     prelude::*,
-    traits::prelude::*,
 };
-use eframe::egui::Ui;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, IsEffect, Params, Metadata, Serialize, Deserialize)]
 pub struct Reverb {
     uid: Uid,
 
@@ -171,7 +169,7 @@ impl ReverbChannel {
     }
 }
 impl Displays for Reverb {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
@@ -179,7 +177,7 @@ impl Displays for Reverb {
 #[cfg(test)]
 mod tests {
     use super::{Reverb, ReverbParams};
-    use crate::{prelude::*, traits::prelude::*};
+    use crate::prelude::*;
 
     const DEFAULT_SAMPLE_RATE: usize = 44100;
 

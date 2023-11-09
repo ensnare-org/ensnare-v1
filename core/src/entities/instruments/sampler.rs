@@ -4,7 +4,6 @@ use crate::{
     instruments::Synthesizer,
     midi::prelude::*,
     prelude::*,
-    traits::prelude::*,
     utils::Paths,
     voices::{VoiceCount, VoiceStore},
 };

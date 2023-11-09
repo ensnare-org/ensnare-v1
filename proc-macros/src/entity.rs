@@ -124,18 +124,18 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
         };
 
         let quote = quote! {
-            #[automatically_derived]
-            #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
+                    #[automatically_derived]
+                    #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
 
-            #[automatically_derived]
-            #[typetag::serde]
-            impl #generics #core_crate::traits::Entity for #struct_name #ty_generics {
-                #common_items
-                #type_specific_items
-                #handles_midi_items
-                #controllable_items
-            }
-        };
+                    #[automatically_derived]
+        //            #[typetag::serde]
+                    impl #generics #core_crate::traits::Entity for #struct_name #ty_generics {
+                        #common_items
+                        #type_specific_items
+                        #handles_midi_items
+                        #controllable_items
+                    }
+                };
         quote
     })
 }

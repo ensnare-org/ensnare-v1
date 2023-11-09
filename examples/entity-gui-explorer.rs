@@ -5,7 +5,7 @@
 
 use anyhow::anyhow;
 use eframe::{
-    egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style, Ui},
+    egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style, },
     emath::Align,
     CreationContext,
 };
@@ -52,11 +52,11 @@ impl EntityGuiExplorer {
         keys.into_iter().map(|k| EntityKey::from(k)).collect()
     }
 
-    fn show_top(&mut self, ui: &mut Ui) {
+    fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
         self.debug_ui(ui);
     }
 
-    fn show_bottom(&mut self, ui: &mut Ui) {
+    fn show_bottom(&mut self, ui: &mut eframe::egui::Ui) {
         ui.horizontal(|ui| {
             warn_if_debug_build(ui);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -65,7 +65,7 @@ impl EntityGuiExplorer {
         });
     }
 
-    fn show_left(&mut self, ui: &mut Ui) {
+    fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         for key in self.sorted_keys.iter() {
             if ui.button(key.to_string()).clicked() {
                 if self.selected_key != Some(key.clone()) {
@@ -83,7 +83,7 @@ impl EntityGuiExplorer {
         }
     }
 
-    fn debug_ui(&mut self, ui: &mut Ui) {
+    fn debug_ui(&mut self, ui: &mut eframe::egui::Ui) {
         #[cfg(debug_assertions)]
         {
             let mut debug_on_hover = ui.ctx().debug_on_hover();
@@ -98,14 +98,14 @@ impl EntityGuiExplorer {
         }
     }
 
-    fn show_right(&mut self, ui: &mut Ui) {
+    fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
         for mode in DisplayMode::iter() {
             let s = mode.to_string();
             ui.radio_value(&mut self.display_mode, mode, s);
         }
     }
 
-    fn show_center(&mut self, ui: &mut Ui) {
+    fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
         let available_height = ui.available_height();
         ScrollArea::vertical().show(ui, |ui| {
             ui.set_max_height(available_height / 2.0);

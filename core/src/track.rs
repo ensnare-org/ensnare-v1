@@ -10,7 +10,6 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Sequences},
     uid::{IsUid, UidFactory},
-    widgets::track::make_title_bar_galley,
 };
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -110,7 +109,7 @@ pub struct TrackEphemerals {
 
 /// A collection of instruments, effects, and controllers that combine to
 /// produce a single source of audio.
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Track {
     pub title: TrackTitle,
     pub entity_store: EntityStore,
@@ -123,7 +122,6 @@ pub struct Track {
     pub effects: Vec<Uid>,
     humidifier: Humidifier,
 
-    #[serde(skip)]
     pub e: TrackEphemerals,
 }
 impl Track {
@@ -261,18 +259,6 @@ impl Track {
 
     pub fn view_range(&self) -> &ViewRange {
         &self.e.view_range
-    }
-
-    /// The [TitleBar] widget needs a Galley so that it can display the title
-    /// sideways. But widgets live for only a frame, so it can't cache anything.
-    /// Caller to the rescue! We generate the Galley and save it.
-    ///
-    /// TODO: when we allow title editing, we should set the galley to None so
-    /// it can be rebuilt on the next frame.
-    pub fn update_font_galley(&mut self, ui: &mut eframe::egui::Ui) {
-        if self.e.title_font_galley.is_none() && !self.title.0.is_empty() {
-            self.e.title_font_galley = Some(make_title_bar_galley(ui, &self.title));
-        }
     }
 
     pub(crate) fn add_pattern(

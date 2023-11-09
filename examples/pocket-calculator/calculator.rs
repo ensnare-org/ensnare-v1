@@ -12,7 +12,7 @@
 // - a better LCD
 
 use eframe::{
-    egui::{self, Button, Grid, Response, Sense, Ui},
+    egui::{Button, Grid, Sense},
     epaint::{Color32, Stroke, Vec2},
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
@@ -22,7 +22,6 @@ use ensnare::{
         Synthesizer, VoicePerNoteStore,
     },
     prelude::*,
-    traits::prelude::*,
     utils::Paths,
 };
 use ensnare_proc_macros::{Control, IsControllerInstrument, Metadata};
@@ -1121,12 +1120,12 @@ impl Calculator {
 
     fn create_button(
         &mut self,
-        ui: &mut Ui,
+        ui: &mut eframe::egui::Ui,
         label: &str,
         state: ButtonState,
         is_highlighted: bool,
         has_led: bool,
-    ) -> Response {
+    ) -> eframe::egui::Response {
         let button_color = if state == ButtonState::Held {
             Color32::DARK_BLUE
         } else {
@@ -1169,7 +1168,7 @@ impl Calculator {
 
     // TODO: I can't get this knob to be the same size as the other buttons, so
     // the second button is not correctly centered on the grid.
-    fn create_knob(ui: &mut Ui, value: &mut f32) -> Response {
+    fn create_knob(ui: &mut eframe::egui::Ui, value: &mut f32) -> eframe::egui::Response {
         ui.vertical_centered_justified(|ui| {
             // This is clumsy to try to keep all the widgets evenly spaced
             let (_rect, _response) = ui.allocate_exact_size(Self::LED_SIZE, Sense::hover());
@@ -1220,7 +1219,7 @@ impl Calculator {
         }
     }
 
-    fn create_dashboard(&self, ui: &mut Ui) {
+    fn create_dashboard(&self, ui: &mut eframe::egui::Ui) {
         ui.add(
             SegmentedDisplayWidget::sixteen_segment(format!(
                 "W: {}",
@@ -1248,7 +1247,7 @@ impl Calculator {
         );
     }
 
-    fn create_knob_a(&mut self, ui: &mut Ui) {
+    fn create_knob_a(&mut self, ui: &mut eframe::egui::Ui) {
         ui.set_min_size(Self::CELL_SIZE);
         let mut value: f32 = if self.ui_state == UiState::Bpm {
             (*self.engine.swing()).into()
@@ -1260,7 +1259,7 @@ impl Calculator {
         }
     }
 
-    fn create_knob_b(&mut self, ui: &mut Ui) {
+    fn create_knob_b(&mut self, ui: &mut eframe::egui::Ui) {
         ui.set_min_size(Self::CELL_SIZE);
         let mut value = if self.ui_state == UiState::Bpm {
             self.engine.tempo_by_value().into()
@@ -1357,7 +1356,7 @@ impl Calculator {
 }
 
 impl Displays for Calculator {
-    fn ui(&mut self, ui: &mut Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let highlighted_button = if self.engine.state() == &EngineState::Playing {
             Some(self.current_step())
         } else {

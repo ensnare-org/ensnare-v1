@@ -1,161 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    controllers::{ControlTrip, Timer, Trigger},
-    entities::prelude::*,
-    generators::{EnvelopeParams, Waveform},
-    midi::MidiChannel,
-    modulators::DcaParams,
-    prelude::*,
-    traits::prelude::*,
-    uid::Uid,
-    utils::Paths,
-};
+use crate::prelude::*;
 use anyhow::anyhow;
 use derive_more::Display;
 use once_cell::sync::OnceCell;
-use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
     option::Option,
 };
-
-/// Registers all [EntityFactory]'s entities. Note that the function returns a
-/// EntityFactory, rather than operating on an &mut. This encourages
-/// one-and-done creation, after which the factory is immutable:
-///
-/// ```ignore
-/// let factory = register_factory_entities(EntityFactory::default());
-/// ```
-///
-/// TODO: maybe a Builder pattern is better, so that people can compose
-/// factories out of any entities they want, and still get the benefits of
-/// immutability.
-#[must_use]
-pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-    // TODO: might be nice to move HasUid::name() to be a function.
-
-    // Controllers
-    factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |_uid| {
-        Box::new(Arpeggiator::new_with(
-            &ArpeggiatorParams::default(),
-            MidiChannel::default(),
-        ))
-    });
-    factory.register_entity_with_str_key(ControlTrip::ENTITY_KEY, |_uid| {
-        Box::<ControlTrip>::default()
-    });
-    factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |_uid| {
-        Box::new(LfoController::new_with(&LfoControllerParams {
-            frequency: FrequencyHz::from(0.2),
-            waveform: Waveform::Sawtooth,
-        }))
-    });
-    factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |_uid| {
-        Box::<SignalPassthroughController>::default()
-    });
-    factory.register_entity_with_str_key("signal-amplitude-passthrough", |_uid| {
-        Box::new(SignalPassthroughController::new_amplitude_passthrough_type())
-    });
-    factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |_uid| {
-        Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type())
-    });
-    factory.register_entity_with_str_key(Timer::ENTITY_KEY, |_uid| {
-        Box::new(Timer::new_with(MusicalTime::DURATION_QUARTER))
-    });
-    factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |_uid| {
-        Box::new(Trigger::new_with(
-            Timer::new_with(MusicalTime::DURATION_QUARTER),
-            ControlValue(1.0),
-        ))
-    });
-    factory.register_entity_with_str_key(ToyController::ENTITY_KEY, |_uid| {
-        Box::<ToyController>::default()
-    });
-    factory.register_entity_with_str_key("toy-controller-noisy", |_uid| {
-        Box::<ToyControllerAlwaysSendsMidiMessage>::default()
-    });
-
-    // Effects
-    factory
-        .register_entity_with_str_key(Bitcrusher::ENTITY_KEY, |_uid| Box::<Bitcrusher>::default());
-    factory
-        .register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| Box::<Compressor>::default());
-    factory.register_entity_with_str_key("filter-low-pass-24db", |_uid| {
-        Box::new(BiQuadFilterLowPass24db::new_with(
-            &BiQuadFilterLowPass24dbParams::default(),
-        ))
-    });
-    factory.register_entity_with_str_key(Gain::ENTITY_KEY, |_uid| {
-        Box::new(Gain::new_with(&GainParams {
-            ceiling: Normal::from(0.5),
-        }))
-    });
-    factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |_uid| Box::<Limiter>::default());
-    factory.register_entity_with_str_key(Mixer::ENTITY_KEY, |_uid| Box::<Mixer>::default());
-    // TODO: this is lazy. It's too hard right now to adjust parameters within
-    // code, so I'm creating a special instrument with the parameters I want.
-    factory.register_entity_with_str_key("mute", |_uid| {
-        Box::new(Gain::new_with(&GainParams {
-            ceiling: Normal::minimum(),
-        }))
-    });
-    factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |_uid| {
-        Box::new(Reverb::new_with(&ReverbParams {
-            attenuation: Normal::from(0.8),
-            seconds: 1.0,
-        }))
-    });
-    factory.register_entity_with_str_key(ToyEffect::ENTITY_KEY, |_uid| Box::<ToyEffect>::default());
-
-    // Instruments
-    factory.register_entity_with_str_key(ToySynth::ENTITY_KEY, |uid| {
-        Box::new(ToySynth::new_with(
-            uid,
-            &ToySynthParams {
-                voice_count: Default::default(),
-                waveform: Default::default(),
-                envelope: EnvelopeParams::safe_default(),
-                dca: Default::default(),
-            },
-        ))
-    });
-    factory.register_entity_with_str_key(ToyInstrument::ENTITY_KEY, |_uid| {
-        Box::<ToyInstrument>::default()
-    });
-    factory.register_entity_with_str_key(Drumkit::ENTITY_KEY, |_uid| {
-        Box::new(Drumkit::new_with(
-            &DrumkitParams::default(),
-            &Paths::default(),
-        ))
-    });
-    factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |_uid| {
-        // A crisp, classic FM sound that brings me back to 1985.
-        Box::new(FmSynth::new_with(&FmSynthParams {
-            depth: 1.0.into(),
-            ratio: 16.0.into(),
-            beta: 10.0.into(),
-            carrier_envelope: EnvelopeParams::safe_default(),
-            modulator_envelope: EnvelopeParams::default(),
-            dca: DcaParams::default(),
-        }))
-    });
-    factory.register_entity_with_str_key(Sampler::ENTITY_KEY, |_uid| {
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "stereo-pluck.wav".to_string(),
-            root: 0.0.into(),
-        });
-        let _ = sampler.load(&Paths::default()); // TODO: we're ignoring the error
-        Box::new(sampler)
-    });
-    factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
-        Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))
-    });
-
-    factory.complete_registration();
-
-    factory
-}
 
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
@@ -281,9 +133,8 @@ impl EntityFactory {
 /// traits, such as [Configurable], and fans out usage of those traits to the
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
 /// all its entities as a single [Entity].
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct EntityStore {
-    #[serde(skip)]
     sample_rate: SampleRate,
     entities: HashMap<Uid, Box<dyn Entity>>,
 }
@@ -821,13 +672,7 @@ mod tests {
         test_entities::{TestController, TestEffect, TestInstrument},
         EntityStore,
     };
-    use crate::{
-        entities::{
-            factory::register_factory_entities, prelude::*, toys::register_toy_factory_entities,
-        },
-        prelude::*,
-        traits::prelude::*,
-    };
+    use crate::{entities::prelude::*, prelude::*};
 
     /// Registers all [EntityFactory]'s entities. Note that the function returns
     /// an &EntityFactory. This encourages usage like this:
@@ -895,48 +740,6 @@ mod tests {
         assert!(
             !factory.entities().is_empty(),
             "after registering test entities, factory should contain at least one"
-        );
-
-        // After registration, rebind as immutable
-        let factory = factory;
-
-        check_entity_factory(factory);
-    }
-
-    #[test]
-    fn creation_of_toy_entities() {
-        assert!(
-            EntityFactory::default().entities().is_empty(),
-            "A new EntityFactory should be empty"
-        );
-
-        let factory = register_toy_factory_entities(EntityFactory::default());
-        assert!(
-            !factory.entities().is_empty(),
-            "after registering toy entities, factory should contain at least one"
-        );
-
-        // After registration, rebind as immutable
-        let factory = factory;
-
-        check_entity_factory(factory);
-    }
-
-    // TODO: if we want to re-enable this, then we need to change
-    // Sampler/Drumkit and anyone else to not load files when instantiated. This
-    // might not be practical for those instruments.
-    #[ignore = "This test requires Path hives to be set up properly, but they aren't on the CI machine."]
-    #[test]
-    fn creation_of_production_entities() {
-        assert!(
-            EntityFactory::default().entities().is_empty(),
-            "A new EntityFactory should be empty"
-        );
-
-        let factory = register_factory_entities(EntityFactory::default());
-        assert!(
-            !factory.entities().is_empty(),
-            "after registering entities, factory should contain at least one"
         );
 
         // After registration, rebind as immutable

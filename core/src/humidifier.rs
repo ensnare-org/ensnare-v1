@@ -64,7 +64,7 @@ impl Humidifier {
 mod tests {
     use crate::{
         entities::factory::test_entities::TestEffectNegatesInput, humidifier::Humidifier,
-        prelude::*, traits::prelude::*,
+        prelude::*,
     };
 
     #[test]

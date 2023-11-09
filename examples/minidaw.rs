@@ -11,7 +11,7 @@ use crossbeam_channel::Select;
 use eframe::{
     egui::{
         self, warn_if_debug_build, Button, Context, Direction, FontData, FontDefinitions, Layout,
-        ScrollArea, TextStyle, Ui,
+        ScrollArea, TextStyle, 
     },
     emath::{Align, Align2},
     epaint::{FontFamily, FontId},
@@ -20,9 +20,7 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
-    panels::prelude::*,
     prelude::*,
-    systems::prelude::*,
     ui::widgets::{audio_settings, midi_settings},
     ui::DragDropManager,
 };
@@ -116,13 +114,13 @@ struct SettingsPanel {
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<Orchestrator>>) -> Self {
+    pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<OldOrchestrator>>) -> Self {
         let midi_panel = MidiPanel::new_with(Arc::clone(&settings.midi_settings));
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let o: &mut Orchestrator = &mut o;
+                    let o: &mut OldOrchestrator = &mut o;
                     let mut helper = OrchestratorHelper::new_with(o);
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
                         if let EntityEvent::Midi(channel, message) = event {
@@ -175,7 +173,7 @@ impl SettingsPanel {
     }
 }
 impl Displays for SettingsPanel {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut new_input = None;
         let mut new_output = None;
         let response = {
@@ -251,7 +249,7 @@ impl MenuBarItem {
             enabled,
         }
     }
-    fn show(&self, ui: &mut Ui) -> Option<MenuBarAction> {
+    fn show(&self, ui: &mut eframe::egui::Ui) -> Option<MenuBarAction> {
         let mut action = None;
         if let Some(children) = self.children.as_ref() {
             ui.menu_button(&self.name, |ui| {
@@ -277,7 +275,11 @@ impl MenuBarItem {
 #[derive(Debug, Default)]
 struct MenuBar {}
 impl MenuBar {
-    fn show_with_action(&mut self, ui: &mut Ui, is_track_selected: bool) -> Option<MenuBarAction> {
+    fn show_with_action(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        is_track_selected: bool,
+    ) -> Option<MenuBarAction> {
         let mut action = None;
 
         // Menus should look like menus, not buttons
@@ -360,7 +362,7 @@ impl MenuBar {
 }
 
 struct MiniDaw {
-    orchestrator: Arc<Mutex<Orchestrator>>,
+    orchestrator: Arc<Mutex<OldOrchestrator>>,
     title: ProjectTitle,
 
     menu_bar: MenuBar,
@@ -385,7 +387,7 @@ impl MiniDaw {
 
         let settings = Settings::load().unwrap_or_default();
         let orchestrator_panel = OrchestratorPanel::default();
-        let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
+        let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
             orchestrator,
@@ -536,7 +538,7 @@ impl MiniDaw {
                 OrchestratorEvent::Quit => {
                     eprintln!("OrchestratorEvent::Quit")
                 }
-                OrchestratorEvent::Loaded(path, title) => {
+                OrchestratorEvent::Loaded(path, _) => {
                     // TODO - it's unclear whether this event should still know
                     // about the project title, since it now belongs to Project
                     // rather than Orchestrator.
@@ -677,7 +679,7 @@ impl MiniDaw {
         }
     }
 
-    fn show_top(&mut self, ui: &mut Ui) {
+    fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
         if let Some(action) = self
             .menu_bar
             .show_with_action(ui, self.orchestrator_panel.is_any_track_selected())
@@ -691,7 +693,7 @@ impl MiniDaw {
         }
     }
 
-    fn show_bottom(&mut self, ui: &mut Ui) {
+    fn show_bottom(&mut self, ui: &mut eframe::egui::Ui) {
         ui.horizontal(|ui| {
             warn_if_debug_build(ui);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -700,17 +702,17 @@ impl MiniDaw {
         });
     }
 
-    fn show_left(&mut self, ui: &mut Ui) {
+    fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::horizontal().show(ui, |ui| {
             self.palette_panel.ui(ui);
         });
     }
 
-    fn show_right(&mut self, ui: &mut Ui) {
+    fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
-    fn show_center(&mut self, ui: &mut Ui, is_control_only_down: bool) {
+    fn show_center(&mut self, ui: &mut eframe::egui::Ui, is_control_only_down: bool) {
         ScrollArea::vertical().show(ui, |ui| {
             self.orchestrator_panel
                 .set_control_only_down(is_control_only_down);

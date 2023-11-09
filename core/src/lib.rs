@@ -10,8 +10,6 @@ pub mod audio;
 pub mod control;
 /// Core controllers.
 pub mod controllers;
-/// Helps coodrinate systemwide drag-and-drop activity.
-pub mod drag_drop;
 /// Built-in musical devices.
 pub mod entities;
 // /// Infrastructure for managing [Entities](Entity).
@@ -49,24 +47,22 @@ pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
 
-/// Large GUI components;
-pub mod panels;
-/// Drawing components.
-pub mod widgets;
-
 mod bus_route;
 mod humidifier;
 mod midi_router;
 
+pub mod stuff;
+
 /// Recommended imports for easy onboarding.
 pub mod prelude {
+    pub use super::traits::prelude::*;
     pub use super::{
         control::{ControlIndex, ControlName, ControlValue},
         entities::factory::{EntityFactory, EntityKey, EntityStore},
+        midi::{MidiChannel, MidiMessage},
         orchestration::{OldOrchestrator, Orchestrator},
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
         track::{Track, TrackUid},
-        traits::{HasMetadata, Orchestrates},
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
             SampleType, SignalType, StereoSample,

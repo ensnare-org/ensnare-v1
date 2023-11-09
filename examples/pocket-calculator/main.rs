@@ -6,11 +6,7 @@
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
-use ensnare::{
-    panels::{AudioPanel, NeedsAudioFn},
-    prelude::*,
-    traits::prelude::*,
-};
+use ensnare::prelude::*;
 use std::sync::{Arc, Mutex};
 
 mod calculator;

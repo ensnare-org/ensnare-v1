@@ -1,14 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::track::{track_widget, TrackWidgetAction};
+use crate::{
+    track::{track_widget, TrackWidgetAction},
+    widgets::{
+        timeline::{self, TimelineIconStripAction},
+        track,
+    },
+};
 use ensnare_core::{
     orchestration::OrchestratorAction,
     prelude::*,
     traits::{Acts, Controls, Displays, Orchestrates},
-    widgets::{
-        timeline::{self, timeline_icon_strip, TimelineIconStripAction},
-        track,
-    },
 };
 
 /// Wraps an [OrchestratorEgui] as a [Widget](eframe::egui::Widget).
@@ -43,19 +45,25 @@ impl<'a> OrchestratorEgui<'a> {
 /// Wraps an [OldOrchestratorEgui] as a [Widget](eframe::egui::Widget).
 pub fn old_orchestrator<'a>(
     orchestrator: &'a mut OldOrchestrator,
+    view_range: &'a mut ViewRange,
+    is_piano_roll_visible: &'a mut bool,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OldOrchestratorEgui::new(orchestrator).ui(ui)
+    move |ui: &mut eframe::egui::Ui| {
+        OldOrchestratorEgui::new(orchestrator, view_range, is_piano_roll_visible).ui(ui)
+    }
 }
 
 /// An egui component that draws an [Orchestrator].
 #[derive(Debug)]
 struct OldOrchestratorEgui<'a> {
     orchestrator: &'a mut OldOrchestrator,
+    view_range: &'a mut ViewRange,
+    is_piano_roll_visible: &'a mut bool,
 }
 impl<'a> Displays for OldOrchestratorEgui<'a> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         eframe::egui::Window::new("Piano Roll")
-            .open(&mut self.orchestrator.e.is_piano_roll_open)
+            .open(self.is_piano_roll_visible)
             .default_width(ui.available_width())
             .anchor(
                 eframe::emath::Align2::LEFT_BOTTOM,
@@ -87,15 +95,14 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
         eframe::egui::CentralPanel::default()
             .show(ui.ctx(), |ui| {
                 let mut action = None;
-                ui.add(timeline_icon_strip(&mut action));
+                ui.add(timeline::timeline_icon_strip(&mut action));
                 if let Some(action) = action {
                     match action {
                         TimelineIconStripAction::NextTimelineView => {
                             panic!("get rid of this")
                         }
                         TimelineIconStripAction::ShowPianoRoll => {
-                            self.orchestrator.e.is_piano_roll_open =
-                                !self.orchestrator.e.is_piano_roll_open;
+                            *self.is_piano_roll_visible = !*self.is_piano_roll_visible;
                         }
                     }
                 }
@@ -105,7 +112,7 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
                 // ones.
                 ui.horizontal(|ui| {
                     ui.add_enabled(false, track::title_bar(None));
-                    ui.add(timeline::legend(&mut self.orchestrator.view_range));
+                    ui.add(timeline::legend(self.view_range));
                 });
 
                 // Create a scrolling area for all the tracks.
@@ -123,14 +130,14 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
                                 } else {
                                     None
                                 };
-                                track.update_font_galley(ui);
+                                //                                track.update_font_galley(ui);
                                 let mut track_widget_action = None;
                                 let response = ui.add(track_widget(
                                     *track_uid,
                                     track,
                                     is_selected,
                                     cursor,
-                                    &self.orchestrator.view_range,
+                                    &self.view_range,
                                     &mut track_widget_action,
                                 ));
                                 if let Some(track_widget_action) = track_widget_action {
@@ -167,7 +174,15 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
     }
 }
 impl<'a> OldOrchestratorEgui<'a> {
-    pub fn new(orchestrator: &'a mut OldOrchestrator) -> Self {
-        Self { orchestrator }
+    pub fn new(
+        orchestrator: &'a mut OldOrchestrator,
+        view_range: &'a mut ViewRange,
+        is_piano_roll_visible: &'a mut bool,
+    ) -> Self {
+        Self {
+            orchestrator,
+            view_range,
+            is_piano_roll_visible,
+        }
     }
 }

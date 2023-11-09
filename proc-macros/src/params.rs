@@ -108,7 +108,7 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         }
 
         let params_struct_block = quote! {
-            #[derive(Debug, Default, PartialEq,Serialize, Deserialize)]
+            #[derive(Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
             #[serde(rename = #struct_snake_case_name, rename_all = "kebab-case")]
             #[allow(missing_docs)]
             pub struct #params_name {

@@ -83,7 +83,7 @@ impl MidiRouter {
 #[cfg(test)]
 mod tests {
     use super::MidiRouter;
-    use crate::{entities::prelude::*, midi::prelude::*, prelude::*, traits::prelude::*};
+    use crate::{entities::prelude::*, midi::prelude::*, prelude::*};
     use ensnare_proc_macros::{Control, IsInstrument, Metadata};
     use serde::{Deserialize, Serialize};
     use std::sync::{Arc, RwLock};

@@ -1,22 +1,18 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{
-    rng::Rng,
-    widgets::pattern::{self, grid},
-};
+use super::rng::Rng;
 use crate::{
     midi::prelude::*,
     prelude::*,
     selection_set::SelectionSet,
-    traits::prelude::*,
     uid::{IsUid, UidFactory},
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
 use eframe::{
-    egui::{Response, Sense, Ui},
+    egui::Sense,
     emath::RectTransform,
-    epaint::{pos2, vec2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
+    epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
@@ -130,7 +126,7 @@ pub struct Pattern {
     /// the time between the first note-on and the first note-off! For example,
     /// an empty 4/4 pattern lasts for 4 beats.
     #[builder(setter(skip))]
-    duration: MusicalTime,
+    pub duration: MusicalTime,
 
     /// The notes that make up this pattern. When it is in a [Pattern], a
     /// [Note]'s range is relative to the start of the [Pattern]. For example, a
@@ -221,7 +217,7 @@ impl Default for Pattern {
     }
 }
 impl Displays for Pattern {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let to_screen = RectTransform::from_to(
@@ -483,9 +479,9 @@ impl Pattern {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
-    uids_to_patterns: HashMap<PatternUid, Pattern>,
-    ordered_pattern_uids: Vec<PatternUid>,
-    pattern_selection_set: SelectionSet<PatternUid>,
+    pub uids_to_patterns: HashMap<PatternUid, Pattern>,
+    pub ordered_pattern_uids: Vec<PatternUid>,
+    pub pattern_selection_set: SelectionSet<PatternUid>,
 }
 impl Default for PianoRoll {
     fn default() -> Self {
@@ -525,40 +521,8 @@ impl PianoRoll {
     pub fn get_pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern> {
         self.uids_to_patterns.get_mut(pattern_uid)
     }
-
-    fn ui_pattern_edit(&mut self, ui: &mut Ui) -> Response {
-        if let Some(pattern_uid) = self.pattern_selection_set.single_selection() {
-            ui.set_min_height(192.0);
-            if let Some(pattern) = self.uids_to_patterns.get_mut(pattern_uid) {
-                let desired_size = vec2(ui.available_width(), 96.0);
-                let (_id, rect) = ui.allocate_space(desired_size);
-                ui.add_enabled_ui(false, |ui| {
-                    ui.allocate_ui_at_rect(rect, |ui| ui.add(grid(pattern.duration)))
-                        .inner
-                });
-                return ui.allocate_ui_at_rect(rect, |ui| pattern.ui(ui)).inner;
-            }
-        }
-
-        ui.set_min_height(0.0);
-        // This is here so that we can return a Response. I don't know of a
-        // better way to do it.
-        ui.add_visible_ui(false, |_| {}).response
-    }
 }
-impl Displays for PianoRoll {
-    fn ui(&mut self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.add(pattern::carousel(
-                &self.ordered_pattern_uids,
-                &self.uids_to_patterns,
-                &mut self.pattern_selection_set,
-            ));
-            self.ui_pattern_edit(ui);
-        })
-        .response
-    }
-}
+impl Displays for PianoRoll {}
 
 // TODO: move back to tests mod when everything is integrated
 impl PianoRoll {
@@ -619,7 +583,7 @@ pub struct PianoRollEntity {
     uid: Uid,
     inner: PianoRoll,
 }
-#[typetag::serde]
+//#[typetag::serde]
 impl Entity for PianoRollEntity {}
 impl Serializable for PianoRollEntity {}
 impl Configurable for PianoRollEntity {}

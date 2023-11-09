@@ -4,10 +4,9 @@ use crate::{
     prelude::*,
     time::Seconds,
     traits::{prelude::*, GeneratesEnvelope},
-    widgets::{audio::waveform, core::drag_normal, generators::envelope_shaper},
 };
 use eframe::{
-    egui::{Sense, Ui},
+    egui::Sense,
     emath,
     epaint::{pos2, Color32, PathShape, Pos2, Rect, Shape, Stroke, Vec2},
 };
@@ -95,7 +94,7 @@ impl OscillatorParams {
 pub struct Oscillator {
     #[control]
     #[params]
-    pub(crate) waveform: Waveform,
+    pub waveform: Waveform,
 
     /// Hertz. Any positive number. 440 = A4
     #[control]
@@ -428,26 +427,6 @@ impl Oscillator {
 
     pub fn frequency_tune(&self) -> Ratio {
         self.frequency_tune
-    }
-}
-
-/// Wraps an [OscillatorWidget] as a [Widget](eframe::egui::Widget).
-pub fn oscillator<'a>(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
-}
-/// An egui widget for [Oscillator].
-#[derive(Debug)]
-struct OscillatorWidget<'a> {
-    oscillator: &'a mut Oscillator,
-}
-impl<'a> Displays for OscillatorWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(waveform(&mut self.oscillator.waveform))
-    }
-}
-impl<'a> OscillatorWidget<'a> {
-    fn new(oscillator: &'a mut Oscillator) -> Self {
-        Self { oscillator }
     }
 }
 
@@ -923,7 +902,7 @@ impl Envelope {
         matches!(self.debug_state(), State::Shutdown)
     }
 
-    pub fn ui_content(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    pub fn ui_content(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (mut response, painter) =
             ui.allocate_painter(Vec2::new(ui.available_width(), 64.0), Sense::hover());
 
@@ -1033,69 +1012,6 @@ impl Envelope {
             response.mark_changed();
         }
         response
-    }
-}
-impl Displays for Envelope {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(envelope(self))
-    }
-}
-
-/// Wraps an [EnvelopeWidget] as a [Widget](eframe::egui::Widget).
-pub fn envelope<'a>(envelope: &'a mut Envelope) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| EnvelopeWidget::new(envelope).ui(ui)
-}
-
-/// An egui widget that draws an [Envelope].
-#[derive(Debug)]
-struct EnvelopeWidget<'a> {
-    envelope: &'a mut Envelope,
-}
-impl<'a> EnvelopeWidget<'a> {
-    fn new(envelope: &'a mut Envelope) -> Self {
-        Self { envelope }
-    }
-}
-impl<'a> Displays for EnvelopeWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut attack = self.envelope.attack();
-        let mut decay = self.envelope.decay();
-        let mut sustain = self.envelope.sustain();
-        let mut release = self.envelope.release();
-
-        let canvas_response = ui.add(envelope_shaper(
-            &mut attack,
-            &mut decay,
-            &mut sustain,
-            &mut release,
-        ));
-        if canvas_response.changed() {
-            self.envelope.set_attack(attack);
-            self.envelope.set_decay(decay);
-            self.envelope.set_sustain(sustain);
-            self.envelope.set_release(release);
-        }
-        let attack_response = ui.add(drag_normal(&mut attack, "Attack: "));
-        if attack_response.changed() {
-            self.envelope.set_attack(attack);
-        }
-        ui.end_row();
-        let decay_response = ui.add(drag_normal(&mut decay, "Decay: "));
-        if decay_response.changed() {
-            self.envelope.set_decay(decay);
-        }
-        ui.end_row();
-        let sustain_response = ui.add(drag_normal(&mut sustain, "Sustain: "));
-        if sustain_response.changed() {
-            self.envelope.set_sustain(sustain);
-        }
-        ui.end_row();
-        let release_response = ui.add(drag_normal(&mut release, "Release: "));
-        if release_response.changed() {
-            self.envelope.set_release(release);
-        }
-        ui.end_row();
-        canvas_response | attack_response | decay_response | sustain_response | release_response
     }
 }
 

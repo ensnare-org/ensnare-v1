@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{Slider, Ui};
+use crate::prelude::*;
+use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -68,7 +68,7 @@ impl Bitcrusher {
 }
 
 impl Displays for Bitcrusher {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut bits = self.bits();
         let response = ui.add(Slider::new(&mut bits, Bitcrusher::bits_range()).suffix(" bits"));
         if response.changed() {

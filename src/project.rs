@@ -29,7 +29,7 @@ impl Project {
     }
 
     /// Creates a new [Project] from the given components.
-    pub fn serialize(orchestrator: &Orchestrator, title: &ProjectTitle) -> anyhow::Result<Self> {
+    pub fn serialize(_orchestrator: &Orchestrator, title: &ProjectTitle) -> anyhow::Result<Self> {
         let r = Self {
             title: title.clone(),
         };

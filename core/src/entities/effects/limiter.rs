@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{Slider, Ui};
+use crate::prelude::*;
+use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +59,7 @@ impl Limiter {
     }
 }
 impl Displays for Limiter {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut min = self.minimum().to_percentage();
         let mut max = self.maximum().to_percentage();
         let min_response = ui.add(

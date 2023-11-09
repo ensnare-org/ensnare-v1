@@ -1,17 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use ensnare_proc_macros::{Control, IsControllerEffect, Metadata, Params};
-use serde::{Deserialize, Serialize};
-
 pub use keyboard::KeyboardController;
-pub use lfo::{LfoController, LfoControllerParams};
 
-pub(crate) mod arpeggiator;
 pub(crate) mod control;
 mod keyboard;
-pub(crate) mod lfo;
 pub mod sequencers;
+
+use crate::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub enum SignalPassthroughType {
@@ -32,20 +28,16 @@ pub enum SignalPassthroughType {
 /// Uses an input signal as a control source. Transformation depends on
 /// configuration. Uses the standard Sample::from(StereoSample) methodology of
 /// averaging the two channels to create a single signal.
-#[derive(Control, Debug, Default, IsControllerEffect, Params, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default)]
 pub struct SignalPassthroughController {
-    uid: Uid,
     passthrough_type: SignalPassthroughType,
 
-    #[serde(skip)]
     control_value: ControlValue,
 
     // We don't issue consecutive identical events, so we need to remember
     // whether we've sent the current value.
-    #[serde(skip)]
     has_value_been_issued: bool,
 
-    #[serde(skip)]
     is_performing: bool,
 }
 impl Serializable for SignalPassthroughController {}
@@ -108,11 +100,7 @@ impl TransformsAudio for SignalPassthroughController {
         todo!();
     }
 }
-impl Displays for SignalPassthroughController {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label(self.name())
-    }
-}
+impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
     pub fn new() -> Self {
         Default::default()

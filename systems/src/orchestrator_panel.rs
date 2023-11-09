@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{
     entities::prelude::*,
@@ -10,7 +10,6 @@ use ensnare_core::{
     prelude::*,
     selection_set::SelectionSet,
     track::TrackUid,
-    traits::prelude::*,
     types::ChannelPair,
 };
 use ensnare_egui::prelude::*;
@@ -92,7 +91,7 @@ pub enum OrchestratorEvent {
 /// calling [Displays::ui()].
 #[derive(Debug)]
 pub struct OrchestratorPanel {
-    orchestrator: Arc<Mutex<Orchestrator>>,
+    pub orchestrator: Arc<Mutex<OldOrchestrator>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
     input_channel_pair: ChannelPair<OrchestratorInput>,
     event_channel_pair: ChannelPair<OrchestratorEvent>,
@@ -102,10 +101,6 @@ pub struct OrchestratorPanel {
 impl OrchestratorPanel {
     pub fn set_control_only_down(&mut self, is_control_only_down: bool) {
         self.is_control_only_down = is_control_only_down;
-    }
-
-    pub fn orchestrator(&self) -> &Arc<Mutex<Orchestrator>> {
-        &self.orchestrator
     }
 
     /// The sending side of the [OrchestratorInput] channel.
@@ -154,7 +149,7 @@ impl OrchestratorPanel {
                         OrchestratorInput::ProjectPlay => o.play(),
                         OrchestratorInput::ProjectStop => o.stop(),
                         OrchestratorInput::ProjectNew => {
-                            let mut mo = Orchestrator::default();
+                            let mut mo = OldOrchestrator::default();
                             // o.prepare_successor(&mut mo);
                             // let _ = mo.create_starter_tracks(); // TODO: DRY this
                             *o = mo;
@@ -251,14 +246,14 @@ impl OrchestratorPanel {
     }
 
     fn handle_input_midi(
-        o: &mut MutexGuard<Orchestrator>,
+        o: &mut MutexGuard<OldOrchestrator>,
         channel: MidiChannel,
         message: MidiMessage,
     ) {
         o.handle_midi_message(channel, message, &mut |_, _| {});
     }
 
-    fn handle_input_load(path: &PathBuf) -> anyhow::Result<Orchestrator> {
+    fn handle_input_load(path: &PathBuf) -> anyhow::Result<OldOrchestrator> {
         Err(anyhow!("FIX THIS"))
         // match std::fs::read_to_string(path) {
         //     Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
@@ -272,7 +267,7 @@ impl OrchestratorPanel {
         // }
     }
 
-    fn handle_input_save(o: &MutexGuard<Orchestrator>, path: &PathBuf) -> anyhow::Result<()> {
+    fn handle_input_save(o: &MutexGuard<OldOrchestrator>, path: &PathBuf) -> anyhow::Result<()> {
         Err(anyhow!("FIX THIS"))
         // let o: &Orchestrator = o;
         // match serde_json::to_string_pretty(o)
@@ -319,7 +314,13 @@ impl Displays for OrchestratorPanel {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut o = self.orchestrator.lock().unwrap();
         //   o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
-        let response = ui.add(orchestrator(&mut o));
+        let mut view_range = o.view_range.clone();
+        let mut is_piano_roll_visible = o.e.is_piano_roll_open;
+        let response = ui.add(old_orchestrator(
+            &mut o,
+            &mut view_range,
+            &mut is_piano_roll_visible,
+        ));
 
         // TODO: now that we've moved over to a widget-heavy pattern, can we get
         // rid of the Acts trait?
@@ -338,8 +339,8 @@ impl Displays for OrchestratorPanel {
 }
 impl Default for OrchestratorPanel {
     fn default() -> Self {
-        let mut orchestrator = Orchestrator::default();
-        //        let _ = orchestrator.create_starter_tracks();
+        let mut orchestrator = OldOrchestrator::default();
+        let _ = orchestrator.create_starter_tracks();
         let mut r = Self {
             orchestrator: Arc::new(Mutex::new(orchestrator)),
             track_selection_set: Default::default(),

@@ -70,7 +70,7 @@ pub struct OrchestratorEphemerals {
 
 /// Owns all entities (instruments, controllers, and effects), and manages the
 /// relationships among them to create an audio performance.
-#[derive(Serialize, Deserialize, Debug, Builder)]
+#[derive(Debug, Builder)]
 #[builder(setter(skip), default)]
 #[builder_struct_attr(allow(missing_docs))]
 #[deprecated]
@@ -113,7 +113,6 @@ pub struct OldOrchestrator {
     // Nothing below this comment should be serialized. //
     //////////////////////////////////////////////////////
     //
-    #[serde(skip)]
     pub e: OrchestratorEphemerals,
 }
 impl Default for OldOrchestrator {
@@ -1233,7 +1232,8 @@ impl Configurable for Orchestrator {
 }
 impl Controls for Orchestrator {
     fn update_time(&mut self, range: &ViewRange) {
-        self.transport.update_time(range);
+        // We don't call self.transport.update_time() because self.transport is
+        // the publisher of the current time, not a subscriber.
         self.entity_store.update_time(range);
     }
 
@@ -1390,9 +1390,11 @@ impl HandlesMidi for Orchestrator {
         &mut self,
         channel: MidiChannel,
         message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
+        _midi_messages_fn: &mut MidiMessagesFn,
     ) {
-        unimplemented!()
+        let _ = self
+            .midi_router
+            .route(&mut self.entity_store, channel, message);
     }
 }
 
@@ -1540,14 +1542,12 @@ mod tests {
     use super::*;
     use crate::{
         controllers::Timer,
-        entities::{
-            factory::test_entities::{
-                TestAudioSource, TestAudioSourceParams, TestController, TestEffectNegatesInput,
-                TestInstrumentCountsMidiMessages,
-            },
-            toys::ToyControllerAlwaysSendsMidiMessage,
+        entities::factory::test_entities::{
+            TestAudioSource, TestAudioSourceParams, TestController, TestEffectNegatesInput,
+            TestInstrumentCountsMidiMessages,
         },
         midi::{MidiChannel, MidiMessage},
+        stuff::toys::ToyControllerAlwaysSendsMidiMessage,
         traits::tests::validate_orchestrates_trait,
         types::ParameterType,
     };

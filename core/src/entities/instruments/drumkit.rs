@@ -4,12 +4,10 @@ use crate::{
     instruments::Synthesizer,
     midi::{prelude::*, GeneralMidiPercussionProgram},
     prelude::*,
-    traits::prelude::*,
     utils::Paths,
     voices::VoicePerNoteStore,
 };
 use anyhow::anyhow;
-use eframe::egui::Ui;
 use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
@@ -147,7 +145,7 @@ impl Drumkit {
     }
 }
 impl Displays for Drumkit {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }

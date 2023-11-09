@@ -4,13 +4,12 @@
 //! persistent global preferences. It also contains [SettingsPanel].
 
 use ensnare::{
-    arrangement::Orchestrator,
+    arrangement::{OldOrchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
-    panels::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
+    systems::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
     traits::{Displays, EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
-use ensnare_core::orchestration::OrchestratorHelper;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -107,14 +106,14 @@ impl SettingsPanel {
     /// Creates a new [SettingsPanel].
     pub fn new_with(
         settings: Settings,
-        orchestrator: std::sync::Arc<std::sync::Mutex<Orchestrator>>,
+        orchestrator: std::sync::Arc<std::sync::Mutex<OldOrchestrator>>,
     ) -> Self {
         let midi_panel = MidiPanel::new_with(std::sync::Arc::clone(&settings.midi_settings));
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let mut o: &mut Orchestrator = &mut o;
+                    let mut o: &mut OldOrchestrator = &mut o;
                     let mut helper = OrchestratorHelper::new_with(o);
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
                         if let EntityEvent::Midi(channel, message) = event {

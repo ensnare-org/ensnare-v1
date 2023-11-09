@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{Slider, Ui};
+use crate::prelude::*;
+use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -105,7 +105,7 @@ impl Compressor {
 }
 
 impl Displays for Compressor {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut threshold = self.threshold().0;
         let mut ratio = self.ratio();
         let mut attack = self.attack();

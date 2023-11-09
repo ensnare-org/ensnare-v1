@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*, types::FrequencyRange};
-use eframe::egui::{Slider, Ui};
+use crate::{prelude::*, types::FrequencyRange};
+use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
@@ -1154,61 +1154,61 @@ impl BiQuadFilter {
 }
 
 impl Displays for BiQuadFilterAllPass {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterLowPass12db {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterHighPass {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterHighShelf {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterPeakingEq {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterBandPass {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterBandStop {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterLowShelf {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterNone {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }
 
 impl Displays for BiQuadFilterLowPass24db {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.cutoff().0;
         let mut pbr = self.passband_ripple();
         let cutoff_response = ui.add(

@@ -1,25 +1,24 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::sync::Arc;
-
+use crate::{
+    controllers::{live_pattern_sequencer_widget, trip},
+    drag_drop::{DragDropManager, DragSource, DropTarget},
+    widgets::{
+        timeline::{cursor, grid},
+        track::title_bar,
+    },
+};
 use eframe::{
     egui::ImageButton,
     emath::RectTransform,
     epaint::{vec2, Color32, Rect, Vec2},
 };
 use ensnare_core::{
-    drag_drop::{DragDropManager, DragSource, DropTarget},
-    entities::controllers::sequencers::live_pattern_sequencer_widget,
     prelude::*,
     traits::{Displays, IsAction},
-    widgets::{
-        timeline::{cursor, grid},
-        track::title_bar,
-    },
 };
+use std::sync::Arc;
 use strum_macros::Display;
-
-use crate::controllers::trip;
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
 pub fn track_widget<'a>(

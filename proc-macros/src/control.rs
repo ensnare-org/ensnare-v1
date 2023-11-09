@@ -15,7 +15,7 @@ use syn::{
 // for an intriguing bit of code. Came from
 // https://users.rust-lang.org/t/is-implementing-a-derive-macro-for-converting-nested-structs-to-flat-structs-possible/65839/3
 
-pub(crate) fn impl_control_derive(input: TokenStream, primitives: &HashSet<Ident>) -> TokenStream {
+pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident>) -> TokenStream {
     TokenStream::from({
         let input = parse_macro_input!(input as DeriveInput);
         let generics = &input.generics;

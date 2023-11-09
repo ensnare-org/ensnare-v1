@@ -7,7 +7,7 @@
 pub mod arrangement {
     //! Organization of musical elements.
     pub use ensnare_core::{
-        orchestration::Orchestrator,
+        orchestration::{OldOrchestrator, Orchestrator, OrchestratorHelper},
         time::Transport,
         track::{Track, TrackAction, TrackTitle, TrackUid},
     };
@@ -62,9 +62,9 @@ pub mod entities {
     //! [IsInstrument](crate::traits::IsInstrument) (or one of the hybrids of
     //! these traits).
 
-    pub use ensnare_core::entities::factory::{
-        register_factory_entities, EntityFactory, EntityKey, EntityStore,
-    };
+    pub use ensnare_core::entities::factory::{EntityFactory, EntityKey, EntityStore};
+
+    pub use ensnare_entities::register_factory_entities;
 
     pub mod controllers {
         //! Built-in controllers. Controllers control other devices by generating MIDI and
@@ -76,13 +76,13 @@ pub mod entities {
             entities::factory::test_entities::TestController,
             entities::{
                 controllers::sequencers::{
-                    live_pattern_sequencer_widget, LivePatternSequencer, MidiSequencer,
-                    NoteSequencer, NoteSequencerBuilder, PatternSequencer, PatternSequencerBuilder,
+                    LivePatternSequencer, MidiSequencer, NoteSequencer, NoteSequencerBuilder,
+                    PatternSequencer, PatternSequencerBuilder,
                 },
                 controllers::*,
-                toys::{ToyController, ToyControllerParams},
             },
         };
+        pub use ensnare_egui::toys::ToyController;
     }
     pub mod effects {
         //! Built-in effects. Effects transform audio. Examples are reverb and
@@ -90,8 +90,8 @@ pub mod entities {
         pub use ensnare_core::entities::{
             effects::{gain::Gain, reverb::Reverb},
             factory::test_entities::{TestEffect, TestEffectNegatesInput},
-            toys::{ToyEffect, ToyEffectParams},
         };
+        pub use ensnare_egui::toys::ToyEffect;
     }
 
     pub mod instruments {
@@ -103,11 +103,11 @@ pub mod entities {
                 factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
                 instruments::drumkit::{Drumkit, DrumkitParams},
                 instruments::*,
-                toys::{ToyInstrument, ToyInstrumentParams, ToySynth, ToySynthParams},
             },
             instruments::Synthesizer,
             voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
         };
+        pub use ensnare_egui::toys::{ToyInstrument, ToySynth};
     }
 }
 
@@ -139,22 +139,6 @@ pub mod modulators {
     pub use ensnare_core::modulators::{Dca, DcaParams};
 }
 
-pub mod panels {
-    //! This module is being migrated to `systems`.
-
-    /// `use ensnare::panels::prelude::*;` when working with panels.
-    pub mod prelude {
-        pub use super::{
-            AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction,
-            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, PalettePanel,
-        };
-    }
-    pub use ensnare_core::panels::{
-        AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction, MidiPanel,
-        MidiPanelEvent, MidiSettings, NeedsAudioFn, PalettePanel,
-    };
-}
-
 pub mod systems {
     //! Subsystems that typically run in their own thread and use crossbeam
     //! channels for communication. They also generally implement
@@ -163,10 +147,18 @@ pub mod systems {
 
     /// `use ensnare::systems::prelude::*;` when working with systems.
     pub mod prelude {
-        pub use super::{OrchestratorEvent, OrchestratorInput, OrchestratorPanel};
+        pub use super::{
+            AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction,
+            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
+            OrchestratorInput, OrchestratorPanel, PalettePanel,
+        };
     }
 
-    pub use ensnare_systems::{OrchestratorEvent, OrchestratorInput, OrchestratorPanel};
+    pub use ensnare_systems::{
+        AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction, MidiPanel,
+        MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput,
+        OrchestratorPanel, PalettePanel,
+    };
 }
 
 pub mod traits {
@@ -185,14 +177,16 @@ pub mod types {
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub use ensnare_core::drag_drop::{DragDropManager, DragSource, DropTarget};
-    pub use ensnare_core::widgets::audio::CircularSampleBuffer;
+    pub use ensnare_egui::{
+        drag_drop::{DragDropManager, DragSource, DropTarget},
+        widgets::audio::CircularSampleBuffer,
+    };
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_core::panels::{audio_settings, midi_settings};
-        pub use ensnare_core::widgets::{
+        pub use ensnare_egui::widgets::{
             audio, core, generators, pattern, placeholder, timeline, track,
         };
+        pub use ensnare_systems::{audio_settings, midi_settings};
     }
 }
 
@@ -210,8 +204,10 @@ mod version;
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
+    pub use super::systems::prelude::*;
+    pub use super::traits::prelude::*;
     pub use super::{
-        arrangement::{Orchestrator, Track, TrackTitle, TrackUid, Transport},
+        arrangement::{OldOrchestrator, Orchestrator, Track, TrackTitle, TrackUid, Transport},
         composition::{Note, PatternBuilder, PatternUid, PianoRoll},
         control::{ControlIndex, ControlName, ControlRouter, ControlValue},
         entities::{
@@ -225,11 +221,6 @@ pub mod prelude {
         },
         modulators::{Dca, DcaParams},
         project::{Project, ProjectTitle},
-        traits::{
-            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity,
-            EntityEvent, HandlesMidi, HasMetadata, HasSettings, IsAction, IsController, IsEffect,
-            IsInstrument, MidiMessagesFn, Orchestrates,
-        },
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
             SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory, ViewRange,

@@ -6,10 +6,7 @@
 pub mod prelude {
     pub use crate::entities::{
         controllers::{
-            arpeggiator::{Arpeggiator, ArpeggiatorParams},
-            lfo::{LfoController, LfoControllerParams},
-            sequencers::LivePatternSequencer,
-            SignalPassthroughController, SignalPassthroughControllerParams, SignalPassthroughType,
+            sequencers::LivePatternSequencer, SignalPassthroughController, SignalPassthroughType,
         },
         effects::{
             bitcrusher::Bitcrusher,
@@ -28,14 +25,16 @@ pub mod prelude {
         factory::{EntityFactory, EntityKey, EntityStore},
         instruments::{
             drumkit::{Drumkit, DrumkitParams},
-            fm::{FmSynth, FmSynthParams},
             sampler::{Sampler, SamplerParams},
-            welsh::{WelshSynth, WelshSynthParams},
         },
+    };
+    pub use crate::stuff::{
+        fm::{FmSynth, FmSynthParams},
         toys::{
             ToyController, ToyControllerAlwaysSendsMidiMessage, ToyEffect, ToyInstrument, ToySynth,
             ToySynthParams,
         },
+        welsh::{WelshSynth, WelshSynthParams},
     };
 }
 
@@ -68,6 +67,3 @@ pub mod effects;
 /// Examples of instruments are [Sampler](crate::instruments::Sampler) and
 /// [WelshSynth](crate::instruments::WelshSynth).
 pub mod instruments;
-
-/// Very simple entities that are good for development and testing.
-pub mod toys;

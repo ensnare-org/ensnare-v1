@@ -10,7 +10,7 @@ use crossbeam_channel::{unbounded, Select, Sender};
 use eframe::{
     egui::{
         CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, ScrollArea,
-        SidePanel, TextStyle, TopBottomPanel, Ui,
+        SidePanel, TextStyle, TopBottomPanel,
     },
     emath::{Align, Align2},
     epaint::{Color32, FontFamily, FontId},
@@ -19,9 +19,7 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
-    panels::prelude::*,
     prelude::*,
-    systems::prelude::*,
     ui::{DragSource, DropTarget},
 };
 use ensnare_egui::prelude::*;
@@ -37,7 +35,7 @@ enum EnsnareMessage {
 pub(super) struct Ensnare {
     event_channel: ChannelPair<EnsnareMessage>,
 
-    orchestrator: Arc<Mutex<Orchestrator>>,
+    orchestrator: Arc<Mutex<OldOrchestrator>>,
 
     menu_bar: MenuBar,
     control_panel: ControlPanel,
@@ -86,7 +84,7 @@ impl Ensnare {
 
         let settings = Settings::load().unwrap_or_default();
         let orchestrator_panel = OrchestratorPanel::default();
-        let orchestrator = Arc::clone(orchestrator_panel.orchestrator());
+        let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let control_panel = ControlPanel::default();
         // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
@@ -370,7 +368,7 @@ impl Ensnare {
         }
     }
 
-    fn show_top(&mut self, ui: &mut Ui) {
+    fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
         self.menu_bar
             .set_is_any_track_selected(self.orchestrator_panel.is_any_track_selected());
         self.menu_bar.ui(ui);
@@ -406,7 +404,7 @@ impl Ensnare {
         }
     }
 
-    fn show_bottom(&mut self, ui: &mut Ui) {
+    fn show_bottom(&mut self, ui: &mut eframe::egui::Ui) {
         ui.horizontal(|ui| {
             eframe::egui::warn_if_debug_build(ui);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -418,18 +416,18 @@ impl Ensnare {
         });
     }
 
-    fn show_left(&mut self, ui: &mut Ui) {
+    fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::vertical().show(ui, |ui| {
             self.palette_panel.ui(ui);
         });
     }
 
-    fn show_right(&mut self, ui: &mut Ui) {
+    fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
         ui.add(orchestrator(&mut self.new_orchestrator));
         //        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
-    fn show_center(&mut self, ui: &mut Ui) {
+    fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
         self.orchestrator_panel.ui(ui);
         self.toasts.show(ui.ctx());
     }

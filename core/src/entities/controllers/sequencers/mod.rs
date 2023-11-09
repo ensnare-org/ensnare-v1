@@ -2,9 +2,7 @@
 
 pub use midi::MidiSequencer;
 pub use note::{NoteSequencer, NoteSequencerBuilder};
-pub use pattern::{
-    live_pattern_sequencer_widget, LivePatternSequencer, PatternSequencer, PatternSequencerBuilder,
-};
+pub use pattern::{LivePatternSequencer, PatternSequencer, PatternSequencerBuilder};
 
 mod midi;
 mod note;
@@ -14,7 +12,7 @@ mod smf;
 use crate::{
     midi::{u7, MidiChannel, MidiMessage},
     time::ViewRange,
-    traits::prelude::*,
+    traits::{Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn},
 };
 use bit_vec::BitVec;
 use std::fmt::Debug;

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::{Slider, Ui};
+use crate::prelude::*;
+use eframe::egui::Slider;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +37,7 @@ impl Gain {
     }
 }
 impl Displays for Gain {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut ceiling = self.ceiling().to_percentage();
         let response = ui.add(
             Slider::new(&mut ceiling, 0.0..=100.0)

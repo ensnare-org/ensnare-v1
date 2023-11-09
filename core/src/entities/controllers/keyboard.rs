@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use crate::{midi::prelude::*, prelude::*};
 use crossbeam_channel::Sender;
 use eframe::egui::{Event, Key};
 use ensnare_proc_macros::Metadata;

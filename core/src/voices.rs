@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use crate::{midi::prelude::*, prelude::*};
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
 use serde::{Deserialize, Serialize};

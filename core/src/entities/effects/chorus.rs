@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::delay::{DelayLine, Delays};
-use crate::{prelude::*, traits::prelude::*};
-use eframe::egui::Ui;
+use crate::prelude::*;
 use ensnare_proc_macros::{Control, IsEffect, Metadata, Params};
 use serde::{Deserialize, Serialize};
 
@@ -74,7 +73,7 @@ impl Chorus {
     }
 }
 impl Displays for Chorus {
-    fn ui(&mut self, ui: &mut Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(self.name())
     }
 }

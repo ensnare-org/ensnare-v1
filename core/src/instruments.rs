@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{midi::prelude::*, prelude::*, traits::prelude::*};
+use crate::{midi::prelude::*, prelude::*};
 
 /// [Synthesizer] provides the smallest possible functional core of a
 /// synthesizer built around [StoresVoices]. A full
