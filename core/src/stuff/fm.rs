@@ -9,8 +9,7 @@ use crate::{
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
-use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
-use serde::{Deserialize, Serialize};
+use ensnare_proc_macros::{Control, Params};
 
 #[derive(Debug, Default)]
 pub struct FmVoice {
@@ -200,7 +199,7 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Control, IsInstrument, Params, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Control, Params)]
 pub struct FmSynth {
     #[control]
     #[params]
@@ -227,7 +226,6 @@ pub struct FmSynth {
     dca: Dca,
 
     uid: Uid,
-    #[serde(skip)]
     pub inner_synth: Synthesizer<FmVoice>,
 }
 impl Generates<StereoSample> for FmSynth {
@@ -362,4 +360,3 @@ impl FmSynth {
         &self.dca
     }
 }
-impl Displays for FmSynth {}

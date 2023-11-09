@@ -76,7 +76,6 @@ impl Configurable for ToySynth {
         self.inner.update_sample_rate(sample_rate)
     }
 }
-impl Displays for ToySynth {}
 impl ToySynth {
     pub fn new_with(params: &ToySynthParams) -> Self {
         let voice_store = VoiceStore::<ToyVoice>::new_with_voice(params.voice_count(), || {

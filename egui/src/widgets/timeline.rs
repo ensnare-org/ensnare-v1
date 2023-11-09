@@ -1,11 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::prelude::*;
 use eframe::{
     egui::vec2,
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId, RectShape, Shape},
 };
 use ensnare_core::prelude::*;
+use ensnare_entity::prelude::*;
 
 /// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
 pub fn timeline_icon_strip<'a>(

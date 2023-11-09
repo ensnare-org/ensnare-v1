@@ -3,8 +3,7 @@
 //! The `render` example generates a WAV file from a serialized [Project].
 
 use clap::Parser;
-use ensnare::prelude::*;
-use ensnare_core::orchestration::OrchestratorHelper;
+use ensnare::{prelude::*, Project};
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]

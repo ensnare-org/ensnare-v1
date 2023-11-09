@@ -1,9 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub use keyboard::KeyboardController;
-
 pub(crate) mod control;
-mod keyboard;
 pub mod sequencers;
 
 use crate::prelude::*;
@@ -100,7 +97,6 @@ impl TransformsAudio for SignalPassthroughController {
         todo!();
     }
 }
-impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
     pub fn new() -> Self {
         Default::default()

@@ -1,16 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::sync::RwLock;
-
 use ensnare::{
     entities::{
-        controllers::PatternSequencerBuilder,
         effects::{Gain, Reverb},
         instruments::{ToyInstrument, ToySynth},
     },
     prelude::*,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
+use ensnare_egui::controllers::PatternSequencer;
+use std::sync::RwLock;
 
 #[test]
 fn edit_song() {
@@ -81,16 +79,12 @@ fn edit_song() {
             .is_ok());
 
         // Arrange the drum pattern.
+        let mut sequencer = PatternSequencer::default();
+        assert!(sequencer
+            .record(MidiChannel(10), &drum_pattern, MusicalTime::START)
+            .is_ok());
         assert!(orchestrator
-            .assign_uid_and_add_entity(
-                &rhythm_track_uid,
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((MidiChannel(10), drum_pattern.clone()))
-                        .build()
-                        .unwrap(),
-                )
-            )
+            .assign_uid_and_add_entity(&rhythm_track_uid, Box::new(sequencer))
             .is_ok());
 
         // Rest
@@ -152,16 +146,13 @@ fn edit_song() {
         let _ = orchestrator.set_effect_position(lead_gain_uid, 0);
 
         // Arrange the lead pattern.
+        let mut sequencer = PatternSequencer::default();
+        assert!(sequencer
+            .record(MidiChannel::default(), &lead_pattern, MusicalTime::START)
+            .is_ok());
+
         assert!(orchestrator
-            .assign_uid_and_add_entity(
-                &lead_track_uid,
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((MidiChannel(0), lead_pattern.clone()))
-                        .build()
-                        .unwrap(),
-                )
-            )
+            .assign_uid_and_add_entity(&lead_track_uid, Box::new(sequencer))
             .is_ok());
     }
 

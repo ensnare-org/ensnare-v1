@@ -17,13 +17,9 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{
-    app_version,
-    prelude::*,
-    ui::{DragSource, DropTarget},
-};
-use ensnare_egui::prelude::*;
+use ensnare::{app_version, prelude::*};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
+use ensnare_orchestration::orchestration::orchestrator;
 use std::sync::{Arc, Mutex};
 
 enum EnsnareMessage {
@@ -481,7 +477,10 @@ impl Ensnare {
                 DragSource::NewDevice(ref key) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
                     DropTarget::Track(track_uid) => {
-                        input = Some(OrchestratorInput::TrackAddEntity(track_uid, key.clone()));
+                        input = Some(OrchestratorInput::TrackAddEntity(
+                            track_uid,
+                            EntityKey::from(key),
+                        ));
                     }
                     DropTarget::TrackPosition(_, _) => todo!(),
                 },

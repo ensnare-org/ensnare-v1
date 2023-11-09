@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct MidiSequencer {
     events: Vec<(MidiChannel, MidiEvent)>,
-    time_range: ViewRange,
+    pub time_range: ViewRange,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,

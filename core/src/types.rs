@@ -5,7 +5,6 @@ use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
 };
-use eframe::emath::Numeric;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -613,21 +612,6 @@ impl Display for FrequencyHz {
         f.write_fmt(format_args!("{}", self.0))
     }
 }
-impl Numeric for FrequencyHz {
-    const INTEGRAL: bool = true;
-
-    const MIN: Self = FrequencyHz(0.0);
-
-    const MAX: Self = FrequencyHz(256.0 * 1024.0);
-
-    fn to_f64(self) -> f64 {
-        self.0
-    }
-
-    fn from_f64(num: f64) -> Self {
-        Self(num)
-    }
-}
 
 /// Useful ranges of frequencies. Originally designed for picking egui widget
 /// boundaries.
@@ -759,6 +743,22 @@ impl<T> Default for ChannelPair<T> {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         Self { sender, receiver }
+    }
+}
+
+// TODO: TrackTitle is parked here because I couldn't find a better place for it.
+
+/// Newtype for track title string.
+#[derive(Debug, Clone)]
+pub struct TrackTitle(pub String);
+impl Default for TrackTitle {
+    fn default() -> Self {
+        Self("Untitled".to_string())
+    }
+}
+impl From<&str> for TrackTitle {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
     }
 }
 

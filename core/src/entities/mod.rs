@@ -4,32 +4,25 @@
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::entities::{
-        controllers::{
-            sequencers::LivePatternSequencer, SignalPassthroughController, SignalPassthroughType,
-        },
-        effects::{
-            bitcrusher::Bitcrusher,
-            chorus::{Chorus, ChorusParams},
-            compressor::Compressor,
-            delay::{Delay, DelayParams, RecirculatingDelayLine},
-            filter::{
-                BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db,
-                BiQuadFilterLowPass24dbParams,
-            },
-            gain::{Gain, GainParams},
-            limiter::Limiter,
-            mixer::Mixer,
-            reverb::{Reverb, ReverbParams},
-        },
-        factory::{EntityFactory, EntityKey, EntityStore},
-        instruments::{
-            drumkit::{Drumkit, DrumkitParams},
-            sampler::{Sampler, SamplerParams},
-        },
+    pub use crate::entities::controllers::{
+        sequencers::LivePatternSequencer, SignalPassthroughController, SignalPassthroughType,
     };
     pub use crate::stuff::{
+        bitcrusher::Bitcrusher,
+        chorus::{Chorus, ChorusParams},
+        compressor::Compressor,
+        delay::{Delay, DelayParams, RecirculatingDelayLine},
+        drumkit::{Drumkit, DrumkitParams},
+        filter::{
+            BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db,
+            BiQuadFilterLowPass24dbParams,
+        },
         fm::{FmSynth, FmSynthParams},
+        gain::{Gain, GainParams},
+        limiter::Limiter,
+        mixer::Mixer,
+        reverb::{Reverb, ReverbParams},
+        sampler::{Sampler, SamplerParams},
         toys::{
             ToyController, ToyControllerAlwaysSendsMidiMessage, ToyEffect, ToyInstrument, ToySynth,
             ToySynthParams,
@@ -37,8 +30,6 @@ pub mod prelude {
         welsh::{WelshSynth, WelshSynthParams},
     };
 }
-
-pub mod factory;
 
 /// Controllers implement the [IsController](ensnare_core::traits::IsController)
 /// trait, which means that they control other devices. An example of a
@@ -61,9 +52,9 @@ pub mod controllers;
 /// [Reverb](crate::effects::Reverb).
 pub mod effects;
 
-/// Instruments play sounds. They implement the
-/// [IsInstrument](ensnare_core::traits::IsInstrument) trait, which means that
-/// they respond to MIDI and produce [StereoSamples](ensnare_core::StereoSample).
-/// Examples of instruments are [Sampler](crate::instruments::Sampler) and
-/// [WelshSynth](crate::instruments::WelshSynth).
-pub mod instruments;
+// Instruments play sounds. They implement the
+// [IsInstrument](ensnare_core::traits::IsInstrument) trait, which means that
+// they respond to MIDI and produce [StereoSamples](ensnare_core::StereoSample).
+// Examples of instruments are [Sampler](crate::instruments::Sampler) and
+// [WelshSynth](crate::instruments::WelshSynth).
+//pub mod instruments;

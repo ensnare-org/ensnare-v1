@@ -1,19 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::collections::HashMap;
-
-use crate::{
-    prelude::*,
-    types::{BipolarNormal, Normal},
-};
+use crate::prelude::*;
 use ensnare_proc_macros::{Control, Params};
-use serde::{Deserialize, Serialize};
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Dca {
     #[control]
     #[params]
@@ -61,35 +55,6 @@ impl Dca {
     pub fn update_from_params(&mut self, params: &DcaParams) {
         self.set_gain(params.gain());
         self.set_pan(params.pan());
-    }
-}
-impl Displays for Dca {}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct MainMixer {
-    pub track_output: HashMap<TrackUid, Normal>,
-    pub track_mute: HashMap<TrackUid, bool>,
-    pub solo_track: Option<TrackUid>,
-}
-impl MainMixer {
-    pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
-        self.track_output.insert(track_uid, output);
-    }
-
-    pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
-        self.track_mute.insert(track_uid, muted);
-    }
-
-    pub fn solo_track(&self) -> Option<TrackUid> {
-        self.solo_track
-    }
-
-    pub fn set_solo_track(&mut self, track_uid: TrackUid) {
-        self.solo_track = Some(track_uid)
-    }
-
-    pub fn end_solo(&mut self) {
-        self.solo_track = None
     }
 }
 

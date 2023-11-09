@@ -338,8 +338,9 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
 
 #[cfg(test)]
 mod tests {
+    use crate::stuff::test::TestVoice;
+
     use super::*;
-    use crate::entities::factory::test_entities::TestVoice;
     use float_cmp::approx_eq;
     use more_asserts::assert_gt;
 

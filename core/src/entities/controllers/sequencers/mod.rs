@@ -84,7 +84,7 @@ pub mod tests {
     use crate::{
         midi::{new_note_off, new_note_on, MidiChannel, MidiMessage, MidiNote},
         piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
-        prelude::{MusicalTime, Uid},
+        prelude::MusicalTime,
         traits::{tests::validate_sequences_midi_trait, Sequences},
     };
     use std::sync::{Arc, RwLock};
@@ -342,7 +342,7 @@ pub mod tests {
         let piano_roll = std::sync::Arc::new(std::sync::RwLock::new(
             crate::piano_roll::PianoRoll::default(),
         ));
-        let mut s = LivePatternSequencer::new_with(Uid(2048), std::sync::Arc::clone(&piano_roll));
+        let mut s = LivePatternSequencer::new_with(std::sync::Arc::clone(&piano_roll));
 
         validate_sequences_live_patterns_trait(piano_roll, &mut s);
     }

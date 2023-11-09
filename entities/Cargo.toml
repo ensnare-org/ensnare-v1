@@ -12,6 +12,7 @@ version = "0.1.0"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 ensnare-egui = { path = "../egui" }
+ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
 serde = { version = "1.0", features = ["derive"] }
 strum = "0.25"

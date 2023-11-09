@@ -7,6 +7,7 @@ use eframe::{
 use ensnare_core::prelude::*;
 use ensnare_egui::widgets::audio::{frequency_domain, time_domain, CircularSampleBuffer};
 use ensnare_egui_widgets::activity_indicator;
+use ensnare_entity::traits::{Acts, Displays, IsAction};
 use std::path::PathBuf;
 use strum_macros::Display;
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{prelude::EntityFactory, traits::Displays};
-use ensnare_egui::prelude::*;
+use ensnare_drag_drop::{DragDropManager, DragSource};
+use ensnare_entity::{prelude::EntityFactory, traits::Displays};
 
 /// A tree view of devices that can be placed in tracks.
 #[derive(Debug, Default)]
@@ -13,7 +13,7 @@ impl Displays for PalettePanel {
                 DragDropManager::drag_source(
                     ui,
                     eframe::egui::Id::new(key),
-                    DragSource::NewDevice(key.clone()),
+                    DragSource::NewDevice(key.to_string()),
                     |ui| ui.label(key.to_string()),
                 );
             }

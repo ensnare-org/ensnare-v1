@@ -1,12 +1,22 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use eframe::{
-    egui::{Frame, Margin, Sense, TextFormat},
-    emath::Align,
-    epaint::{text::LayoutJob, vec2, Color32, FontId, Galley, Shape, Stroke, TextShape},
+use crate::{
+    controllers::{live_pattern_sequencer_widget, trip},
+    widgets::timeline::{cursor, grid},
+    Track,
 };
-use ensnare_core::{prelude::*, track::TrackTitle};
+use eframe::{
+    egui::{Frame, ImageButton, Margin, Sense, TextFormat},
+    emath::{Align, RectTransform},
+    epaint::{
+        text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
+    },
+};
+use ensnare_core::{prelude::*, types::TrackTitle};
+use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_entity::prelude::*;
 use std::{f32::consts::PI, sync::Arc};
+use strum_macros::Display;
 
 /// Call this once for the TrackTitle, and then provide it on each frame to
 /// the widget.

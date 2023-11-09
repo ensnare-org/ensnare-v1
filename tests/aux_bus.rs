@@ -2,13 +2,12 @@
 
 use ensnare::{
     entities::{
-        controllers::PatternSequencerBuilder,
         effects::{Gain, Reverb},
         instruments::ToySynth,
     },
     prelude::*,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
+use ensnare_egui::controllers::PatternSequencer;
 
 // Demonstrates use of aux buses.
 #[test]
@@ -45,16 +44,12 @@ fn aux_bus() {
             .unwrap();
 
         {
+            let mut sequencer = PatternSequencer::default();
+            assert!(sequencer
+                .record(MidiChannel::default(), &synth_pattern_1, MusicalTime::START)
+                .is_ok());
             assert!(orchestrator
-                .assign_uid_and_add_entity(
-                    &track_uid_1,
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern((MidiChannel(0), synth_pattern_1.clone()))
-                            .build()
-                            .unwrap(),
-                    )
-                )
+                .assign_uid_and_add_entity(&track_uid_1, Box::new(sequencer))
                 .is_ok());
 
             // Even though we want the effect to be placed after the instrument in
@@ -79,16 +74,12 @@ fn aux_bus() {
                 .unwrap();
         };
         let _synth_uid_2 = {
+            let mut sequencer = PatternSequencer::default();
+            assert!(sequencer
+                .record(MidiChannel::default(), &synth_pattern_2, MusicalTime::START)
+                .is_ok());
             assert!(orchestrator
-                .assign_uid_and_add_entity(
-                    &track_uid_2,
-                    Box::new(
-                        PatternSequencerBuilder::default()
-                            .pattern((MidiChannel(0), synth_pattern_2.clone()))
-                            .build()
-                            .unwrap(),
-                    )
-                )
+                .assign_uid_and_add_entity(&track_uid_2, Box::new(sequencer))
                 .is_ok());
             assert!(orchestrator
                 .assign_uid_and_add_entity(

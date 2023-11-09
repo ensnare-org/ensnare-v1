@@ -2,17 +2,12 @@
 
 use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
-use ensnare_core::{
-    entities::prelude::*,
-    midi::{MidiChannel, MidiMessage},
-    orchestration::{Orchestrator, OrchestratorAction},
-    piano_roll::PatternUid,
-    prelude::*,
-    selection_set::SelectionSet,
-    track::TrackUid,
-    types::ChannelPair,
+use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
+use ensnare_entity::prelude::*;
+use ensnare_orchestration::{
+    orchestration::{old_orchestrator, OldOrchestrator, Orchestrator, OrchestratorAction},
+    traits::Orchestrates,
 };
-use ensnare_egui::prelude::*;
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, MutexGuard},

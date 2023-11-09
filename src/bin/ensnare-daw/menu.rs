@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
+use ensnare_entity::traits::{Acts, Displays, IsAction};
 use strum_macros::Display;
 
 #[derive(Clone, Debug, Display)]

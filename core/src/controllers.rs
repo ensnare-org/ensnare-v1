@@ -2,37 +2,30 @@
 
 use crate::{prelude::*, rng::Rng};
 use derive_builder::Builder;
-use ensnare_proc_macros::{Control, IsController, Metadata};
+use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
 
 pub use crate::entities::controllers::sequencers::{
-    LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
+    LivePatternSequencer, MidiSequencer, NoteSequencer,
 };
 
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.
-#[derive(Debug, Default, Control, IsController, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Timer {
-    uid: Uid,
-
+    #[params]
     duration: MusicalTime,
-
-    #[serde(skip)]
     is_performing: bool,
-
-    #[serde(skip)]
     is_finished: bool,
-
-    #[serde(skip)]
     end_time: Option<MusicalTime>,
 }
 impl Serializable for Timer {}
 #[allow(missing_docs)]
 impl Timer {
-    pub fn new_with(duration: MusicalTime) -> Self {
+    pub fn new_with(params: &TimerParams) -> Self {
         Self {
-            duration,
+            duration: params.duration,
             ..Default::default()
         }
     }
@@ -81,16 +74,15 @@ impl Controls for Timer {
         self.is_performing
     }
 }
-impl Displays for Timer {}
 
 // TODO: needs tests!
 /// [Trigger] issues a control signal after a specified amount of time.
-#[derive(Debug, Control, IsController, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Control, Params)]
 pub struct Trigger {
-    uid: Uid,
-
+    #[params]
     timer: Timer,
 
+    #[params]
     pub value: ControlValue,
 
     has_triggered: bool,
@@ -142,21 +134,23 @@ impl Configurable for Trigger {
 }
 impl HandlesMidi for Trigger {}
 impl Trigger {
-    pub fn new_with(timer: Timer, value: ControlValue) -> Self {
+    pub fn new_with(params: &TriggerParams) -> Self {
         Self {
-            uid: Default::default(),
-            timer,
-            value,
+            timer: Timer::new_with(&params.timer),
+            value: params.value,
             has_triggered: Default::default(),
             is_performing: Default::default(),
         }
+    }
+
+    pub fn value(&self) -> ControlValue {
+        self.value
     }
 
     pub fn set_value(&mut self, value: ControlValue) {
         self.value = value;
     }
 }
-impl Displays for Trigger {}
 
 impl ControlTripBuilder {
     /// Generates a random [ControlTrip]. For development/prototyping only.
@@ -263,11 +257,8 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Serialize, Deserialize, Clone, Debug, Default, IsController, Metadata, Builder)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Builder)]
 pub struct ControlTrip {
-    #[builder(default)]
-    uid: Uid,
-
     /// The [ControlStep]s that make up this trip. They must be in ascending
     /// time order. TODO: enforce that.
     #[builder(default, setter(each(name = "step", into)))]
@@ -362,11 +353,6 @@ impl ControlTrip {
         }
     }
 }
-impl Displays for ControlTrip {
-    fn ui(&mut self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        unimplemented!("Use the trip widget rather than calling this directly")
-    }
-}
 impl HandlesMidi for ControlTrip {}
 impl Controls for ControlTrip {
     fn update_time(&mut self, range: &ViewRange) {
@@ -403,7 +389,7 @@ impl Controls for ControlTrip {
         if current_value != self.e.last_published_value {
             self.e.last_published_value = current_value;
             control_events_fn(
-                Some(self.uid),
+                None,
                 EntityEvent::Control(ControlValue::from(current_value)),
             );
         }
@@ -465,10 +451,13 @@ mod tests {
     #[test]
     fn instantiate_trigger() {
         let ts = TimeSignature::default();
-        let mut trigger = Trigger::new_with(
-            Timer::new_with(MusicalTime::new_with_bars(&ts, 1)),
-            ControlValue::from(0.5),
-        );
+        let params = TriggerParams {
+            timer: TimerParams {
+                duration: MusicalTime::new_with_bars(&ts, 1),
+            },
+            value: ControlValue::from(0.5),
+        };
+        let mut trigger = Trigger::new_with(&params);
         trigger.update_sample_rate(SampleRate::DEFAULT);
         trigger.play();
 
@@ -508,7 +497,6 @@ mod tests {
     #[test]
     fn control_trip_one_step() {
         let mut ct = ControlTripBuilder::default()
-            .uid(Uid(234598))
             .step(ControlStep {
                 value: ControlValue(0.5),
                 time: MusicalTime::START + MusicalTime::DURATION_WHOLE,
@@ -538,7 +526,6 @@ mod tests {
     #[test]
     fn control_trip_two_flat_steps() {
         let mut ct = ControlTripBuilder::default()
-            .uid(Uid(20459))
             .step(ControlStep {
                 value: ControlValue(0.5),
                 time: MusicalTime::START,
@@ -582,7 +569,6 @@ mod tests {
     #[test]
     fn control_trip_linear_step() {
         let mut ct = ControlTripBuilder::default()
-            .uid(Uid(5049))
             .step(ControlStep {
                 value: ControlValue(0.0),
                 time: MusicalTime::START,
@@ -619,7 +605,6 @@ mod tests {
     fn control_trip_many_steps() {
         for i in 0..2 {
             let mut ct = ControlTripBuilder::default()
-                .uid(Uid(54893))
                 .step(ControlStep {
                     value: ControlValue(0.1),
                     time: MusicalTime::new_with_units(10),

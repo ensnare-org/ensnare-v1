@@ -9,11 +9,6 @@ use crate::{
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
-use eframe::{
-    egui::Sense,
-    emath::RectTransform,
-    epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke},
-};
 use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
@@ -133,7 +128,7 @@ pub struct Pattern {
     /// note that plays immediately would have a range start of zero. TODO:
     /// specify any ordering restrictions.
     #[builder(default, setter(each(name = "note", into)))]
-    notes: Vec<Note>,
+    pub notes: Vec<Note>,
     // TODO: Nobody is writing to this. I haven't implemented selection
     // operations on notes yet.
     // #[serde(skip)]
@@ -214,66 +209,6 @@ impl Default for Pattern {
         };
         r.after_deser();
         r
-    }
-}
-impl Displays for Pattern {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let (response, painter) =
-            ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
-        let to_screen = RectTransform::from_to(
-            eframe::epaint::Rect::from_x_y_ranges(
-                MusicalTime::START.total_parts() as f32..=self.duration.total_parts() as f32,
-                128.0..=0.0,
-            ),
-            response.rect,
-        );
-        let from_screen = to_screen.inverse();
-
-        // Identify the local x and y values of the cursor.
-        let mut key = 255;
-        let mut position = MusicalTime::TIME_MAX;
-        if let Some(screen_pos) = ui.ctx().pointer_interact_pos() {
-            let local_pos = from_screen * screen_pos;
-            key = local_pos.y as u8;
-            position = MusicalTime::new_with_parts(local_pos.x as usize);
-        }
-
-        // Add or remove a note.
-        if response.clicked() {
-            let new_note = Note {
-                key,
-                range: position..position + PatternBuilder::DURATION,
-            };
-            if self.notes.contains(&new_note) {
-                self.notes.retain(|n| &new_note != n);
-            } else {
-                self.notes.push(new_note);
-            }
-        }
-
-        let fill = ui.ctx().style().visuals.widgets.active.bg_fill;
-        let shapes: Vec<Shape> = self
-            .notes
-            .iter()
-            .map(|note| {
-                let rect = Rect::from_two_pos(
-                    to_screen * pos2(note.range.start.total_parts() as f32, note.key as f32),
-                    to_screen * pos2(note.range.end.total_parts() as f32, note.key as f32 + 1.0),
-                );
-                let hovered = note.key == key && note.range.contains(&position);
-                let stroke = if hovered {
-                    ui.ctx().style().visuals.widgets.active.fg_stroke
-                } else {
-                    ui.ctx().style().visuals.widgets.active.bg_stroke
-                };
-
-                Shape::Rect(RectShape::new(rect, Rounding::default(), fill, stroke))
-            })
-            .collect();
-
-        painter.extend(shapes);
-
-        response
     }
 }
 impl Serializable for Pattern {
@@ -359,56 +294,6 @@ impl Pattern {
     pub fn clear(&mut self) {
         self.notes.clear();
         self.refresh_internals();
-    }
-
-    pub fn make_note_shapes(
-        &self,
-        note: &Note,
-        to_screen: &RectTransform,
-        is_selected: bool,
-        is_highlighted: bool,
-    ) -> Vec<Shape> {
-        let rect = to_screen
-            .transform_rect(self.rect_for_note(note))
-            .shrink(1.0);
-        let color = if is_selected {
-            Color32::LIGHT_GRAY
-        } else if is_highlighted {
-            Color32::WHITE
-        } else {
-            Color32::DARK_BLUE
-        };
-        let rect = if (rect.right() - rect.left()).abs() < 1.0 {
-            Rect::from_two_pos(rect.left_top(), pos2(rect.left() + 1.0, rect.bottom()))
-        } else {
-            rect
-        };
-        let rect = if (rect.bottom() - rect.top()).abs() < 1.0 {
-            Rect::from_two_pos(rect.left_top(), pos2(rect.right(), rect.top() + 1.0))
-        } else {
-            rect
-        };
-        debug_assert!(rect.area() != 0.0);
-        vec![Shape::Rect(RectShape::new(
-            rect,
-            Rounding::default(),
-            Color32::LIGHT_BLUE,
-            Stroke { width: 2.0, color },
-        ))]
-    }
-
-    fn rect_for_note(&self, note: &Note) -> Rect {
-        let notes_vert = 24.0;
-        const FIGURE_THIS_OUT: f32 = 16.0;
-        let ul = Pos2 {
-            x: note.range.start.total_parts() as f32 / FIGURE_THIS_OUT,
-            y: (note.key as f32) / notes_vert,
-        };
-        let br = Pos2 {
-            x: note.range.end.total_parts() as f32 / FIGURE_THIS_OUT,
-            y: (1.0 + note.key as f32) / notes_vert,
-        };
-        Rect::from_two_pos(ul, br)
     }
 
     /// This pattern's duration in [MusicalTime].
@@ -522,7 +407,6 @@ impl PianoRoll {
         self.uids_to_patterns.get_mut(pattern_uid)
     }
 }
-impl Displays for PianoRoll {}
 
 // TODO: move back to tests mod when everything is integrated
 impl PianoRoll {
@@ -575,29 +459,6 @@ impl PianoRoll {
         let len = pattern.notes().len();
         let duration = pattern.duration();
         (self.insert(pattern), len, duration)
-    }
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Metadata)]
-pub struct PianoRollEntity {
-    uid: Uid,
-    inner: PianoRoll,
-}
-//#[typetag::serde]
-impl Entity for PianoRollEntity {}
-impl Serializable for PianoRollEntity {}
-impl Configurable for PianoRollEntity {}
-impl Displays for PianoRollEntity {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        self.inner.ui(ui)
-    }
-}
-impl PianoRollEntity {
-    pub fn new(uid: Uid) -> Self {
-        Self {
-            uid,
-            ..Default::default()
-        }
     }
 }
 

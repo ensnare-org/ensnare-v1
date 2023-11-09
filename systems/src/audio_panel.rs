@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::CollapsingHeader;
+use eframe::egui::{CollapsingHeader, Widget};
 use ensnare_core::{
     audio::{AudioInterfaceEvent, AudioInterfaceInput, AudioStreamService},
     prelude::*,
@@ -189,8 +189,8 @@ impl<'a> AudioSettingsWidget<'a> {
         Self { settings }
     }
 }
-impl<'a> Displays for AudioSettingsWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for AudioSettingsWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         CollapsingHeader::new("Audio")
             .default_open(true)
             .show(ui, |ui| {

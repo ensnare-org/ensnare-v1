@@ -7,9 +7,10 @@ use ensnare::{
     arrangement::{OldOrchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     systems::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
-    traits::{Displays, EntityEvent, HasSettings},
+    traits::{EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
+use ensnare_entity::traits::Displays;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,

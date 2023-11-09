@@ -1,26 +1,32 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::widgets::audio::{frequency, waveform};
+pub mod keyboard;
+
+use crate::control::ControlRouter;
 use eframe::{
-    egui::{style::WidgetVisuals, Sense},
+    egui::{style::WidgetVisuals, Sense, Widget},
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
 };
 use ensnare_core::{
-    control::ControlRouter,
-    controllers::{ControlTrip, ControlTripPath, LivePatternSequencer},
+    controllers::{
+        ControlTrip as InnerControlTrip, ControlTripPath, LivePatternSequencer, TimerParams,
+        TriggerParams,
+    },
     generators::Waveform,
-    piano_roll::Note,
+    piano_roll::{Note, Pattern},
     prelude::*,
     stuff::{
         arpeggiator::{ArpeggiatorParams, ArpeggioMode},
         lfo::LfoControllerParams,
     },
     time::{MusicalTime, ViewRange},
-    traits::{Configurable, Controls, Displays, HasMetadata, Serializable},
+    traits::{Configurable, Controls, Sequences, Serializable},
     types::FrequencyRange,
     uid::Uid,
 };
+use ensnare_egui_widgets::{frequency, waveform};
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable, IsController,
     Metadata,
@@ -30,34 +36,38 @@ use strum::IntoEnumIterator;
 
 /// Wraps a [ControlTrip] as a [Widget](eframe::egui::Widget).
 pub fn trip<'a>(
-    trip: &'a mut ControlTrip,
+    uid: Uid,
+    trip: &'a mut InnerControlTrip,
     control_router: &'a mut ControlRouter,
     view_range: ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| Trip::new(trip, control_router, view_range).ui(ui)
+    move |ui: &mut eframe::egui::Ui| Trip::new(uid, trip, control_router, view_range).ui(ui)
 }
 
 #[derive(Debug)]
 struct Trip<'a> {
-    control_trip: &'a mut ControlTrip,
+    uid: Uid,
+    control_trip: &'a mut InnerControlTrip,
     control_router: &'a mut ControlRouter,
     view_range: ViewRange,
 }
 impl<'a> Trip<'a> {
     fn new(
-        control_trip: &'a mut ControlTrip,
+        uid: Uid,
+        control_trip: &'a mut InnerControlTrip,
         control_router: &'a mut ControlRouter,
         view_range: ViewRange,
     ) -> Self {
         Self {
+            uid,
             control_trip,
             control_router,
             view_range,
         }
     }
 }
-impl<'a> Displays for Trip<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for Trip<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
@@ -145,17 +155,16 @@ impl<'a> Displays for Trip<'a> {
             });
 
         if ui.is_enabled() {
-            let label =
-                if let Some(links) = self.control_router.control_links(self.control_trip.uid()) {
-                    let link_texts = links.iter().fold(Vec::default(), |mut v, (uid, index)| {
-                        // TODO: this can be a descriptive list of controlled things
-                        v.push(format!("{uid}-{index:?} "));
-                        v
-                    });
-                    link_texts.join("/")
-                } else {
-                    String::from("none")
-                };
+            let label = if let Some(links) = self.control_router.control_links(self.uid) {
+                let link_texts = links.iter().fold(Vec::default(), |mut v, (uid, index)| {
+                    // TODO: this can be a descriptive list of controlled things
+                    v.push(format!("{uid}-{index:?} "));
+                    v
+                });
+                link_texts.join("/")
+            } else {
+                String::from("none")
+            };
             if ui
                 .allocate_ui_at_rect(response.rect, |ui| ui.button(&label))
                 .inner
@@ -164,11 +173,8 @@ impl<'a> Displays for Trip<'a> {
                 // TODO: this is incomplete. It's a placeholder while I figure
                 // out the best way to present this information (it might
                 // actually be DnD rather than menu-driven).
-                self.control_router.link_control(
-                    self.control_trip.uid(),
-                    Uid(234),
-                    ControlIndex(456),
-                );
+                self.control_router
+                    .link_control(self.uid, Uid(234), ControlIndex(456));
             }
         }
 
@@ -212,8 +218,8 @@ impl<'a> LivePatternSequencerWidget<'a> {
     }
 }
 
-impl<'a> Displays for LivePatternSequencerWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for LivePatternSequencerWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
             let x_range_f32 = self.view_range.start.total_units() as f32
@@ -272,6 +278,133 @@ impl<'a> Displays for LivePatternSequencerWidget<'a> {
             response
         })
         .inner
+    }
+}
+
+/// Wraps a [PatternSequencerWidget] as a [Widget](eframe::egui::Widget).
+pub fn pattern_sequencer_widget<'a>(
+    sequencer: &'a mut ensnare_core::entities::controllers::sequencers::PatternSequencer,
+    view_range: &'a ViewRange,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
+}
+
+/// An egui widget that draws a legend on the horizontal axis of the timeline
+/// view.
+#[derive(Debug)]
+pub struct PatternSequencerWidget<'a> {
+    sequencer: &'a mut ensnare_core::entities::controllers::sequencers::PatternSequencer,
+    view_range: ViewRange,
+}
+impl<'a> PatternSequencerWidget<'a> {
+    fn new(
+        sequencer: &'a mut ensnare_core::entities::controllers::sequencers::PatternSequencer,
+        view_range: &'a ViewRange,
+    ) -> Self {
+        Self {
+            sequencer,
+            view_range: view_range.clone(),
+        }
+    }
+}
+impl<'a> Widget for PatternSequencerWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        todo!()
+    }
+}
+
+#[derive(Debug, Default, InnerControls, IsController, Metadata)]
+pub struct PatternSequencer {
+    uid: Uid,
+    inner: ensnare_core::entities::controllers::sequencers::PatternSequencer,
+}
+impl Displays for PatternSequencer {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let range = self.inner.inner.time_range.clone();
+        ui.add(pattern_sequencer_widget(&mut self.inner, &range))
+    }
+}
+impl Configurable for PatternSequencer {}
+impl HandlesMidi for PatternSequencer {}
+impl Serializable for PatternSequencer {}
+impl Sequences for PatternSequencer {
+    type MU = Pattern;
+
+    fn record(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        self.inner.record(channel, unit, position)
+    }
+
+    fn remove(
+        &mut self,
+        channel: MidiChannel,
+        unit: &Self::MU,
+        position: MusicalTime,
+    ) -> anyhow::Result<()> {
+        self.inner.remove(channel, unit, position)
+    }
+
+    fn clear(&mut self) {
+        self.inner.clear()
+    }
+}
+
+/// Wraps a [NoteSequencerWidget] as a [Widget](eframe::egui::Widget).
+pub fn note_sequencer_widget<'a>(
+    sequencer: &'a mut ensnare_core::entities::controllers::sequencers::NoteSequencer,
+    view_range: &'a ViewRange,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| NoteSequencerWidget::new(sequencer, view_range).ui(ui)
+}
+
+/// An egui widget that draws a legend on the horizontal axis of the timeline
+/// view.
+#[derive(Debug)]
+pub struct NoteSequencerWidget<'a> {
+    sequencer: &'a mut ensnare_core::entities::controllers::sequencers::NoteSequencer,
+    view_range: ViewRange,
+}
+impl<'a> NoteSequencerWidget<'a> {
+    fn new(
+        sequencer: &'a mut ensnare_core::entities::controllers::sequencers::NoteSequencer,
+        view_range: &'a ViewRange,
+    ) -> Self {
+        Self {
+            sequencer,
+            view_range: view_range.clone(),
+        }
+    }
+}
+impl<'a> Widget for NoteSequencerWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        todo!()
+    }
+}
+
+#[derive(Debug, Default, InnerControls, IsController, Metadata)]
+pub struct NoteSequencer {
+    uid: Uid,
+    inner: ensnare_core::entities::controllers::sequencers::NoteSequencer,
+}
+impl Displays for NoteSequencer {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let range = self.inner.inner.time_range.clone();
+        ui.add(note_sequencer_widget(&mut self.inner, &range))
+    }
+}
+impl Configurable for NoteSequencer {}
+impl HandlesMidi for NoteSequencer {}
+impl Serializable for NoteSequencer {}
+impl NoteSequencer {
+    pub fn new_with_inner(
+        uid: Uid,
+        inner: ensnare_core::entities::controllers::sequencers::NoteSequencer,
+    ) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -443,5 +576,74 @@ impl SignalPassthroughController {
             uid,
             inner: ensnare_core::entities::controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
         }
+    }
+}
+
+#[derive(
+    Control,
+    Debug,
+    InnerConfigurable,
+    InnerControls,
+    InnerHandlesMidi,
+    InnerSerializable,
+    IsController,
+    Metadata,
+)]
+pub struct Timer {
+    uid: Uid,
+    inner: ensnare_core::controllers::Timer,
+}
+impl Displays for Timer {}
+impl Timer {
+    pub fn new_with(uid: Uid, params: &TimerParams) -> Self {
+        Self {
+            uid,
+            inner: ensnare_core::controllers::Timer::new_with(params),
+        }
+    }
+}
+
+#[derive(
+    Control,
+    Debug,
+    InnerConfigurable,
+    InnerControls,
+    InnerHandlesMidi,
+    InnerSerializable,
+    IsController,
+    Metadata,
+)]
+pub struct Trigger {
+    uid: Uid,
+    inner: ensnare_core::controllers::Trigger,
+}
+impl Displays for Trigger {}
+impl Trigger {
+    pub fn new_with(uid: Uid, params: &TriggerParams) -> Self {
+        Self {
+            uid,
+            inner: ensnare_core::controllers::Trigger::new_with(params),
+        }
+    }
+}
+
+#[derive(
+    Control,
+    Debug,
+    InnerConfigurable,
+    InnerControls,
+    InnerHandlesMidi,
+    InnerSerializable,
+    IsController,
+    Metadata,
+)]
+pub struct ControlTrip {
+    uid: Uid,
+    inner: InnerControlTrip,
+}
+impl Displays for ControlTrip {}
+impl ControlTrip {
+    pub fn new_with(uid: Uid, inner: InnerControlTrip) -> Self {
+        Self { uid, inner }
     }
 }

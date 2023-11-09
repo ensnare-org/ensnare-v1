@@ -1,7 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::drag_drop::{DragDropManager, DragSource};
-
 use super::parts::MIDI_NOTE_F32_RANGE;
 use eframe::{
     egui::{Id as EguiId, ImageButton},
@@ -14,6 +12,8 @@ use ensnare_core::{
     prelude::*,
     selection_set::SelectionSet,
 };
+use ensnare_drag_drop::{DragDropManager, DragSource};
+use ensnare_entity::prelude::*;
 use std::collections::HashMap;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).

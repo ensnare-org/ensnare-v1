@@ -7,10 +7,7 @@ use ensnare::{
     },
     prelude::*,
 };
-use ensnare_core::{
-    controllers::PatternSequencer, orchestration::OrchestratorHelper, prelude::Orchestrator,
-    traits::Sequences,
-};
+use ensnare_egui::controllers::PatternSequencer;
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
@@ -103,16 +100,13 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
         .unwrap();
 
     // Arrange the lead pattern in a new MIDI track's Sequencer.
+    let mut sequencer = PatternSequencer::default();
+    assert!(sequencer
+        .record(MidiChannel::default(), &scale_pattern, MusicalTime::START)
+        .is_ok());
+
     assert!(o
-        .assign_uid_and_add_entity(
-            &track_uid,
-            Box::new(
-                PatternSequencerBuilder::default()
-                    .pattern((MidiChannel(0), scale_pattern.clone()))
-                    .build()
-                    .unwrap()
-            )
-        )
+        .assign_uid_and_add_entity(&track_uid, Box::new(sequencer))
         .is_ok());
 
     // Add a synth to play the pattern.

@@ -8,13 +8,12 @@ use crate::{
 };
 use ensnare_proc_macros::{Control, Params};
 use std::sync::{Arc, Mutex};
-use strum_macros::Display;
 
-#[derive(Debug, Display)]
-pub enum ToyInstrumentAction {
-    LinkControl(Uid, Uid, ControlIndex),
-}
-impl IsAction for ToyInstrumentAction {}
+// #[derive(Debug, Display)]
+// pub enum ToyInstrumentAction {
+//     LinkControl(Uid, Uid, ControlIndex),
+// }
+// impl IsAction for ToyInstrumentAction {}
 
 #[derive(Debug, Default)]
 pub struct ToyInstrumentEphemerals {
@@ -22,7 +21,6 @@ pub struct ToyInstrumentEphemerals {
     pub is_playing: bool,
     pub received_midi_message_count: Arc<Mutex<usize>>,
     pub debug_messages: Vec<MidiMessage>,
-    pub action: Option<ToyInstrumentAction>,
 }
 
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
@@ -111,22 +109,5 @@ impl ToyInstrument {
     // arriving.
     pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
         &self.e.received_midi_message_count
-    }
-}
-impl Displays for ToyInstrument {}
-impl Acts for ToyInstrument {
-    type Action = ToyInstrumentAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        debug_assert!(
-            self.e.action.is_none(),
-            "Uh-oh, tried to set to {action} but it was already set to {:?}",
-            self.e.action
-        );
-        self.e.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.e.action.take()
     }
 }

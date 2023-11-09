@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{
-    controllers::{Timer, Trigger},
+    controllers::{TimerParams, TriggerParams},
     entities::prelude::{
         BiQuadFilterLowPass24dbParams, DrumkitParams, GainParams, ReverbParams, SamplerParams,
     },
@@ -18,6 +18,7 @@ use ensnare_core::{
     utils::Paths,
 };
 use ensnare_egui::prelude::*;
+use ensnare_entity::{prelude::*, toy_entities::ToyControllerAlwaysSendsMidiMessage};
 
 /// Registers all [EntityFactory]'s entities. Note that the function returns a
 /// EntityFactory, rather than operating on an &mut. This encourages
@@ -36,10 +37,10 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
         Box::new(Arpeggiator::new_with(uid, &ArpeggiatorParams::default()))
     });
-    factory
-        .register_entity_with_str_key(ensnare_core::controllers::ControlTrip::ENTITY_KEY, |_uid| {
-            Box::<ensnare_core::controllers::ControlTrip>::default()
-        });
+    // factory
+    //     .register_entity_with_str_key(ControlTrip::ENTITY_KEY, |_uid| {
+    //         Box::<ControlTrip>::default()
+    //     });
     factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
         Box::new(LfoController::new_with(
             uid,
@@ -60,13 +61,23 @@ pub fn register_factory_entities(mut factory: EntityFactory) -> EntityFactory {
     factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |uid| {
         Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type(uid))
     });
-    factory.register_entity_with_str_key(Timer::ENTITY_KEY, |_uid| {
-        Box::new(Timer::new_with(MusicalTime::DURATION_QUARTER))
+    factory.register_entity_with_str_key(Timer::ENTITY_KEY, |uid| {
+        Box::new(Timer::new_with(
+            uid,
+            &TimerParams {
+                duration: MusicalTime::DURATION_QUARTER,
+            },
+        ))
     });
-    factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |_uid| {
+    factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
         Box::new(Trigger::new_with(
-            Timer::new_with(MusicalTime::DURATION_QUARTER),
-            ControlValue(1.0),
+            uid,
+            &TriggerParams {
+                timer: TimerParams {
+                    duration: MusicalTime::DURATION_QUARTER,
+                },
+                value: ControlValue(1.0),
+            },
         ))
     });
 

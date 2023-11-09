@@ -566,16 +566,6 @@ pub struct Transport {
 }
 impl HandlesMidi for Transport {}
 impl Transport {
-    /// Returns the current [Tempo].
-    pub(crate) fn tempo(&self) -> Tempo {
-        self.tempo
-    }
-
-    /// Sets a new [Tempo].
-    pub(crate) fn set_tempo(&mut self, tempo: Tempo) {
-        self.tempo = tempo;
-    }
-
     /// Advances the clock by the given number of frames. Returns the time range
     /// from the prior time to now.
     pub fn advance(&mut self, frames: usize) -> ViewRange {
@@ -620,6 +610,12 @@ impl Transport {
     pub fn time_signature(&self) -> TimeSignature {
         self.time_signature
     }
+
+    // Don't delete this! The #[derive(Control)] macro expects exactly this
+    // method name.
+    pub fn set_tempo(&mut self, tempo: Tempo) {
+        self.update_tempo(tempo)
+    }
 }
 impl Serializable for Transport {}
 impl Configurable for Transport {
@@ -631,10 +627,17 @@ impl Configurable for Transport {
         self.e.sample_rate = sample_rate;
     }
 
+    fn tempo(&self) -> Tempo {
+        self.tempo
+    }
+
     fn update_tempo(&mut self, tempo: Tempo) {
         self.tempo = tempo;
     }
 
+    fn time_signature(&self) -> TimeSignature {
+        self.time_signature
+    }
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
         self.time_signature = time_signature;
     }
@@ -678,12 +681,6 @@ impl Controls for Transport {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        control::{ControlIndex, ControlValue},
-        prelude::Orchestrator,
-        traits::Controllable,
-    };
-
     use super::*;
 
     #[test]
@@ -1033,31 +1030,5 @@ mod tests {
             // without first calling skip_to_start().
             transport.skip_to_start();
         }
-    }
-
-    #[test]
-    fn transport_is_automatable() {
-        let mut t = TransportBuilder::default()
-            .uid(Orchestrator::TRANSPORT_UID)
-            .build()
-            .unwrap();
-
-        assert_eq!(t.tempo(), Tempo::default());
-
-        assert_eq!(
-            t.control_index_count(),
-            1,
-            "Transport should have one automatable parameter"
-        );
-        const TEMPO_INDEX: ControlIndex = ControlIndex(0);
-        assert_eq!(
-            t.control_name_for_index(TEMPO_INDEX),
-            Some("tempo".to_string()),
-            "Transport's parameter name should be 'tempo'"
-        );
-        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MAX);
-        assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
-        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
-        assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
     }
 }

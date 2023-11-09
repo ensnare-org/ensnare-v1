@@ -17,13 +17,11 @@ use eframe::{
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
 use ensnare::{
-    entities::instruments::{
-        sampler::{Sampler, SamplerVoice},
-        Synthesizer, VoicePerNoteStore,
-    },
+    entities::instruments::{Synthesizer, VoicePerNoteStore},
     prelude::*,
     utils::Paths,
 };
+use ensnare_core::stuff::sampler::{Sampler, SamplerVoice};
 use ensnare_proc_macros::{Control, IsControllerInstrument, Metadata};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, path::Path, sync::Arc};

@@ -7,7 +7,6 @@ use ensnare::{
     entities::{effects::ToyEffect, instruments::ToyInstrument},
     prelude::*,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]

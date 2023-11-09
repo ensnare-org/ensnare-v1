@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::Orchestrator;
+use ensnare_orchestration::orchestration::Orchestrator;
 use serde::{Deserialize, Serialize};
 
 /// A user-visible project title.

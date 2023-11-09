@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{generators::envelope, modulators::dca, widgets::generators::oscillator};
 use eframe::egui::CollapsingHeader;
 use ensnare_core::{
     entities::prelude::{DrumkitParams, SamplerParams},
@@ -8,10 +7,14 @@ use ensnare_core::{
     stuff::welsh::WelshSynthParams,
     utils::Paths,
 };
+use ensnare_egui_widgets::{dca, envelope, oscillator};
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsInstrument, Metadata,
 };
+
+use crate::effects::bi_quad_filter_low_pass_24db;
 
 pub mod fm;
 
@@ -101,7 +104,9 @@ impl Displays for WelshSynth {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let filter_changed = self.inner.voice.filter.ui(ui).changed();
+                let filter_changed = ui
+                    .add(bi_quad_filter_low_pass_24db(&mut self.inner.voice.filter))
+                    .changed();
                 let filter_envelope_changed = ui
                     .add(envelope(&mut self.inner.voice.filter_envelope))
                     .changed();
@@ -138,7 +143,7 @@ impl WelshSynth {
 )]
 pub struct Sampler {
     uid: Uid,
-    inner: ensnare_core::entities::instruments::sampler::Sampler,
+    inner: ensnare_core::stuff::sampler::Sampler,
 }
 impl Displays for Sampler {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -149,7 +154,7 @@ impl Sampler {
     pub fn new_with(uid: Uid, params: &SamplerParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::entities::instruments::sampler::Sampler::new_with(&params),
+            inner: ensnare_core::stuff::sampler::Sampler::new_with(&params),
         }
     }
 
@@ -170,7 +175,7 @@ impl Sampler {
 )]
 pub struct Drumkit {
     uid: Uid,
-    inner: ensnare_core::entities::instruments::drumkit::Drumkit,
+    inner: ensnare_core::stuff::drumkit::Drumkit,
 }
 impl Displays for Drumkit {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -181,7 +186,7 @@ impl Drumkit {
     pub fn new_with(uid: Uid, params: &DrumkitParams, paths: &Paths) -> Self {
         Self {
             uid,
-            inner: ensnare_core::entities::instruments::drumkit::Drumkit::new_with(&params, paths),
+            inner: ensnare_core::stuff::drumkit::Drumkit::new_with(&params, paths),
         }
     }
 }

@@ -24,8 +24,6 @@ pub mod midi;
 pub mod midi_interface;
 /// Building blocks for signal modulation.
 pub mod modulators;
-/// Infrastructure that coordinates [Entities](Entity).
-pub mod orchestration;
 /// Visual composition of patterns.
 pub mod piano_roll;
 /// Provides a random-number generator for debugging and testing.
@@ -34,8 +32,6 @@ pub mod rng;
 pub mod selection_set;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
-/// Groups [Entities](Entity) into tracks.
-pub mod track;
 /// Describes major system interfaces.
 pub mod traits;
 /// Common structures and constants used across the library.
@@ -47,10 +43,6 @@ pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
 
-mod bus_route;
-mod humidifier;
-mod midi_router;
-
 pub mod stuff;
 
 /// Recommended imports for easy onboarding.
@@ -58,15 +50,12 @@ pub mod prelude {
     pub use super::traits::prelude::*;
     pub use super::{
         control::{ControlIndex, ControlName, ControlValue},
-        entities::factory::{EntityFactory, EntityKey, EntityStore},
-        midi::{MidiChannel, MidiMessage},
-        orchestration::{OldOrchestrator, Orchestrator},
+        midi::prelude::*,
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
-        track::{Track, TrackUid},
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
             SampleType, SignalType, StereoSample,
         },
-        uid::Uid,
+        uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
     };
 }

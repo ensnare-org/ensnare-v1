@@ -16,7 +16,7 @@ use eframe::{
 use ensnare::{
     app_version,
     entities::{
-        controllers::{LivePatternSequencer, NoteSequencer, NoteSequencerBuilder, ToyController},
+        controllers::{LivePatternSequencer, NoteSequencerBuilder, ToyController},
         effects::ToyEffect,
         instruments::{ToyInstrument, ToySynth},
     },
@@ -28,9 +28,14 @@ use ensnare::{
 };
 use ensnare_core::{
     stuff::toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
-    track::TrackAction,
+    types::TrackTitle,
+    uid::TrackUid,
 };
-use ensnare_egui::prelude::{live_pattern_sequencer_widget, signal_chain, track_widget};
+use ensnare_egui::{
+    controllers::NoteSequencer, piano_roll::piano_roll, prelude::live_pattern_sequencer_widget,
+};
+use ensnare_entity::traits::Entity;
+use ensnare_orchestration::track::{signal_chain, track_widget, Track, TrackAction};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -108,10 +113,9 @@ impl Default for TrackSettings {
             range: MusicalTime::START..MusicalTime::new_with_beats(128),
             view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
         };
-        let _ = r.track.append_entity(
-            Box::new(NoteSequencerBuilder::default().build().unwrap()),
-            Uid(345),
-        );
+        let _ = r
+            .track
+            .append_entity(Box::new(NoteSequencer::default()), Uid(345));
         r
     }
 }
@@ -158,7 +162,7 @@ impl<'a> Displays for PretendDevicePalette<'a> {
                             DragDropManager::drag_source(
                                 ui,
                                 Id::new(key),
-                                DragSource::NewDevice(key.clone()),
+                                DragSource::NewDevice(key.to_string()),
                                 |ui| ui.label(key.to_string()),
                             );
                         }
@@ -353,12 +357,16 @@ struct NoteSequencerSettings {
 }
 impl Default for NoteSequencerSettings {
     fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            sequencer: NoteSequencerBuilder::default()
+        let sequencer = NoteSequencer::new_with_inner(
+            Uid::default(),
+            NoteSequencerBuilder::default()
                 .random(MusicalTime::START..MusicalTime::new_with_beats(128))
                 .build()
                 .unwrap(),
+        );
+        Self {
+            hide: Default::default(),
+            sequencer,
             view_range: Default::default(),
         }
     }
@@ -546,7 +554,7 @@ impl PianoRollSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            self.piano_roll.ui(ui);
+            ui.add(piano_roll(&mut self.piano_roll));
         }
     }
 }
@@ -875,8 +883,12 @@ impl eframe::App for WidgetExplorer {
             }
         }
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            if let DragSource::NewDevice(_) = source { todo!() }
-            if let DropTarget::Controllable(_, _) = target { todo!() }
+            if let DragSource::NewDevice(_) = source {
+                todo!()
+            }
+            if let DropTarget::Controllable(_, _) = target {
+                todo!()
+            }
         }
     }
 }

@@ -16,27 +16,27 @@ pub(crate) fn impl_inner_configurable_derive(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Configurable for #struct_name #ty_generics {
-                fn sample_rate(&self) -> SampleRate {
+                fn sample_rate(&self) -> #core_crate::time::SampleRate {
                     self.inner.sample_rate()
                 }
 
-                fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+                fn update_sample_rate(&mut self, sample_rate: #core_crate::time::SampleRate) {
                     self.inner.update_sample_rate(sample_rate)
                 }
 
-                fn tempo(&self) -> Tempo {
+                fn tempo(&self) -> #core_crate::time::Tempo {
                     self.inner.tempo()
                 }
 
-                fn update_tempo(&mut self, tempo: Tempo) {
+                fn update_tempo(&mut self, tempo: #core_crate::time::Tempo) {
                     self.inner.update_tempo(tempo)
                 }
 
-                fn time_signature(&self) -> TimeSignature {
+                fn time_signature(&self) -> #core_crate::time::TimeSignature {
                     self.inner.time_signature()
                 }
 
-                fn update_time_signature(&mut self, time_signature: TimeSignature) {
+                fn update_time_signature(&mut self, time_signature: #core_crate::time::TimeSignature) {
                     self.inner.update_time_signature(time_signature)
                 }
             }

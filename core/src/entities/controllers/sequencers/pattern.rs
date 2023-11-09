@@ -6,15 +6,12 @@ use crate::{
     piano_roll::{Pattern, PatternUid, PianoRoll},
     time::MusicalTime,
     traits::{
-        Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
+        Configurable, ControlEventsFn, Controls, HandlesMidi, Sequences, SequencesMidi,
         Serializable,
     },
-    uid::Uid,
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
-use ensnare_proc_macros::{IsController, Metadata};
-use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
     sync::{Arc, RwLock},
@@ -43,15 +40,11 @@ impl PatternSequencerBuilder {
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default, Builder, IsController, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default, Builder)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
     #[builder(setter(skip))]
-    uid: Uid,
-
-    #[serde(skip)]
-    #[builder(setter(skip))]
-    inner: MidiSequencer,
+    pub inner: MidiSequencer,
 
     #[builder(default, setter(each(name = "pattern", into)))]
     pub patterns: Vec<(MidiChannel, Pattern)>,
@@ -124,9 +117,6 @@ impl Controls for PatternSequencer {
         self.inner.is_performing()
     }
 }
-impl Configurable for PatternSequencer {}
-impl Displays for PatternSequencer {}
-impl HandlesMidi for PatternSequencer {}
 impl Serializable for PatternSequencer {
     fn after_deser(&mut self) {
         for (channel, pattern) in &self.patterns {
@@ -138,20 +128,17 @@ impl Serializable for PatternSequencer {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LivePatternArrangement {
     pattern_uid: PatternUid,
     range: Range<MusicalTime>,
 }
 
-#[derive(Debug, Default, IsController, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Default)]
 pub struct LivePatternSequencer {
-    uid: Uid,
     arrangements: Vec<LivePatternArrangement>,
 
-    #[serde(skip)]
     pub inner: PatternSequencer,
-    #[serde(skip)]
     piano_roll: Arc<RwLock<PianoRoll>>,
 }
 impl Sequences for LivePatternSequencer {
@@ -201,10 +188,10 @@ impl Controls for LivePatternSequencer {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        // The inner sequencers don't know our Uid, so here's where we override
-        // what they passed into us.
+        // TODO: when you make the Entity wrapper for this, this code is where
+        // you'll substitute in the real uid.
         let mut inner_control_events_fn = |_, event| {
-            control_events_fn(Some(self.uid), event);
+            control_events_fn(None, event);
         };
 
         self.inner.work(&mut inner_control_events_fn)
@@ -237,11 +224,9 @@ impl Serializable for LivePatternSequencer {
 }
 impl Configurable for LivePatternSequencer {}
 impl HandlesMidi for LivePatternSequencer {}
-impl Displays for LivePatternSequencer {}
 impl LivePatternSequencer {
-    pub fn new_with(uid: Uid, piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+    pub fn new_with(piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
         Self {
-            uid,
             piano_roll,
             ..Default::default()
         }
@@ -309,7 +294,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let mut s = LivePatternSequencer::new_with(Uid(1024), Arc::clone(&piano_roll));
+        let mut s = LivePatternSequencer::new_with(Arc::clone(&piano_roll));
         let _ = s.record(
             MidiChannel::default(),
             &pattern_uid,

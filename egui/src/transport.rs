@@ -1,9 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    time::{Tempo, Transport},
-    traits::Displays,
-};
+use crate::prelude::*;
+use ensnare_core::time::{Tempo, Transport};
+use ensnare_entity::traits::Displays;
 
 /// Wraps a [Transport] as a [Widget](eframe::egui::Widget).
 pub fn transport(transport: &mut Transport) -> impl eframe::egui::Widget + '_ {

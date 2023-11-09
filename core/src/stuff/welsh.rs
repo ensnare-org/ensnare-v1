@@ -1,18 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    entities::effects::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
     midi::prelude::*,
     modulators::{Dca, DcaParams},
     prelude::*,
+    stuff::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
 use core::fmt::Debug;
-use eframe::egui::{CollapsingHeader, Response, Ui};
-use ensnare_proc_macros::{Control, IsInstrument, Metadata, Params};
+use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
@@ -29,7 +28,7 @@ pub enum LfoRouting {
     FilterCutoff,
 }
 
-#[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
+#[derive(Control, Debug, Default, Params)]
 pub struct WelshVoice {
     #[control]
     #[params]
@@ -72,16 +71,11 @@ pub struct WelshVoice {
     #[params]
     pub filter_envelope: Envelope,
 
-    #[serde(skip)]
     note_on_key: u7,
-    #[serde(skip)]
     note_on_velocity: u7,
-    #[serde(skip)]
     steal_is_underway: bool,
 
-    #[serde(skip)]
     sample: StereoSample,
-    #[serde(skip)]
     ticks: usize,
 }
 impl IsStereoSampleVoice for WelshVoice {}
@@ -426,12 +420,6 @@ impl WelshSynth {
     //     self.inner_synth.set_pan(pan);
     //     self.inner_synth.voices_mut().for_each(|v| v.set_pan(pan));
     //     self.inner_synth.set_pan(pan);
-    // }
-}
-
-impl Displays for WelshSynth {
-    // fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-    //     self.voice.show(ui, &mut self.inner_synth)
     // }
 }
 

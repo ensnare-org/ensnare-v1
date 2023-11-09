@@ -20,9 +20,12 @@ eframe = "0.23"
 egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
 egui_extras = { version = "0.23", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
+ensnare-drag-drop = { path = "drag-drop" }
 ensnare-egui = { path = "egui" }
 ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entities = { path = "entities" }
+ensnare-entity = { path = "entity" }
+ensnare-orchestration = { path = "orchestration" }
 ensnare-proc-macros = { path = "proc-macros" }
 ensnare-systems = { path = "systems" }
 env_logger = "0.10"
@@ -31,7 +34,16 @@ serde_json = "1.0"
 strum_macros = "0.25.2"
 
 [workspace]
-members = ["core", "egui", "egui-widgets", "entities", "proc-macros", "systems"]
+members = [
+    "core",
+    "egui",
+    "egui-widgets",
+    "entities",
+    "entity",
+    "orchestration",
+    "proc-macros",
+    "systems",
+]
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }

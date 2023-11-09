@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{CollapsingHeader, ComboBox};
+use eframe::egui::{CollapsingHeader, ComboBox, Widget};
 use ensnare_core::{
     midi::prelude::*,
     midi_interface::{
@@ -9,6 +9,7 @@ use ensnare_core::{
     },
     prelude::*,
 };
+use ensnare_entity::traits::Displays;
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{Arc, Mutex},
@@ -312,8 +313,8 @@ impl<'a> MidiSettingsWidget<'a> {
         }
     }
 }
-impl<'a> Displays for MidiSettingsWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for MidiSettingsWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         CollapsingHeader::new("MIDI")
             .default_open(true)
             .show(ui, |ui| {

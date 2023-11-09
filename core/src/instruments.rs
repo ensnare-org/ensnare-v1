@@ -170,7 +170,7 @@ impl<V: IsStereoSampleVoice> HandlesMidi for Synthesizer<V> {
 mod tests {
     use super::*;
     use crate::{
-        entities::factory::test_entities::TestVoice,
+        stuff::test::TestVoice,
         voices::{VoiceCount, VoiceStore},
     };
 

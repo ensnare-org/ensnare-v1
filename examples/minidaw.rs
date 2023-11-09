@@ -20,11 +20,10 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
+    arrangement::ProjectTitle,
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
-    ui::DragDropManager,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Read, Write},

@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use std::{hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
+use std::{fmt::Display, hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
 
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
@@ -15,7 +14,7 @@ pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
     Debug,
     Default,
     Deserialize,
-    Display,
+    derive_more::Display,
     Eq,
     Hash,
     Ord,
@@ -65,5 +64,38 @@ impl<U: IsUid> UidFactory<U> {
             .next_uid_value
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         U::from(uid_value)
+    }
+}
+
+/// Identifies a [Track].
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct TrackUid(pub usize);
+impl Default for TrackUid {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+impl IsUid for TrackUid {}
+impl From<usize> for TrackUid {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+impl Display for TrackUid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
+pub type TrackUidFactory = UidFactory<TrackUid>;
+impl UidFactory<TrackUid> {
+    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
+}
+impl Default for UidFactory<TrackUid> {
+    fn default() -> Self {
+        Self {
+            next_uid_value: Self::FIRST_UID,
+            _phantom: Default::default(),
+        }
     }
 }

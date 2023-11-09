@@ -6,9 +6,7 @@ use crate::{
     prelude::*,
     traits::{prelude::*, Sequences, SequencesMidi},
 };
-use eframe::egui::Slider;
-use ensnare_proc_macros::{Control, IsController, Metadata, Params};
-use serde::{Deserialize, Serialize};
+use ensnare_proc_macros::{Control, Params};
 use std::ops::Range;
 
 enum TestControllerAction {
@@ -21,8 +19,8 @@ enum TestControllerAction {
 /// note-on event on each beat, and a note-off event on each half-beat.
 #[derive(Debug, Default, Control, Params)]
 pub struct ToyController {
-    midi_channel_out: MidiChannel,
-    is_enabled: bool,
+    pub midi_channel_out: MidiChannel,
+    pub is_enabled: bool,
     is_playing: bool,
     is_performing: bool,
     time_range: ViewRange,
@@ -96,17 +94,6 @@ impl HandlesMidi for ToyController {
         }
     }
 }
-impl Displays for ToyController {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut channel = self.midi_channel_out.0;
-        let slider_response = ui.add(Slider::new(&mut channel, 0..=15).text("MIDI out"));
-        if slider_response.changed() {
-            self.midi_channel_out = MidiChannel(channel);
-        }
-        ui.end_row();
-        slider_response | ui.checkbox(&mut self.is_enabled, "Enabled")
-    }
-}
 impl ToyController {
     pub fn new_with(_params: &ToyControllerParams, midi_channel_out: MidiChannel) -> Self {
         Self {
@@ -131,17 +118,11 @@ impl ToyController {
     }
 }
 
-#[derive(Debug, Default, Metadata, IsController, Serialize, Deserialize)]
+#[derive(Debug, Default)]
 pub struct ToyControllerAlwaysSendsMidiMessage {
-    uid: Uid,
-
-    #[serde(skip)]
     midi_note: u8,
-
-    #[serde(skip)]
     is_performing: bool,
 }
-impl Displays for ToyControllerAlwaysSendsMidiMessage {}
 impl HandlesMidi for ToyControllerAlwaysSendsMidiMessage {}
 impl Controls for ToyControllerAlwaysSendsMidiMessage {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {

@@ -1,8 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::generators::envelope;
 use eframe::egui::{CollapsingHeader, Slider};
 use ensnare_core::{generators::Envelope, prelude::*, stuff::fm::FmSynthParams};
+use ensnare_egui_widgets::envelope;
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerHandlesMidi, InnerInstrument, InnerSerializable, IsInstrument,
     Metadata,

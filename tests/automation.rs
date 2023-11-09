@@ -1,11 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
-    entities::{controllers::PatternSequencerBuilder, instruments::ToySynth},
-    prelude::*,
-};
-use ensnare_core::{orchestration::OrchestratorHelper, stuff::lfo::LfoControllerParams};
-use ensnare_egui::prelude::*;
+use ensnare::{entities::instruments::ToySynth, prelude::*};
+use ensnare_core::{generators::Waveform, prelude::ControlValue, stuff::lfo::LfoControllerParams};
+use ensnare_egui::controllers::{ControlTrip, PatternSequencer};
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -43,16 +40,14 @@ fn demo_automation() {
 
         // Arrange the lead pattern in the sequencer.
         let track_uid = orchestrator.create_track().unwrap();
+        let mut sequencer = PatternSequencer::default();
+        let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
+        assert!(sequencer
+            .record(MidiChannel::default(), &pattern.clone(), MusicalTime::START)
+            .is_ok());
+
         assert!(orchestrator
-            .assign_uid_and_add_entity(&track_uid, {
-                let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((MidiChannel(0), pattern))
-                        .build()
-                        .unwrap(),
-                )
-            })
+            .assign_uid_and_add_entity(&track_uid, Box::new(sequencer))
             .is_ok());
 
         // Add a synth to play the pattern.
@@ -149,16 +144,16 @@ fn demo_control_trips() {
 
         // Add the sequencer to a new track.
         let track_uid = orchestrator.create_track().unwrap();
-        assert!(orchestrator
-            .assign_uid_and_add_entity(
-                &track_uid,
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((MidiChannel(0), scale_pattern.clone()))
-                        .build()
-                        .unwrap()
-                )
+        let mut sequencer = PatternSequencer::default();
+        assert!(sequencer
+            .record(
+                MidiChannel::default(),
+                &scale_pattern.clone(),
+                MusicalTime::START
             )
+            .is_ok());
+        assert!(orchestrator
+            .assign_uid_and_add_entity(&track_uid, Box::new(sequencer))
             .is_ok());
 
         // Add a synth to play the pattern. Figure how out to identify the
@@ -196,8 +191,9 @@ fn demo_control_trips() {
             )
             .build()
             .unwrap();
+        let outer_trip = Box::new(ControlTrip::new_with(Uid::default(), trip));
         let trip_uid = orchestrator
-            .assign_uid_and_add_entity(&track_uid, Box::new(trip))
+            .assign_uid_and_add_entity(&track_uid, outer_trip)
             .unwrap();
 
         // Hook up that ControlTrip to the pan parameter.

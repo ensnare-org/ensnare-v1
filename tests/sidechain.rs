@@ -4,7 +4,7 @@ use ensnare::{
     entities::{controllers::PatternSequencerBuilder, effects::Gain, instruments::ToySynth},
     prelude::*,
 };
-use ensnare_core::orchestration::OrchestratorHelper;
+use ensnare_egui::controllers::PatternSequencer;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
@@ -29,19 +29,16 @@ fn demo_sidechaining() {
             .build()
             .unwrap();
         let sidechain_track_uid = orchestrator.create_track().unwrap();
-        assert!(orchestrator
-            .assign_uid_and_add_entity(
-                &sidechain_track_uid,
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((
-                            MidiChannel(0),
-                            sidechain_pattern.clone() + MusicalTime::START
-                        ))
-                        .build()
-                        .unwrap(),
-                )
+        let mut sequencer = PatternSequencer::default();
+        assert!(sequencer
+            .record(
+                MidiChannel::default(),
+                &sidechain_pattern,
+                MusicalTime::START
             )
+            .is_ok());
+        assert!(orchestrator
+            .assign_uid_and_add_entity(&sidechain_track_uid, Box::new(sequencer))
             .is_ok());
         assert!(orchestrator
             .assign_uid_and_add_entity(
@@ -82,16 +79,12 @@ fn demo_sidechaining() {
             .build()
             .unwrap();
         let lead_track_uid = orchestrator.create_track().unwrap();
+        let mut sequencer = PatternSequencer::default();
+        assert!(sequencer
+            .record(MidiChannel::default(), &lead_pattern, MusicalTime::START)
+            .is_ok());
         assert!(orchestrator
-            .assign_uid_and_add_entity(
-                &lead_track_uid,
-                Box::new(
-                    PatternSequencerBuilder::default()
-                        .pattern((MidiChannel(0), lead_pattern.clone() + MusicalTime::START))
-                        .build()
-                        .unwrap()
-                )
-            )
+            .assign_uid_and_add_entity(&lead_track_uid, Box::new(sequencer))
             .is_ok());
         assert!(orchestrator
             .assign_uid_and_add_entity(

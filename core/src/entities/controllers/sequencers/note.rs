@@ -6,15 +6,10 @@ use crate::{
     piano_roll::Note,
     rng::Rng,
     time::{MusicalTime, ViewRange},
-    traits::{
-        Configurable, ControlEventsFn, Controls, Displays, HandlesMidi, Sequences, SequencesMidi,
-        Serializable,
-    },
-    uid::Uid,
+    traits::{ControlEventsFn, Controls, Sequences, SequencesMidi, Serializable},
 };
 use derive_builder::Builder;
-use ensnare_proc_macros::{IsController, Metadata};
-use serde::{Deserialize, Serialize};
+use ensnare_proc_macros::InnerConfigurable;
 
 impl NoteSequencerBuilder {
     /// Builds the [NoteSequencer].
@@ -44,15 +39,11 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Builder, IsController, Metadata)]
+#[derive(Debug, Default, Builder, InnerConfigurable)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
-    #[builder(default)]
-    uid: Uid,
-
-    #[serde(skip)]
     #[builder(setter(skip))]
-    inner: MidiSequencer,
+    pub inner: MidiSequencer,
 
     #[builder(default, setter(each(name = "note", into)))]
     notes: Vec<Note>,
@@ -136,8 +127,6 @@ impl Controls for NoteSequencer {
         self.inner.is_performing()
     }
 }
-impl Configurable for NoteSequencer {}
-impl HandlesMidi for NoteSequencer {}
 impl Serializable for NoteSequencer {
     fn before_ser(&mut self) {}
 
@@ -150,7 +139,6 @@ impl Serializable for NoteSequencer {
         });
     }
 }
-impl Displays for NoteSequencer {}
 
 #[cfg(test)]
 mod tests {

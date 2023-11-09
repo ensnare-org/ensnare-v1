@@ -10,7 +10,8 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::controllers::ControlTrip, prelude::*};
-use ensnare_core::{piano_roll::PianoRollEntity, uid::EntityUidFactory}; // TODO clean up
+use ensnare_core::uid::EntityUidFactory;
+use ensnare_entity::traits::Entity; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -40,7 +41,8 @@ impl EntityGuiExplorer {
     }
 
     fn generate_entity_key_list() -> Vec<EntityKey> {
-        let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
+        // let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
+        let skips = vec![];
 
         let mut keys: Vec<String> = EntityFactory::global()
             .keys()
@@ -186,8 +188,8 @@ fn main() -> anyhow::Result<()> {
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
     let mut factory = EntityFactory::default();
-    factory.register_entity_with_str_key(PianoRollEntity::ENTITY_KEY, |uid| {
-        Box::new(PianoRollEntity::new(uid))
+    factory.register_entity_with_str_key(ensnare_egui::piano_roll::PianoRoll::ENTITY_KEY, |uid| {
+        Box::new(ensnare_egui::piano_roll::PianoRoll::new(uid))
     });
 
     if EntityFactory::initialize(register_factory_entities(factory)).is_err() {

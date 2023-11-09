@@ -6,16 +6,27 @@
 
 pub mod arrangement {
     //! Organization of musical elements.
-    pub use ensnare_core::{
-        orchestration::{OldOrchestrator, Orchestrator, OrchestratorHelper},
-        time::Transport,
-        track::{Track, TrackAction, TrackTitle, TrackUid},
+
+    pub use super::project::{Project, ProjectTitle};
+    pub use ensnare_core::time::Transport;
+    pub use ensnare_orchestration::orchestration::{
+        OldOrchestrator, Orchestrator, OrchestratorHelper,
     };
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{OldOrchestrator, Orchestrator, OrchestratorHelper, Transport};
+    }
 }
 
 pub mod composition {
     //! Creation of musical elements.
     pub use ensnare_core::piano_roll::{Note, PatternBuilder, PatternUid, PianoRoll};
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{Note, PatternBuilder, PatternUid, PianoRoll};
+    }
 }
 
 pub mod control {
@@ -40,7 +51,20 @@ pub mod control {
     //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for
     //! all applicable types in the system.
 
-    pub use ensnare_core::control::{ControlIndex, ControlName, ControlRouter, ControlValue};
+    pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
+    pub use ensnare_egui::control::ControlRouter;
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{ControlIndex, ControlName, ControlRouter, ControlValue};
+    }
+}
+
+pub mod devices {
+    //! The core business logic that powers musical instruments.
+    pub use ensnare_core::entities::controllers::sequencers::{
+        PatternSequencer, PatternSequencerBuilder,
+    };
 }
 
 pub mod entities {
@@ -62,7 +86,7 @@ pub mod entities {
     //! [IsInstrument](crate::traits::IsInstrument) (or one of the hybrids of
     //! these traits).
 
-    pub use ensnare_core::entities::factory::{EntityFactory, EntityKey, EntityStore};
+    pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub use ensnare_entities::register_factory_entities;
 
@@ -73,25 +97,23 @@ pub mod entities {
         //! [IsController](crate::traits::IsController).
         pub use ensnare_core::{
             controllers::{ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath},
-            entities::factory::test_entities::TestController,
             entities::{
                 controllers::sequencers::{
                     LivePatternSequencer, MidiSequencer, NoteSequencer, NoteSequencerBuilder,
-                    PatternSequencer, PatternSequencerBuilder,
+                    PatternSequencerBuilder,
                 },
                 controllers::*,
             },
         };
-        pub use ensnare_egui::toys::ToyController;
+        pub use ensnare_egui::controllers::PatternSequencer;
+        pub use ensnare_entity::{test_entities::TestController, toy_entities::ToyController};
     }
     pub mod effects {
         //! Built-in effects. Effects transform audio. Examples are reverb and
         //! delay. Effects implement [IsEffect](crate::traits::IsEffect).
-        pub use ensnare_core::entities::{
-            effects::{gain::Gain, reverb::Reverb},
-            factory::test_entities::{TestEffect, TestEffectNegatesInput},
-        };
-        pub use ensnare_egui::toys::ToyEffect;
+        pub use ensnare_core::stuff::test::TestEffectNegatesInput;
+        pub use ensnare_egui::effects::{Gain, Reverb};
+        pub use ensnare_entity::{test_entities::TestEffect, toy_entities::ToyEffect};
     }
 
     pub mod instruments {
@@ -99,15 +121,22 @@ pub mod entities {
         //! are instruments. They implement the
         //! [IsInstrument](crate::traits::IsInstrument) interface.
         pub use ensnare_core::{
-            entities::{
-                factory::test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
-                instruments::drumkit::{Drumkit, DrumkitParams},
-                instruments::*,
-            },
             instruments::Synthesizer,
             voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
         };
-        pub use ensnare_egui::toys::{ToyInstrument, ToySynth};
+        pub use ensnare_egui::instruments::*;
+        pub use ensnare_entity::{
+            test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
+            toy_entities::{ToyInstrument, ToySynth},
+        };
+    }
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{
+            controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+            register_factory_entities, EntityFactory, EntityKey, EntityStore,
+        };
     }
 }
 
@@ -128,6 +157,14 @@ pub mod midi {
         //! plugged in through USB).
         pub use ensnare_core::midi_interface::{
             MidiInterfaceEvent, MidiInterfaceInput, MidiInterfaceService, MidiPortDescriptor,
+        };
+    }
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{
+            interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
+            u4, u7, MidiChannel, MidiMessage, MidiNote,
         };
     }
 }
@@ -164,6 +201,18 @@ pub mod systems {
 pub mod traits {
     //! Common behaviors of system components.
     pub use ensnare_core::traits::*;
+    pub use ensnare_entity::traits::*;
+    pub use ensnare_orchestration::traits::*;
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{
+            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity,
+            EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
+            HasSettings, IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
+            Sequences, Serializable, Ticks,
+        };
+    }
 }
 
 pub mod types {
@@ -173,20 +222,29 @@ pub mod types {
         types::*,
         uid::{Uid, UidFactory},
     };
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{
+            BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
+            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory, ViewRange,
+        };
+    }
 }
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub use ensnare_egui::{
-        drag_drop::{DragDropManager, DragSource, DropTarget},
-        widgets::audio::CircularSampleBuffer,
-    };
+    pub use ensnare_egui::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_egui::widgets::{
-            audio, core, generators, pattern, placeholder, timeline, track,
-        };
+        pub use ensnare_egui::widgets::{audio, core, pattern, placeholder, timeline, track};
         pub use ensnare_systems::{audio_settings, midi_settings};
+    }
+    pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{DragDropManager, DragSource, DropTarget};
     }
 }
 
@@ -204,27 +262,20 @@ mod version;
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
+    pub use super::arrangement::prelude::*;
+    pub use super::composition::prelude::*;
+    pub use super::control::prelude::*;
+    pub use super::entities::prelude::*;
+    pub use super::midi::prelude::*;
     pub use super::systems::prelude::*;
     pub use super::traits::prelude::*;
-    pub use super::{
-        arrangement::{OldOrchestrator, Orchestrator, Track, TrackTitle, TrackUid, Transport},
-        composition::{Note, PatternBuilder, PatternUid, PianoRoll},
-        control::{ControlIndex, ControlName, ControlRouter, ControlValue},
-        entities::{
-            controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-            register_factory_entities, EntityFactory, EntityKey, EntityStore,
-        },
-        generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
-        midi::{
-            interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
-            u4, u7, MidiChannel, MidiMessage, MidiNote,
-        },
-        modulators::{Dca, DcaParams},
-        project::{Project, ProjectTitle},
-        types::{
-            BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory, ViewRange,
-        },
-        ui::DragDropManager,
-    };
+    pub use super::types::prelude::*;
+    pub use super::ui::prelude::*;
+    // pub use super::{
+    //     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+    //     modulators::{Dca, DcaParams},
+    //     project::{Project, ProjectTitle},
+    // };
+    pub use ensnare_egui::prelude::*;
+    pub use ensnare_orchestration::prelude::*;
 }

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core_crate_name;
+use crate::{core_crate_name, entity_crate_name};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput};
@@ -25,71 +25,72 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
         let struct_name = &input.ident;
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
         let core_crate = format_ident!("{}", core_crate_name());
+        let entity_crate = format_ident!("{}", entity_crate_name());
 
         let top_level_trait_names = match ty {
-            EntityType::Controller => vec![quote! {#core_crate::traits::IsController}],
-            EntityType::Effect => vec![quote! {#core_crate::traits::IsEffect}],
-            EntityType::Instrument => vec![quote! {#core_crate::traits::IsInstrument}],
+            EntityType::Controller => vec![quote! {#entity_crate::traits::IsController}],
+            EntityType::Effect => vec![quote! {#entity_crate::traits::IsEffect}],
+            EntityType::Instrument => vec![quote! {#entity_crate::traits::IsInstrument}],
             EntityType::ControllerEffect => vec![
-                quote! {#core_crate::traits::IsController},
-                quote! {#core_crate::traits::IsEffect},
+                quote! {#entity_crate::traits::IsController},
+                quote! {#entity_crate::traits::IsEffect},
             ],
             EntityType::ControllerInstrument => vec![
-                quote! {#core_crate::traits::IsController},
-                quote! {#core_crate::traits::IsInstrument},
+                quote! {#entity_crate::traits::IsController},
+                quote! {#entity_crate::traits::IsInstrument},
             ],
         };
         let common_items = quote! {};
         let type_specific_items = match ty {
             EntityType::Controller => quote! {
-                fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
+                fn as_controller(&self) -> Option<&dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
-                fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
+                fn as_controller_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
             },
             EntityType::Effect => quote! {
-                fn as_effect(&self) -> Option<&dyn #core_crate::traits::IsEffect> {
+                fn as_effect(&self) -> Option<&dyn #entity_crate::traits::IsEffect> {
                     Some(self)
                 }
-                fn as_effect_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsEffect> {
+                fn as_effect_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsEffect> {
                     Some(self)
                 }
             },
             EntityType::Instrument => quote! {
-                fn as_instrument(&self) -> Option<&dyn #core_crate::traits::IsInstrument> {
+                fn as_instrument(&self) -> Option<&dyn #entity_crate::traits::IsInstrument> {
                     Some(self)
                 }
-                fn as_instrument_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsInstrument> {
+                fn as_instrument_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsInstrument> {
                     Some(self)
                 }
             },
             EntityType::ControllerEffect => quote! {
-                fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
+                fn as_controller(&self) -> Option<&dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
-                fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
+                fn as_controller_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
-                fn as_effect(&self) -> Option<&dyn #core_crate::traits::IsEffect> {
+                fn as_effect(&self) -> Option<&dyn #entity_crate::traits::IsEffect> {
                     Some(self)
                 }
-                fn as_effect_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsEffect> {
+                fn as_effect_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsEffect> {
                     Some(self)
                 }
             },
             EntityType::ControllerInstrument => quote! {
-                fn as_controller(&self) -> Option<&dyn #core_crate::traits::IsController> {
+                fn as_controller(&self) -> Option<&dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
-                fn as_controller_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsController> {
+                fn as_controller_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsController> {
                     Some(self)
                 }
-                fn as_instrument(&self) -> Option<&dyn #core_crate::traits::IsInstrument> {
+                fn as_instrument(&self) -> Option<&dyn #entity_crate::traits::IsInstrument> {
                     Some(self)
                 }
-                fn as_instrument_mut(&mut self) -> Option<&mut dyn #core_crate::traits::IsInstrument> {
+                fn as_instrument_mut(&mut self) -> Option<&mut dyn #entity_crate::traits::IsInstrument> {
                     Some(self)
                 }
             },
@@ -99,10 +100,10 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
             | EntityType::Instrument
             | EntityType::ControllerEffect
             | EntityType::ControllerInstrument => quote! {
-                fn as_handles_midi(&self) -> Option<&dyn #core_crate::traits::HandlesMidi> {
+                fn as_handles_midi(&self) -> Option<&dyn ensnare_core::traits::HandlesMidi> {
                     Some(self)
                 }
-                fn as_handles_midi_mut(&mut self) -> Option<&mut dyn #core_crate::traits::HandlesMidi> {
+                fn as_handles_midi_mut(&mut self) -> Option<&mut dyn ensnare_core::traits::HandlesMidi> {
                     Some(self)
                 }
             },
@@ -129,7 +130,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream, ty: EntityType) -> T
 
                     #[automatically_derived]
         //            #[typetag::serde]
-                    impl #generics #core_crate::traits::Entity for #struct_name #ty_generics {
+                    impl #generics #entity_crate::traits::Entity for #struct_name #ty_generics {
                         #common_items
                         #type_specific_items
                         #handles_midi_items
