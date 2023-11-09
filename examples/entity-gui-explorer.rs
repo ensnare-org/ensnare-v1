@@ -44,12 +44,12 @@ impl EntityGuiExplorer {
 
         let mut keys: Vec<String> = EntityFactory::global()
             .keys()
-            .into_iter()
+            .iter()
             .filter(|k| !skips.contains(k))
             .map(|k| k.to_string())
             .collect();
         keys.sort();
-        keys.into_iter().map(|k| EntityKey::from(k)).collect()
+        keys.into_iter().map(EntityKey::from).collect()
     }
 
     fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
@@ -67,18 +67,16 @@ impl EntityGuiExplorer {
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         for key in self.sorted_keys.iter() {
-            if ui.button(key.to_string()).clicked() {
-                if self.selected_key != Some(key.clone()) {
-                    if !self.entities.contains_key(key) {
-                        let uid = self.uid_factory.mint_next();
-                        if let Some(entity) = EntityFactory::global().new_entity(key, uid) {
-                            self.entities.insert(key.clone(), entity);
-                        } else {
-                            panic!("Couldn't create new entity {key}")
-                        }
+            if ui.button(key.to_string()).clicked() && self.selected_key != Some(key.clone()) {
+                if !self.entities.contains_key(key) {
+                    let uid = self.uid_factory.mint_next();
+                    if let Some(entity) = EntityFactory::global().new_entity(key, uid) {
+                        self.entities.insert(key.clone(), entity);
+                    } else {
+                        panic!("Couldn't create new entity {key}")
                     }
-                    self.selected_key = Some(key.clone());
                 }
+                self.selected_key = Some(key.clone());
             }
         }
     }

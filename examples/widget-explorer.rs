@@ -875,14 +875,8 @@ impl eframe::App for WidgetExplorer {
             }
         }
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            match source {
-                DragSource::NewDevice(_) => todo!(),
-                _ => {}
-            }
-            match target {
-                DropTarget::Controllable(_, _) => todo!(),
-                _ => {}
-            }
+            if let DragSource::NewDevice(_) = source { todo!() }
+            if let DropTarget::Controllable(_, _) = target { todo!() }
         }
     }
 }
