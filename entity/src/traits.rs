@@ -43,6 +43,23 @@ pub trait Entity:
     }
 }
 
+/// A [HasMetadata] has basic information about an [Entity]. Some methods apply
+/// to the "class" of [Entity] (for example, all `ToyInstrument`s share the name
+/// "ToyInstrument"), and others apply to each instance of a class (for example,
+/// one ToyInstrument instance might be Uid 42, and another Uid 43).
+pub trait HasMetadata {
+    /// The [Uid] is a globally unique identifier for an instance of an
+    /// [Entity].
+    fn uid(&self) -> Uid;
+    /// Assigns a [Uid].
+    fn set_uid(&mut self, uid: Uid);
+    /// A string that describes this class of [Entity]. Suitable for debugging
+    /// or quick-and-dirty UIs.
+    fn name(&self) -> &'static str;
+    /// A kebab-case string that identifies this class of [Entity].
+    fn key(&self) -> &'static str;
+}
+
 /// An [IsController] controls things in the system that implement
 /// [Controllable]. Examples are sequencers, arpeggiators, and discrete LFOs (as
 /// contrasted with LFOs that are integrated into other instruments).

@@ -3,7 +3,10 @@
 use crate::traits::{Entity, IsEffect, IsInstrument};
 use anyhow::anyhow;
 use derive_more::Display;
-use ensnare_core::prelude::*;
+use ensnare_core::{
+    prelude::*,
+    traits::{ControlProxyEventsFn, ControlsAsProxy},
+};
 use once_cell::sync::OnceCell;
 use std::{
     collections::{hash_map, HashMap, HashSet},
@@ -248,38 +251,8 @@ impl Controls for EntityStore {
         });
     }
 
-    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.entities.iter_mut().for_each(|(uid, entity)| {
-            if let Some(e) = entity.as_controller_mut() {
-                e.work(&mut |claimed_uid, message| {
-                    //    debug_assert!(claimed_uid.is_none(), "Entities
-                    //    controlled by EntityStore should not know or claim to
-                    //    know their own Uid");
-
-                    // Here is where we substitute the known Uid of the Entity
-                    // that we just called for the None that should have been
-                    // passed to us. Past this point in the control_events_fn
-                    // chain, we can rely on the uid argument being Some().
-                    //
-                    // Why does this work?
-                    //
-                    // The normal case is that EntityStore knows an Entity's
-                    // Uid, so this is where EntityStore does its job of filling
-                    // in the Uid.
-                    //
-                    // The odd case is ControlAtlas, which owns a bunch of
-                    // ControlTrips, each having its own Uid, that generate
-                    // control events. When we call ControlAtlas::work(), we
-                    // thus expect it to have filled in control_events_fn's uid
-                    // parameter. But at the moment (and unfortunately this has
-                    // been changing a lot lately), Track owns ControlAtlas, so
-                    // we know that we (EntityStore) won't be the one calling
-                    // ControlAtlas::work(). So it's an odd case, but it's also
-                    // inapplicable to this block of code.
-                    control_events_fn(claimed_uid.or(Some(*uid)), message);
-                });
-            }
-        });
+    fn work(&mut self, _: &mut ControlEventsFn) {
+        unimplemented!("Look at ControlsAsProxy")
     }
 
     fn is_finished(&self) -> bool {
@@ -328,6 +301,17 @@ impl Controls for EntityStore {
         })
     }
 }
+impl ControlsAsProxy for EntityStore {
+    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
+        self.entities.iter_mut().for_each(|(uid, entity)| {
+            if let Some(e) = entity.as_controller_mut() {
+                e.work(&mut |message| {
+                    control_events_fn(*uid, message);
+                });
+            }
+        });
+    }
+}
 impl Serializable for EntityStore {
     fn after_deser(&mut self) {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
@@ -338,7 +322,7 @@ impl Serializable for EntityStore {
 mod tests {
     use super::{EntityFactory, EntityStore};
     use crate::{
-        factory::EntityKey,
+        prelude::*,
         test_entities::{register_test_entities, TestInstrument},
     };
     use ensnare_core::prelude::*;

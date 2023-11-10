@@ -92,7 +92,7 @@ impl Controls for Trigger {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.timer.is_finished() && self.is_performing && !self.has_triggered {
             self.has_triggered = true;
-            control_events_fn(None, EntityEvent::Control(self.value));
+            control_events_fn(EntityEvent::Control(self.value));
         }
     }
 
@@ -382,10 +382,7 @@ impl Controls for ControlTrip {
             + percentage * (self.e.value_range.end().0 - self.e.value_range.start().0);
         if current_value != self.e.last_published_value {
             self.e.last_published_value = current_value;
-            control_events_fn(
-                None,
-                EntityEvent::Control(ControlValue::from(current_value)),
-            );
+            control_events_fn(EntityEvent::Control(ControlValue::from(current_value)));
         }
     }
 
@@ -460,7 +457,7 @@ mod tests {
             end: MusicalTime::new_with_parts(1),
         });
         let mut count = 0;
-        trigger.work(&mut |_, _| {
+        trigger.work(&mut |_| {
             count += 1;
         });
         assert_eq!(count, 0);
@@ -471,7 +468,7 @@ mod tests {
             end: MusicalTime::new(&ts, 1, 0, 0, 1),
         });
         let mut count = 0;
-        trigger.work(&mut |_, _| {
+        trigger.work(&mut |_| {
             count += 1;
         });
         assert!(count != 0);
@@ -503,7 +500,7 @@ mod tests {
         ct.update_time(&range);
         const MESSAGE: &'static str = "If there is only one control step, then the trip should remain at that step's level at all times.";
         let mut received_event = None;
-        ct.work(&mut |_uid, event| {
+        ct.work(&mut |event| {
             assert!(received_event.is_none());
             received_event = Some(event);
         });
@@ -536,7 +533,7 @@ mod tests {
         let range = MusicalTime::START..MusicalTime::DURATION_QUARTER;
         ct.update_time(&range);
         let mut received_event = None;
-        ct.work(&mut |_uid, event| {
+        ct.work(&mut |event| {
             assert!(received_event.is_none());
             received_event = Some(event);
         });
@@ -549,7 +546,7 @@ mod tests {
             ..MusicalTime::DURATION_WHOLE + MusicalTime::new_with_units(1);
         ct.update_time(&range);
         let mut received_event = None;
-        ct.work(&mut |_uid, event| {
+        ct.work(&mut |event| {
             assert!(received_event.is_none());
             received_event = Some(event);
         });
@@ -580,7 +577,7 @@ mod tests {
             ..MusicalTime::new_with_beats(1) + MusicalTime::new_with_units(1);
         ct.update_time(&range);
         let mut received_event = None;
-        ct.work(&mut |_uid, event| {
+        ct.work(&mut |event| {
             assert!(received_event.is_none());
             received_event = Some(event);
         });
@@ -636,7 +633,7 @@ mod tests {
                 let time = MusicalTime::new_with_units(unit);
                 ct.update_time(&(time..(time + MusicalTime::new_with_units(1))));
                 let mut received_event = None;
-                ct.work(&mut |_uid, event| {
+                ct.work(&mut |event| {
                     assert!(received_event.is_none());
                     received_event = Some(event);
                 });

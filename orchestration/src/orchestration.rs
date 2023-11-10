@@ -20,8 +20,8 @@ use ensnare_core::{
     selection_set::SelectionSet,
     time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder, ViewRange},
     traits::{
-        Configurable, ControlEventsFn, Controllable, Controls, EntityEvent, Generates,
-        GeneratesToInternalBuffer, HandlesMidi, HasMetadata, MidiMessagesFn, Serializable, Ticks,
+        Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
+        Generates, GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
     },
     types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
@@ -275,7 +275,7 @@ impl OldOrchestrator {
     /// A convenience method for callers who would have ignored any
     /// [EntityEvent]s produced by the render() method.
     pub fn render_and_ignore_events(&mut self, samples: &mut [StereoSample]) {
-        self.render(samples, &mut |_, _| {});
+        self.render(samples, &mut |_| {});
     }
 
     /// Renders part of the project to audio, creating at least the requested
@@ -678,20 +678,20 @@ impl Acts for OldOrchestrator {
         self.e.action.take()
     }
 }
-impl HasMetadata for OldOrchestrator {
-    fn uid(&self) -> Uid {
-        Self::ORCHESTRATOR_UID
-    }
-    fn set_uid(&mut self, _: Uid) {
-        panic!("Orchestrator's UID is reserved and should never change.")
-    }
-    fn name(&self) -> &'static str {
-        Self::ENTITY_NAME
-    }
-    fn key(&self) -> &'static str {
-        Self::ENTITY_KEY
-    }
-}
+// impl HasMetadata for OldOrchestrator {
+//     fn uid(&self) -> Uid {
+//         Self::ORCHESTRATOR_UID
+//     }
+//     fn set_uid(&mut self, _: Uid) {
+//         panic!("Orchestrator's UID is reserved and should never change.")
+//     }
+//     fn name(&self) -> &'static str {
+//         Self::ENTITY_NAME
+//     }
+//     fn key(&self) -> &'static str {
+//         Self::ENTITY_KEY
+//     }
+// }
 impl Generates<StereoSample> for OldOrchestrator {
     fn value(&self) -> StereoSample {
         StereoSample::SILENCE
@@ -837,16 +837,11 @@ impl Controls for OldOrchestrator {
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.transport
-            .work(&mut |_, m| self.e.events.push((Self::TRANSPORT_UID, m)));
+            .work(&mut |m| self.e.events.push((Self::TRANSPORT_UID, m)));
         self.check_keyboard();
 
         for track in self.tracks.values_mut() {
-            // By this point in the control_events_fn chain, `u` must be
-            // correctly assigned, which is why we know we can safely .unwrap()
-            // it. That's because each Track should know the Uid of the Entity
-            // that gave it the event, so it should be substituting that Uid
-            // into the `u` argument.
-            track.work(&mut |u, m| self.e.events.push((u.unwrap(), m)));
+            track.work_as_proxy(&mut |u, m| self.e.events.push((u, m)));
         }
         while let Some((uid, event)) = self.e.events.pop() {
             if matches!(event, EntityEvent::Midi(_, _)) {
@@ -863,7 +858,7 @@ impl Controls for OldOrchestrator {
                 //
                 // Eventually, we might allow one Track to send MIDI messages to
                 // another Track. But today we don't. TODO?
-                control_events_fn(None, event);
+                control_events_fn(event);
             } else {
                 self.dispatch_event(uid, event);
             }
@@ -1249,22 +1244,17 @@ impl Controls for Orchestrator {
         let mut events = Vec::default();
 
         self.transport
-            .work(&mut |_, m| events.push((Self::TRANSPORT_UID, m)));
+            .work(&mut |m| events.push((Self::TRANSPORT_UID, m)));
 
-        // By this point in the control_events_fn chain, `u` must be
-        // correctly assigned, which is why we know we can safely .unwrap()
-        // it. That's because each Track should know the Uid of the Entity
-        // that gave it the event, so it should be substituting that Uid
-        // into the `u` argument.
         self.entity_store
-            .work(&mut |u, m| events.push((u.unwrap(), m)));
+            .work_as_proxy(&mut |u, m| events.push((u, m)));
 
         // Dispatch all the events accumulated during work().
         while let Some((uid, event)) = events.pop() {
             match event {
                 EntityEvent::Midi(channel, message) => {
                     // Let the caller forward the MIDI message to external interfaces.
-                    control_events_fn(None, event);
+                    control_events_fn(event);
 
                     let _ = self
                         .midi_router
@@ -1446,7 +1436,7 @@ impl<'a> OrchestratorHelper<'a> {
         range: Range<MusicalTime>,
         samples: &mut [StereoSample],
     ) {
-        self.render(range, samples, &mut |_, _| {});
+        self.render(range, samples, &mut |_| {});
     }
 
     /// Renders part of the project to audio, creating at least the requested
@@ -2012,7 +2002,7 @@ mod tests {
     impl HandlesMidi for TestControllerSendsOneEvent {}
     impl Controls for TestControllerSendsOneEvent {
         fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-            control_events_fn(None, EntityEvent::Control(ControlValue::MAX));
+            control_events_fn(EntityEvent::Control(ControlValue::MAX));
         }
     }
     impl Configurable for TestControllerSendsOneEvent {}
@@ -2032,7 +2022,7 @@ mod tests {
             .is_ok());
 
         assert_eq!(orchestrator.tempo(), Tempo::default());
-        orchestrator.work(&mut |_, _| {});
+        orchestrator.work(&mut |_| {});
         assert_eq!(orchestrator.tempo(), Tempo::from(Tempo::MAX_VALUE));
     }
 

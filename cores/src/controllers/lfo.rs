@@ -63,7 +63,7 @@ impl Controls for LfoController {
             self.last_frame += tick_count;
             self.oscillator.tick(tick_count);
         }
-        control_events_fn(None, EntityEvent::Control(self.oscillator.value().into()));
+        control_events_fn(EntityEvent::Control(self.oscillator.value().into()));
     }
 
     fn is_finished(&self) -> bool {

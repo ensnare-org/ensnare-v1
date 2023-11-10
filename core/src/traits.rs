@@ -17,8 +17,8 @@ use crate::{
 pub mod prelude {
     pub use super::{
         Configurable, ControlEventsFn, Controllable, Controls, EntityEvent, Generates,
-        GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings, IsStereoSampleVoice,
-        IsVoice, MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
+        GeneratesToInternalBuffer, HandlesMidi, HasSettings, IsStereoSampleVoice, IsVoice,
+        MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
         TransformsAudio,
     };
 }
@@ -118,23 +118,6 @@ pub trait Controllable {
     }
 }
 
-/// A [HasMetadata] has basic information about an [Entity]. Some methods apply
-/// to the "class" of [Entity] (for example, all `ToyInstrument`s share the name
-/// "ToyInstrument"), and others apply to each instance of a class (for example,
-/// one ToyInstrument instance might be Uid 42, and another Uid 43).
-pub trait HasMetadata {
-    /// The [Uid] is a globally unique identifier for an instance of an
-    /// [Entity].
-    fn uid(&self) -> Uid;
-    /// Assigns a [Uid].
-    fn set_uid(&mut self, uid: Uid);
-    /// A string that describes this class of [Entity]. Suitable for debugging
-    /// or quick-and-dirty UIs.
-    fn name(&self) -> &'static str;
-    /// A kebab-case string that identifies this class of [Entity].
-    fn key(&self) -> &'static str;
-}
-
 /// Something that is [Configurable] is interested in staying in sync with
 /// global configuration.
 pub trait Configurable {
@@ -191,16 +174,7 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
     fn tick(&mut self, tick_count: usize) {}
 }
 
-/// TODO: The [Uid] argument is a little weird. The ones actually producing the
-/// messages should *not* be allowed to specify their uid, because we don't want
-/// things to be able to impersonate other things. Rather, the ones who are
-/// routing messages specify uid, because they know the identity of the entities
-/// that they called. So a message-producing entity can specify uid if it wants,
-/// but the facility that called it will ignore it and report the correct one.
-/// This might end up like MIDI routing: there are some things that ask others
-/// to do work, and there are some things that do work, and a transparent proxy
-/// API like we have now isn't appropriate.
-pub type ControlEventsFn<'a> = dyn FnMut(Option<Uid>, EntityEvent) + 'a;
+pub type ControlEventsFn<'a> = dyn FnMut(EntityEvent) + 'a;
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
 /// It also has a concept of a performance that has a beginning and an end. It
@@ -245,6 +219,13 @@ pub trait Controls: Send {
     fn is_performing(&self) -> bool {
         false
     }
+}
+
+pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
+
+#[allow(unused_variables)]
+pub trait ControlsAsProxy: Controls {
+    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {}
 }
 
 /// A [TransformsAudio] takes input audio, which is typically produced by
@@ -398,13 +379,6 @@ pub trait HandlesMidi {
 /// This trait does not specify behavior in case of duplicate events, which
 /// allows simple implementations to use plain vectors rather than sets.
 pub trait SequencesMidi: Controls + Configurable + HandlesMidi {
-    // /// Returns the default [MidiChannel], which is used by recording methods
-    // /// that take an optional channel. fn
-    // default_midi_recording_channel(&self) -> MidiChannel;
-
-    // /// Sets the default [MidiChannel] for recording. fn
-    // set_default_midi_recording_channel(&mut self, channel: MidiChannel);
-
     /// Records a [MidiMessage] at the given [MusicalTime] on the given
     /// [MidiChannel].
     fn record_midi_message(

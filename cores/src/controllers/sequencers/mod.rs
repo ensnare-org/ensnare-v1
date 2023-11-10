@@ -28,7 +28,7 @@ pub mod tests {
     ) -> Vec<(MidiChannel, MidiMessage)> {
         let mut v = Vec::default();
         sequences.update_time(&(start_time..start_time + duration));
-        sequences.work(&mut |_, event| match event {
+        sequences.work(&mut |event| match event {
             EntityEvent::Midi(channel, message) => v.push((channel, message)),
             EntityEvent::Control(_) => panic!(),
         });
@@ -279,7 +279,7 @@ pub mod tests {
     ) -> Vec<(MidiChannel, MidiMessage)> {
         let mut v = Vec::default();
         sequences_midi.update_time(&(start_time..start_time + duration));
-        sequences_midi.work(&mut |_, event| match event {
+        sequences_midi.work(&mut |event| match event {
             EntityEvent::Midi(channel, message) => v.push((channel, message)),
             EntityEvent::Control(_) => panic!(),
         });

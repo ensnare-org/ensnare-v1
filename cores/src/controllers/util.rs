@@ -52,16 +52,13 @@ impl Controls for MidiNoteMinder {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         for (i, active_note) in self.active_notes.iter().enumerate() {
             if active_note {
-                control_events_fn(
-                    None,
-                    EntityEvent::Midi(
-                        MidiChannel::default(),
-                        MidiMessage::NoteOff {
-                            key: u7::from_int_lossy(i as u8),
-                            vel: u7::from(0),
-                        },
-                    ),
-                );
+                control_events_fn(EntityEvent::Midi(
+                    MidiChannel::default(),
+                    MidiMessage::NoteOff {
+                        key: u7::from_int_lossy(i as u8),
+                        vel: u7::from(0),
+                    },
+                ));
             }
         }
         self.active_notes.clear();
@@ -76,7 +73,7 @@ pub mod tests {
 
     fn gather_all_messages(mnm: &mut MidiNoteMinder) -> Vec<MidiMessage> {
         let mut v = Vec::default();
-        mnm.work(&mut |_, e| match e {
+        mnm.work(&mut |e| match e {
             EntityEvent::Midi(_, message) => v.push(message),
             EntityEvent::Control(_) => panic!("didn't expect a Control event here"),
         });

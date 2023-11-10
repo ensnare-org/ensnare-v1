@@ -187,8 +187,8 @@ impl Controls for LivePatternSequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         // TODO: when you make the Entity wrapper for this, this code is where
         // you'll substitute in the real uid.
-        let mut inner_control_events_fn = |_, event| {
-            control_events_fn(None, event);
+        let mut inner_control_events_fn = |event| {
+            control_events_fn(event);
         };
 
         self.inner.work(&mut inner_control_events_fn)

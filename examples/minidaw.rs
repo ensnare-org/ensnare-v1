@@ -122,7 +122,7 @@ impl SettingsPanel {
                 if let Ok(mut o) = orchestrator.lock() {
                     let o: &mut OldOrchestrator = &mut o;
                     let mut helper = OrchestratorHelper::new_with(o);
-                    helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
+                    helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
                         if let EntityEvent::Midi(channel, message) = event {
                             let _ =
                                 midi_panel_sender.send(MidiInterfaceInput::Midi(channel, message));

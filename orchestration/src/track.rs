@@ -11,7 +11,7 @@ use ensnare_core::{
     controllers::ControlTrip,
     piano_roll::{PatternUid, PianoRoll},
     prelude::*,
-    traits::Sequences,
+    traits::{ControlProxyEventsFn, ControlsAsProxy, Sequences},
     types::TrackTitle,
 };
 use ensnare_cores::LivePatternSequencer;
@@ -346,43 +346,8 @@ impl Controls for Track {
         self.entity_store.update_time(range);
     }
 
-    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        // Create a place to hold MIDI messages that we need to route.
-        let mut midi_events = Vec::default();
-
-        // Peek at incoming events before handing them to control_events_fn.
-        let mut handler = |uid, event| {
-            match event {
-                // We need to route MIDI messages to all eligible Entities in
-                // this Track, so we save them up.
-                EntityEvent::Midi(channel, message) => {
-                    midi_events.push((channel, message));
-                }
-                EntityEvent::Control(_) => {}
-            }
-            control_events_fn(uid, event);
-        };
-
-        // Let everyone work and possibly generate messages.
-        self.sequencer.work(&mut handler);
-        self.control_trips.iter_mut().for_each(|(uid, ct)| {
-            // Since ControlTrips don't know their own Uid, we have to provide
-            // it for them.
-            let mut uid_handler = |_, event| {
-                handler(Some(*uid), event);
-            };
-            ct.work(&mut uid_handler)
-        });
-        self.entity_store.work(&mut handler);
-
-        // We've accumulated all the MIDI messages. Route them to our own
-        // MidiRouter. They've already been forwarded to the caller via
-        // control_events_fn.
-        midi_events.into_iter().for_each(|(channel, message)| {
-            let _ = self
-                .midi_router
-                .route(&mut self.entity_store, channel, message);
-        });
+    fn work(&mut self, _: &mut ControlEventsFn) {
+        unimplemented!("Look at ControlsAsProxy")
     }
 
     fn is_finished(&self) -> bool {
@@ -415,6 +380,56 @@ impl Controls for Track {
         self.sequencer.is_performing()
             || self.control_trips.values().any(|ct| ct.is_performing())
             || self.entity_store.is_performing()
+    }
+}
+impl ControlsAsProxy for Track {
+    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
+        // Create a place to hold MIDI messages that we need to route.
+        let mut midi_events = Vec::default();
+
+        // Let everyone work and possibly generate messages.
+        self.sequencer.work(&mut |event| {
+            match event {
+                // We need to route MIDI messages to all eligible Entities in
+                // this Track, so we save them up.
+                EntityEvent::Midi(channel, message) => {
+                    midi_events.push((channel, message));
+                }
+                EntityEvent::Control(_) => {}
+            }
+            control_events_fn(Uid::default(), event);
+        });
+
+        self.control_trips.iter_mut().for_each(|(uid, ct)| {
+            // Since ControlTrips don't know their own Uid, we have to provide
+            // it for them.
+            let mut uid_handler = |event| {
+                control_events_fn(*uid, event);
+            };
+            ct.work(&mut uid_handler)
+        });
+
+        let mut handler = |uid, event| {
+            match event {
+                // We need to route MIDI messages to all eligible Entities in
+                // this Track, so we save them up.
+                EntityEvent::Midi(channel, message) => {
+                    midi_events.push((channel, message));
+                }
+                EntityEvent::Control(_) => {}
+            }
+            control_events_fn(uid, event);
+        };
+        self.entity_store.work_as_proxy(&mut handler);
+
+        // We've accumulated all the MIDI messages. Route them to our own
+        // MidiRouter. They've already been forwarded to the caller via
+        // control_events_fn.
+        midi_events.into_iter().for_each(|(channel, message)| {
+            let _ = self
+                .midi_router
+                .route(&mut self.entity_store, channel, message);
+        });
     }
 }
 impl Serializable for Track {
@@ -878,7 +893,7 @@ mod tests {
 
         let mut external_midi_messages = 0;
         t.play();
-        t.work(&mut |_uid, _event| {
+        t.work_as_proxy(&mut |_, _| {
             external_midi_messages += 1;
         });
 

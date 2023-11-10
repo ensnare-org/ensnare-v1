@@ -37,7 +37,7 @@ impl CalculatorApp {
                             ));
 
                         calculator.update_time(&range);
-                        calculator.work(&mut |_, _| {});
+                        calculator.work(&mut |_| {});
                         calculator.generate_batch_values(&mut buffer);
                         for sample in buffer {
                             let _ = audio_queue.push(sample);

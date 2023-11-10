@@ -67,7 +67,7 @@ impl Controls for MidiSequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|(channel, event)| {
             if self.time_range.contains(&event.time) {
-                control_events_fn(None, EntityEvent::Midi(*channel, event.message))
+                control_events_fn(EntityEvent::Midi(*channel, event.message))
             }
         });
     }

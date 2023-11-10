@@ -38,7 +38,7 @@ impl Controls for KeyboardController {
                     modifiers,
                 } => {
                     if let Some((channel, message)) = self.handle_key(&key, pressed) {
-                        control_events_fn(None, EntityEvent::Midi(channel, message));
+                        control_events_fn(EntityEvent::Midi(channel, message));
                     }
                 }
                 _ => {}

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{factory::EntityFactory, traits::Displays};
+use crate::prelude::*;
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerInstrument, IsController, IsEffect, IsInstrument, Metadata,

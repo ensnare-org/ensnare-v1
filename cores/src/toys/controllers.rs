@@ -41,18 +41,18 @@ impl Controls for ToyController {
                 // then we still send the off note,
                 if self.is_enabled && self.is_performing {
                     self.is_playing = true;
-                    control_events_fn(
-                        None,
-                        EntityEvent::Midi(self.midi_channel_out, new_note_on(60, 127)),
-                    );
+                    control_events_fn(EntityEvent::Midi(
+                        self.midi_channel_out,
+                        new_note_on(60, 127),
+                    ));
                 }
             }
             TestControllerAction::NoteOff => {
                 if self.is_playing {
-                    control_events_fn(
-                        None,
-                        EntityEvent::Midi(self.midi_channel_out, new_note_off(60, 0)),
-                    );
+                    control_events_fn(EntityEvent::Midi(
+                        self.midi_channel_out,
+                        new_note_off(60, 0),
+                    ));
                 }
             }
         }
@@ -127,16 +127,13 @@ impl HandlesMidi for ToyControllerAlwaysSendsMidiMessage {}
 impl Controls for ToyControllerAlwaysSendsMidiMessage {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.is_performing {
-            control_events_fn(
-                None,
-                EntityEvent::Midi(
-                    MidiChannel::default(),
-                    MidiMessage::NoteOn {
-                        key: u7::from(self.midi_note),
-                        vel: u7::from(127),
-                    },
-                ),
-            );
+            control_events_fn(EntityEvent::Midi(
+                MidiChannel::default(),
+                MidiMessage::NoteOn {
+                    key: u7::from(self.midi_note),
+                    vel: u7::from(127),
+                },
+            ));
             self.midi_note += 1;
             if self.midi_note > 127 {
                 self.midi_note = 1;
@@ -269,7 +266,7 @@ impl Controls for ToySequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
             if self.time_range.contains(&e.time) {
-                control_events_fn(None, EntityEvent::Midi(MidiChannel::default(), e.message))
+                control_events_fn(EntityEvent::Midi(MidiChannel::default(), e.message))
             }
         });
     }
