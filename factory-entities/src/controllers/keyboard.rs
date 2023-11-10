@@ -2,7 +2,7 @@
 
 use crossbeam_channel::Sender;
 use eframe::egui::{Event, Key};
-use ensnare_core::{midi::prelude::*, prelude::*};
+use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::Metadata;
 

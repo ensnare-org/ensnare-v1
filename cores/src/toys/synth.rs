@@ -1,18 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use ensnare_core::{
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
     instruments::Synthesizer,
-    midi::prelude::*,
     modulators::{Dca, DcaParams},
     prelude::*,
-    traits::{prelude::*, GeneratesEnvelope},
+    traits::GeneratesEnvelope,
     voices::{VoiceCount, VoiceStore},
 };
 use ensnare_proc_macros::{Control, Params};
 
-/// Implements a very small, but complete, synthesizer. This means it implements
-/// a polyphonic [IsInstrument] with [Controllable] parameters.
+/// Implements a very small, but complete, synthesizer.
 #[derive(Control, Debug, Default, Params)]
 pub struct ToySynth {
     #[params]

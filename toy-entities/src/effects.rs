@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{prelude::*, toys::ToyEffectParams};
+use ensnare_core::prelude::*;
+use ensnare_cores::toys::ToyEffectParams;
 use ensnare_egui_widgets::drag_normal;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
@@ -20,7 +21,7 @@ use ensnare_proc_macros::{
 pub struct ToyEffect {
     uid: Uid,
 
-    inner: ensnare_core::toys::ToyEffect,
+    inner: ensnare_cores::toys::ToyEffect,
 }
 impl Displays for ToyEffect {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -31,7 +32,7 @@ impl ToyEffect {
     pub fn new_with(uid: Uid, params: &ToyEffectParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::toys::ToyEffect::new_with(params),
+            inner: ensnare_cores::toys::ToyEffect::new_with(params),
         }
     }
 }

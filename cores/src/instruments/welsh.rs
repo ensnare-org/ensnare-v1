@@ -5,10 +5,9 @@ use core::fmt::Debug;
 use ensnare_core::{
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
-    midi::prelude::*,
     modulators::{Dca, DcaParams},
     prelude::*,
-    traits::{prelude::*, GeneratesEnvelope},
+    traits::GeneratesEnvelope,
     voices::StealingVoiceStore,
 };
 use ensnare_proc_macros::{Control, Params};

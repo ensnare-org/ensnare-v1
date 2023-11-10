@@ -21,12 +21,11 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
-use ensnare_core::{
+use ensnare_core::{types::TrackTitle, uid::TrackUid};
+use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
-    types::TrackTitle,
-    uid::TrackUid,
+    NoteSequencerBuilder,
 };
-use ensnare_cores::NoteSequencerBuilder;
 use ensnare_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,

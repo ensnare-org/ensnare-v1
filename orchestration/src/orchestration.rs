@@ -2,6 +2,7 @@
 
 use crate::{
     bus_route::{BusRoute, BusStation},
+    control_router::ControlRouter,
     humidifier::Humidifier,
     main_mixer::MainMixer,
     midi_router::MidiRouter,
@@ -27,7 +28,6 @@ use ensnare_core::{
 };
 use ensnare_cores::LivePatternSequencer;
 use ensnare_egui::{
-    control::ControlRouter,
     piano_roll::piano_roll,
     widgets::{
         timeline::{self, TimelineIconStripAction},

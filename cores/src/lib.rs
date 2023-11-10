@@ -9,3 +9,4 @@ pub use instruments::*;
 pub mod controllers;
 pub mod effects;
 pub mod instruments;
+pub mod toys;

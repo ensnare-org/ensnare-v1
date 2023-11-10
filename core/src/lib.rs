@@ -10,8 +10,6 @@ pub mod audio;
 pub mod control;
 /// Core controllers.
 pub mod controllers;
-/// Built-in musical devices.
-pub mod entities;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
 /// Building blocks for signal generation.
@@ -42,8 +40,6 @@ pub mod uid;
 pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
-
-pub mod toys;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

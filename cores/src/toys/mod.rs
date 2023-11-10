@@ -13,7 +13,10 @@ mod synth;
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::traits::{Generates, Ticks};
+    use ensnare_core::{
+        rng::Rng,
+        traits::{Generates, Ticks},
+    };
 
     // TODO: restore tests that test basic trait behavior, then figure out how
     // to run everyone implementing those traits through that behavior. For now,
@@ -22,10 +25,10 @@ pub mod tests {
     #[test]
     fn sources_audio_random_access() {
         let mut instrument = ToyInstrument::default();
-        let mut rng = oorandom::Rand32::new(0);
+        let mut rng = Rng::default();
 
         for _ in 0..100 {
-            instrument.tick(rng.rand_range(1..10) as usize);
+            instrument.tick(rng.0.rand_range(1..10) as usize);
             let _ = instrument.value();
         }
     }

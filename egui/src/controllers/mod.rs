@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::control::ControlRouter;
 use eframe::{
     egui::{style::WidgetVisuals, Sense, Widget},
     emath::RectTransform,
@@ -23,30 +22,30 @@ use strum::IntoEnumIterator;
 pub fn trip<'a>(
     uid: Uid,
     trip: &'a mut ensnare_core::controllers::ControlTrip,
-    control_router: &'a mut ControlRouter,
+    control_links: Option<&'a [(Uid, ControlIndex)]>,
     view_range: ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| Trip::new(uid, trip, control_router, view_range).ui(ui)
+    move |ui: &mut eframe::egui::Ui| Trip::new(uid, trip, control_links, view_range).ui(ui)
 }
 
 #[derive(Debug)]
 struct Trip<'a> {
     uid: Uid,
     control_trip: &'a mut ensnare_core::controllers::ControlTrip,
-    control_router: &'a mut ControlRouter,
+    control_links: Option<&'a [(Uid, ControlIndex)]>,
     view_range: ViewRange,
 }
 impl<'a> Trip<'a> {
     fn new(
         uid: Uid,
         control_trip: &'a mut ensnare_core::controllers::ControlTrip,
-        control_router: &'a mut ControlRouter,
+        control_links: Option<&'a [(Uid, ControlIndex)]>,
         view_range: ViewRange,
     ) -> Self {
         Self {
             uid,
             control_trip,
-            control_router,
+            control_links,
             view_range,
         }
     }
@@ -140,7 +139,7 @@ impl<'a> Widget for Trip<'a> {
             });
 
         if ui.is_enabled() {
-            let label = if let Some(links) = self.control_router.control_links(self.uid) {
+            let label = if let Some(links) = self.control_links {
                 let link_texts = links.iter().fold(Vec::default(), |mut v, (uid, index)| {
                     // TODO: this can be a descriptive list of controlled things
                     v.push(format!("{uid}-{index:?} "));
@@ -158,8 +157,8 @@ impl<'a> Widget for Trip<'a> {
                 // TODO: this is incomplete. It's a placeholder while I figure
                 // out the best way to present this information (it might
                 // actually be DnD rather than menu-driven).
-                self.control_router
-                    .link_control(self.uid, Uid(234), ControlIndex(456));
+                // self.control_router
+                //     .link_control(self.uid, Uid(234), ControlIndex(456));
             }
         }
 

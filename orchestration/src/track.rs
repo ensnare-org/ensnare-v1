@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{humidifier::Humidifier, midi_router::MidiRouter};
+use crate::{control_router::ControlRouter, humidifier::Humidifier, midi_router::MidiRouter};
 use anyhow::anyhow;
 use eframe::{
     egui::{ImageButton, Widget},
@@ -17,7 +17,6 @@ use ensnare_core::{
 use ensnare_cores::LivePatternSequencer;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui::{
-    control::ControlRouter,
     prelude::{live_pattern_sequencer_widget, trip},
     widgets::{
         timeline::{cursor, grid},
@@ -553,13 +552,13 @@ impl<'a> Widget for TrackWidget<'a> {
 
                             // Draw control trips.
                             let mut enabled = false;
-                            self.track.control_trips.values_mut().for_each(|t| {
+                            self.track.control_trips.iter_mut().for_each(|(uid, t)| {
                                 ui.add_enabled_ui(enabled, |ui| {
                                     ui.allocate_ui_at_rect(rect, |ui| {
                                         ui.add(trip(
-                                            Uid(77223344), // TODO!
+                                            *uid,
                                             t,
-                                            &mut self.track.control_router,
+                                            self.track.control_router.control_links(*uid),
                                             self.view_range.clone(),
                                         ));
                                     });

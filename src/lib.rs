@@ -52,7 +52,7 @@ pub mod control {
     //! all applicable types in the system.
 
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
-    pub use ensnare_egui::control::ControlRouter;
+    pub use ensnare_orchestration::control_router::ControlRouter;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -116,13 +116,11 @@ pub mod entities {
     }
 
     pub mod instruments {
-        //! Instruments produce audio in response to MIDI messages. All synthesizers
-        //! are instruments. They implement the
-        //! [IsInstrument](crate::traits::IsInstrument) interface.
-        pub use ensnare_core::{
-            instruments::Synthesizer,
-            voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
-        };
+        //! Instruments play sounds. They implement the
+        //! [IsInstrument](crate::traits::IsInstrument) trait, which means that
+        //! they respond to MIDI and produce [StereoSamples](crate::types::StereoSample).
+        //! Examples of instruments are [Sampler](crate::entities::instruments::Sampler) and
+        //! [WelshSynth](crate::entities::instruments::WelshSynth).
         pub use ensnare_factory_entities::instruments::*;
     }
 
@@ -171,6 +169,15 @@ pub mod modulators {
     //! digitally-controlled amplifier, which many instruments use to control
     //! signal amplitude and stereo position.
     pub use ensnare_core::modulators::{Dca, DcaParams};
+}
+
+pub mod synthesizer {
+    //! Infrastructure for assembling components into polyphonic musical
+    //! instruments.
+    pub use ensnare_core::{
+        instruments::Synthesizer,
+        voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
+    };
 }
 
 pub mod systems {

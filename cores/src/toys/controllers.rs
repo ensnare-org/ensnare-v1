@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use ensnare_core::{
     midi::{prelude::*, MidiEvent},
     piano_roll::Note,
     prelude::*,
-    traits::{prelude::*, Sequences, SequencesMidi},
+    traits::{Sequences, SequencesMidi},
 };
 use ensnare_proc_macros::{Control, Params};
 use std::ops::Range;

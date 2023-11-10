@@ -40,8 +40,11 @@ impl ControlRouter {
     }
 
     /// Returns all the control links for a given [Entity].
-    pub fn control_links(&self, source_uid: Uid) -> Option<&Vec<(Uid, ControlIndex)>> {
-        self.uid_to_control.get(&source_uid)
+    pub fn control_links(&self, source_uid: Uid) -> Option<&[(Uid, ControlIndex)]> {
+        match self.uid_to_control.get(&source_uid) {
+            Some(r) => Some(r),
+            None => None,
+        }
     }
 
     /// Given a control event consisting of a source [Entity] and a

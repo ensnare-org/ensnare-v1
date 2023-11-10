@@ -3,7 +3,6 @@
 use anyhow::{anyhow, Result};
 use ensnare_core::{
     instruments::Synthesizer,
-    midi::prelude::*,
     prelude::*,
     utils::Paths,
     voices::{VoiceCount, VoiceStore},

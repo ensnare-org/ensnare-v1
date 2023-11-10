@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare_core::{
-    prelude::*,
-    toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
+use ensnare_core::prelude::*;
+use ensnare_cores::toys::{
+    ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams,
 };
 use ensnare_entity::prelude::*;
 

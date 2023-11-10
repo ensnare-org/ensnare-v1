@@ -2,7 +2,6 @@
 
 //! egui logic for drawing ensnare entities.
 
-pub mod control;
 pub mod controllers;
 pub mod effects;
 pub mod instruments;

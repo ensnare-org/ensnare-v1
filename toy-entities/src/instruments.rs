@@ -1,9 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    prelude::*,
-    toys::{ToyInstrumentParams, ToySynthParams},
-};
+use ensnare_core::prelude::*;
+use ensnare_cores::toys::{ToyInstrumentParams, ToySynthParams};
+
 use ensnare_egui::modulators::dca;
 use ensnare_egui_widgets::{envelope, oscillator, waveform};
 use ensnare_entity::traits::Displays;
@@ -25,7 +24,7 @@ use ensnare_proc_macros::{
 )]
 pub struct ToyInstrument {
     uid: Uid,
-    inner: ensnare_core::toys::ToyInstrument,
+    inner: ensnare_cores::toys::ToyInstrument,
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -36,7 +35,7 @@ impl ToyInstrument {
     pub fn new_with(uid: Uid, params: &ToyInstrumentParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::toys::ToyInstrument::new_with(&params),
+            inner: ensnare_cores::toys::ToyInstrument::new_with(&params),
         }
     }
 }
@@ -54,7 +53,7 @@ impl ToyInstrument {
 )]
 pub struct ToySynth {
     uid: Uid,
-    inner: ensnare_core::toys::ToySynth,
+    inner: ensnare_cores::toys::ToySynth,
 }
 impl ToySynth {
     fn ui_waveform(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -100,7 +99,7 @@ impl ToySynth {
     pub fn new_with(uid: Uid, params: &ToySynthParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::toys::ToySynth::new_with(params),
+            inner: ensnare_cores::toys::ToySynth::new_with(params),
         }
     }
 }
