@@ -15,7 +15,6 @@ use eframe::{
 };
 use ensnare::{
     app_version,
-    entities::controllers::LivePatternSequencer,
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline, track},
