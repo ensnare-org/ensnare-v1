@@ -2,10 +2,8 @@
 
 //! The `render` example generates a WAV file from a serialized [Project].
 
-use anyhow::anyhow;
 use clap::Parser;
 use ensnare::{prelude::*, Project};
-use serde::{Deserialize, Serialize};
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]

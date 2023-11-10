@@ -42,7 +42,7 @@ impl EntityGuiExplorer {
 
     fn generate_entity_key_list() -> Vec<EntityKey> {
         // let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
-        let skips = vec![];
+        let skips = [];
 
         let mut keys: Vec<String> = EntityFactory::global()
             .keys()

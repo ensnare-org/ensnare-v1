@@ -113,7 +113,7 @@ impl Default for TrackSettings {
         };
         let _ = r
             .track
-            .append_entity(Box::new(NoteSequencer::default()), Uid(345));
+            .append_entity(Box::<NoteSequencer>::default(), Uid(345));
         r
     }
 }
