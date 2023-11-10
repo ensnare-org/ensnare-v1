@@ -13,6 +13,7 @@ pub use {
     limiter::{Limiter, LimiterParams},
     mixer::{Mixer, MixerParams},
     reverb::{Reverb, ReverbParams},
+    test::*,
 };
 
 mod bitcrusher;
@@ -24,3 +25,4 @@ mod gain;
 mod limiter;
 mod mixer;
 mod reverb;
+mod test;

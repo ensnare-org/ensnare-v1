@@ -43,7 +43,6 @@ pub mod utils;
 /// Scaffolding for managing multiple voices.
 pub mod voices;
 
-pub mod stuff;
 pub mod toys;
 
 /// Recommended imports for easy onboarding.

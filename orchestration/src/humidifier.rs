@@ -67,11 +67,11 @@ impl Humidifier {
 mod tests {
     use crate::humidifier::Humidifier;
     use ensnare_core::{
-        stuff::test::TestEffectNegatesInput,
         traits::TransformsAudio,
         types::{Normal, Sample},
         uid::Uid,
     };
+    use ensnare_cores::TestEffectNegatesInput;
 
     #[test]
     fn lookups_work() {
