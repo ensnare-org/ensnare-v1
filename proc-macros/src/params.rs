@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use std::collections::HashSet;
-
 use crate::core_crate_name;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
