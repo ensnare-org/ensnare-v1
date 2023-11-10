@@ -476,7 +476,6 @@ pub trait Sequences: Controls + std::fmt::Debug {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Ticks;
-    use crate::prelude::*;
 
     pub trait DebugTicks: Ticks {
         fn debug_tick_until(&mut self, tick_number: usize);
