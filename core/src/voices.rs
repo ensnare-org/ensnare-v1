@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
-    prelude::*,
-    traits::GeneratesEnvelope,
-};
+use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
 use serde::{Deserialize, Serialize};
@@ -343,6 +339,10 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::{
+        generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+        traits::GeneratesEnvelope,
+    };
     use float_cmp::approx_eq;
     use more_asserts::assert_gt;
 
