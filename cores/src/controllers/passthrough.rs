@@ -87,11 +87,7 @@ impl TransformsAudio for SignalPassthroughController {
         input_sample
     }
 
-    fn transform_channel(&mut self, _channel: usize, _input_sample: Sample) -> Sample {
-        // We've overridden transform_audio(), so nobody should be calling this
-        // method.
-        todo!();
-    }
+    // We've overridden transform_audio(), so nobody should be calling transform_channel()
 }
 impl SignalPassthroughController {
     pub fn new() -> Self {

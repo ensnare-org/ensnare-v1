@@ -163,6 +163,13 @@ pub fn derive_inner_serializable(input: TokenStream) -> TokenStream {
     inner::impl_inner_serializable_derive(input)
 }
 
+/// Derives code that delegates the implementation of the [TransformsAudio] trait
+/// to an inner struct.
+#[proc_macro_derive(InnerTransformsAudio)]
+pub fn derive_inner_transforms_audio(input: TokenStream) -> TokenStream {
+    inner::impl_inner_transforms_audio_derive(input)
+}
+
 // Some of the code generated in these macros uses the ensnare-core crate, but
 // that crate also uses this proc-macro lib. So we need to correct the reference
 // to sometimes be just `crate`.

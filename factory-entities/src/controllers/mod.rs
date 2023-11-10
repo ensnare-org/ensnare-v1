@@ -17,7 +17,7 @@ use ensnare_egui::controllers::{
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable, IsController,
-    Metadata,
+    IsControllerEffect, Metadata, InnerTransformsAudio,
 };
 
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsController, Metadata)]
@@ -171,7 +171,8 @@ impl Displays for LfoController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    InnerTransformsAudio,
+    IsControllerEffect,
     Metadata,
 )]
 pub struct SignalPassthroughController {

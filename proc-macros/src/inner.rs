@@ -224,3 +224,31 @@ pub(crate) fn impl_inner_serializable_derive(input: TokenStream) -> TokenStream 
         quote
     })
 }
+
+pub(crate) fn impl_inner_transforms_audio_derive(input: TokenStream) -> TokenStream {
+    TokenStream::from({
+        let input = parse_macro_input!(input as DeriveInput);
+        let generics = &input.generics;
+        let struct_name = &input.ident;
+        let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+        let core_crate = format_ident!("{}", core_crate_name());
+
+        let quote = quote! {
+            #[automatically_derived]
+            impl #generics #core_crate::traits::TransformsAudio for #struct_name #ty_generics {
+                fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
+                    self.inner.transform_audio(input_sample)
+                }
+
+                fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
+                    self.inner.transform_channel(channel, input_sample)
+                }
+
+                fn transform_batch(&mut self, samples: &mut [StereoSample]) {
+                    self.inner.transform_batch(samples)
+                }
+            }
+        };
+        quote
+    })
+}
