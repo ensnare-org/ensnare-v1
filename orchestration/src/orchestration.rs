@@ -922,7 +922,7 @@ impl Serializable for OldOrchestrator {
     }
 }
 
-/// [NewOrchestrator] is a back-to-basics implementation that satisfies
+/// [Orchestrator] is a back-to-basics implementation that satisfies
 /// [Orchestrates]. It takes [Entities](Entity) and invokes them appropriately
 /// to produce an audio performance.
 #[derive(Debug, Default)]
