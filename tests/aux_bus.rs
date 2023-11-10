@@ -13,7 +13,6 @@ fn aux_bus() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
@@ -45,7 +44,7 @@ fn aux_bus() {
             .build()
             .unwrap();
 
-        {
+        let synth_uid_1 = {
             let mut sequencer = PatternSequencer::default();
             assert!(sequencer
                 .record(MidiChannel::default(), &synth_pattern_1, MusicalTime::START)
@@ -73,12 +72,16 @@ fn aux_bus() {
                         .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                         .unwrap(),
                 )
-                .unwrap();
+                .unwrap()
         };
-        let _synth_uid_2 = {
+        assert!(orchestrator
+            .connect_midi_receiver(synth_uid_1, MidiChannel::default())
+            .is_ok());
+
+        let synth_uid_2 = {
             let mut sequencer = PatternSequencer::default();
             assert!(sequencer
-                .record(MidiChannel::default(), &synth_pattern_2, MusicalTime::START)
+                .record(MidiChannel(1), &synth_pattern_2, MusicalTime::START)
                 .is_ok());
             assert!(orchestrator
                 .assign_uid_and_add_entity(&track_uid_2, Box::new(sequencer))
@@ -100,6 +103,10 @@ fn aux_bus() {
                 )
                 .unwrap()
         };
+        assert!(orchestrator
+            .connect_midi_receiver(synth_uid_2, MidiChannel(1))
+            .is_ok());
+
         let _effect_uid_1 = {
             orchestrator
                 .assign_uid_and_add_entity(

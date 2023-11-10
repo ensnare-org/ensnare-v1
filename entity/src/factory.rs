@@ -85,8 +85,9 @@ impl EntityFactory {
     }
 
     /// Tells the factory that we won't be registering any more entities,
-    /// allowing it to do some final housekeeping.
-    pub fn complete_registration(&mut self) {
+    /// allowing it to do some final housekeeping. This is private because it
+    /// should be called only by Self::initialize().
+    fn complete_registration(&mut self) {
         self.is_registration_complete = true;
         self.sorted_keys = self.keys().iter().cloned().collect();
         self.sorted_keys.sort();
@@ -125,7 +126,8 @@ impl EntityFactory {
     }
 
     /// Sets the singleton [EntityFactory].
-    pub fn initialize(entity_factory: Self) -> Result<(), Self> {
+    pub fn initialize(mut entity_factory: Self) -> Result<(), Self> {
+        entity_factory.complete_registration();
         FACTORY.set(entity_factory)
     }
 }

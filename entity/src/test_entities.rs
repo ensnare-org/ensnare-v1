@@ -21,8 +21,6 @@ pub fn register_test_entities(mut factory: EntityFactory) -> EntityFactory {
         Box::new(TestEffect::default())
     });
 
-    factory.complete_registration();
-
     factory
 }
 

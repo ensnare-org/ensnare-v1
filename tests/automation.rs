@@ -13,7 +13,6 @@ fn demo_automation() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
@@ -65,6 +64,9 @@ fn demo_automation() {
                     .unwrap(),
             )
             .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(synth_uid, MidiChannel::default())
+            .is_ok());
 
         // Add an LFO that will control a synth parameter.
         let lfo_uid = {
@@ -113,7 +115,6 @@ fn demo_control_trips() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
@@ -179,6 +180,9 @@ fn demo_control_trips() {
         let synth_uid = orchestrator
             .assign_uid_and_add_entity(&track_uid, entity)
             .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(synth_uid, MidiChannel::default())
+            .is_ok());
 
         // Create a ControlTrip that ramps from zero to max over the desired
         // amount of time.

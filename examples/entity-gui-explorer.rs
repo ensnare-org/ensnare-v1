@@ -193,7 +193,6 @@ fn main() -> anyhow::Result<()> {
         |uid| Box::new(ensnare_factory_entities::piano_roll::PianoRoll::new(uid)),
     );
     register_factory_entities(&mut factory);
-    factory.complete_registration();
     if EntityFactory::initialize(factory).is_err() {
         return Err(anyhow!("Couldn't initialize EntityFactory"));
     }

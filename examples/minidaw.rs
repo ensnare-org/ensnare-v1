@@ -811,7 +811,6 @@ fn main() -> anyhow::Result<()> {
 
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
-    factory.complete_registration();
     if EntityFactory::initialize(factory).is_err() {
         return Err(anyhow!("Couldn't set EntityFactory once_cell"));
     }

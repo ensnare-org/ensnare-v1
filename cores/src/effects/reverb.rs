@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::delay::{AllPassDelayLine, Delays};
+use crate::RecirculatingDelayLine;
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
-use crate::RecirculatingDelayLine;
-use super::delay::{AllPassDelayLine, Delays};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.

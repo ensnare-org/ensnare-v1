@@ -13,13 +13,13 @@ fn edit_song() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();
     let mut piano_roll = PianoRoll::default();
 
+    // Work with just the Orchestrates trait for a while.
     {
         let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
 
@@ -70,14 +70,18 @@ fn edit_song() {
             drum_pattern.clone()
         };
 
-        // Pattern is good; add an instrument to the track.
-        assert!(orchestrator
+        // Pattern is good; add an instrument to the track. (This should be
+        // Drumkit, but there are TODO reasons why it isn't.)
+        let drumkit_uid = orchestrator
             .assign_uid_and_add_entity(
                 &rhythm_track_uid,
                 factory
                     .new_entity(&EntityKey::from(ToyInstrument::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
+            .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(drumkit_uid, MidiChannel(10))
             .is_ok());
 
         // Arrange the drum pattern.
@@ -114,6 +118,9 @@ fn edit_song() {
                     .unwrap(),
             )
             .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(welsh_synth_uid, MidiChannel::default())
+            .is_ok());
 
         // Hmmm, we don't like the sound of that synth; let's replace it with another.
         let _ = orchestrator.remove_entity(&welsh_synth_uid);
@@ -175,7 +182,6 @@ fn old_edit_song() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
@@ -324,7 +330,7 @@ fn old_edit_song() {
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
     let output_path: std::path::PathBuf = [
         env!("CARGO_TARGET_TMPDIR"),
-        "simple-song-with-edits-old.wav",
+        "old-simple-song-with-edits-old.wav",
     ]
     .iter()
     .collect();

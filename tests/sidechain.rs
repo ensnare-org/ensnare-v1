@@ -12,7 +12,6 @@ fn demo_sidechaining() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
@@ -42,14 +41,18 @@ fn demo_sidechaining() {
         assert!(orchestrator
             .assign_uid_and_add_entity(&sidechain_track_uid, Box::new(sequencer))
             .is_ok());
-        assert!(orchestrator
+        let sidechain_synth_uid = orchestrator
             .assign_uid_and_add_entity(
                 &sidechain_track_uid,
                 factory
                     .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
-                    .unwrap()
+                    .unwrap(),
             )
+            .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(sidechain_synth_uid, MidiChannel::default())
             .is_ok());
+
         // This turns the chain's audio output into Control events.
         let signal_passthrough_uid = orchestrator
             .assign_uid_and_add_entity(
@@ -83,18 +86,21 @@ fn demo_sidechaining() {
         let lead_track_uid = orchestrator.create_track().unwrap();
         let mut sequencer = PatternSequencer::default();
         assert!(sequencer
-            .record(MidiChannel::default(), &lead_pattern, MusicalTime::START)
+            .record(MidiChannel(1), &lead_pattern, MusicalTime::START)
             .is_ok());
         assert!(orchestrator
             .assign_uid_and_add_entity(&lead_track_uid, Box::new(sequencer))
             .is_ok());
-        assert!(orchestrator
+        let lead_synth_uid = orchestrator
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
                     .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
-                    .unwrap()
+                    .unwrap(),
             )
+            .unwrap();
+        assert!(orchestrator
+            .connect_midi_receiver(lead_synth_uid, MidiChannel(1))
             .is_ok());
 
         let entity = factory

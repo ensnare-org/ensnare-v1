@@ -178,7 +178,6 @@ mod tests {
 
         let mut factory = EntityFactory::default();
         register_factory_entities(&mut factory);
-        factory.complete_registration();
         assert!(
             !factory.entities().is_empty(),
             "after registering entities, factory should contain at least one"

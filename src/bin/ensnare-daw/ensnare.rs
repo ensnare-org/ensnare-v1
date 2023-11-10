@@ -68,7 +68,6 @@ impl Ensnare {
     pub(super) fn new(cc: &CreationContext) -> Self {
         let mut factory = EntityFactory::default();
         register_factory_entities(&mut factory);
-        factory.complete_registration();
         if EntityFactory::initialize(factory).is_err() {
             panic!("Couldn't set EntityFactory once_cell");
         }

@@ -116,7 +116,9 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
                 .unwrap(),
         )
         .unwrap();
-    assert!(o.connect_midi_receiver(synth_uid, MidiChannel(0)).is_ok());
+    assert!(o
+        .connect_midi_receiver(synth_uid, MidiChannel::default())
+        .is_ok());
 
     // Make the synth sound grittier.
     let reverb_uid = o
@@ -139,7 +141,6 @@ fn program_song() {
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);
     register_toy_entities(&mut factory);
-    factory.complete_registration();
     let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
