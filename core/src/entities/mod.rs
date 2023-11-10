@@ -23,10 +23,6 @@ pub mod prelude {
         mixer::Mixer,
         reverb::{Reverb, ReverbParams},
         sampler::{Sampler, SamplerParams},
-        toys::{
-            ToyController, ToyControllerAlwaysSendsMidiMessage, ToyEffect, ToyInstrument, ToySynth,
-            ToySynthParams,
-        },
         welsh::{WelshSynth, WelshSynthParams},
     };
 }

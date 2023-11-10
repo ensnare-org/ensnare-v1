@@ -1,12 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::{
-    egui::{self, Sense, Slider},
+    egui::{self, Sense, Widget},
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, RectShape, Rounding, Stroke},
 };
-use ensnare_core::{prelude::*, rng::Rng, types::FrequencyRange};
-use ensnare_entity::prelude::*;
+use ensnare_core::{prelude::*, rng::Rng};
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 
 /// A fixed-size circular buffer for use by audio widgets.
@@ -132,8 +131,8 @@ impl<'a> TimeDomain<'a> {
         Self { samples, start }
     }
 }
-impl<'a> Displays for TimeDomain<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for TimeDomain<'a> {
+    fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let rect = response.rect.shrink(1.0);
@@ -182,8 +181,8 @@ impl<'a> FrequencyDomain<'a> {
         Self { values }
     }
 }
-impl<'a> Displays for FrequencyDomain<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for FrequencyDomain<'a> {
+    fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let rect = response.rect.shrink(1.0);

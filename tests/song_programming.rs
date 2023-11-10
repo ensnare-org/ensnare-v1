@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{
-        controllers::PatternSequencerBuilder, effects::Reverb, instruments::Drumkit,
-        instruments::ToySynth,
-    },
+    entities::{effects::Reverb, instruments::Drumkit},
     prelude::*,
 };
-use ensnare_egui::controllers::PatternSequencer;
+use ensnare_factory_entities::controllers::PatternSequencer;
+use ensnare_toy_entities::prelude::*;
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
@@ -138,7 +136,11 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 // removing them, as you'd expect a GUI DAW to do.
 #[test]
 fn program_song() {
-    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    register_toy_entities(&mut factory);
+    factory.complete_registration();
+    let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();

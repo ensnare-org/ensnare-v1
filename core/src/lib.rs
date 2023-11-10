@@ -44,6 +44,7 @@ pub mod utils;
 pub mod voices;
 
 pub mod stuff;
+pub mod toys;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

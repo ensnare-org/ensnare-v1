@@ -15,5 +15,4 @@ pub mod mixer;
 pub mod reverb;
 pub mod sampler;
 pub mod test;
-pub mod toys;
 pub mod welsh;

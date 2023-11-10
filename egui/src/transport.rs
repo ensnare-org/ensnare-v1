@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use eframe::egui::Widget;
 use ensnare_core::time::{Tempo, Transport};
-use ensnare_entity::traits::Displays;
 
 /// Wraps a [Transport] as a [Widget](eframe::egui::Widget).
 pub fn transport(transport: &mut Transport) -> impl eframe::egui::Widget + '_ {
@@ -18,8 +17,8 @@ impl<'a> TransportWidget<'a> {
         Self { transport }
     }
 }
-impl<'a> Displays for TransportWidget<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for TransportWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal_centered(|ui| {
             ui.add(
                 eframe::egui::DragValue::new(&mut self.transport.tempo.0)

@@ -787,10 +787,10 @@ impl Displays for SignalChainItem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_entity::{
-        test_entities::{TestEffect, TestInstrument, TestInstrumentCountsMidiMessages},
-        toy_entities::ToyControllerAlwaysSendsMidiMessage,
+    use ensnare_entity::test_entities::{
+        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
     };
+    use ensnare_toy_entities::prelude::ToyControllerAlwaysSendsMidiMessage;
 
     #[test]
     fn basic_track_operations() {

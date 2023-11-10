@@ -4,7 +4,10 @@ use ensnare::prelude::*;
 
 #[test]
 fn entity_validator_production_entities() {
-    if EntityFactory::initialize(register_factory_entities(EntityFactory::default())).is_err() {
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    factory.complete_registration();
+    if EntityFactory::initialize(factory).is_err() {
         panic!("Couldn't set EntityFactory once_cell");
     }
     validate_factory_entities();

@@ -1,22 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    controllers::{live_pattern_sequencer_widget, trip},
-    widgets::timeline::{cursor, grid},
-    Track,
-};
 use eframe::{
-    egui::{Frame, ImageButton, Margin, Sense, TextFormat},
-    emath::{Align, RectTransform},
-    epaint::{
-        text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
-    },
+    egui::{Frame, Margin, Sense, TextFormat, Widget},
+    emath::Align,
+    epaint::{text::LayoutJob, vec2, Color32, FontId, Galley, Shape, Stroke, TextShape},
 };
-use ensnare_core::{prelude::*, types::TrackTitle};
-use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-use ensnare_entity::prelude::*;
+use ensnare_core::types::TrackTitle;
 use std::{f32::consts::PI, sync::Arc};
-use strum_macros::Display;
 
 /// Call this once for the TrackTitle, and then provide it on each frame to
 /// the widget.
@@ -46,8 +36,8 @@ pub fn title_bar(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget 
 struct TitleBar {
     font_galley: Option<Arc<Galley>>,
 }
-impl Displays for TitleBar {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for TitleBar {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let available_size = vec2(16.0, ui.available_height());
         ui.set_min_size(available_size);
 
@@ -68,10 +58,10 @@ impl Displays for TitleBar {
             .show(ui, |ui| {
                 ui.allocate_ui(available_size, |ui| {
                     let (response, painter) = ui.allocate_painter(available_size, Sense::click());
-                    if let Some(font_galley) = self.font_galley.take() {
+                    if let Some(font_galley) = &self.font_galley {
                         let t = Shape::Text(TextShape {
                             pos: response.rect.left_bottom(),
-                            galley: font_galley,
+                            galley: Arc::clone(font_galley),
                             underline: Stroke::default(),
                             override_text_color: None,
                             angle: 2.0 * PI * 0.75,

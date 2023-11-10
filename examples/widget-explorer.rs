@@ -15,11 +15,7 @@ use eframe::{
 };
 use ensnare::{
     app_version,
-    entities::{
-        controllers::{LivePatternSequencer, NoteSequencerBuilder, ToyController},
-        effects::ToyEffect,
-        instruments::{ToyInstrument, ToySynth},
-    },
+    entities::controllers::{LivePatternSequencer, NoteSequencerBuilder},
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline, track},
@@ -27,15 +23,15 @@ use ensnare::{
     },
 };
 use ensnare_core::{
-    stuff::toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
+    toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     types::TrackTitle,
     uid::TrackUid,
 };
-use ensnare_egui::{
-    controllers::NoteSequencer, piano_roll::piano_roll, prelude::live_pattern_sequencer_widget,
-};
+use ensnare_egui::{piano_roll::piano_roll, prelude::live_pattern_sequencer_widget};
 use ensnare_entity::traits::Entity;
+use ensnare_factory_entities::controllers::NoteSequencer;
 use ensnare_orchestration::track::{signal_chain, track_widget, Track, TrackAction};
+use ensnare_toy_entities::prelude::*;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -900,7 +896,10 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    if EntityFactory::initialize(register_factory_entities(EntityFactory::default())).is_err() {
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    factory.complete_registration();
+    if EntityFactory::initialize(factory).is_err() {
         return Err(anyhow!("Couldn't initialize EntityFactory"));
     }
     if DragDropManager::initialize(DragDropManager::default()).is_err() {

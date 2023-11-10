@@ -5,16 +5,13 @@ use eframe::egui::{Event, Key};
 use ensnare_core::{midi::prelude::*, prelude::*};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::Metadata;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Metadata)]
 pub struct KeyboardController {
     uid: Uid,
 
-    #[serde(skip)]
     octave: u8,
 
-    #[serde(skip)]
     keyboard_events: ChannelPair<Event>,
 }
 impl Default for KeyboardController {

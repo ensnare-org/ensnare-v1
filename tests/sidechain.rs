@@ -1,17 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
-    entities::{controllers::PatternSequencerBuilder, effects::Gain, instruments::ToySynth},
-    prelude::*,
-};
-use ensnare_egui::controllers::PatternSequencer;
+use ensnare::{entities::effects::Gain, prelude::*};
+use ensnare_factory_entities::controllers::PatternSequencer;
+use ensnare_toy_entities::prelude::*;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
 // experience and not merely possible).
 #[test]
 fn demo_sidechaining() {
-    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    register_toy_entities(&mut factory);
+    factory.complete_registration();
+    let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();

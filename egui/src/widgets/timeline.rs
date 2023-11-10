@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
 use eframe::{
-    egui::vec2,
+    egui::{vec2, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId, RectShape, Shape},
 };
 use ensnare_core::prelude::*;
-use ensnare_entity::prelude::*;
 
 /// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
 pub fn timeline_icon_strip<'a>(
@@ -54,8 +52,8 @@ impl<'a> Legend<'a> {
         (view_range.start.total_beats()..view_range.end.total_beats()).step_by(step * 2)
     }
 }
-impl<'a> Displays for Legend<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for Legend<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), ui.spacing().interact_size.y);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
         let to_screen = RectTransform::from_to(
@@ -120,8 +118,8 @@ impl Grid {
         self
     }
 }
-impl Displays for Grid {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for Grid {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(
@@ -174,8 +172,8 @@ impl Cursor {
         self
     }
 }
-impl Displays for Cursor {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for Cursor {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(
@@ -210,8 +208,8 @@ impl<'a> TimelineIconStrip<'a> {
         Self { action }
     }
 }
-impl<'a> Displays for TimelineIconStrip<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for TimelineIconStrip<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal(|ui| {
             let next_response = ui.button("Next timeline view");
             if next_response.clicked() {

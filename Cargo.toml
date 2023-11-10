@@ -23,11 +23,12 @@ ensnare-core = { path = "core" }
 ensnare-drag-drop = { path = "drag-drop" }
 ensnare-egui = { path = "egui" }
 ensnare-egui-widgets = { path = "egui-widgets" }
-ensnare-entities = { path = "entities" }
 ensnare-entity = { path = "entity" }
+ensnare-factory-entities = { path = "factory-entities" }
 ensnare-orchestration = { path = "orchestration" }
 ensnare-proc-macros = { path = "proc-macros" }
 ensnare-systems = { path = "systems" }
+ensnare-toy-entities = { path = "toy-entities" }
 env_logger = "0.10"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
@@ -38,11 +39,12 @@ members = [
     "core",
     "egui",
     "egui-widgets",
-    "entities",
     "entity",
+    "factory-entities",
     "orchestration",
     "proc-macros",
     "systems",
+    "toy-entities",
 ]
 
 [dev-dependencies]

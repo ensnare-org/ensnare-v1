@@ -1,18 +1,20 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{
-        effects::{Gain, Reverb},
-        instruments::ToySynth,
-    },
+    entities::effects::{Gain, Reverb},
     prelude::*,
 };
-use ensnare_egui::controllers::PatternSequencer;
+use ensnare_factory_entities::controllers::PatternSequencer;
+use ensnare_toy_entities::prelude::*;
 
 // Demonstrates use of aux buses.
 #[test]
 fn aux_bus() {
-    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    register_toy_entities(&mut factory);
+    factory.complete_registration();
+    let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();

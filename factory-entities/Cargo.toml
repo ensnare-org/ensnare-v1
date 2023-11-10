@@ -2,13 +2,15 @@
 
 [package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "Ensnare structs that implement the Entity trait"
+description = "Ensnare Entities that are included with the crate"
 edition = "2021"
-name = "ensnare-entities"
+name = "ensnare-factory-entities"
 publish = false
 version = "0.1.0"
 
 [dependencies]
+anyhow = "1.0.75"
+crossbeam-channel = "0.5.8"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 ensnare-egui = { path = "../egui" }

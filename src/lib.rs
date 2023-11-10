@@ -88,8 +88,6 @@ pub mod entities {
 
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
-    pub use ensnare_entities::register_factory_entities;
-
     pub mod controllers {
         //! Built-in controllers. Controllers control other devices by generating MIDI and
         //! control events. Examples are sequencers, which generate MIDI, and LFOs,
@@ -105,15 +103,13 @@ pub mod entities {
                 controllers::*,
             },
         };
-        pub use ensnare_egui::controllers::PatternSequencer;
-        pub use ensnare_entity::{test_entities::TestController, toy_entities::ToyController};
+        pub use ensnare_entity::test_entities::TestController;
+        pub use ensnare_factory_entities::controllers::PatternSequencer;
     }
     pub mod effects {
         //! Built-in effects. Effects transform audio. Examples are reverb and
         //! delay. Effects implement [IsEffect](crate::traits::IsEffect).
-        pub use ensnare_core::stuff::test::TestEffectNegatesInput;
-        pub use ensnare_egui::effects::{Gain, Reverb};
-        pub use ensnare_entity::{test_entities::TestEffect, toy_entities::ToyEffect};
+        pub use ensnare_factory_entities::effects::*;
     }
 
     pub mod instruments {
@@ -124,19 +120,17 @@ pub mod entities {
             instruments::Synthesizer,
             voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
         };
-        pub use ensnare_egui::instruments::*;
-        pub use ensnare_entity::{
-            test_entities::{TestInstrument, TestInstrumentCountsMidiMessages},
-            toy_entities::{ToyInstrument, ToySynth},
-        };
+        pub use ensnare_factory_entities::instruments::*;
     }
 
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
             controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-            register_factory_entities, EntityFactory, EntityKey, EntityStore,
+            EntityFactory, EntityKey, EntityStore,
         };
+        pub use ensnare_factory_entities::prelude::register_factory_entities;
+        pub use ensnare_toy_entities::prelude::register_toy_entities;
     }
 }
 
@@ -237,7 +231,7 @@ pub mod ui {
     pub use ensnare_egui::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_egui::widgets::{audio, core, pattern, placeholder, timeline, track};
+        pub use ensnare_egui::widgets::{audio, pattern, placeholder, timeline, track};
         pub use ensnare_systems::{audio_settings, midi_settings};
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};

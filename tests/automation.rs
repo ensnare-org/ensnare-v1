@@ -1,14 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{entities::instruments::ToySynth, prelude::*};
+use ensnare::prelude::*;
 use ensnare_core::{generators::Waveform, prelude::ControlValue, stuff::lfo::LfoControllerParams};
-use ensnare_egui::controllers::{ControlTrip, PatternSequencer};
+use ensnare_factory_entities::controllers::{ControlTrip, LfoController, PatternSequencer};
+use ensnare_toy_entities::prelude::*;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
-    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    register_toy_entities(&mut factory);
+    factory.complete_registration();
+    let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();
@@ -104,7 +109,11 @@ fn demo_automation() {
 
 #[test]
 fn demo_control_trips() {
-    let _ = EntityFactory::initialize(register_factory_entities(EntityFactory::default()));
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    register_toy_entities(&mut factory);
+    factory.complete_registration();
+    let _ = EntityFactory::initialize(factory);
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();

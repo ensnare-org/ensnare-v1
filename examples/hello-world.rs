@@ -3,10 +3,8 @@
 //! The `hello-world` example shows how to use basic crate functionality.
 
 use clap::Parser;
-use ensnare::{
-    entities::{effects::ToyEffect, instruments::ToyInstrument},
-    prelude::*,
-};
+use ensnare::prelude::*;
+use ensnare_toy_entities::prelude::*;
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]

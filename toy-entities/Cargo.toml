@@ -2,27 +2,19 @@
 
 [package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "Brings everything together to create digital audio"
+description = "Ensnare toy Entities that are included with the crate"
 edition = "2021"
-name = "ensnare-orchestration"
+name = "ensnare-toy-entities"
 publish = false
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.75"
-crossbeam-channel = "0.5.8"
-derive_builder = "0.12.0"
-derive_more = "0.99.17"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
-ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-egui = { path = "../egui" }
+ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
-ensnare-toy-entities = { path = "../toy-entities" }
-hound = "3.5.0"
-more-asserts = "0.3.1"
-rayon = "1.8.0"
 serde = { version = "1.0", features = ["derive"] }
 strum = "0.25"
 strum_macros = "0.25"

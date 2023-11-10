@@ -7,6 +7,25 @@ use ensnare_proc_macros::{
 };
 use std::sync::{Arc, Mutex};
 
+/// Registers all [EntityFactory]'s test entities. Test entities are generally
+/// simple, and provide instrumentation rather than useful audio functionality.
+#[must_use]
+pub fn register_test_entities(mut factory: EntityFactory) -> EntityFactory {
+    factory.register_entity_with_str_key(TestInstrument::ENTITY_KEY, |_uid| {
+        Box::new(TestInstrument::default())
+    });
+    factory.register_entity_with_str_key(TestController::ENTITY_KEY, |_uid| {
+        Box::new(TestController::default())
+    });
+    factory.register_entity_with_str_key(TestEffect::ENTITY_KEY, |_uid| {
+        Box::new(TestEffect::default())
+    });
+
+    factory.complete_registration();
+
+    factory
+}
+
 /// The smallest possible [IsController].
 #[derive(Debug, Default, IsController, Metadata)]
 pub struct TestController {
@@ -107,32 +126,3 @@ impl Displays for TestAudioSource {}
 impl HandlesMidi for TestAudioSource {}
 impl Controls for TestAudioSource {}
 impl Serializable for TestAudioSource {}
-
-/// Registers all [EntityFactory]'s entities. Note that the function returns
-/// an &EntityFactory. This encourages usage like this:
-///
-/// ```
-/// use ensnare_entity::{test_entities::register_test_factory_entities,
-///     prelude::EntityFactory};
-///
-/// let mut factory = EntityFactory::default();
-/// let factory = register_test_factory_entities(factory);
-/// ```
-///
-/// This makes the factory immutable once it's set up.
-#[must_use]
-pub fn register_test_factory_entities(mut factory: EntityFactory) -> EntityFactory {
-    factory.register_entity_with_str_key(TestInstrument::ENTITY_KEY, |_uid| {
-        Box::new(TestInstrument::default())
-    });
-    factory.register_entity_with_str_key(TestController::ENTITY_KEY, |_uid| {
-        Box::new(TestController::default())
-    });
-    factory.register_entity_with_str_key(TestEffect::ENTITY_KEY, |_uid| {
-        Box::new(TestEffect::default())
-    });
-
-    factory.complete_registration();
-
-    factory
-}

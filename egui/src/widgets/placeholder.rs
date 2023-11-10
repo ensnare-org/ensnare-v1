@@ -1,12 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
 use eframe::{
-    egui::Sense,
+    egui::{Sense, Widget},
     emath,
     epaint::{pos2, vec2, Color32, Pos2, Rect, Shape, Stroke},
 };
-use ensnare_entity::prelude::*;
 
 /// Wraps a [Wiggler] as a [Widget](eframe::egui::Widget).
 pub fn wiggler() -> impl eframe::egui::Widget {
@@ -22,8 +20,8 @@ impl Wiggler {
         Default::default()
     }
 }
-impl Displays for Wiggler {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for Wiggler {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.ctx().request_repaint();
 
         let color = if ui.visuals().dark_mode {

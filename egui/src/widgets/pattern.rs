@@ -2,7 +2,7 @@
 
 use super::parts::MIDI_NOTE_F32_RANGE;
 use eframe::{
-    egui::{Id as EguiId, ImageButton},
+    egui::{Id as EguiId, ImageButton, Widget},
     emath::RectTransform,
     epaint::{pos2, RectShape, Shape, Vec2},
 };
@@ -13,7 +13,6 @@ use ensnare_core::{
     selection_set::SelectionSet,
 };
 use ensnare_drag_drop::{DragDropManager, DragSource};
-use ensnare_entity::prelude::*;
 use std::collections::HashMap;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
@@ -82,8 +81,8 @@ impl<'a> Icon<'a> {
         self
     }
 }
-impl<'a> Displays for Icon<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for Icon<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size.y * eframe::egui::vec2(3.0, 3.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
 
@@ -137,8 +136,8 @@ impl DraggableIcon {
         Default::default()
     }
 }
-impl Displays for DraggableIcon {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for DraggableIcon {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size * Vec2::splat(1.25);
         let icon =
             eframe::egui::include_image!("../../../res/images/md-symbols/drag_indicator.png");
@@ -169,8 +168,8 @@ impl<'a> Carousel<'a> {
         }
     }
 }
-impl<'a> Displays for Carousel<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for Carousel<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal_top(|ui| {
             let icon_width = ui.available_width() / self.pattern_uids.len() as f32;
             ui.set_max_width(ui.available_width());
@@ -218,8 +217,8 @@ impl Grid {
         self
     }
 }
-impl Displays for Grid {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for Grid {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(

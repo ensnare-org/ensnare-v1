@@ -808,7 +808,10 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    if EntityFactory::initialize(register_factory_entities(EntityFactory::default())).is_err() {
+    let mut factory = EntityFactory::default();
+    register_factory_entities(&mut factory);
+    factory.complete_registration();
+    if EntityFactory::initialize(factory).is_err() {
         return Err(anyhow!("Couldn't set EntityFactory once_cell"));
     }
     if DragDropManager::initialize(DragDropManager::default()).is_err() {

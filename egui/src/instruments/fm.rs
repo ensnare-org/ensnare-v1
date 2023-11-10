@@ -1,30 +1,27 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use eframe::egui::{CollapsingHeader, Slider};
-use ensnare_core::{generators::Envelope, prelude::*, stuff::fm::FmSynthParams};
+use eframe::egui::{CollapsingHeader, Slider, Widget};
+use ensnare_core::generators::Envelope;
 use ensnare_egui_widgets::envelope;
-use ensnare_entity::prelude::*;
-use ensnare_proc_macros::{
-    Control, InnerConfigurable, InnerHandlesMidi, InnerInstrument, InnerSerializable, IsInstrument,
-    Metadata,
-};
 
-#[derive(
-    Control,
-    Debug,
-    InnerConfigurable,
-    InnerHandlesMidi,
-    InnerInstrument,
-    InnerSerializable,
-    IsInstrument,
-    Metadata,
-)]
-pub struct FmSynth {
-    uid: Uid,
-    inner: ensnare_core::stuff::fm::FmSynth,
+/// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
+pub fn fm_synth<'a>(
+    inner: &'a mut ensnare_core::stuff::fm::FmSynth,
+) -> impl eframe::egui::Widget + '_ {
+    move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner).ui(ui)
 }
-impl Displays for FmSynth {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+
+#[derive(Debug)]
+pub struct FmSynthWidget<'a> {
+    inner: &'a mut ensnare_core::stuff::fm::FmSynth,
+}
+impl<'a> FmSynthWidget<'a> {
+    fn new(inner: &'a mut ensnare_core::stuff::fm::FmSynth) -> Self {
+        Self { inner }
+    }
+}
+impl<'a> Widget for FmSynthWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut depth = self.inner.depth().to_percentage();
         let depth_response = ui.add(
             Slider::new(&mut depth, 0.0..=100.0)
@@ -84,13 +81,5 @@ impl Displays for FmSynth {
             });
 
         depth_response | ratio_response | beta_response
-    }
-}
-impl FmSynth {
-    pub fn new_with(uid: Uid, params: &FmSynthParams) -> Self {
-        Self {
-            uid,
-            inner: ensnare_core::stuff::fm::FmSynth::new_with(params),
-        }
     }
 }
