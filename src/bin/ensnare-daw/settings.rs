@@ -114,7 +114,7 @@ impl SettingsPanel {
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let mut o: &mut OldOrchestrator = &mut o;
+                    let o: &mut OldOrchestrator = &mut o;
                     let mut helper = OrchestratorHelper::new_with(o);
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |_, event| {
                         if let EntityEvent::Midi(channel, message) = event {

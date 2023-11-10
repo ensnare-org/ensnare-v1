@@ -9,7 +9,6 @@ use crate::{
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
-use ensnare_proc_macros::Metadata;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 

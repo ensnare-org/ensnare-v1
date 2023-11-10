@@ -7,7 +7,6 @@ use crate::{
 };
 use ensnare_proc_macros::{Control, Params};
 use midly::num::u7;
-use std::sync::Arc;
 
 /// Produces a constant audio signal. Used for ensuring that a known signal
 /// value gets all the way through the pipeline.

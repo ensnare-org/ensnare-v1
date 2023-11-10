@@ -3,12 +3,11 @@
 use crate::{
     traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
     types::ParameterType,
-    uid::Uid,
 };
 use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
-use ensnare_proc_macros::{Control, Metadata};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},

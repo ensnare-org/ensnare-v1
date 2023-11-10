@@ -274,8 +274,6 @@ pub fn pattern_sequencer_widget<'a>(
     move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
 }
 
-/// An egui widget that draws a legend on the horizontal axis of the timeline
-/// view.
 #[derive(Debug)]
 pub struct PatternSequencerWidget<'a> {
     sequencer: &'a mut ensnare_core::entities::controllers::sequencers::PatternSequencer,

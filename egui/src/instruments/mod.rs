@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::effects::bi_quad_filter_low_pass_24db;
+use crate::{effects::bi_quad_filter_low_pass_24db, modulators::dca};
 use eframe::egui::{CollapsingHeader, Widget};
 use ensnare_core::prelude::*;
-use ensnare_egui_widgets::{dca, envelope, oscillator};
+use ensnare_egui_widgets::{envelope, oscillator};
 
 pub mod fm;
 

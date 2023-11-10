@@ -11,6 +11,5 @@ version = "0.1.0"
 [dependencies]
 eframe = "0.23"
 ensnare-core = { path = "../core" }
-ensnare-drag-drop = { path = "../drag-drop" }
 oorandom = "11.1.3"
 strum = "0.25"

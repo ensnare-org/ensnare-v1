@@ -4,7 +4,8 @@ use ensnare_core::{
     prelude::*,
     toys::{ToyInstrumentParams, ToySynthParams},
 };
-use ensnare_egui_widgets::{dca, envelope, oscillator, waveform};
+use ensnare_egui::modulators::dca;
+use ensnare_egui_widgets::{envelope, oscillator, waveform};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,

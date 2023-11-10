@@ -95,7 +95,7 @@ impl Ensnare {
         //     .keyboard_controller
         //     .sender()
         //     .clone();
-        let (keyboard_events_sender, receiver) = unbounded();
+        let (keyboard_events_sender, _receiver) = unbounded();
         let mut r = Self {
             event_channel: Default::default(),
             orchestrator,

@@ -6,6 +6,7 @@ pub mod control;
 pub mod controllers;
 pub mod effects;
 pub mod instruments;
+pub mod modulators;
 pub mod piano_roll;
 pub mod transport;
 pub mod widgets;

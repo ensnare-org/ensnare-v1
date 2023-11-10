@@ -65,7 +65,7 @@ impl<'a> FrequencyWidget<'a> {
 impl<'a> Widget for FrequencyWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut frequency = self.frequency.0;
-        let mut range = self.range.as_range_frequency_hz();
+        let range = self.range.as_range_frequency_hz();
         let slider = Slider::new(&mut frequency, range.start().0..=range.end().0);
         let response = ui.add(
             slider
