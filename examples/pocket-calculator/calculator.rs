@@ -23,12 +23,11 @@ use ensnare::{
 };
 use ensnare_cores::{Sampler, SamplerVoice};
 use ensnare_proc_macros::{Control, IsControllerInstrument, Metadata};
-use serde::{Deserialize, Serialize};
 use std::{ops::Range, path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};
 
 /// Tempo is a u8 that ranges from 60..=240
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 struct TempoValue(u8);
 impl From<f32> for TempoValue {
     fn from(value: f32) -> Self {
@@ -41,7 +40,7 @@ impl From<TempoValue> for f32 {
     }
 }
 /// Percentage is a u8 that ranges from 0..=100
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Percentage(u8);
 impl From<u8> for Percentage {
     fn from(value: u8) -> Self {
@@ -72,14 +71,14 @@ impl Percentage {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq)]
 enum EngineState {
     #[default]
     Idle,
     Playing,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 struct Chains {
     indexes: Vec<u8>,
 }
@@ -121,7 +120,7 @@ impl Chains {
 }
 
 /// [Engine] contains the musical data other than the samples.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 struct Engine {
     swing: Percentage,
     tempo: CalculatorTempo,
@@ -422,7 +421,7 @@ enum UiState {
     Fx,      // press a pad to punch in effect
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum CalculatorTempo {
     HipHop,
     #[default]
@@ -510,7 +509,7 @@ impl CalculatorEphemerals {
 /// [Calculator] is the top-level musical instrument. It contains an [Engine]
 /// that has the song data, as well as a sampler synth that can generate digital
 /// audio. It draws the GUI and handles user input.
-#[derive(Control, IsControllerInstrument, Debug, Metadata, Serialize, Deserialize)]
+#[derive(Control, IsControllerInstrument, Debug, Metadata)]
 pub struct Calculator {
     /// Required for the [HasMetadata] trait.
     uid: Uid,
@@ -518,7 +517,6 @@ pub struct Calculator {
     /// Keeps the music data (notes, sequences, tempo).
     engine: Engine,
 
-    #[serde(skip)]
     e: CalculatorEphemerals,
 
     /// The final output volume, ranging 0..16.
@@ -527,28 +525,22 @@ pub struct Calculator {
     tempo: Tempo,
 
     /// Which mode the UI is in.
-    #[serde(skip)]
     ui_state: UiState,
 
     /// Whether write is enabled.
-    #[serde(skip)]
     is_write_enabled: bool,
 
     /// Controls LED blinking.
-    #[serde(skip)]
     blink_counter: u8,
 
     /// Whether the pattern is used anywhere in the current chain. Used for
     /// chaining UI.
-    #[serde(skip)]
     pattern_usages: [bool; 16],
 
     /// The last step we handled during playback. Used to tell whether it's time
     /// to process a new step.
-    #[serde(skip)]
     last_handled_step: usize,
 
-    #[serde(skip)]
     sample_rate: SampleRate,
 }
 impl Serializable for Calculator {}
@@ -842,7 +834,7 @@ impl Calculator {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 struct Pattern {
     steps: [Step; 16],
 }
@@ -991,7 +983,7 @@ impl Pattern {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 struct Step {
     sounds: [bool; 16],
     a: [Percentage; 16],

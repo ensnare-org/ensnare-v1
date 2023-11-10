@@ -8,11 +8,10 @@ use crate::midi::{MidiChannel, MidiMessage};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection, SendError};
 use midly::{live::LiveEvent, num::u4};
-use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, thread::JoinHandle};
 
 /// Provides user-friendly strings for displaying available MIDI ports.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MidiPortDescriptor {
     /// The port descriptor's index.
     pub index: usize,

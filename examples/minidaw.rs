@@ -24,14 +24,13 @@ use ensnare::{
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
 };
-use serde::{Deserialize, Serialize};
 use std::{
     io::{Read, Write},
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
 struct Settings {
     audio_settings: AudioSettings,
     midi_settings: Arc<Mutex<MidiSettings>>,
@@ -46,14 +45,16 @@ impl Settings {
             .map_err(|e| anyhow::format_err!("Couldn't open {settings_path:?}: {}", e))?;
         file.read_to_string(&mut contents)
             .map_err(|e| anyhow::format_err!("Couldn't read {settings_path:?}: {}", e))?;
-        serde_json::from_str(&contents)
-            .map_err(|e| anyhow::format_err!("Couldn't parse {settings_path:?}: {}", e))
+        // serde_json::from_str(&contents)
+        //     .map_err(|e| anyhow::format_err!("Couldn't parse {settings_path:?}: {}", e))
+        Ok(Self::default())
     }
 
     fn save(&mut self) -> anyhow::Result<()> {
         let settings_path = PathBuf::from(Self::FILENAME);
-        let json = serde_json::to_string_pretty(&self)
-            .map_err(|_| anyhow::format_err!("Unable to serialize settings JSON"))?;
+        // let json = serde_json::to_string_pretty(&self)
+        //     .map_err(|_| anyhow::format_err!("Unable to serialize settings JSON"))?;
+        let json = "{}";
         if let Some(dir) = settings_path.parent() {
             std::fs::create_dir_all(dir).map_err(|e| {
                 anyhow::format_err!(

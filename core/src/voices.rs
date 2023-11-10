@@ -3,11 +3,10 @@
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Newtype for the number of voices in a multi-voice instrument.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, From, Into, Add, Display, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, From, Into, Add, Display)]
 pub struct VoiceCount(usize);
 impl Default for VoiceCount {
     fn default() -> Self {

@@ -2,17 +2,16 @@
 
 use super::prelude::*;
 use derive_more::Display;
-use serde::{Deserialize, Serialize};
 use std::ops::Add;
 
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.
-#[derive(Debug, Serialize, Deserialize, Display)]
+#[derive(Debug, Display)]
 pub struct ControlName(pub String);
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
 pub struct ControlIndex(pub usize);
 impl Add<usize> for ControlIndex {
     type Output = Self;
@@ -28,7 +27,7 @@ impl From<usize> for ControlIndex {
 }
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, Display)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Display)]
 pub struct ControlValue(pub f64);
 #[allow(missing_docs)]
 impl ControlValue {

@@ -5,7 +5,6 @@ use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
 };
-use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
     iter::Sum,
@@ -260,7 +259,7 @@ impl Mul<Normal> for StereoSample {
 /// values, etc., -- and somewhat OK at pure math. But we might decide to clamp
 /// (heh) down on out-of-bounds conditions later on, so if you want to do math,
 /// prefer f64 sourced from [RangedF64] rather than [RangedF64] itself.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct RangedF64<const LOWER: i8, const UPPER: i8>(pub f64);
 #[allow(missing_docs)]
 impl<const LOWER: i8, const UPPER: i8> RangedF64<LOWER, UPPER> {
@@ -497,7 +496,7 @@ impl From<BipolarNormal> for f32 {
 /// to 192KHz (2x for sampling a 96KHz signal).
 ///
 /// Eventually we might impose a non-negative restriction on this type.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct FrequencyHz(pub ParameterType);
 #[allow(missing_docs)]
 impl FrequencyHz {
@@ -654,7 +653,7 @@ impl FrequencyRange {
 /// 1.0:2.0 = a x 0.5).
 ///
 /// Negative ratios are meaningless for current use cases.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Ratio(pub ParameterType);
 impl Default for Ratio {
     fn default() -> Self {

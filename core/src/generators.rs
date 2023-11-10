@@ -8,7 +8,6 @@ use crate::{
 use ensnare_proc_macros::{Control, Params};
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
-use serde::{Deserialize, Serialize};
 use std::{f64::consts::PI, fmt::Debug};
 use strum::EnumCount;
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
@@ -18,16 +17,13 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     Copy,
     Debug,
     Default,
-    Deserialize,
     Display,
     EnumCountMacro,
     EnumIter,
     FromRepr,
     IntoStaticStr,
     PartialEq,
-    Serialize,
 )]
-#[serde(rename = "waveform", rename_all = "kebab-case")]
 pub enum Waveform {
     None,
     #[default]
@@ -85,7 +81,7 @@ impl OscillatorParams {
     }
 }
 
-#[derive(Debug, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Control, Params)]
 pub struct Oscillator {
     #[control]
     #[params]
@@ -123,15 +119,12 @@ pub struct Oscillator {
     noise_x2: u32,
 
     /// An internal copy of the current sample rate.
-    #[serde(skip)]
     sample_rate: SampleRate,
 
     /// The internal clock. Advances once per tick().
     ///
-    #[serde(skip)]
     ticks: usize,
 
-    #[serde(skip)]
     signal: BipolarNormal,
 
     // It's important for us to remember the "cursor" in the current waveform,
@@ -140,26 +133,20 @@ pub struct Oscillator {
     // pops, transients, and suckage.
     //
     // Needs Kahan summation algorithm to avoid accumulation of FP errors.
-    #[serde(skip)]
     cycle_position: KahanSum<f64>,
 
-    #[serde(skip)]
     delta: f64,
-    #[serde(skip)]
     delta_updated: bool,
 
     // Whether this oscillator's owner should sync other oscillators to this
     // one. Calculated during tick().
-    #[serde(skip)]
     should_sync: bool,
 
     // If this is a synced oscillator, then whether we should reset our waveform
     // to the start.
-    #[serde(skip)]
     is_sync_pending: bool,
 
     // Set on init and reset().
-    #[serde(skip)]
     reset_handled: bool,
 }
 impl Default for Oscillator {
@@ -456,7 +443,7 @@ impl EnvelopeParams {
     }
 }
 
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Envelope {
     #[control]
     #[params]
@@ -471,50 +458,33 @@ pub struct Envelope {
     #[params]
     release: Normal,
 
-    #[serde(skip)]
     sample_rate: SampleRate,
-    #[serde(skip)]
     state: State,
-    #[serde(skip)]
     was_reset: bool,
 
-    #[serde(skip)]
     ticks: usize,
-    #[serde(skip)]
     time: Seconds,
 
-    #[serde(skip)]
     uncorrected_amplitude: KahanSum<f64>,
-    #[serde(skip)]
     corrected_amplitude: f64,
-    #[serde(skip)]
     delta: f64,
-    #[serde(skip)]
     amplitude_target: f64,
-    #[serde(skip)]
     time_target: Seconds,
 
     // Whether the amplitude was set to an explicit value during this frame,
     // which means that the caller is expecting to get an amplitude of that
     // exact value, which means that we should return the PRE-update value
     // rather than the usual post-update value.
-    #[serde(skip)]
     amplitude_was_set: bool,
 
     // Polynomial coefficients for convex
-    #[serde(skip)]
     convex_a: f64,
-    #[serde(skip)]
     convex_b: f64,
-    #[serde(skip)]
     convex_c: f64,
 
     // Polynomial coefficients for concave
-    #[serde(skip)]
     concave_a: f64,
-    #[serde(skip)]
     concave_b: f64,
-    #[serde(skip)]
     concave_c: f64,
 }
 impl GeneratesEnvelope for Envelope {
@@ -898,7 +868,7 @@ impl Envelope {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub enum SteppedEnvelopeFunction {
     #[default]
     Linear,
@@ -906,7 +876,7 @@ pub enum SteppedEnvelopeFunction {
     Exponential,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct SteppedEnvelopeStep {
     pub interval: std::ops::Range<SignalType>,
     pub start_value: SignalType,
@@ -914,7 +884,7 @@ pub struct SteppedEnvelopeStep {
     pub step_function: SteppedEnvelopeFunction,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct SteppedEnvelope {
     steps: Vec<SteppedEnvelopeStep>,
 }

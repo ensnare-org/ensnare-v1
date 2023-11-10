@@ -8,13 +8,10 @@ use crate::{
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 
 /// Identifies a [Pattern].
-#[derive(
-    Copy, Clone, Debug, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
-)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PatternUid(pub usize);
 impl IsUid for PatternUid {}
 impl From<usize> for PatternUid {
@@ -43,7 +40,7 @@ impl Default for UidFactory<PatternUid> {
 /// A [Note] is a single played note. It knows which key it's playing (which
 /// is more or less assumed to be a MIDI key value), and when (start/end) it's
 /// supposed to play, relative to time zero.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
@@ -107,7 +104,7 @@ impl Into<Vec<MidiEvent>> for Note {
 /// [TimeSignature]. All the notes should fit into the pattern's duration, and
 /// the duration should be a round multiple of the length implied by the time
 /// signature.
-#[derive(Clone, Debug, Serialize, Deserialize, Builder, PartialEq)]
+#[derive(Clone, Debug, Builder, PartialEq)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct Pattern {
     /// The pattern's [TimeSignature].
@@ -129,8 +126,7 @@ pub struct Pattern {
     pub notes: Vec<Note>,
     // TODO: Nobody is writing to this. I haven't implemented selection
     // operations on notes yet.
-    // #[serde(skip)]
-    // #[builder(setter(skip))]
+    //     // #[builder(setter(skip))]
     // note_selection_set: HashSet<usize>,
 }
 impl PatternBuilder {
@@ -359,7 +355,7 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
     pub uids_to_patterns: HashMap<PatternUid, Pattern>,

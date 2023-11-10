@@ -8,7 +8,6 @@ use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
 use ensnare_proc_macros::Control;
-use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
@@ -16,7 +15,7 @@ use std::{
 use strum_macros::{FromRepr, IntoStaticStr};
 
 /// Beats per minute.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tempo(pub ParameterType);
 impl Default for Tempo {
     fn default() -> Self {
@@ -57,7 +56,7 @@ impl Tempo {
 }
 
 /// [BeatValue] enumerates numerical divisors used in most music.  
-#[derive(Clone, Debug, Default, FromRepr, IntoStaticStr, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, FromRepr, IntoStaticStr)]
 pub enum BeatValue {
     /// large/maxima
     Octuple = 128,
@@ -122,7 +121,7 @@ impl BeatValue {
 /// each beat takes a half-second (120 beats/minute, 60 seconds/minute -> 120/60
 /// beats/second = 60/120 seconds/beat), and a measure takes four beats (4
 /// beats/measure * 1/2 seconds/beat = 4/2 seconds/measure).
-#[derive(Clone, Control, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Control, Copy, Debug, Eq, PartialEq)]
 pub struct TimeSignature {
     /// The number of beats in a measure.
     #[control]
@@ -196,9 +195,7 @@ impl Default for TimeSignature {
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 units.
-#[derive(
-    Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default,
-)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
     units: usize,
@@ -483,7 +480,7 @@ impl Add<Seconds> for Seconds {
 }
 
 /// Samples per second. Always a positive integer; cannot be zero.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Display, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 pub struct SampleRate(pub usize);
 #[allow(missing_docs)]
 impl SampleRate {

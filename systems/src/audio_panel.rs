@@ -23,9 +23,14 @@ pub enum AudioPanelEvent {
     InterfaceChanged,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "SampleRate")]
+struct SampleRateDef(usize);
+
 /// Contains persistent audio settings.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AudioSettings {
+    #[serde(with = "SampleRateDef")]
     sample_rate: SampleRate,
     channel_count: u16,
 

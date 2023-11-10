@@ -15,10 +15,49 @@ use std::{
     time::Instant,
 };
 
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "MidiPortDescriptor")]
+struct MidiPortDescriptorDef {
+    pub index: usize,
+    pub name: String,
+}
+
+// https://github.com/serde-rs/serde/issues/1301#issuecomment-394108486
+mod opt_external_struct {
+    use super::{MidiPortDescriptor, MidiPortDescriptorDef};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(
+        value: &Option<MidiPortDescriptor>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Helper<'a>(#[serde(with = "MidiPortDescriptorDef")] &'a MidiPortDescriptor);
+
+        value.as_ref().map(Helper).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<MidiPortDescriptor>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper(#[serde(with = "MidiPortDescriptorDef")] MidiPortDescriptor);
+
+        let helper = Option::deserialize(deserializer)?;
+        Ok(helper.map(|Helper(external)| external))
+    }
+}
+
 /// Contains persistent MIDI settings.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MidiSettings {
+    #[serde(default, with = "opt_external_struct")]
     selected_input: Option<MidiPortDescriptor>,
+    #[serde(default, with = "opt_external_struct")]
     selected_output: Option<MidiPortDescriptor>,
 
     #[serde(skip)]

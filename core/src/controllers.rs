@@ -3,7 +3,6 @@
 use crate::{prelude::*, rng::Rng};
 use derive_builder::Builder;
 use ensnare_proc_macros::{Control, Params};
-use serde::{Deserialize, Serialize};
 
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
@@ -169,7 +168,7 @@ impl ControlTripBuilder {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default)]
 /// Specifies what a [ControlStep]'s path should look like.
 pub enum ControlTripPath {
     /// No path. This step's value should be ignored.
@@ -253,7 +252,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Builder)]
+#[derive(Clone, Debug, Default, Builder)]
 pub struct ControlTrip {
     /// The [ControlStep]s that make up this trip. They must be in ascending
     /// time order. TODO: enforce that.
@@ -261,7 +260,6 @@ pub struct ControlTrip {
     pub steps: Vec<ControlStep>,
 
     #[builder(setter(skip))]
-    #[serde(skip)]
     e: ControlTripEphemerals,
 }
 impl ControlTrip {
@@ -421,7 +419,7 @@ impl Serializable for ControlTrip {}
 /// MusicalTime::START, then we synthesize a flat path, at this step's value,
 /// from time zero to this step's time. Likewise, the last [ControlStep] in a
 /// [ControlTrip] is always flat until MusicalTime::MAX.
-#[derive(Serialize, Deserialize, Debug, Default, Builder, Clone)]
+#[derive(Debug, Default, Builder, Clone)]
 pub struct ControlStep {
     /// The initial value of this step.
     pub value: ControlValue,
