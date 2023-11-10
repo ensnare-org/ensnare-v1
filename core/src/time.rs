@@ -546,11 +546,8 @@ pub struct TransportEphemerals {
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
 
-#[derive(Serialize, Deserialize, Clone, Control, Debug, Default, Metadata, Builder)]
+#[derive(Clone, Control, Debug, Default, Builder)]
 pub struct Transport {
-    /// The entity's uid.
-    uid: Uid,
-
     /// The current global time signature.
     #[builder(default)]
     time_signature: TimeSignature,
@@ -560,7 +557,6 @@ pub struct Transport {
     #[control]
     pub tempo: Tempo,
 
-    #[serde(skip)]
     #[builder(setter(skip))]
     e: TransportEphemerals,
 }

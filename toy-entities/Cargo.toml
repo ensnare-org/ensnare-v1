@@ -11,11 +11,6 @@ version = "0.1.0"
 [dependencies]
 eframe = "0.23"
 ensnare-core = { path = "../core" }
-ensnare-egui = { path = "../egui" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
-serde = { version = "1.0", features = ["derive"] }
-strum = "0.25"
-strum_macros = "0.25"
-typetag = "0.2.13"

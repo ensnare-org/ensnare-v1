@@ -19,5 +19,4 @@ ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-orchestration = { path = "../orchestration" }
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0"
 strum_macros = "0.25.2"

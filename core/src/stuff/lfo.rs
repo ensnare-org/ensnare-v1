@@ -4,14 +4,11 @@ use crate::{
     generators::{Oscillator, OscillatorParams, Waveform},
     prelude::*,
 };
-use ensnare_proc_macros::{Control, Metadata, Params};
-use serde::{Deserialize, Serialize};
+use ensnare_proc_macros::{Control, Params};
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Control, Params, Metadata, Serialize, Deserialize)]
+#[derive(Debug, Control, Params)]
 pub struct LfoController {
-    uid: Uid,
-
     #[control]
     #[params]
     pub waveform: Waveform,
@@ -21,13 +18,10 @@ pub struct LfoController {
 
     oscillator: Oscillator,
 
-    #[serde(skip)]
     is_performing: bool,
 
-    #[serde(skip)]
     time_range: ViewRange,
 
-    #[serde(skip)]
     last_frame: usize,
 }
 impl Serializable for LfoController {}
@@ -96,7 +90,6 @@ impl HandlesMidi for LfoController {}
 impl LfoController {
     pub fn new_with(params: &LfoControllerParams) -> Self {
         Self {
-            uid: Default::default(),
             oscillator: Oscillator::new_with(&OscillatorParams {
                 waveform: params.waveform,
                 frequency: params.frequency,

@@ -225,7 +225,6 @@ pub struct FmSynth {
     #[params]
     dca: Dca,
 
-    uid: Uid,
     pub inner_synth: Synthesizer<FmVoice>,
 }
 impl Generates<StereoSample> for FmSynth {
@@ -287,7 +286,6 @@ impl FmSynth {
         });
 
         Self {
-            uid: Default::default(),
             inner_synth: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
             depth: params.depth(),
             ratio: params.ratio(),

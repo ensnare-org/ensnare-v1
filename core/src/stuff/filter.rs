@@ -13,8 +13,6 @@ pub struct BiQuadFilterLowPass24db {
     #[params]
     passband_ripple: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterLowPass24dbChannel; 2],
@@ -24,7 +22,6 @@ impl Default for BiQuadFilterLowPass24db {
         Self {
             cutoff: FrequencyHz::from(1000.0),
             passband_ripple: 1.0,
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: Default::default(),
         }
@@ -54,7 +51,6 @@ impl BiQuadFilterLowPass24db {
         let mut r = Self {
             cutoff: params.cutoff(),
             passband_ripple: params.passband_ripple(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowPass24dbChannel::default(),
@@ -173,8 +169,6 @@ pub struct BiQuadFilterLowPass12db {
     #[params]
     q: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterLowPass12dbChannel; 2],
@@ -199,7 +193,6 @@ impl BiQuadFilterLowPass12db {
         Self {
             cutoff: params.cutoff(),
             q: params.q(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowPass12dbChannel::default(),
@@ -272,8 +265,6 @@ pub struct BiQuadFilterHighPass {
     #[params]
     q: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterHighPassChannel; 2],
@@ -298,7 +289,6 @@ impl BiQuadFilterHighPass {
         let mut r = Self {
             cutoff: params.cutoff(),
             q: params.q(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterHighPassChannel::default(),
@@ -373,8 +363,6 @@ pub struct BiQuadFilterAllPass {
     #[params]
     q: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterAllPassChannel; 2],
@@ -399,7 +387,6 @@ impl BiQuadFilterAllPass {
         Self {
             cutoff: params.cutoff(),
             q: params.q(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterAllPassChannel::default(),
@@ -471,8 +458,6 @@ pub struct BiQuadFilterBandPass {
     #[params]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterBandPassChannel; 2],
@@ -497,7 +482,6 @@ impl BiQuadFilterBandPass {
         Self {
             cutoff: params.cutoff(),
             bandwidth: params.bandwidth(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterBandPassChannel::default(),
@@ -569,8 +553,6 @@ pub struct BiQuadFilterBandStop {
     #[params]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterBandStopChannel; 2],
@@ -595,7 +577,6 @@ impl BiQuadFilterBandStop {
         Self {
             cutoff: params.cutoff(),
             bandwidth: params.bandwidth(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterBandStopChannel::default(),
@@ -671,8 +652,6 @@ pub struct BiQuadFilterPeakingEq {
     #[params]
     q: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterPeakingEqChannel; 2],
@@ -697,7 +676,6 @@ impl BiQuadFilterPeakingEq {
         let mut r = Self {
             cutoff: params.cutoff(),
             q: params.q(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterPeakingEqChannel::default(),
@@ -776,8 +754,6 @@ pub struct BiQuadFilterLowShelf {
     #[params]
     db_gain: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterLowShelfChannel; 2],
@@ -802,7 +778,6 @@ impl BiQuadFilterLowShelf {
         Self {
             cutoff: params.cutoff(),
             db_gain: params.db_gain(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowShelfChannel::default(),
@@ -876,8 +851,6 @@ pub struct BiQuadFilterHighShelf {
     #[params]
     db_gain: ParameterType,
 
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilterHighShelfChannel; 2],
@@ -902,7 +875,6 @@ impl BiQuadFilterHighShelf {
         Self {
             cutoff: params.cutoff(),
             db_gain: params.db_gain(),
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterHighShelfChannel::default(),
@@ -971,8 +943,6 @@ impl BiQuadFilterHighShelfChannel {
 /// delete it later.
 #[derive(Debug, Control, Params)]
 pub struct BiQuadFilterNone {
-    uid: Uid,
-
     sample_rate: SampleRate,
 
     channels: [BiQuadFilter; 2],
@@ -994,7 +964,6 @@ impl TransformsAudio for BiQuadFilterNone {
 impl BiQuadFilterNone {
     pub fn new_with(_: BiQuadFilterNoneParams) -> Self {
         Self {
-            uid: Default::default(),
             sample_rate: Default::default(),
             channels: [BiQuadFilter::default(), BiQuadFilter::default()],
         }

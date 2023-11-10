@@ -5,11 +5,10 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_entity::traits::IsEffect;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Controls the wet/dry mix of arranged effects.
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Humidifier {
     uid_to_humidity: HashMap<Uid, Normal>,
 }

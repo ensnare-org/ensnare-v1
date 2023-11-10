@@ -9,7 +9,6 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.75"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 once_cell = "1.18.0"

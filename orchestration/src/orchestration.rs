@@ -125,10 +125,7 @@ pub struct OldOrchestrator {
 }
 impl Default for OldOrchestrator {
     fn default() -> Self {
-        let transport = TransportBuilder::default()
-            .uid(Self::TRANSPORT_UID)
-            .build()
-            .unwrap();
+        let transport = TransportBuilder::default().build().unwrap();
         let view_range =
             MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4);
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
@@ -2040,10 +2037,7 @@ mod tests {
 
     #[test]
     fn transport_is_automatable() {
-        let mut t = TransportBuilder::default()
-            .uid(Orchestrator::TRANSPORT_UID)
-            .build()
-            .unwrap();
+        let mut t = TransportBuilder::default().build().unwrap();
 
         assert_eq!(t.tempo(), Tempo::default());
 

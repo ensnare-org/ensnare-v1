@@ -3,10 +3,9 @@
 use anyhow::anyhow;
 use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct MidiRouter {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,

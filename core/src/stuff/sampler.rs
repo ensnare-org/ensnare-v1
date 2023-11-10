@@ -106,8 +106,6 @@ impl SamplerVoice {
 
 #[derive(Control, Params)]
 pub struct Sampler {
-    uid: Uid,
-
     #[params]
     filename: String,
 
@@ -122,7 +120,6 @@ pub struct Sampler {
 impl std::fmt::Debug for Sampler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Sampler")
-            .field("uid", &self.uid)
             .field("filename", &self.filename)
             .field("root", &self.root)
             .field("calculated_root", &self.calculated_root)
@@ -196,7 +193,6 @@ impl Sampler {
             FrequencyHz::from(440.0)
         };
         Self {
-            uid: Default::default(),
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
                 VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
                     SamplerVoice::new_with_samples(Arc::clone(&samples), calculated_root)
