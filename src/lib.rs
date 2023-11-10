@@ -62,7 +62,7 @@ pub mod control {
 
 pub mod devices {
     //! The core business logic that powers musical instruments.
-    pub use ensnare_core::entities::controllers::sequencers::{
+    pub use ensnare_devices::controllers::sequencers::pattern::{
         PatternSequencer, PatternSequencerBuilder,
     };
 }
@@ -93,18 +93,13 @@ pub mod entities {
         //! control events. Examples are sequencers, which generate MIDI, and LFOs,
         //! which generate control signals. Controllers implement
         //! [IsController](crate::traits::IsController).
-        pub use ensnare_core::{
-            controllers::{ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath},
-            entities::{
-                controllers::sequencers::{
-                    LivePatternSequencer, MidiSequencer, NoteSequencer, NoteSequencerBuilder,
-                    PatternSequencerBuilder,
-                },
-                controllers::*,
-            },
+        pub use ensnare_core::controllers::{
+            ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
         };
         pub use ensnare_entity::test_entities::TestController;
-        pub use ensnare_factory_entities::controllers::PatternSequencer;
+        pub use ensnare_factory_entities::controllers::{
+            LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
+        };
     }
     pub mod effects {
         //! Built-in effects. Effects transform audio. Examples are reverb and

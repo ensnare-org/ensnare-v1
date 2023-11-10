@@ -8,12 +8,13 @@ use eframe::{
     epaint::{vec2, Color32, Rect, Vec2},
 };
 use ensnare_core::{
-    controllers::{ControlTrip, LivePatternSequencer},
+    controllers::ControlTrip,
     piano_roll::{PatternUid, PianoRoll},
     prelude::*,
     traits::Sequences,
     types::TrackTitle,
 };
+use ensnare_devices::controllers::sequencers::pattern::LivePatternSequencer;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui::{
     control::ControlRouter,

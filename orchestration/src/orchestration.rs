@@ -13,7 +13,7 @@ use crossbeam_channel::Sender;
 use derive_builder::Builder;
 use ensnare_core::{
     control::{ControlIndex, ControlValue},
-    controllers::{ControlTripBuilder, LivePatternSequencer},
+    controllers::ControlTripBuilder,
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
@@ -25,6 +25,7 @@ use ensnare_core::{
     types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
+use ensnare_devices::controllers::sequencers::pattern::LivePatternSequencer;
 use ensnare_egui::{
     control::ControlRouter,
     piano_roll::piano_roll,

@@ -317,20 +317,3 @@ impl ToySequencer {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        entities::controllers::sequencers::tests::validate_sequences_notes_trait,
-        traits::tests::validate_sequences_midi_trait,
-    };
-
-    #[test]
-    fn toy_passes_sequences_trait_validation() {
-        let mut s = ToySequencer::default();
-
-        validate_sequences_midi_trait(&mut s);
-        validate_sequences_notes_trait(&mut s);
-    }
-}

@@ -4,9 +4,7 @@
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use crate::entities::controllers::{
-        sequencers::LivePatternSequencer, SignalPassthroughController, SignalPassthroughType,
-    };
+    pub use crate::entities::controllers::{SignalPassthroughController, SignalPassthroughType};
     pub use crate::stuff::{
         bitcrusher::Bitcrusher,
         chorus::{Chorus, ChorusParams},

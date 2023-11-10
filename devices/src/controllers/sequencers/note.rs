@@ -1,14 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::MidiSequencer;
-use crate::{
-    midi::{u7, MidiChannel, MidiEvent, MidiMessage},
-    piano_roll::Note,
-    rng::Rng,
-    time::{MusicalTime, ViewRange},
-    traits::{ControlEventsFn, Controls, Sequences, SequencesMidi, Serializable},
-};
+use super::midi::MidiSequencer;
 use derive_builder::Builder;
+use ensnare_core::{piano_roll::Note, prelude::*, rng::Rng, traits::Sequences};
 use ensnare_proc_macros::InnerConfigurable;
 
 impl NoteSequencerBuilder {
@@ -143,6 +137,14 @@ impl Serializable for NoteSequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::controllers::sequencers::tests::validate_sequences_notes_trait;
+
+    #[test]
+    fn note_sequencer_passes_trait_validation() {
+        let mut s = NoteSequencer::default();
+
+        validate_sequences_notes_trait(&mut s);
+    }
 
     /////////////////////////////////////////////////////////////////////////
     /// BEGIN tests taken from the old sequencer. These are here to scavenge

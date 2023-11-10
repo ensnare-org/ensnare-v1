@@ -15,7 +15,7 @@ use eframe::{
 };
 use ensnare::{
     app_version,
-    entities::controllers::{LivePatternSequencer, NoteSequencerBuilder},
+    entities::controllers::LivePatternSequencer,
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline, track},
@@ -27,7 +27,11 @@ use ensnare_core::{
     types::TrackTitle,
     uid::TrackUid,
 };
-use ensnare_egui::{piano_roll::piano_roll, prelude::live_pattern_sequencer_widget};
+use ensnare_devices::controllers::sequencers::note::NoteSequencerBuilder;
+use ensnare_egui::{
+    controllers::note_sequencer_widget, piano_roll::piano_roll,
+    prelude::live_pattern_sequencer_widget,
+};
 use ensnare_entity::traits::Entity;
 use ensnare_factory_entities::controllers::NoteSequencer;
 use ensnare_orchestration::track::{signal_chain, track_widget, Track, TrackAction};
@@ -320,7 +324,7 @@ impl PatternIconSettings {
 #[derive(Debug, Default)]
 struct LivePatternSequencerSettings {
     hide: bool,
-    sequencer: LivePatternSequencer,
+    sequencer: ensnare_devices::controllers::sequencers::pattern::LivePatternSequencer,
     view_range: ViewRange,
 }
 impl Displays for LivePatternSequencerSettings {
@@ -348,18 +352,15 @@ impl LivePatternSequencerSettings {
 #[derive(Debug)]
 struct NoteSequencerSettings {
     hide: bool,
-    sequencer: NoteSequencer,
+    sequencer: ensnare_devices::controllers::sequencers::note::NoteSequencer,
     view_range: ViewRange,
 }
 impl Default for NoteSequencerSettings {
     fn default() -> Self {
-        let sequencer = NoteSequencer::new_with_inner(
-            Uid::default(),
-            NoteSequencerBuilder::default()
-                .random(MusicalTime::START..MusicalTime::new_with_beats(128))
-                .build()
-                .unwrap(),
-        );
+        let sequencer = NoteSequencerBuilder::default()
+            .random(MusicalTime::START..MusicalTime::new_with_beats(128))
+            .build()
+            .unwrap();
         Self {
             hide: Default::default(),
             sequencer,
@@ -378,7 +379,8 @@ impl NoteSequencerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            self.sequencer.ui(ui);
+            let view_range = self.sequencer.inner.time_range.clone();
+            ui.add(note_sequencer_widget(&mut self.sequencer, &view_range));
         }
     }
 

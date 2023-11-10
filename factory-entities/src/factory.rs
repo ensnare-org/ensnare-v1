@@ -16,12 +16,10 @@ use ensnare_core::{
     generators::{EnvelopeParams, Waveform},
     modulators::DcaParams,
     prelude::*,
-    stuff::{
-        arpeggiator::ArpeggiatorParams, fm::FmSynthParams, lfo::LfoControllerParams,
-        welsh::WelshSynthParams,
-    },
+    stuff::{fm::FmSynthParams, lfo::LfoControllerParams, welsh::WelshSynthParams},
     utils::Paths,
 };
+use ensnare_devices::controllers::arpeggiator::ArpeggiatorParams;
 use ensnare_entity::prelude::*;
 
 /// Registers all [EntityFactory]'s entities.

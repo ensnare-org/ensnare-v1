@@ -1,21 +1,18 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::MidiSequencer;
-use crate::{
-    midi::{MidiChannel, MidiEvent},
-    piano_roll::{Pattern, PatternUid, PianoRoll},
-    time::MusicalTime,
-    traits::{
-        Configurable, ControlEventsFn, Controls, HandlesMidi, Sequences, SequencesMidi,
-        Serializable,
-    },
-};
 use anyhow::anyhow;
 use derive_builder::Builder;
+use ensnare_core::{
+    piano_roll::{Pattern, PatternUid, PianoRoll},
+    prelude::*,
+    traits::Sequences,
+};
 use std::{
     ops::Range,
     sync::{Arc, RwLock},
 };
+
+use super::midi::MidiSequencer;
 
 impl PatternSequencerBuilder {
     /// Builds the [PatternSequencer].
@@ -259,7 +256,7 @@ impl LivePatternSequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
+    use ensnare_core::{
         midi::MidiNote,
         piano_roll::{Note, PatternBuilder},
     };

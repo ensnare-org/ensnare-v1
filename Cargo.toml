@@ -20,6 +20,7 @@ eframe = "0.23"
 egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
 egui_extras = { version = "0.23", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
+ensnare-devices = { path = "devices" }
 ensnare-drag-drop = { path = "drag-drop" }
 ensnare-egui = { path = "egui" }
 ensnare-egui-widgets = { path = "egui-widgets" }
@@ -37,6 +38,7 @@ strum_macros = "0.25.2"
 [workspace]
 members = [
     "core",
+    "devices",
     "egui",
     "egui-widgets",
     "entity",

@@ -1,15 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    controllers::NoteSequencer,
-    midi::prelude::*,
-    piano_roll::Note,
-    prelude::*,
-    traits::{prelude::*, Sequences},
-};
+use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
 use ensnare_proc_macros::Params;
+use serde::{Deserialize, Serialize};
 use std::{ops::Range, option::Option};
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
+
+use super::sequencers::note::NoteSequencer;
 
 #[derive(
     Clone,
@@ -22,8 +19,8 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     FromRepr,
     IntoStaticStr,
     PartialEq,
-    serde::Serialize,
-    serde::Deserialize,
+    Serialize,
+    Deserialize,
 )]
 pub enum ArpeggioMode {
     #[default]
