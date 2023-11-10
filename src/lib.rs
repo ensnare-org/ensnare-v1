@@ -62,7 +62,7 @@ pub mod control {
 
 pub mod devices {
     //! The core business logic that powers musical instruments.
-    pub use ensnare_devices::controllers::sequencers::pattern::{
+    pub use ensnare_cores::controllers::sequencers::pattern::{
         PatternSequencer, PatternSequencerBuilder,
     };
 }

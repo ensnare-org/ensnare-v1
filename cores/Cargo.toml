@@ -2,9 +2,9 @@
 
 [package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "Basic musical devices"
+description = "Musical-instrument cores"
 edition = "2021"
-name = "ensnare-devices"
+name = "ensnare-cores"
 publish = false
 version = "0.1.0"
 

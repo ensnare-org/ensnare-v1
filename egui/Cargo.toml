@@ -12,7 +12,7 @@ version = "0.1.0"
 anyhow = "1.0.75"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
-ensnare-devices = { path = "../devices" }
+ensnare-cores = { path = "../cores" }
 ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 spectrum-analyzer = "1.5.0"

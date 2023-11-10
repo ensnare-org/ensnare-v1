@@ -475,39 +475,33 @@ impl Ensnare {
 
     fn check_drag_and_drop(&mut self) {
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            let input;
-            match source {
+            let input = match source {
                 DragSource::NewDevice(ref key) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
-                    DropTarget::Track(track_uid) => {
-                        input = Some(OrchestratorInput::TrackAddEntity(
-                            track_uid,
-                            EntityKey::from(key),
-                        ));
+                    DropTarget::Track(track_uid) => Some(OrchestratorInput::TrackAddEntity(
+                        track_uid,
+                        EntityKey::from(key),
+                    )),
+                    DropTarget::TrackPosition(_, _) => {
+                        eprintln!("DropTarget::TrackPosition not implemented - ignoring");
+                        None
                     }
-                    DropTarget::TrackPosition(_, _) => todo!(),
                 },
                 DragSource::Pattern(pattern_uid) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
                     DropTarget::Track(_) => todo!(),
-                    DropTarget::TrackPosition(track_uid, position) => {
-                        input = Some(OrchestratorInput::TrackPatternAdd(
-                            track_uid,
-                            pattern_uid,
-                            position,
-                        ));
-                    }
+                    DropTarget::TrackPosition(track_uid, position) => Some(
+                        OrchestratorInput::TrackPatternAdd(track_uid, pattern_uid, position),
+                    ),
                 },
                 DragSource::ControlSource(source_uid) => match target {
-                    DropTarget::Controllable(target_uid, index) => {
-                        input = Some(OrchestratorInput::LinkControl(
-                            source_uid, target_uid, index,
-                        ));
-                    }
+                    DropTarget::Controllable(target_uid, index) => Some(
+                        OrchestratorInput::LinkControl(source_uid, target_uid, index),
+                    ),
                     DropTarget::Track(_) => todo!(),
                     DropTarget::TrackPosition(_, _) => todo!(),
                 },
-            }
+            };
             if let Some(input) = input {
                 let _ = self.orchestrator_panel.send_to_service(input);
             } else {

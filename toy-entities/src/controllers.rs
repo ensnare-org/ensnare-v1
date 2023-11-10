@@ -70,7 +70,7 @@ impl ToyControllerAlwaysSendsMidiMessage {
 
 #[cfg(test)]
 mod tests {
-    // use ensnare_devices::controllers::sequencers::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
+    // use ensnare_cores::controllers::sequencers::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
 
     // #[test]
     // fn toy_passes_sequences_trait_validation() {

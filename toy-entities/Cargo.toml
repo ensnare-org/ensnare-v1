@@ -11,7 +11,7 @@ version = "0.1.0"
 [dependencies]
 eframe = "0.23"
 ensnare-core = { path = "../core" }
-ensnare-devices = { path = "../devices" }
+ensnare-cores = { path = "../cores" }
 ensnare-egui = { path = "../egui" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }

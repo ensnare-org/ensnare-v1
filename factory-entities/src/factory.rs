@@ -19,7 +19,7 @@ use ensnare_core::{
     stuff::{fm::FmSynthParams, lfo::LfoControllerParams, welsh::WelshSynthParams},
     utils::Paths,
 };
-use ensnare_devices::controllers::arpeggiator::ArpeggiatorParams;
+use ensnare_cores::controllers::arpeggiator::ArpeggiatorParams;
 use ensnare_entity::prelude::*;
 
 /// Registers all [EntityFactory]'s entities.

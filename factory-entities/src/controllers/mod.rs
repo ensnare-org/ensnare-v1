@@ -11,7 +11,7 @@ use ensnare_core::{
     traits::{Configurable, Controls, Sequences, Serializable},
     uid::Uid,
 };
-use ensnare_devices::controllers::arpeggiator::ArpeggiatorParams;
+use ensnare_cores::controllers::arpeggiator::ArpeggiatorParams;
 use ensnare_egui::controllers::{
     arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
 };
@@ -24,7 +24,7 @@ use ensnare_proc_macros::{
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsController, Metadata)]
 pub struct Arpeggiator {
     uid: Uid,
-    inner: ensnare_devices::controllers::arpeggiator::Arpeggiator,
+    inner: ensnare_cores::controllers::arpeggiator::Arpeggiator,
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -38,7 +38,7 @@ impl Arpeggiator {
     pub fn new_with(uid: Uid, params: &ArpeggiatorParams) -> Self {
         Self {
             uid,
-            inner: ensnare_devices::controllers::arpeggiator::Arpeggiator::new_with(
+            inner: ensnare_cores::controllers::arpeggiator::Arpeggiator::new_with(
                 &params,
                 MidiChannel::default(),
             ),
@@ -51,7 +51,7 @@ impl Arpeggiator {
 )]
 pub struct MidiSequencer {
     uid: Uid,
-    inner: ensnare_devices::controllers::sequencers::midi::MidiSequencer,
+    inner: ensnare_cores::controllers::sequencers::midi::MidiSequencer,
 }
 impl Displays for MidiSequencer {}
 impl Serializable for MidiSequencer {}
@@ -59,7 +59,7 @@ impl Serializable for MidiSequencer {}
 #[derive(Debug, Default, InnerControls, IsController, Metadata)]
 pub struct PatternSequencer {
     uid: Uid,
-    inner: ensnare_devices::controllers::sequencers::pattern::PatternSequencer,
+    inner: ensnare_cores::controllers::sequencers::pattern::PatternSequencer,
 }
 impl Displays for PatternSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -108,14 +108,14 @@ impl Sequences for PatternSequencer {
 )]
 pub struct LivePatternSequencer {
     uid: Uid,
-    inner: ensnare_devices::controllers::sequencers::pattern::LivePatternSequencer,
+    inner: ensnare_cores::controllers::sequencers::pattern::LivePatternSequencer,
 }
 impl Displays for LivePatternSequencer {}
 
 #[derive(Debug, Default, InnerControls, IsController, Metadata)]
 pub struct NoteSequencer {
     uid: Uid,
-    inner: ensnare_devices::controllers::sequencers::note::NoteSequencer,
+    inner: ensnare_cores::controllers::sequencers::note::NoteSequencer,
 }
 impl Displays for NoteSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -129,7 +129,7 @@ impl Serializable for NoteSequencer {}
 impl NoteSequencer {
     pub fn new_with_inner(
         uid: Uid,
-        inner: ensnare_devices::controllers::sequencers::note::NoteSequencer,
+        inner: ensnare_cores::controllers::sequencers::note::NoteSequencer,
     ) -> Self {
         Self { uid, inner }
     }

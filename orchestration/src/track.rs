@@ -14,7 +14,7 @@ use ensnare_core::{
     traits::Sequences,
     types::TrackTitle,
 };
-use ensnare_devices::controllers::sequencers::pattern::LivePatternSequencer;
+use ensnare_cores::controllers::sequencers::pattern::LivePatternSequencer;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui::{
     control::ControlRouter,
