@@ -15,10 +15,7 @@ use ensnare_core::{
     types::FrequencyRange,
     uid::Uid,
 };
-use ensnare_cores::controllers::{
-    arpeggiator::{Arpeggiator, ArpeggioMode},
-    sequencers::pattern::LivePatternSequencer,
-};
+use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode, LivePatternSequencer};
 use ensnare_egui_widgets::{frequency, waveform};
 use strum::IntoEnumIterator;
 
@@ -271,7 +268,7 @@ impl<'a> Widget for LivePatternSequencerWidget<'a> {
 
 /// Wraps a [PatternSequencerWidget] as a [Widget](eframe::egui::Widget).
 pub fn pattern_sequencer_widget<'a>(
-    sequencer: &'a mut ensnare_cores::controllers::sequencers::pattern::PatternSequencer,
+    sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
     view_range: &'a ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
@@ -279,12 +276,12 @@ pub fn pattern_sequencer_widget<'a>(
 
 #[derive(Debug)]
 pub struct PatternSequencerWidget<'a> {
-    sequencer: &'a mut ensnare_cores::controllers::sequencers::pattern::PatternSequencer,
+    sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
     view_range: ViewRange,
 }
 impl<'a> PatternSequencerWidget<'a> {
     fn new(
-        sequencer: &'a mut ensnare_cores::controllers::sequencers::pattern::PatternSequencer,
+        sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
         view_range: &'a ViewRange,
     ) -> Self {
         Self {
@@ -301,7 +298,7 @@ impl<'a> Widget for PatternSequencerWidget<'a> {
 
 /// Wraps a [NoteSequencerWidget] as a [Widget](eframe::egui::Widget).
 pub fn note_sequencer_widget<'a>(
-    sequencer: &'a mut ensnare_cores::controllers::sequencers::note::NoteSequencer,
+    sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
     view_range: &'a ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| NoteSequencerWidget::new(sequencer, view_range).ui(ui)
@@ -311,12 +308,12 @@ pub fn note_sequencer_widget<'a>(
 /// view.
 #[derive(Debug)]
 pub struct NoteSequencerWidget<'a> {
-    sequencer: &'a mut ensnare_cores::controllers::sequencers::note::NoteSequencer,
+    sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
     view_range: ViewRange,
 }
 impl<'a> NoteSequencerWidget<'a> {
     fn new(
-        sequencer: &'a mut ensnare_cores::controllers::sequencers::note::NoteSequencer,
+        sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
         view_range: &'a ViewRange,
     ) -> Self {
         Self {

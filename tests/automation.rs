@@ -1,7 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
-use ensnare_core::{generators::Waveform, prelude::ControlValue, stuff::lfo::LfoControllerParams};
+use ensnare_core::{generators::Waveform, prelude::ControlValue};
+use ensnare_cores::LfoControllerParams;
 use ensnare_factory_entities::controllers::{ControlTrip, LfoController, PatternSequencer};
 use ensnare_toy_entities::prelude::*;
 use std::path::PathBuf;

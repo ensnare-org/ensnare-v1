@@ -8,18 +8,16 @@ use ensnare_egui_widgets::{envelope, oscillator};
 pub mod fm;
 
 /// Wraps a [SamplerWidget] as a [Widget](eframe::egui::Widget).
-pub fn sampler<'a>(
-    inner: &'a mut ensnare_core::stuff::sampler::Sampler,
-) -> impl eframe::egui::Widget + '_ {
+pub fn sampler<'a>(inner: &'a mut ensnare_cores::Sampler) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner).ui(ui)
 }
 
 #[derive(Debug)]
 pub struct SamplerWidget<'a> {
-    inner: &'a mut ensnare_core::stuff::sampler::Sampler,
+    inner: &'a mut ensnare_cores::Sampler,
 }
 impl<'a> SamplerWidget<'a> {
-    fn new(inner: &'a mut ensnare_core::stuff::sampler::Sampler) -> Self {
+    fn new(inner: &'a mut ensnare_cores::Sampler) -> Self {
         Self { inner }
     }
 }
@@ -32,7 +30,7 @@ impl<'a> Widget for SamplerWidget<'a> {
 /// Wraps a [WelshWidget] as a [Widget](eframe::egui::Widget).
 pub fn welsh<'a>(
     uid: Uid,
-    inner: &'a mut ensnare_core::stuff::welsh::WelshSynth,
+    inner: &'a mut ensnare_cores::WelshSynth,
 ) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| WelshWidget::new(uid, inner).ui(ui)
 }
@@ -40,10 +38,10 @@ pub fn welsh<'a>(
 #[derive(Debug)]
 pub struct WelshWidget<'a> {
     uid: Uid,
-    inner: &'a mut ensnare_core::stuff::welsh::WelshSynth,
+    inner: &'a mut ensnare_cores::WelshSynth,
 }
 impl<'a> WelshWidget<'a> {
-    fn new(uid: Uid, inner: &'a mut ensnare_core::stuff::welsh::WelshSynth) -> Self {
+    fn new(uid: Uid, inner: &'a mut ensnare_cores::WelshSynth) -> Self {
         Self { uid, inner }
     }
 }

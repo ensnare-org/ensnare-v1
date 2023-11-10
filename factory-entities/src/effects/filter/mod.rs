@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{prelude::*, stuff::filter::BiQuadFilterLowPass24dbParams};
+use ensnare_core::prelude::*;
+use ensnare_cores::BiQuadFilterLowPass24dbParams;
 use ensnare_egui::effects::bi_quad_filter_low_pass_24db;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
@@ -19,7 +20,7 @@ use ensnare_proc_macros::{
 )]
 pub struct BiQuadFilterLowPass24db {
     uid: Uid,
-    inner: ensnare_core::stuff::filter::BiQuadFilterLowPass24db,
+    inner: ensnare_cores::BiQuadFilterLowPass24db,
 }
 impl Displays for BiQuadFilterLowPass24db {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -30,7 +31,7 @@ impl BiQuadFilterLowPass24db {
     pub fn new_with(uid: Uid, params: &BiQuadFilterLowPass24dbParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::filter::BiQuadFilterLowPass24db::new_with(&params),
+            inner: ensnare_cores::BiQuadFilterLowPass24db::new_with(&params),
         }
     }
 }

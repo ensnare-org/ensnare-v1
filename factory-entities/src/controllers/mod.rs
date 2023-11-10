@@ -6,12 +6,11 @@ use ensnare_core::{
     controllers::{TimerParams, TriggerParams},
     piano_roll::Pattern,
     prelude::*,
-    stuff::lfo::LfoControllerParams,
     time::MusicalTime,
     traits::{Configurable, Controls, Sequences, Serializable},
     uid::Uid,
 };
-use ensnare_cores::controllers::arpeggiator::ArpeggiatorParams;
+use ensnare_cores::{ArpeggiatorParams, LfoControllerParams};
 use ensnare_egui::controllers::{
     arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
 };
@@ -24,7 +23,7 @@ use ensnare_proc_macros::{
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsController, Metadata)]
 pub struct Arpeggiator {
     uid: Uid,
-    inner: ensnare_cores::controllers::arpeggiator::Arpeggiator,
+    inner: ensnare_cores::Arpeggiator,
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -38,10 +37,7 @@ impl Arpeggiator {
     pub fn new_with(uid: Uid, params: &ArpeggiatorParams) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::controllers::arpeggiator::Arpeggiator::new_with(
-                &params,
-                MidiChannel::default(),
-            ),
+            inner: ensnare_cores::Arpeggiator::new_with(&params, MidiChannel::default()),
         }
     }
 }
@@ -51,7 +47,7 @@ impl Arpeggiator {
 )]
 pub struct MidiSequencer {
     uid: Uid,
-    inner: ensnare_cores::controllers::sequencers::midi::MidiSequencer,
+    inner: ensnare_cores::MidiSequencer,
 }
 impl Displays for MidiSequencer {}
 impl Serializable for MidiSequencer {}
@@ -59,7 +55,7 @@ impl Serializable for MidiSequencer {}
 #[derive(Debug, Default, InnerControls, IsController, Metadata)]
 pub struct PatternSequencer {
     uid: Uid,
-    inner: ensnare_cores::controllers::sequencers::pattern::PatternSequencer,
+    inner: ensnare_cores::PatternSequencer,
 }
 impl Displays for PatternSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -108,14 +104,14 @@ impl Sequences for PatternSequencer {
 )]
 pub struct LivePatternSequencer {
     uid: Uid,
-    inner: ensnare_cores::controllers::sequencers::pattern::LivePatternSequencer,
+    inner: ensnare_cores::LivePatternSequencer,
 }
 impl Displays for LivePatternSequencer {}
 
 #[derive(Debug, Default, InnerControls, IsController, Metadata)]
 pub struct NoteSequencer {
     uid: Uid,
-    inner: ensnare_cores::controllers::sequencers::note::NoteSequencer,
+    inner: ensnare_cores::NoteSequencer,
 }
 impl Displays for NoteSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -127,10 +123,7 @@ impl Configurable for NoteSequencer {}
 impl HandlesMidi for NoteSequencer {}
 impl Serializable for NoteSequencer {}
 impl NoteSequencer {
-    pub fn new_with_inner(
-        uid: Uid,
-        inner: ensnare_cores::controllers::sequencers::note::NoteSequencer,
-    ) -> Self {
+    pub fn new_with_inner(uid: Uid, inner: ensnare_cores::NoteSequencer) -> Self {
         Self { uid, inner }
     }
 }
@@ -148,13 +141,13 @@ impl NoteSequencer {
 
 pub struct LfoController {
     uid: Uid,
-    inner: ensnare_core::stuff::lfo::LfoController,
+    inner: ensnare_cores::LfoController,
 }
 impl LfoController {
     pub fn new_with(uid: Uid, params: &LfoControllerParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::lfo::LfoController::new_with(params),
+            inner: ensnare_cores::LfoController::new_with(params),
         }
     }
 }
@@ -183,28 +176,28 @@ impl Displays for LfoController {
 )]
 pub struct SignalPassthroughController {
     uid: Uid,
-    inner: ensnare_core::entities::controllers::SignalPassthroughController,
+    inner: ensnare_cores::controllers::SignalPassthroughController,
 }
 impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
     pub fn new(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_core::entities::controllers::SignalPassthroughController::new(),
+            inner: ensnare_cores::controllers::SignalPassthroughController::new(),
         }
     }
 
     pub fn new_amplitude_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_core::entities::controllers::SignalPassthroughController::new_amplitude_passthrough_type(),
+            inner: ensnare_cores::controllers::SignalPassthroughController::new_amplitude_passthrough_type(),
         }
     }
 
     pub fn new_amplitude_inverted_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_core::entities::controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
+            inner: ensnare_cores::controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
         }
     }
 }

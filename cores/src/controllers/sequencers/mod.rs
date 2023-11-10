@@ -1,8 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub mod midi;
-pub mod note;
-pub mod pattern;
+pub use midi::MidiSequencer;
+pub use note::{NoteSequencer, NoteSequencerBuilder};
+pub use pattern::{LivePatternSequencer, PatternSequencer, PatternSequencerBuilder};
+
+mod midi;
+mod note;
+mod pattern;
 
 #[cfg(test)]
 pub mod tests {

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
 
 /// TODO: this is a pretty lame bitcrusher. It is hardly noticeable for values

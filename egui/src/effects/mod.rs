@@ -5,15 +5,15 @@ use ensnare_core::{prelude::*, types::FrequencyRange};
 
 /// Wraps a [BiQuadFilterLowPass24dbWidget] as a [Widget](eframe::egui::Widget).
 pub fn bi_quad_filter_low_pass_24db<'a>(
-    inner: &'a mut ensnare_core::stuff::filter::BiQuadFilterLowPass24db,
+    inner: &'a mut ensnare_cores::BiQuadFilterLowPass24db,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| BiQuadFilterLowPass24dbWidget::new(inner).ui(ui)
 }
 struct BiQuadFilterLowPass24dbWidget<'a> {
-    inner: &'a mut ensnare_core::stuff::filter::BiQuadFilterLowPass24db,
+    inner: &'a mut ensnare_cores::BiQuadFilterLowPass24db,
 }
 impl<'a> BiQuadFilterLowPass24dbWidget<'a> {
-    fn new(inner: &'a mut ensnare_core::stuff::filter::BiQuadFilterLowPass24db) -> Self {
+    fn new(inner: &'a mut ensnare_cores::BiQuadFilterLowPass24db) -> Self {
         Self { inner }
     }
 }

@@ -5,18 +5,16 @@ use ensnare_core::generators::Envelope;
 use ensnare_egui_widgets::envelope;
 
 /// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
-pub fn fm_synth<'a>(
-    inner: &'a mut ensnare_core::stuff::fm::FmSynth,
-) -> impl eframe::egui::Widget + '_ {
+pub fn fm_synth<'a>(inner: &'a mut ensnare_cores::FmSynth) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner).ui(ui)
 }
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
-    inner: &'a mut ensnare_core::stuff::fm::FmSynth,
+    inner: &'a mut ensnare_cores::FmSynth,
 }
 impl<'a> FmSynthWidget<'a> {
-    fn new(inner: &'a mut ensnare_core::stuff::fm::FmSynth) -> Self {
+    fn new(inner: &'a mut ensnare_cores::FmSynth) -> Self {
         Self { inner }
     }
 }

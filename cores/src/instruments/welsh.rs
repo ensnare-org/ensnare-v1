@@ -1,24 +1,20 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use crate::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams};
+use core::fmt::Debug;
+use ensnare_core::{
     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
     instruments::Synthesizer,
     midi::prelude::*,
     modulators::{Dca, DcaParams},
     prelude::*,
-    stuff::filter::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams},
     traits::{prelude::*, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
-use core::fmt::Debug;
 use ensnare_proc_macros::{Control, Params};
-use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
-#[derive(
-    Clone, Copy, Debug, Default, EnumCountMacro, FromRepr, PartialEq, Serialize, Deserialize,
-)]
-#[serde(rename = "lfo-routing", rename_all = "kebab-case")]
+#[derive(Clone, Copy, Debug, Default, EnumCountMacro, FromRepr, PartialEq)]
 pub enum LfoRouting {
     #[default]
     None,

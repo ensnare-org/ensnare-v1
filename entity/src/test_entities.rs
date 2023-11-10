@@ -120,7 +120,7 @@ impl Displays for TestInstrumentCountsMidiMessages {}
 #[derive(Debug, Default, InnerInstrument, InnerConfigurable, IsController, Metadata)]
 pub struct TestAudioSource {
     uid: Uid,
-    inner: ensnare_core::stuff::test::TestAudioSource,
+    inner: ensnare_cores::TestAudioSource,
 }
 impl Displays for TestAudioSource {}
 impl HandlesMidi for TestAudioSource {}

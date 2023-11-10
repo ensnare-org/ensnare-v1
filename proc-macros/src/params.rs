@@ -18,7 +18,6 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         let data = &input.data;
 
         let struct_name = &input.ident;
-        let struct_snake_case_name = stringify!("{}", struct_name.to_string().to_case(Case::Snake));
         let params_name = format_ident!("{}Params", struct_name);
 
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
@@ -108,8 +107,7 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         }
 
         let params_struct_block = quote! {
-            #[derive(Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-            #[serde(rename = #struct_snake_case_name, rename_all = "kebab-case")]
+            #[derive(Debug, Default, PartialEq)]
             #[allow(missing_docs)]
             pub struct #params_name {
                 #( pub #field_names: #field_types ),*

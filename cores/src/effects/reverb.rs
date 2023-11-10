@@ -1,10 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    prelude::*,
-    stuff::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine},
-};
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
+
+use crate::RecirculatingDelayLine;
+
+use super::delay::{AllPassDelayLine, Delays};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
@@ -165,8 +166,8 @@ impl ReverbChannel {
 
 #[cfg(test)]
 mod tests {
-    use super::{Reverb, ReverbParams};
-    use crate::prelude::*;
+    use super::*;
+    use ensnare_core::prelude::*;
 
     const DEFAULT_SAMPLE_RATE: usize = 44100;
 

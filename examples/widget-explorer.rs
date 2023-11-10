@@ -26,7 +26,7 @@ use ensnare_core::{
     types::TrackTitle,
     uid::TrackUid,
 };
-use ensnare_cores::controllers::sequencers::note::NoteSequencerBuilder;
+use ensnare_cores::NoteSequencerBuilder;
 use ensnare_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
@@ -323,7 +323,7 @@ impl PatternIconSettings {
 #[derive(Debug, Default)]
 struct LivePatternSequencerSettings {
     hide: bool,
-    sequencer: ensnare_cores::controllers::sequencers::pattern::LivePatternSequencer,
+    sequencer: ensnare_cores::LivePatternSequencer,
     view_range: ViewRange,
 }
 impl Displays for LivePatternSequencerSettings {
@@ -351,7 +351,7 @@ impl LivePatternSequencerSettings {
 #[derive(Debug)]
 struct NoteSequencerSettings {
     hide: bool,
-    sequencer: ensnare_cores::controllers::sequencers::note::NoteSequencer,
+    sequencer: ensnare_cores::NoteSequencer,
     view_range: ViewRange,
 }
 impl Default for NoteSequencerSettings {

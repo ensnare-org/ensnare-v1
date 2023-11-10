@@ -10,16 +10,15 @@ use crate::{
 };
 use ensnare_core::{
     controllers::{TimerParams, TriggerParams},
-    entities::prelude::{
-        BiQuadFilterLowPass24dbParams, DrumkitParams, GainParams, ReverbParams, SamplerParams,
-    },
     generators::{EnvelopeParams, Waveform},
     modulators::DcaParams,
     prelude::*,
-    stuff::{fm::FmSynthParams, lfo::LfoControllerParams, welsh::WelshSynthParams},
     utils::Paths,
 };
-use ensnare_cores::controllers::arpeggiator::ArpeggiatorParams;
+use ensnare_cores::{
+    ArpeggiatorParams, BiQuadFilterLowPass24dbParams, DrumkitParams, FmSynthParams, GainParams,
+    LfoControllerParams, ReverbParams, SamplerParams, WelshSynthParams,
+};
 use ensnare_entity::prelude::*;
 
 /// Registers all [EntityFactory]'s entities.

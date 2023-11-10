@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
 
 #[derive(Debug, Control, Params)]
@@ -58,7 +58,7 @@ impl Limiter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stuff::test::{TestAudioSource, TestAudioSourceParams};
+    use crate::{TestAudioSource, TestAudioSourceParams};
     use more_asserts::{assert_gt, assert_lt};
 
     #[test]

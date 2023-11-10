@@ -1,13 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
+use anyhow::{anyhow, Result};
+use ensnare_core::{
     instruments::Synthesizer,
     midi::prelude::*,
     prelude::*,
     utils::Paths,
     voices::{VoiceCount, VoiceStore},
 };
-use anyhow::{anyhow, Result};
 use ensnare_proc_macros::{Control, Params};
 use hound::WavReader;
 use std::{fs::File, io::BufReader, path::Path, sync::Arc};
@@ -345,7 +345,7 @@ impl Sampler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::FileType;
+    use ensnare_core::utils::FileType;
     use std::path::PathBuf;
 
     fn paths_with_test_data_dir() -> Paths {

@@ -60,11 +60,9 @@ pub mod control {
     }
 }
 
-pub mod devices {
+pub mod cores {
     //! The core business logic that powers musical instruments.
-    pub use ensnare_cores::controllers::sequencers::pattern::{
-        PatternSequencer, PatternSequencerBuilder,
-    };
+    pub use ensnare_cores::*;
 }
 
 pub mod entities {
@@ -89,21 +87,31 @@ pub mod entities {
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub mod controllers {
-        //! Built-in controllers. Controllers control other devices by generating MIDI and
-        //! control events. Examples are sequencers, which generate MIDI, and LFOs,
-        //! which generate control signals. Controllers implement
-        //! [IsController](crate::traits::IsController).
+        //! Controllers implement the
+        //! [IsController](crate::traits::IsController) trait, which means that
+        //! they control other devices. An example of a controller is a
+        //! [MidiSequencer](crate::entities::controllers::MidiSequencer), which
+        //! replays programmed MIDI messages.
+        //!
+        //! Generally, controllers produce only control signals, and not audio.
+        //! But adapters exist that change one kind of signal into another, such
+        //! as [SignalPassthroughController], which is used in
+        //! [sidechaining](https://en.wikipedia.org/wiki/Dynamic_range_compression#Side-chaining).
+        //! In theory, a similar adapter could be used to change a control
+        //! signal into an audio signal.
         pub use ensnare_core::controllers::{
             ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
         };
         pub use ensnare_entity::test_entities::TestController;
-        pub use ensnare_factory_entities::controllers::{
-            LivePatternSequencer, MidiSequencer, NoteSequencer, PatternSequencer,
-        };
+        pub use ensnare_factory_entities::controllers::*;
     }
     pub mod effects {
-        //! Built-in effects. Effects transform audio. Examples are reverb and
-        //! delay. Effects implement [IsEffect](crate::traits::IsEffect).
+        //! Effects implement the [IsEffect](crate::traits::IsEffect) trait,
+        //! which means that they transform audio. They don't produce their own
+        //! audio, and while they don't produce control signals, most of them do
+        //! respond to controls. Examples of effects are
+        //! [Compressor](crate::entities::effects::Compressor) and
+        //! [Reverb](crate::entities::effects::Reverb).
         pub use ensnare_factory_entities::effects::*;
     }
 

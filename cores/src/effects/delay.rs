@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
-use serde::{Deserialize, Serialize};
 
 pub(crate) trait Delays {
     fn peek_output(&self, apply_decay: bool) -> Sample;
@@ -189,13 +188,12 @@ impl Configurable for AllPassDelayLine {
     }
 }
 
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Delay {
     #[control]
     #[params]
     seconds: ParameterType,
 
-    #[serde(skip)]
     delay: DelayLine,
 }
 impl Serializable for Delay {}
@@ -235,6 +233,7 @@ impl Delay {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensnare_core::rng::Rng;
     use float_cmp::approx_eq;
     use more_asserts::{assert_gt, assert_lt};
 
@@ -273,9 +272,9 @@ mod tests {
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // We should keep getting back what we put in.
-        let mut rng = oorandom::Rand32::new(0);
+        let mut rng = Rng::default();
         for i in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            let random_bipolar_normal = rng.rand_float() * 2.0 - 1.0;
+            let random_bipolar_normal = rng.0.rand_float() * 2.0 - 1.0;
             let sample = Sample::from(random_bipolar_normal);
             assert_eq!(
                 fx.transform_channel(0, sample),

@@ -25,7 +25,7 @@ use ensnare_core::{
     types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
-use ensnare_cores::controllers::sequencers::pattern::LivePatternSequencer;
+use ensnare_cores::LivePatternSequencer;
 use ensnare_egui::{
     control::ControlRouter,
     piano_roll::piano_roll,

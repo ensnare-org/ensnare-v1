@@ -1,14 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::sampler::{Sampler, SamplerVoice};
-use crate::{
+use anyhow::anyhow;
+use ensnare_core::{
     instruments::Synthesizer,
     midi::{prelude::*, GeneralMidiPercussionProgram},
     prelude::*,
     utils::Paths,
     voices::VoicePerNoteStore,
 };
-use anyhow::anyhow;
 use ensnare_proc_macros::{Control, Params};
 use std::{path::Path, sync::Arc};
 

@@ -1,12 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::egui::Slider;
-use ensnare_core::{
-    prelude::*,
-    stuff::{
-        bitcrusher::BitcrusherParams, chorus::ChorusParams, compressor::CompressorParams,
-        gain::GainParams, limiter::LimiterParams, mixer::MixerParams, reverb::ReverbParams,
-    },
+use ensnare_core::prelude::*;
+use ensnare_cores::{
+    BitcrusherParams, ChorusParams, CompressorParams, GainParams, LimiterParams, MixerParams,
+    ReverbParams,
 };
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
@@ -26,18 +24,13 @@ pub mod filter;
 )]
 pub struct Bitcrusher {
     uid: Uid,
-    inner: ensnare_core::stuff::bitcrusher::Bitcrusher,
+    inner: ensnare_cores::Bitcrusher,
 }
 impl Displays for Bitcrusher {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut bits = self.inner.bits();
-        let response = ui.add(
-            Slider::new(
-                &mut bits,
-                ensnare_core::stuff::bitcrusher::Bitcrusher::bits_range(),
-            )
-            .suffix(" bits"),
-        );
+        let response =
+            ui.add(Slider::new(&mut bits, ensnare_cores::Bitcrusher::bits_range()).suffix(" bits"));
         if response.changed() {
             self.inner.set_bits(bits);
         };
@@ -48,7 +41,7 @@ impl Bitcrusher {
     pub fn new_with(uid: Uid, params: &BitcrusherParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::bitcrusher::Bitcrusher::new_with(&params),
+            inner: ensnare_cores::Bitcrusher::new_with(&params),
         }
     }
 }
@@ -65,7 +58,7 @@ impl Bitcrusher {
 )]
 pub struct Chorus {
     uid: Uid,
-    inner: ensnare_core::stuff::chorus::Chorus,
+    inner: ensnare_cores::Chorus,
 }
 impl Displays for Chorus {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -76,7 +69,7 @@ impl Chorus {
     pub fn new_with(uid: Uid, params: &ChorusParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::chorus::Chorus::new_with(&params),
+            inner: ensnare_cores::Chorus::new_with(&params),
         }
     }
 }
@@ -93,7 +86,7 @@ impl Chorus {
 )]
 pub struct Compressor {
     uid: Uid,
-    inner: ensnare_core::stuff::compressor::Compressor,
+    inner: ensnare_cores::Compressor,
 }
 impl Displays for Compressor {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -140,7 +133,7 @@ impl Compressor {
     pub fn new_with(uid: Uid, params: &CompressorParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::compressor::Compressor::new_with(&params),
+            inner: ensnare_cores::Compressor::new_with(&params),
         }
     }
 }
@@ -157,7 +150,7 @@ impl Compressor {
 )]
 pub struct Gain {
     uid: Uid,
-    inner: ensnare_core::stuff::gain::Gain,
+    inner: ensnare_cores::Gain,
 }
 impl Displays for Gain {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -178,7 +171,7 @@ impl Gain {
     pub fn new_with(uid: Uid, params: &GainParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::gain::Gain::new_with(&params),
+            inner: ensnare_cores::Gain::new_with(&params),
         }
     }
 }
@@ -195,7 +188,7 @@ impl Gain {
 )]
 pub struct Limiter {
     uid: Uid,
-    inner: ensnare_core::stuff::limiter::Limiter,
+    inner: ensnare_cores::Limiter,
 }
 impl Displays for Limiter {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -226,7 +219,7 @@ impl Limiter {
     pub fn new_with(uid: Uid, params: &LimiterParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::limiter::Limiter::new_with(&params),
+            inner: ensnare_cores::Limiter::new_with(&params),
         }
     }
 }
@@ -234,7 +227,7 @@ impl Limiter {
 #[derive(Debug, Default, InnerControllable, InnerEffect, IsEffect, Metadata)]
 pub struct Mixer {
     uid: Uid,
-    inner: ensnare_core::stuff::mixer::Mixer,
+    inner: ensnare_cores::Mixer,
 }
 impl Displays for Mixer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -247,7 +240,7 @@ impl Mixer {
     pub fn new_with(uid: Uid, params: &MixerParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::mixer::Mixer::new_with(&params),
+            inner: ensnare_cores::Mixer::new_with(&params),
         }
     }
 }
@@ -264,7 +257,7 @@ impl Mixer {
 )]
 pub struct Reverb {
     uid: Uid,
-    inner: ensnare_core::stuff::reverb::Reverb,
+    inner: ensnare_cores::Reverb,
 }
 impl Displays for Reverb {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -275,7 +268,7 @@ impl Reverb {
     pub fn new_with(uid: Uid, params: &ReverbParams) -> Self {
         Self {
             uid,
-            inner: ensnare_core::stuff::reverb::Reverb::new_with(&params),
+            inner: ensnare_cores::Reverb::new_with(&params),
         }
     }
 }

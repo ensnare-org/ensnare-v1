@@ -1,10 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Compressor {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
     /// corresponds to quietest, and 1.0 corresponds to 0dB.
