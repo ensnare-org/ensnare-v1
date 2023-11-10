@@ -16,8 +16,8 @@ use ensnare_egui::controllers::{
 };
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
-    Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable, IsController,
-    IsControllerEffect, Metadata, InnerTransformsAudio,
+    Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
+    InnerTransformsAudio, IsController, IsControllerEffect, Metadata,
 };
 
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsController, Metadata)]
