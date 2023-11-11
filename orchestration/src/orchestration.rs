@@ -3,6 +3,7 @@
 use crate::{
     bus_route::{BusRoute, BusStation},
     control_router::ControlRouter,
+    egui::title_bar,
     humidifier::Humidifier,
     main_mixer::MainMixer,
     midi_router::MidiRouter,
@@ -12,6 +13,7 @@ use crate::{
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use derive_builder::Builder;
+use eframe::egui::Widget;
 use ensnare_core::{
     control::{ControlIndex, ControlValue},
     controllers::ControlTripBuilder,
@@ -27,12 +29,9 @@ use ensnare_core::{
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
 use ensnare_cores::LivePatternSequencer;
-use ensnare_egui::{
+use ensnare_cores_egui::{
     piano_roll::piano_roll,
-    widgets::{
-        timeline::{self, TimelineIconStripAction},
-        track,
-    },
+    widgets::timeline::{self, TimelineIconStripAction},
 };
 use ensnare_entity::prelude::*;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
@@ -142,6 +141,9 @@ impl OldOrchestrator {
     pub const ENTITY_NAME: &'static str = "Orchestrator";
     pub const ENTITY_KEY: &'static str = "orchestrator";
 
+    pub fn as_orchestrates_mut(&mut self) -> &mut impl Orchestrates {
+        self
+    }
     /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
     /// specified position to the given track's sequencer.
     pub fn add_pattern_to_track(
@@ -1390,18 +1392,18 @@ impl<'a> OrchestratorHelper<'a> {
     }
 }
 
-/// Wraps an [OrchestratorEgui] as a [Widget](eframe::egui::Widget).
+/// Wraps an [OrchestratorWidget] as a [Widget](eframe::egui::Widget).
 pub fn orchestrator<'a>(orchestrator: &'a mut Orchestrator) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OrchestratorEgui::new(orchestrator).ui(ui)
+    move |ui: &mut eframe::egui::Ui| OrchestratorWidget::new(orchestrator).ui(ui)
 }
 
 /// An egui component that draws an [Orchestrator].
 #[derive(Debug)]
-struct OrchestratorEgui<'a> {
+struct OrchestratorWidget<'a> {
     orchestrator: &'a mut Orchestrator,
 }
-impl<'a> Displays for OrchestratorEgui<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> eframe::egui::Widget for OrchestratorWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(format!(
             "There are {} tracks",
             self.orchestrator.track_uids().len()
@@ -1413,32 +1415,32 @@ impl<'a> Displays for OrchestratorEgui<'a> {
         add_track_button_response
     }
 }
-impl<'a> OrchestratorEgui<'a> {
+impl<'a> OrchestratorWidget<'a> {
     pub fn new(orchestrator: &'a mut Orchestrator) -> Self {
         Self { orchestrator }
     }
 }
 
-/// Wraps an [OldOrchestratorEgui] as a [Widget](eframe::egui::Widget).
+/// Wraps an [OldOrchestratorWidget] as a [Widget](eframe::egui::Widget).
 pub fn old_orchestrator<'a>(
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        OldOrchestratorEgui::new(orchestrator, view_range, is_piano_roll_visible).ui(ui)
+        OldOrchestratorWidget::new(orchestrator, view_range, is_piano_roll_visible).ui(ui)
     }
 }
 
 /// An egui component that draws an [Orchestrator].
 #[derive(Debug)]
-struct OldOrchestratorEgui<'a> {
+struct OldOrchestratorWidget<'a> {
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
 }
-impl<'a> Displays for OldOrchestratorEgui<'a> {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         eframe::egui::Window::new("Piano Roll")
             .open(self.is_piano_roll_visible)
             .default_width(ui.available_width())
@@ -1490,7 +1492,7 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
                 // we create an empty track title bar to match with the real
                 // ones.
                 ui.horizontal(|ui| {
-                    ui.add_enabled(false, track::title_bar(None));
+                    ui.add_enabled(false, title_bar(None));
                     ui.add(timeline::legend(self.view_range));
                 });
 
@@ -1552,7 +1554,7 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
             .response
     }
 }
-impl<'a> OldOrchestratorEgui<'a> {
+impl<'a> OldOrchestratorWidget<'a> {
     pub fn new(
         orchestrator: &'a mut OldOrchestrator,
         view_range: &'a mut ViewRange,

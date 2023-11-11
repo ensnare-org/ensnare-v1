@@ -22,7 +22,7 @@ egui_extras = { version = "0.23", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
 ensnare-cores = { path = "cores" }
 ensnare-drag-drop = { path = "drag-drop" }
-ensnare-egui = { path = "egui" }
+ensnare-cores-egui = { path = "cores-egui" }
 ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entity = { path = "entity" }
 ensnare-factory-entities = { path = "factory-entities" }
@@ -39,7 +39,7 @@ strum_macros = "0.25.2"
 members = [
     "core",
     "cores",
-    "egui",
+    "cores-egui",
     "egui-widgets",
     "entity",
     "factory-entities",

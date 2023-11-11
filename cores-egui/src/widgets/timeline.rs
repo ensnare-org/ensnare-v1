@@ -52,7 +52,7 @@ impl<'a> Legend<'a> {
         (view_range.start.total_beats()..view_range.end.total_beats()).step_by(step * 2)
     }
 }
-impl<'a> Widget for Legend<'a> {
+impl<'a> eframe::egui::Widget for Legend<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), ui.spacing().interact_size.y);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
@@ -118,7 +118,7 @@ impl Grid {
         self
     }
 }
-impl Widget for Grid {
+impl eframe::egui::Widget for Grid {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
@@ -172,7 +172,7 @@ impl Cursor {
         self
     }
 }
-impl Widget for Cursor {
+impl eframe::egui::Widget for Cursor {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
@@ -208,7 +208,7 @@ impl<'a> TimelineIconStrip<'a> {
         Self { action }
     }
 }
-impl<'a> Widget for TimelineIconStrip<'a> {
+impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal(|ui| {
             let next_response = ui.button("Next timeline view");

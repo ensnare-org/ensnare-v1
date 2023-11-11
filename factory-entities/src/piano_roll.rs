@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_egui::piano_roll::piano_roll;
+use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{IsController, Metadata};
 

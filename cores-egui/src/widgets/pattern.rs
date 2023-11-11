@@ -81,7 +81,7 @@ impl<'a> Icon<'a> {
         self
     }
 }
-impl<'a> Widget for Icon<'a> {
+impl<'a> eframe::egui::Widget for Icon<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size.y * eframe::egui::vec2(3.0, 3.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
@@ -136,7 +136,7 @@ impl DraggableIcon {
         Default::default()
     }
 }
-impl Widget for DraggableIcon {
+impl eframe::egui::Widget for DraggableIcon {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size * Vec2::splat(1.25);
         let icon =
@@ -168,7 +168,7 @@ impl<'a> Carousel<'a> {
         }
     }
 }
-impl<'a> Widget for Carousel<'a> {
+impl<'a> eframe::egui::Widget for Carousel<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal_top(|ui| {
             let icon_width = ui.available_width() / self.pattern_uids.len() as f32;
@@ -217,7 +217,7 @@ impl Grid {
         self
     }
 }
-impl Widget for Grid {
+impl eframe::egui::Widget for Grid {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());

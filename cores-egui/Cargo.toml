@@ -2,9 +2,9 @@
 
 [package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "egui logic for drawing ensnare entities"
+description = "Egui support for ensnare-cores"
 edition = "2021"
-name = "ensnare-egui"
+name = "ensnare-cores-egui"
 publish = false
 version = "0.1.0"
 

@@ -351,7 +351,7 @@ impl<'a> MidiSettingsWidget<'a> {
         }
     }
 }
-impl<'a> Widget for MidiSettingsWidget<'a> {
+impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         CollapsingHeader::new("MIDI")
             .default_open(true)

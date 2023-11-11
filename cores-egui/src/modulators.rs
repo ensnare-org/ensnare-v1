@@ -15,7 +15,7 @@ struct DcaWidget<'a> {
     dca: &'a mut Dca,
     controllable_uid: Uid,
 }
-impl<'a> Widget for DcaWidget<'a> {
+impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;

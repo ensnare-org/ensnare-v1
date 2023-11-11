@@ -48,7 +48,7 @@ impl<'a> PianoRollWidget<'a> {
         ui.add_visible_ui(false, |_| {}).response
     }
 }
-impl<'a> Widget for PianoRollWidget<'a> {
+impl<'a> eframe::egui::Widget for PianoRollWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
             ui.add(pattern::carousel(
@@ -125,7 +125,7 @@ impl<'a> PatternWidget<'a> {
         Rect::from_two_pos(ul, br)
     }
 }
-impl<'a> Widget for PatternWidget<'a> {
+impl<'a> eframe::egui::Widget for PatternWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());

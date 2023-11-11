@@ -17,7 +17,7 @@ impl<'a> BiQuadFilterLowPass24dbWidget<'a> {
         Self { inner }
     }
 }
-impl<'a> Widget for BiQuadFilterLowPass24dbWidget<'a> {
+impl<'a> eframe::egui::Widget for BiQuadFilterLowPass24dbWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.inner.cutoff().0;
         let mut pbr = self.inner.passband_ripple();

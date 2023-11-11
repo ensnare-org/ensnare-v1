@@ -14,6 +14,6 @@ crossbeam-channel = "0.5.8"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
-ensnare-egui = { path = "../egui" }
+ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }

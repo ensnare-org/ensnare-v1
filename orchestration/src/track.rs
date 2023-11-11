@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{control_router::ControlRouter, humidifier::Humidifier, midi_router::MidiRouter};
+use crate::{
+    control_router::ControlRouter, egui::title_bar, humidifier::Humidifier, midi_router::MidiRouter,
+};
 use anyhow::anyhow;
 use eframe::{
     egui::{ImageButton, Widget},
@@ -15,14 +17,11 @@ use ensnare_core::{
     types::TrackTitle,
 };
 use ensnare_cores::LivePatternSequencer;
-use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-use ensnare_egui::{
+use ensnare_cores_egui::{
     prelude::{live_pattern_sequencer_widget, trip},
-    widgets::{
-        timeline::{cursor, grid},
-        track::title_bar,
-    },
+    widgets::timeline::{cursor, grid},
 };
+use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_entity::prelude::*;
 use std::{
     collections::HashMap,
@@ -451,7 +450,7 @@ pub fn track_widget<'a>(
     cursor: Option<MusicalTime>,
     view_range: &'a ViewRange,
     action: &'a mut Option<TrackWidgetAction>,
-) -> impl eframe::egui::Widget + 'a {
+) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
         TrackWidget::new(track_uid, track, cursor, view_range, action)
             .is_selected(is_selected)
@@ -668,7 +667,7 @@ pub fn signal_chain<'a>(
     track_uid: TrackUid,
     track: &'a mut Track,
     action: &'a mut Option<SignalChainWidgetAction>,
-) -> impl eframe::egui::Widget + 'a {
+) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track_uid, track, action).ui(ui)
 }
 
@@ -759,7 +758,7 @@ pub fn signal_chain_item<'a>(
     uid: Uid,
     name: &'static str,
     is_control_source: bool,
-) -> impl eframe::egui::Widget + 'a {
+) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| SignalChainItem::new(uid, name, is_control_source).ui(ui)
 }
 

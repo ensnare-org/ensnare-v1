@@ -11,7 +11,7 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_cores::{ArpeggiatorParams, LfoControllerParams};
-use ensnare_egui::controllers::{
+use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
 };
 use ensnare_entity::prelude::*;

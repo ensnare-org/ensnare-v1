@@ -20,7 +20,7 @@ impl Wiggler {
         Default::default()
     }
 }
-impl Widget for Wiggler {
+impl eframe::egui::Widget for Wiggler {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.ctx().request_repaint();
 

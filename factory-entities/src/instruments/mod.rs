@@ -2,7 +2,7 @@
 
 use ensnare_core::{prelude::*, utils::Paths};
 use ensnare_cores::{DrumkitParams, FmSynthParams, SamplerParams, WelshSynthParams};
-use ensnare_egui::instruments::{fm::fm_synth, sampler, welsh};
+use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,

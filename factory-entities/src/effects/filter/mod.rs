@@ -2,7 +2,7 @@
 
 use ensnare_core::prelude::*;
 use ensnare_cores::BiQuadFilterLowPass24dbParams;
-use ensnare_egui::effects::bi_quad_filter_low_pass_24db;
+use ensnare_cores_egui::effects::bi_quad_filter_low_pass_24db;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEffect, Metadata,

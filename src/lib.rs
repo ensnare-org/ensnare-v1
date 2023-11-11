@@ -238,10 +238,10 @@ pub mod types {
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub use ensnare_egui::widgets::audio::CircularSampleBuffer;
+    pub use ensnare_cores_egui::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_egui::widgets::{audio, pattern, placeholder, timeline, track};
+        pub use ensnare_cores_egui::widgets::{audio, pattern, placeholder, timeline};
         pub use ensnare_systems::{audio_settings, midi_settings};
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
@@ -280,6 +280,6 @@ pub mod prelude {
     //     modulators::{Dca, DcaParams},
     //     project::{Project, ProjectTitle},
     // };
-    pub use ensnare_egui::prelude::*;
+    pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;
 }

@@ -8,7 +8,7 @@ use ensnare_core::{
 use strum::IntoEnumIterator;
 
 /// A [Widget](eframe::egui::Widget) for picking an oscillator waveform.
-pub fn waveform<'a>(waveform: &'a mut Waveform) -> impl Widget + 'a {
+pub fn waveform<'a>(waveform: &'a mut Waveform) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| WaveformWidget::new(waveform).ui(ui)
 }
 
@@ -21,7 +21,7 @@ impl<'a> WaveformWidget<'a> {
         Self { waveform }
     }
 }
-impl<'a> Widget for WaveformWidget<'a> {
+impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut r = ComboBox::new(ui.next_auto_id(), "Waveform")
             .selected_text(self.waveform.to_string())
@@ -62,7 +62,7 @@ impl<'a> FrequencyWidget<'a> {
         Self { range, frequency }
     }
 }
-impl<'a> Widget for FrequencyWidget<'a> {
+impl<'a> eframe::egui::Widget for FrequencyWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut frequency = self.frequency.0;
         let range = self.range.as_range_frequency_hz();

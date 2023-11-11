@@ -50,7 +50,7 @@ impl<'a> Trip<'a> {
         }
     }
 }
-impl<'a> Widget for Trip<'a> {
+impl<'a> eframe::egui::Widget for Trip<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let to_screen = RectTransform::from_to(
@@ -202,7 +202,7 @@ impl<'a> LivePatternSequencerWidget<'a> {
     }
 }
 
-impl<'a> Widget for LivePatternSequencerWidget<'a> {
+impl<'a> eframe::egui::Widget for LivePatternSequencerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
@@ -289,7 +289,7 @@ impl<'a> PatternSequencerWidget<'a> {
         }
     }
 }
-impl<'a> Widget for PatternSequencerWidget<'a> {
+impl<'a> eframe::egui::Widget for PatternSequencerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         todo!()
     }
@@ -321,7 +321,7 @@ impl<'a> NoteSequencerWidget<'a> {
         }
     }
 }
-impl<'a> Widget for NoteSequencerWidget<'a> {
+impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         todo!()
     }
@@ -342,7 +342,7 @@ impl<'a> ArpeggiatorWidget<'a> {
         Self { inner: entity }
     }
 }
-impl<'a> Widget for ArpeggiatorWidget<'a> {
+impl<'a> eframe::egui::Widget for ArpeggiatorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut r = eframe::egui::ComboBox::from_label("Scale")
             .selected_text(self.inner.mode.to_string())
@@ -381,7 +381,7 @@ struct LfoControllerWidget<'a> {
     waveform: &'a mut Waveform,
     frequency: &'a mut FrequencyHz,
 }
-impl<'a> Widget for LfoControllerWidget<'a> {
+impl<'a> eframe::egui::Widget for LfoControllerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(waveform(self.waveform))
             | ui.add(frequency(FrequencyRange::Subaudible, self.frequency))

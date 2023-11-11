@@ -131,7 +131,7 @@ impl<'a> TimeDomain<'a> {
         Self { samples, start }
     }
 }
-impl<'a> Widget for TimeDomain<'a> {
+impl<'a> eframe::egui::Widget for TimeDomain<'a> {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
@@ -181,7 +181,7 @@ impl<'a> FrequencyDomain<'a> {
         Self { values }
     }
 }
-impl<'a> Widget for FrequencyDomain<'a> {
+impl<'a> eframe::egui::Widget for FrequencyDomain<'a> {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());

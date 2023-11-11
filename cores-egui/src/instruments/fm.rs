@@ -18,7 +18,7 @@ impl<'a> FmSynthWidget<'a> {
         Self { inner }
     }
 }
-impl<'a> Widget for FmSynthWidget<'a> {
+impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut depth = self.inner.depth().to_percentage();
         let depth_response = ui.add(

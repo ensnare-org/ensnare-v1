@@ -26,7 +26,7 @@ use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     NoteSequencerBuilder,
 };
-use ensnare_egui::{
+use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
 };

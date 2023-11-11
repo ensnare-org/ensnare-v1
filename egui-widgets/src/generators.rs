@@ -12,7 +12,7 @@ use ensnare_core::{
 };
 
 /// Wraps an [OscillatorWidget] as a [Widget](eframe::egui::Widget).
-pub fn oscillator<'a>(oscillator: &'a mut Oscillator) -> impl Widget + 'a {
+pub fn oscillator<'a>(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
 }
 /// An egui widget for [Oscillator].
@@ -20,7 +20,7 @@ pub fn oscillator<'a>(oscillator: &'a mut Oscillator) -> impl Widget + 'a {
 struct OscillatorWidget<'a> {
     oscillator: &'a mut Oscillator,
 }
-impl<'a> Widget for OscillatorWidget<'a> {
+impl<'a> eframe::egui::Widget for OscillatorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(waveform(&mut self.oscillator.waveform))
     }
@@ -46,7 +46,7 @@ impl<'a> EnvelopeWidget<'a> {
         Self { envelope }
     }
 }
-impl<'a> Widget for EnvelopeWidget<'a> {
+impl<'a> eframe::egui::Widget for EnvelopeWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut attack = self.envelope.attack();
         let mut decay = self.envelope.decay();

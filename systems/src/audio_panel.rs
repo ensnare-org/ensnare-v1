@@ -194,7 +194,7 @@ impl<'a> AudioSettingsWidget<'a> {
         Self { settings }
     }
 }
-impl<'a> Widget for AudioSettingsWidget<'a> {
+impl<'a> eframe::egui::Widget for AudioSettingsWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         CollapsingHeader::new("Audio")
             .default_open(true)

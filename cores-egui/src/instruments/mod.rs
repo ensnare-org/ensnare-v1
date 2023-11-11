@@ -21,7 +21,7 @@ impl<'a> SamplerWidget<'a> {
         Self { inner }
     }
 }
-impl<'a> Widget for SamplerWidget<'a> {
+impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(sampler(self.inner))
     }
@@ -45,7 +45,7 @@ impl<'a> WelshWidget<'a> {
         Self { uid, inner }
     }
 }
-impl<'a> Widget for WelshWidget<'a> {
+impl<'a> eframe::egui::Widget for WelshWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         // TODO: the set_waveform() calls don't capture the whole set of things
         // that the oscillator widget might change. We need to figure out how to

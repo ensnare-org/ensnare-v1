@@ -17,7 +17,7 @@ impl<'a> TransportWidget<'a> {
         Self { transport }
     }
 }
-impl<'a> Widget for TransportWidget<'a> {
+impl<'a> eframe::egui::Widget for TransportWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal_centered(|ui| {
             ui.add(

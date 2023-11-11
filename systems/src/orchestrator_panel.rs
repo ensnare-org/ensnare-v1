@@ -5,7 +5,8 @@ use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
 use ensnare_entity::prelude::*;
 use ensnare_orchestration::{
-    orchestration::{old_orchestrator, OldOrchestrator, Orchestrator, OrchestratorAction},
+    orchestration::{old_orchestrator, OrchestratorAction},
+    prelude::*,
     traits::Orchestrates,
 };
 use std::{
@@ -309,13 +310,18 @@ impl Displays for OrchestratorPanel {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut o = self.orchestrator.lock().unwrap();
         //   o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
-        let mut view_range = o.view_range.clone();
         let mut is_piano_roll_visible = o.e.is_piano_roll_open;
-        let response = ui.add(old_orchestrator(
-            &mut o,
+        // let response = ui.add(old_orchestrator(
+        //     &mut o,
+        //     &mut view_range,
+        //     &mut is_piano_roll_visible,
+        // ));
+        let mut view_range = o.view_range.clone();
+        let response = ui.add(orchestrates_trait_widget(
+            o.as_orchestrates_mut(),
             &mut view_range,
-            &mut is_piano_roll_visible,
         ));
+        o.view_range = view_range;
 
         // TODO: now that we've moved over to a widget-heavy pattern, can we get
         // rid of the Acts trait?
