@@ -17,7 +17,7 @@ use ensnare::{
     app_version,
     prelude::*,
     ui::{
-        widgets::{audio, pattern, placeholder, timeline, track},
+        widgets::{audio, pattern, placeholder, timeline},
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
@@ -32,7 +32,10 @@ use ensnare_cores_egui::{
 };
 use ensnare_entity::traits::Entity;
 use ensnare_factory_entities::controllers::NoteSequencer;
-use ensnare_orchestration::track::{signal_chain, track_widget, Track, TrackAction};
+use ensnare_orchestration::{
+    egui::{make_title_bar_galley, title_bar},
+    track::{signal_chain, track_widget, Track, TrackAction},
+};
 use ensnare_toy_entities::prelude::*;
 
 #[derive(Debug)]
@@ -513,7 +516,7 @@ struct TitleBarSettings {
 impl Displays for TitleBarSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.font_galley.is_none() {
-            self.font_galley = Some(track::make_title_bar_galley(ui, &self.title));
+            self.font_galley = Some(make_title_bar_galley(ui, &self.title));
         }
         ui.checkbox(&mut self.hide, "Hide");
         let response = ui.text_edit_singleline(&mut self.title.0);
@@ -529,7 +532,7 @@ impl TitleBarSettings {
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             if let Some(font_galley) = &self.font_galley {
-                ui.add(track::title_bar(Some(std::sync::Arc::clone(font_galley))));
+                ui.add(title_bar(Some(std::sync::Arc::clone(font_galley))));
             }
         }
     }
