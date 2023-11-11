@@ -82,20 +82,12 @@ pub struct OrchestratorEphemerals {
 #[derive(Debug, Builder)]
 #[builder(setter(skip), default)]
 #[builder_struct_attr(allow(missing_docs))]
-#[deprecated]
 pub struct OldOrchestrator {
     /// The user-supplied name of this project.
     #[builder(setter, default)]
     pub title: Option<String>,
 
-    entity_uid_factory: EntityUidFactory,
-    track_uid_factory: TrackUidFactory,
-
-    pub transport: Transport,
-    control_router: ControlRouter,
-
-    /// An ordered list of [TrackUid]s in the order they appear in the UI.
-    pub track_uids: Vec<TrackUid>,
+    pub inner: Orchestrator,
 
     /// All [Track]s, indexed by their [TrackUid].
     pub tracks: HashMap<TrackUid, Track>,
@@ -105,18 +97,11 @@ pub struct OldOrchestrator {
     // feature enabled for Serde.
     pub piano_roll: Arc<RwLock<PianoRoll>>,
 
-    bus_station: BusStation,
-
-    // A cache for finding an [Entity]'s owning [Track].
-    pub entity_uid_to_track_uid: HashMap<Uid, TrackUid>,
-
     // We do want this serialized, unlike many other entities that implement
     // DisplaysInTimeline, because this field determines the timeline view
     // range, and it's nicer to remember it when the project is loaded and
     // saved.
     pub view_range: ViewRange,
-
-    main_mixer: MainMixer,
 
     //////////////////////////////////////////////////////
     // Nothing below this comment should be serialized. //
@@ -132,17 +117,10 @@ impl Default for OldOrchestrator {
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: Default::default(),
-            entity_uid_factory: Default::default(),
-            track_uid_factory: Default::default(),
-            transport,
-            control_router: Default::default(),
+            inner: Default::default(),
             tracks: Default::default(),
-            track_uids: Default::default(),
             piano_roll,
-            bus_station: Default::default(),
-            entity_uid_to_track_uid: Default::default(),
             view_range,
-            main_mixer: Default::default(),
 
             e: Default::default(),
         }
@@ -180,11 +158,11 @@ impl OldOrchestrator {
     }
 
     pub fn mint_entity_uid(&self) -> Uid {
-        self.entity_uid_factory.mint_next()
+        self.inner.entity_uid_factory.mint_next()
     }
 
     fn mint_track_uid(&mut self) -> TrackUid {
-        self.track_uid_factory.mint_next()
+        self.inner.track_uid_factory.mint_next()
     }
 
     fn new_base_track(
@@ -237,7 +215,7 @@ impl OldOrchestrator {
 
     /// Adds a set of tracks that make sense for a new project.
     pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
-        if !self.track_uids.is_empty() {
+        if !self.inner.track_uids.is_empty() {
             return Err(anyhow!("Must be invoked on an empty orchestrator."));
         }
         self.new_midi_track()?;
@@ -266,7 +244,7 @@ impl OldOrchestrator {
         // handle that -- either we skip calling work() if the time range is the
         // same as prior, or everyone who gets called needs to detect the case
         // or be idempotent.
-        let range = self.transport.advance(samples.len());
+        let range = self.inner.transport.advance(samples.len());
         self.update_time(&range);
         self.work(control_events_fn);
         self.generate_batch_values(samples);
@@ -347,7 +325,7 @@ impl OldOrchestrator {
 
     /// Returns all [Track] uids in UI order.
     pub fn track_uids(&self) -> &[TrackUid] {
-        self.track_uids.as_ref()
+        self.inner.track_uids.as_ref()
     }
 
     fn calculate_is_finished(&self) -> bool {
@@ -374,10 +352,12 @@ impl OldOrchestrator {
     }
 
     fn route_control_change(&mut self, source_uid: Uid, value: ControlValue) {
-        let _ = self.control_router.route(
+        let _ = self.inner.control_router.route(
             &mut |target_uid, index, value| {
                 if target_uid == &Self::TRANSPORT_UID {
-                    self.transport.control_set_param_by_index(index, value);
+                    self.inner
+                        .transport
+                        .control_set_param_by_index(index, value);
                 }
             },
             source_uid,
@@ -424,16 +404,11 @@ impl OldOrchestrator {
 }
 impl Orchestrates for OldOrchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.mint_track_uid();
-        self.track_uids.push(track_uid);
-        let mut track = Track::default();
-        track.e.piano_roll = Arc::clone(&self.piano_roll);
-        self.tracks.insert(track_uid, track);
-        Ok(track_uid)
+        self.inner.create_track()
     }
 
     fn track_uids(&self) -> &[TrackUid] {
-        &self.track_uids
+        self.inner.track_uids()
     }
 
     fn set_track_position(
@@ -441,45 +416,19 @@ impl Orchestrates for OldOrchestrator {
         track_uid: TrackUid,
         new_position: usize,
     ) -> anyhow::Result<()> {
-        if self.track_uids.contains(&track_uid) {
-            self.track_uids.retain(|uid| *uid != track_uid);
-            if new_position <= self.track_uids.len() {
-                self.track_uids.insert(new_position, track_uid);
-                Ok(())
-            } else {
-                Err(anyhow!(
-                    "Given position {new_position} is beyond range 0..{}",
-                    self.track_uids.len(),
-                ))
-            }
-        } else {
-            Err(anyhow!("Track {track_uid} not found"))
-        }
+        self.inner.set_track_position(track_uid, new_position)
     }
 
     fn delete_track(&mut self, track_uid: &TrackUid) {
-        self.tracks.remove(&track_uid);
-        self.track_uids.retain(|uid| uid != track_uid);
+        self.inner.delete_track(track_uid)
     }
 
     fn delete_tracks(&mut self, uids: &[TrackUid]) {
-        uids.iter().for_each(|uid| {
-            self.delete_track(uid);
-        });
+        self.inner.delete_tracks(uids)
     }
 
     fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
-        if entity.uid() == Uid::default() {
-            panic!("Attempted to add an entity without a valid Uid. Did you mean to call assign_uid_and_add_entity() instead?");
-        }
-        if let Some(track) = self.tracks.get_mut(&track_uid) {
-            let uid = entity.uid();
-            self.entity_uid_to_track_uid.insert(uid, *track_uid);
-            track.append_entity(entity, uid)?;
-            Ok(())
-        } else {
-            Err(anyhow!("Couldn't find track {track_uid}"))
-        }
+        self.inner.add_entity(track_uid, entity)
     }
 
     fn assign_uid_and_add_entity(
@@ -487,50 +436,15 @@ impl Orchestrates for OldOrchestrator {
         track_uid: &TrackUid,
         mut entity: Box<dyn Entity>,
     ) -> anyhow::Result<Uid> {
-        if entity.uid() != Uid::default() {
-            panic!(
-                "Attempted to assign Uid to entity that already had one ({})",
-                entity.uid()
-            );
-        }
-        let uid = self.mint_entity_uid();
-        entity.set_uid(uid);
-        if let Some(track) = self.tracks.get_mut(&track_uid) {
-            self.entity_uid_to_track_uid.insert(uid, *track_uid);
-            track.append_entity(entity, uid)?;
-            Ok(uid)
-        } else {
-            Err(anyhow!("Couldn't find track {track_uid}"))
-        }
+        self.inner.assign_uid_and_add_entity(track_uid, entity)
     }
 
-    fn set_entity_track(&mut self, track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
-        if let Ok(entity) = self.remove_entity(uid) {
-            match self.add_entity(track_uid, entity) {
-                Ok(_) => Ok(()),
-                Err(e) => Err(e),
-            }
-        } else {
-            Err(anyhow!("Couldn't find track {track_uid}"))
-        }
+    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+        self.inner.set_entity_track(new_track_uid, uid)
     }
 
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                if let Some(entity) = track.remove_entity(uid) {
-                    Ok(entity)
-                } else {
-                    Err(anyhow!(
-                        "Couldn't remove entity {uid} from track {track_uid}"
-                    ))
-                }
-            } else {
-                Err(anyhow!("Track {track_uid} not found"))
-            }
-        } else {
-            Err(anyhow!("Track location of entity {uid} not found"))
-        }
+        self.inner.remove_entity(uid)
     }
 
     fn link_control(
@@ -539,65 +453,21 @@ impl Orchestrates for OldOrchestrator {
         target_uid: Uid,
         control_index: ControlIndex,
     ) -> anyhow::Result<()> {
-        if target_uid == Self::TRANSPORT_UID {
-            self.control_router
-                .link_control(source_uid, target_uid, control_index);
-            Ok(())
-        } else {
-            if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
-                if let Some(track) = self.tracks.get_mut(track_uid) {
-                    track
-                        .control_router
-                        .link_control(source_uid, target_uid, control_index);
-                    Ok(())
-                } else {
-                    Err(anyhow!("Couldn't find track that owns entity {target_uid}"))
-                }
-            } else {
-                Err(anyhow!(
-                    "Couldn't find uid of track that owns entity {target_uid}"
-                ))
-            }
-        }
+        self.inner
+            .link_control(source_uid, target_uid, control_index)
     }
 
     fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
-        if target_uid == Self::TRANSPORT_UID {
-            self.control_router
-                .unlink_control(source_uid, target_uid, control_index);
-        } else {
-            if let Some(track_uid) = self.entity_uid_to_track_uid.get(&target_uid) {
-                if let Some(track) = self.tracks.get_mut(track_uid) {
-                    track
-                        .control_router
-                        .unlink_control(source_uid, target_uid, control_index);
-                }
-            }
-        }
+        self.inner
+            .unlink_control(source_uid, target_uid, control_index)
     }
 
     fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track.set_humidity(uid, humidity)
-            } else {
-                Err(anyhow!("Couldn't find track that owns entity {uid}"))
-            }
-        } else {
-            Err(anyhow!("Couldn't find uid of track that owns entity {uid}"))
-        }
+        self.inner.set_effect_humidity(uid, humidity)
     }
 
     fn set_effect_position(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track.move_effect(uid, index)
-            } else {
-                Err(anyhow!("Couldn't find track that owns entity {uid}"))
-            }
-        } else {
-            Err(anyhow!("Couldn't find uid of track that owns entity {uid}"))
-        }
+        self.inner.set_effect_position(uid, index)
     }
 
     fn send(
@@ -606,59 +476,43 @@ impl Orchestrates for OldOrchestrator {
         aux_track_uid: TrackUid,
         send_amount: Normal,
     ) -> anyhow::Result<()> {
-        self.bus_station.add_send_route(
-            send_track_uid,
-            BusRoute {
-                aux_track_uid,
-                amount: send_amount,
-            },
-        )
+        self.inner.send(send_track_uid, aux_track_uid, send_amount)
     }
 
     fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid) {
-        self.bus_station
-            .remove_send_route(&send_track_uid, &aux_track_uid);
+        self.inner.remove_send(send_track_uid, aux_track_uid)
     }
 
     fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
-        self.main_mixer.set_track_output(track_uid, output)
+        self.inner.set_track_output(track_uid, output)
     }
 
     fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
-        self.main_mixer.mute_track(track_uid, muted)
+        self.inner.mute_track(track_uid, muted)
     }
 
     fn solo_track(&self) -> Option<TrackUid> {
-        self.main_mixer.solo_track()
+        self.inner.solo_track()
     }
 
     fn set_solo_track(&mut self, track_uid: TrackUid) {
-        self.main_mixer.set_solo_track(track_uid)
+        self.inner.set_solo_track(track_uid)
     }
 
     fn end_solo(&mut self) {
-        self.main_mixer.end_solo()
+        self.inner.end_solo()
     }
 
     fn next_range(&mut self, frame_count: usize) -> std::ops::Range<MusicalTime> {
-        self.transport.advance(frame_count)
+        self.inner.next_range(frame_count)
     }
 
     fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track.midi_router.connect(uid, channel);
-            }
-        }
-        Ok(())
+        self.inner.connect_midi_receiver(uid, channel)
     }
 
     fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
-        if let Some(track_uid) = self.entity_uid_to_track_uid.get(&uid) {
-            if let Some(track) = self.tracks.get_mut(track_uid) {
-                track.midi_router.disconnect(uid, channel);
-            }
-        }
+        self.inner.disconnect_midi_receiver(uid, channel)
     }
 }
 impl Displays for OldOrchestrator {}
@@ -719,7 +573,7 @@ impl Generates<StereoSample> for OldOrchestrator {
         });
 
         // Send audio to aux tracks...
-        for (track_uid, routes) in self.bus_station.send_routes() {
+        for (track_uid, routes) in self.inner.bus_station.send_routes() {
             // We need an extra buffer copy to satisfy the borrow checker.
             // HashMap::get_mut() grabs the entire HashMap, preventing us from
             // holding references to other elements in it. There are other
@@ -782,31 +636,31 @@ impl Ticks for OldOrchestrator {
 }
 impl Configurable for OldOrchestrator {
     fn sample_rate(&self) -> SampleRate {
-        self.transport.sample_rate()
+        self.inner.transport.sample_rate()
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.transport.update_sample_rate(sample_rate);
+        self.inner.transport.update_sample_rate(sample_rate);
         for track in self.tracks.values_mut() {
             track.update_sample_rate(sample_rate);
         }
     }
 
     fn tempo(&self) -> Tempo {
-        self.transport.tempo()
+        self.inner.transport.tempo()
     }
 
     fn update_tempo(&mut self, tempo: Tempo) {
-        self.transport.set_tempo(tempo);
+        self.inner.transport.set_tempo(tempo);
         // TODO: how do we let the service know this changed?
     }
 
     fn time_signature(&self) -> TimeSignature {
-        self.transport.time_signature()
+        self.inner.transport.time_signature()
     }
 
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.transport.update_time_signature(time_signature);
+        self.inner.transport.update_time_signature(time_signature);
     }
 }
 impl HandlesMidi for OldOrchestrator {
@@ -836,7 +690,8 @@ impl Controls for OldOrchestrator {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.transport
+        self.inner
+            .transport
             .work(&mut |m| self.e.events.push((Self::TRANSPORT_UID, m)));
         self.check_keyboard();
 
@@ -875,7 +730,7 @@ impl Controls for OldOrchestrator {
 
     fn play(&mut self) {
         self.e.is_performing = true;
-        self.transport.play();
+        self.inner.transport.play();
         self.tracks.values_mut().for_each(|t| t.play());
         self.e.is_finished = self.calculate_is_finished();
 
@@ -883,7 +738,7 @@ impl Controls for OldOrchestrator {
         // performance is zero-length. It stops the transport from advancing a
         // tiny bit and looking weird.
         if self.e.is_finished {
-            self.transport.stop();
+            self.inner.transport.stop();
         }
     }
 
@@ -895,12 +750,12 @@ impl Controls for OldOrchestrator {
         } else {
             self.skip_to_start();
         }
-        self.transport.stop();
+        self.inner.transport.stop();
         self.tracks.values_mut().for_each(|t| t.stop());
     }
 
     fn skip_to_start(&mut self) {
-        self.transport.skip_to_start();
+        self.inner.transport.skip_to_start();
         self.tracks.values_mut().for_each(|t| t.skip_to_start());
     }
 
@@ -927,7 +782,9 @@ pub struct Orchestrator {
 
     pub transport: Transport,
 
+    /// An ordered list of [TrackUid]s in the order they appear in the UI.
     track_uids: Vec<TrackUid>,
+    // A cache for finding an [Entity]'s owning [Track].
     track_for_entity: HashMap<Uid, TrackUid>,
 
     entity_store: EntityStore,
@@ -1187,13 +1044,13 @@ impl Orchestrates for Orchestrator {
         self.main_mixer.end_solo()
     }
 
-    fn next_range(&mut self, sample_count: usize) -> std::ops::Range<MusicalTime> {
+    fn next_range(&mut self, frame_count: usize) -> std::ops::Range<MusicalTime> {
         // Note that advance() can return the same range twice, depending on
         // sample rate. TODO: we should decide whose responsibility it is to
         // handle that -- either we skip calling work() if the time range is the
         // same as prior, or everyone who gets called needs to detect the case
         // or be idempotent.
-        self.transport.advance(sample_count)
+        self.transport.advance(frame_count)
     }
 
     fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
@@ -1604,7 +1461,7 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
             )
             .show(ui.ctx(), |ui| {
                 if let Some(uid) = &self.orchestrator.e.selected_entity_uid {
-                    if let Some(track_uid) = self.orchestrator.entity_uid_to_track_uid.get(uid) {
+                    if let Some(track_uid) = self.orchestrator.inner.track_for_entity.get(uid) {
                         if let Some(track) = self.orchestrator.tracks.get_mut(track_uid) {
                             if let Some(entity) = track.entity_mut(uid) {
                                 entity.ui(ui);
@@ -1643,12 +1500,12 @@ impl<'a> Displays for OldOrchestratorEgui<'a> {
                     .show(ui, |ui| {
                         let mut track_action = None;
                         let mut track_action_track_uid = None;
-                        for track_uid in self.orchestrator.track_uids.iter() {
+                        for track_uid in self.orchestrator.inner.track_uids.iter() {
                             if let Some(track) = self.orchestrator.tracks.get_mut(track_uid) {
                                 let is_selected =
                                     self.orchestrator.e.track_selection_set.contains(track_uid);
-                                let cursor = if self.orchestrator.transport.is_performing() {
-                                    Some(self.orchestrator.transport.current_time())
+                                let cursor = if self.orchestrator.inner.transport.is_performing() {
+                                    Some(self.orchestrator.inner.transport.current_time())
                                 } else {
                                     None
                                 };
