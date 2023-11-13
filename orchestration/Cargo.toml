@@ -21,6 +21,8 @@ ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
 ensnare-toy-entities = { path = "../toy-entities" }
 hound = "3.5.0"
-more-asserts = "0.3.1"
 rayon = "1.8.0"
 strum_macros = "0.25"
+
+[dev-dependencies]
+more-asserts = "0.3.1"
