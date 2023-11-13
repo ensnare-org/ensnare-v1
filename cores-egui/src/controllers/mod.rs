@@ -30,6 +30,7 @@ pub fn trip<'a>(
 
 #[derive(Debug)]
 struct Trip<'a> {
+    #[allow(dead_code)] // TODO see commented-out section in ui()
     uid: Uid,
     control_trip: &'a mut ensnare_core::controllers::ControlTrip,
     control_links: Option<&'a [(Uid, ControlIndex)]>,
@@ -275,7 +276,9 @@ pub fn pattern_sequencer_widget<'a>(
 
 #[derive(Debug)]
 pub struct PatternSequencerWidget<'a> {
+    #[allow(dead_code)]
     sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
+    #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> PatternSequencerWidget<'a> {
@@ -290,7 +293,7 @@ impl<'a> PatternSequencerWidget<'a> {
     }
 }
 impl<'a> eframe::egui::Widget for PatternSequencerWidget<'a> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+    fn ui(self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         todo!()
     }
 }
@@ -307,7 +310,9 @@ pub fn note_sequencer_widget<'a>(
 /// view.
 #[derive(Debug)]
 pub struct NoteSequencerWidget<'a> {
+    #[allow(dead_code)]
     sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
+    #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> NoteSequencerWidget<'a> {
@@ -322,7 +327,7 @@ impl<'a> NoteSequencerWidget<'a> {
     }
 }
 impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+    fn ui(self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         todo!()
     }
 }

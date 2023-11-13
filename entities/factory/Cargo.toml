@@ -4,7 +4,7 @@
 authors = ["Mike Tsao <mike@sowbug.com>"]
 description = "Ensnare Entities that are included with the crate"
 edition = "2021"
-name = "ensnare-factory-entities"
+name = "ensnare-entities-factory"
 publish = false
 version = "0.1.0"
 
@@ -12,8 +12,8 @@ version = "0.1.0"
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
 eframe = "0.23"
-ensnare-core = { path = "../core" }
-ensnare-cores = { path = "../cores" }
-ensnare-cores-egui = { path = "../cores-egui" }
-ensnare-entity = { path = "../entity" }
-ensnare-proc-macros = { path = "../proc-macros" }
+ensnare-core = { path = "../../core" }
+ensnare-cores = { path = "../../cores" }
+ensnare-cores-egui = { path = "../../cores-egui" }
+ensnare-entity = { path = "../../entity" }
+ensnare-proc-macros = { path = "../../proc-macros" }

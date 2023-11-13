@@ -189,6 +189,7 @@ impl TransformsAudio for BiQuadFilterLowPass12db {
     }
 }
 impl BiQuadFilterLowPass12db {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterLowPass12dbParams) -> Self {
         Self {
             cutoff: params.cutoff(),
@@ -285,6 +286,7 @@ impl TransformsAudio for BiQuadFilterHighPass {
     }
 }
 impl BiQuadFilterHighPass {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterHighPassParams) -> Self {
         let mut r = Self {
             cutoff: params.cutoff(),
@@ -573,6 +575,7 @@ impl TransformsAudio for BiQuadFilterBandStop {
     }
 }
 impl BiQuadFilterBandStop {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterBandStopParams) -> Self {
         Self {
             cutoff: params.cutoff(),
@@ -672,6 +675,7 @@ impl TransformsAudio for BiQuadFilterPeakingEq {
     }
 }
 impl BiQuadFilterPeakingEq {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterPeakingEqParams) -> Self {
         let mut r = Self {
             cutoff: params.cutoff(),
@@ -774,6 +778,7 @@ impl TransformsAudio for BiQuadFilterLowShelf {
     }
 }
 impl BiQuadFilterLowShelf {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterLowShelfParams) -> Self {
         Self {
             cutoff: params.cutoff(),
@@ -871,6 +876,7 @@ impl TransformsAudio for BiQuadFilterHighShelf {
     }
 }
 impl BiQuadFilterHighShelf {
+    #[allow(dead_code)]
     pub fn new_with(params: &BiQuadFilterHighShelfParams) -> Self {
         Self {
             cutoff: params.cutoff(),
@@ -962,6 +968,7 @@ impl TransformsAudio for BiQuadFilterNone {
     }
 }
 impl BiQuadFilterNone {
+    #[allow(dead_code)]
     pub fn new_with(_: BiQuadFilterNoneParams) -> Self {
         Self {
             sample_rate: Default::default(),
@@ -1041,12 +1048,14 @@ impl TransformsAudio for BiQuadFilter {
 impl BiQuadFilter {
     // A placeholder for an intelligent mapping of 0.0..=1.0 to a reasonable Q
     // range
+    #[allow(dead_code)]
     pub fn denormalize_q(value: Normal) -> ParameterType {
         value.0 * value.0 * 10.0 + 0.707
     }
 
     // A placeholder for an intelligent mapping of 0.0..=1.0 to a reasonable
     // 24db passband parameter range
+    #[allow(dead_code)]
     pub fn convert_passband(value: f32) -> f32 {
         value * 100.0 + 0.1
     }

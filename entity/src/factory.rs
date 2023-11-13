@@ -320,23 +320,47 @@ impl Serializable for EntityStore {
 
 #[cfg(test)]
 mod tests {
-    use super::{EntityFactory, EntityStore};
-    use crate::{
-        prelude::*,
-        test_entities::{register_test_entities, TestInstrument},
-    };
+    use super::EntityStore;
+    use crate::prelude::*;
     use ensnare_core::prelude::*;
+    use ensnare_proc_macros::{IsInstrument, Metadata};
+
+    #[derive(Debug, Default, IsInstrument, Metadata)]
+    struct ExampleEntity {
+        pub uid: Uid,
+        pub sample_rate: SampleRate,
+    }
+    impl Displays for ExampleEntity {}
+    impl HandlesMidi for ExampleEntity {}
+    impl Controllable for ExampleEntity {}
+    impl Configurable for ExampleEntity {
+        fn sample_rate(&self) -> SampleRate {
+            self.sample_rate
+        }
+
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.sample_rate = sample_rate;
+        }
+    }
+    impl Serializable for ExampleEntity {}
+    impl Generates<StereoSample> for ExampleEntity {
+        fn value(&self) -> StereoSample {
+            StereoSample::default()
+        }
+
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            values.fill(StereoSample::default())
+        }
+    }
+    impl Ticks for ExampleEntity {}
 
     #[test]
     fn store_is_responsible_for_sample_rate() {
         let mut t = EntityStore::default();
         assert_eq!(t.sample_rate, SampleRate::DEFAULT);
         t.update_sample_rate(SampleRate(44444));
-        let factory = register_test_entities(EntityFactory::default());
 
-        let entity = factory
-            .new_entity(&EntityKey::from(TestInstrument::ENTITY_KEY), Uid::default())
-            .unwrap();
+        let entity = Box::new(ExampleEntity::default());
         assert_eq!(
             entity.sample_rate(),
             SampleRate::DEFAULT,
@@ -358,20 +382,20 @@ mod tests {
         let mut t = EntityStore::default();
 
         let uid_1 = Uid(9999);
-        let one = Box::new(TestInstrument::default());
+        let one = Box::new(ExampleEntity::default());
         assert!(
             t.add(one, uid_1).is_ok(),
             "adding a unique UID should succeed"
         );
 
-        let two = Box::new(TestInstrument::default());
+        let two = Box::new(ExampleEntity::default());
         assert!(
             t.add(two, uid_1).is_err(),
             "adding a duplicate UID should fail"
         );
 
         let uid_2 = Uid(10000);
-        let two = Box::new(TestInstrument::default());
+        let two = Box::new(ExampleEntity::default());
         assert!(
             t.add(two, uid_2).is_ok(),
             "Adding a second unique UID should succeed."

@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{entities::effects::Gain, prelude::*};
-use ensnare_factory_entities::controllers::PatternSequencer;
-use ensnare_toy_entities::prelude::*;
+use ensnare_entities::controllers::PatternSequencer;
+use ensnare_entities_toy::prelude::*;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good

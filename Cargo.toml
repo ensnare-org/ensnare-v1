@@ -25,11 +25,11 @@ ensnare-drag-drop = { path = "drag-drop" }
 ensnare-cores-egui = { path = "cores-egui" }
 ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entity = { path = "entity" }
-ensnare-factory-entities = { path = "factory-entities" }
+ensnare-entities = { path = "entities", features = ["factory"] }
+ensnare-entities-toy = { path = "entities-toy" }
 ensnare-orchestration = { path = "orchestration" }
 ensnare-proc-macros = { path = "proc-macros" }
 ensnare-systems = { path = "systems" }
-ensnare-toy-entities = { path = "toy-entities" }
 env_logger = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -41,12 +41,12 @@ members = [
     "cores",
     "cores-egui",
     "egui-widgets",
+    "entities",
+    "entities-toy",
     "entity",
-    "factory-entities",
     "orchestration",
     "proc-macros",
     "systems",
-    "toy-entities",
 ]
 
 [dev-dependencies]
@@ -55,6 +55,7 @@ egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
+ensnare-entities = { path = "entities", features = ["test"] }
 strum = "0.25.0"
 typetag = "0.2.13"
 

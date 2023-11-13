@@ -1,0 +1,18 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
+[package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "Ensnare test entities"
+edition = "2021"
+name = "ensnare-entities-test"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+eframe = "0.23"
+ensnare-core = { path = "../../core" }
+ensnare-cores = { path = "../../cores" }
+ensnare-cores-egui = { path = "../../cores-egui" }
+ensnare-egui-widgets = { path = "../../egui-widgets" }
+ensnare-entity = { path = "../../entity" }
+ensnare-proc-macros = { path = "../../proc-macros" }

@@ -157,6 +157,7 @@ impl OldOrchestrator {
         self.inner.entity_uid_factory.mint_next()
     }
 
+    #[allow(dead_code)]
     fn mint_track_uid(&mut self) -> TrackUid {
         self.inner.track_uid_factory.mint_next()
     }
@@ -386,7 +387,7 @@ impl OldOrchestrator {
     }
 
     fn check_keyboard(&mut self) {
-        let mut keyboard_events = Vec::default();
+        let keyboard_events = Vec::default();
 
         // self.e.keyboard_controller.work(&mut |_, m| {
         //     if let EntityEvent::Midi(channel, message) = m {
@@ -430,7 +431,7 @@ impl Orchestrates for OldOrchestrator {
     fn assign_uid_and_add_entity(
         &mut self,
         track_uid: &TrackUid,
-        mut entity: Box<dyn Entity>,
+        entity: Box<dyn Entity>,
     ) -> anyhow::Result<Uid> {
         self.inner.assign_uid_and_add_entity(track_uid, entity)
     }
@@ -812,8 +813,8 @@ impl Orchestrator {
     pub fn add_pattern_to_track(
         &mut self,
         track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
-        position: MusicalTime,
+        _pattern_uid: &PatternUid,
+        _position: MusicalTime,
     ) -> anyhow::Result<()> {
         // if let Some(track) = self.tracks.get_mut(track_uid) {
         //     track.add_pattern(pattern_uid, position)

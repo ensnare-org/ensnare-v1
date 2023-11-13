@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike and Makeda Tsao. All rights reserved.
 
-use crate::track::{signal_chain, SignalChainWidgetAction, TrackWidgetAction};
+use crate::track::{SignalChainWidgetAction, TrackWidgetAction};
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -190,8 +190,8 @@ impl<'a> Widget for NewTrackWidget<'a> {
                         .response;
 
                         // Draw the signal chain view for every kind of track.
-                        ui.scope(|ui| {
-                            let mut action = None;
+                        ui.scope(|_ui| {
+                            let action = None;
                             // ui.add(signal_chain(self.track_uid, self.track, &mut action));
                             if let Some(action) = action {
                                 match action {

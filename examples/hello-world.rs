@@ -4,7 +4,7 @@
 
 use clap::Parser;
 use ensnare::prelude::*;
-use ensnare_toy_entities::prelude::*;
+use ensnare_entities_toy::prelude::*;
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]

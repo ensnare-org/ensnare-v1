@@ -75,6 +75,7 @@ impl<'a> PatternWidget<'a> {
         Self { inner }
     }
 
+    #[allow(dead_code)]
     pub fn make_note_shapes(
         &self,
         note: &Note,
@@ -111,6 +112,7 @@ impl<'a> PatternWidget<'a> {
         ))]
     }
 
+    #[allow(dead_code)]
     fn rect_for_note(&self, note: &Note) -> Rect {
         let notes_vert = 24.0;
         const FIGURE_THIS_OUT: f32 = 16.0;

@@ -90,8 +90,7 @@ pub mod entities {
         //! Controllers implement the
         //! [IsController](crate::traits::IsController) trait, which means that
         //! they control other devices. An example of a controller is a
-        //! [MidiSequencer](crate::entities::controllers::MidiSequencer), which
-        //! replays programmed MIDI messages.
+        //! [MidiSequencer], which replays programmed MIDI messages.
         //!
         //! Generally, controllers produce only control signals, and not audio.
         //! But adapters exist that change one kind of signal into another, such
@@ -102,26 +101,24 @@ pub mod entities {
         pub use ensnare_core::controllers::{
             ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
         };
-        pub use ensnare_entity::test_entities::TestController;
-        pub use ensnare_factory_entities::controllers::*;
+        pub use ensnare_entities::controllers::*;
     }
     pub mod effects {
         //! Effects implement the [IsEffect](crate::traits::IsEffect) trait,
         //! which means that they transform audio. They don't produce their own
         //! audio, and while they don't produce control signals, most of them do
-        //! respond to controls. Examples of effects are
-        //! [Compressor](crate::entities::effects::Compressor) and
-        //! [Reverb](crate::entities::effects::Reverb).
-        pub use ensnare_factory_entities::effects::*;
+        //! respond to controls. Examples of effects are [Compressor] and
+        //! [Reverb].
+        pub use ensnare_entities::effects::*;
     }
 
     pub mod instruments {
         //! Instruments play sounds. They implement the
         //! [IsInstrument](crate::traits::IsInstrument) trait, which means that
-        //! they respond to MIDI and produce [StereoSamples](crate::types::StereoSample).
-        //! Examples of instruments are [Sampler](crate::entities::instruments::Sampler) and
-        //! [WelshSynth](crate::entities::instruments::WelshSynth).
-        pub use ensnare_factory_entities::instruments::*;
+        //! they respond to MIDI and produce
+        //! [StereoSamples](crate::types::StereoSample). Examples of instruments
+        //! are [Sampler] and [WelshSynth].
+        pub use ensnare_entities::instruments::*;
     }
 
     /// The most commonly used imports.
@@ -130,8 +127,8 @@ pub mod entities {
             controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
             EntityFactory, EntityKey, EntityStore,
         };
-        pub use ensnare_factory_entities::prelude::register_factory_entities;
-        pub use ensnare_toy_entities::prelude::register_toy_entities;
+        pub use ensnare_entities::register_factory_entities;
+        pub use ensnare_entities_toy::register_toy_entities;
     }
 }
 
@@ -275,11 +272,9 @@ pub mod prelude {
     pub use super::traits::prelude::*;
     pub use super::types::prelude::*;
     pub use super::ui::prelude::*;
-    // pub use super::{
-    //     generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
-    //     modulators::{Dca, DcaParams},
-    //     project::{Project, ProjectTitle},
-    // };
+    // pub use super::{ generators::{Envelope, EnvelopeParams, Oscillator,
+    //     OscillatorParams, Waveform}, modulators::{Dca, DcaParams},
+    //     project::{Project, ProjectTitle}, };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;
 }

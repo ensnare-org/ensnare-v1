@@ -192,6 +192,7 @@ impl Configurable for AllPassDelayLine {
 pub struct Delay {
     #[control]
     #[params]
+    #[allow(dead_code)] // TODO
     seconds: ParameterType,
 
     delay: DelayLine,

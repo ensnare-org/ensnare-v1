@@ -4,7 +4,7 @@
 authors = ["Mike Tsao <mike@sowbug.com>"]
 description = "Ensnare toy Entities that are included with the crate"
 edition = "2021"
-name = "ensnare-toy-entities"
+name = "ensnare-entities-toy"
 publish = false
 version = "0.1.0"
 

@@ -144,7 +144,7 @@ impl OrchestratorPanel {
                         OrchestratorInput::ProjectPlay => o.play(),
                         OrchestratorInput::ProjectStop => o.stop(),
                         OrchestratorInput::ProjectNew => {
-                            let mut mo = OldOrchestrator::default();
+                            let mo = OldOrchestrator::default();
                             // o.prepare_successor(&mut mo);
                             // let _ = mo.create_starter_tracks(); // TODO: DRY this
                             *o = mo;
@@ -152,7 +152,7 @@ impl OrchestratorPanel {
                         }
                         OrchestratorInput::ProjectOpen(path) => {
                             match Self::handle_input_load(&path) {
-                                Ok(mut mo) => {
+                                Ok(mo) => {
                                     // o.prepare_successor(&mut mo);
                                     *o = mo;
                                     // let _ = sender
@@ -248,7 +248,7 @@ impl OrchestratorPanel {
         o.handle_midi_message(channel, message, &mut |_, _| {});
     }
 
-    fn handle_input_load(path: &PathBuf) -> anyhow::Result<OldOrchestrator> {
+    fn handle_input_load(_path: &PathBuf) -> anyhow::Result<OldOrchestrator> {
         Err(anyhow!("FIX THIS"))
         // match std::fs::read_to_string(path) {
         //     Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
@@ -262,7 +262,7 @@ impl OrchestratorPanel {
         // }
     }
 
-    fn handle_input_save(o: &MutexGuard<OldOrchestrator>, path: &PathBuf) -> anyhow::Result<()> {
+    fn handle_input_save(_o: &MutexGuard<OldOrchestrator>, _path: &PathBuf) -> anyhow::Result<()> {
         Err(anyhow!("FIX THIS"))
         // let o: &Orchestrator = o;
         // match serde_json::to_string_pretty(o)
@@ -276,6 +276,7 @@ impl OrchestratorPanel {
         // }
     }
 
+    #[allow(dead_code)]
     fn handle_action(&self, orchestrator: &mut Orchestrator, action: OrchestratorAction) {
         match action {
             OrchestratorAction::ClickTrack(track_uid) => {
@@ -309,7 +310,7 @@ impl Displays for OrchestratorPanel {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut o = self.orchestrator.lock().unwrap();
         //   o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
-        let mut is_piano_roll_visible = o.e.is_piano_roll_open;
+        //  let is_piano_roll_visible = o.e.is_piano_roll_open;
         // let response = ui.add(old_orchestrator(
         //     &mut o,
         //     &mut view_range,

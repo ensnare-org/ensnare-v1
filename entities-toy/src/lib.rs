@@ -7,10 +7,12 @@ pub mod effects;
 pub mod factory;
 pub mod instruments;
 
+pub use factory::register_toy_entities;
+
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::controllers::*;
     pub use super::effects::*;
-    pub use super::factory::register_toy_entities;
     pub use super::instruments::*;
+    pub use super::register_toy_entities;
 }

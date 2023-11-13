@@ -3,8 +3,8 @@
 use ensnare::prelude::*;
 use ensnare_core::{generators::Waveform, prelude::ControlValue};
 use ensnare_cores::LfoControllerParams;
-use ensnare_factory_entities::controllers::{ControlTrip, LfoController, PatternSequencer};
-use ensnare_toy_entities::prelude::*;
+use ensnare_entities::controllers::{ControlTrip, LfoController, PatternSequencer};
+use ensnare_entities_toy::prelude::*;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.

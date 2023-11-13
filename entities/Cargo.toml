@@ -1,0 +1,17 @@
+# Copyright (c) 2023 Mike Tsao. All rights reserved.
+
+[package]
+authors = ["Mike Tsao <mike@sowbug.com>"]
+description = "Ensnare Entities (controllers, effects, and instruments)"
+edition = "2021"
+name = "ensnare-entities"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+ensnare-entities-factory = { path = "factory", optional = false }
+ensnare-entities-test = { path = "test", optional = true }
+
+[features]
+factory = []
+test = ["ensnare-entities-test"]

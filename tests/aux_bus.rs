@@ -4,8 +4,8 @@ use ensnare::{
     entities::effects::{Gain, Reverb},
     prelude::*,
 };
-use ensnare_factory_entities::controllers::PatternSequencer;
-use ensnare_toy_entities::prelude::*;
+use ensnare_entities::controllers::PatternSequencer;
+use ensnare_entities_toy::prelude::*;
 
 // Demonstrates use of aux buses.
 #[test]

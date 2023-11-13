@@ -30,13 +30,13 @@ use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
 };
+use ensnare_entities::controllers::NoteSequencer;
+use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::Entity;
-use ensnare_factory_entities::controllers::NoteSequencer;
 use ensnare_orchestration::{
     egui::{make_title_bar_galley, title_bar},
     track::{signal_chain, track_widget, Track, TrackAction},
 };
-use ensnare_toy_entities::prelude::*;
 
 #[derive(Debug)]
 struct LegendSettings {

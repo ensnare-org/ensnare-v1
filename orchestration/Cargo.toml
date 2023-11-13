@@ -19,10 +19,11 @@ ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
-ensnare-toy-entities = { path = "../toy-entities" }
 hound = "3.5.0"
 rayon = "1.8.0"
 strum_macros = "0.25"
 
 [dev-dependencies]
 more-asserts = "0.3.1"
+ensnare-entities-toy = { path = "../entities-toy" }
+ensnare-entities = { path = "../entities", features = ["test"] }

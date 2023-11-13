@@ -142,7 +142,7 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use ensnare_entity::test_entities::TestInstrument;
+    use ensnare_entities::instruments::TestInstrument;
     use more_asserts::assert_gt;
     use std::collections::HashSet;
 

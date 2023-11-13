@@ -165,7 +165,6 @@ impl ReverbChannel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_core::prelude::*;
 
     const DEFAULT_SAMPLE_RATE: usize = 44100;
 

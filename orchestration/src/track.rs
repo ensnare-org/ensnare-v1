@@ -801,10 +801,11 @@ impl Displays for SignalChainItem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_entity::test_entities::{
-        TestEffect, TestInstrument, TestInstrumentCountsMidiMessages,
+    use ensnare_entities::{
+        effects::TestEffect,
+        instruments::{TestInstrument, TestInstrumentCountsMidiMessages},
     };
-    use ensnare_toy_entities::prelude::ToyControllerAlwaysSendsMidiMessage;
+    use ensnare_entities_toy::prelude::ToyControllerAlwaysSendsMidiMessage;
 
     #[test]
     fn basic_track_operations() {

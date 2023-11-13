@@ -188,10 +188,10 @@ fn main() -> anyhow::Result<()> {
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
     let mut factory = EntityFactory::default();
-    factory.register_entity_with_str_key(
-        ensnare_factory_entities::piano_roll::PianoRoll::ENTITY_KEY,
-        |uid| Box::new(ensnare_factory_entities::piano_roll::PianoRoll::new(uid)),
-    );
+    factory
+        .register_entity_with_str_key(ensnare_entities::piano_roll::PianoRoll::ENTITY_KEY, |uid| {
+            Box::new(ensnare_entities::piano_roll::PianoRoll::new(uid))
+        });
     register_factory_entities(&mut factory);
     if EntityFactory::initialize(factory).is_err() {
         return Err(anyhow!("Couldn't initialize EntityFactory"));

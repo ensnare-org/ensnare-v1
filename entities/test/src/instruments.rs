@@ -1,39 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use ensnare_core::prelude::*;
-use ensnare_proc_macros::{
-    InnerConfigurable, InnerInstrument, IsController, IsEffect, IsInstrument, Metadata,
+use ensnare_core::{
+    midi::{MidiChannel, MidiMessage},
+    time::SampleRate,
+    traits::{
+        Configurable, Controllable, Generates, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
+    },
+    types::StereoSample,
+    uid::Uid,
 };
+use ensnare_entity::traits::Displays;
+use ensnare_proc_macros::{IsInstrument, Metadata};
 use std::sync::{Arc, Mutex};
-
-/// Registers all [EntityFactory]'s test entities. Test entities are generally
-/// simple, and provide instrumentation rather than useful audio functionality.
-#[must_use]
-pub fn register_test_entities(mut factory: EntityFactory) -> EntityFactory {
-    factory.register_entity_with_str_key(TestInstrument::ENTITY_KEY, |_uid| {
-        Box::new(TestInstrument::default())
-    });
-    factory.register_entity_with_str_key(TestController::ENTITY_KEY, |_uid| {
-        Box::new(TestController::default())
-    });
-    factory.register_entity_with_str_key(TestEffect::ENTITY_KEY, |_uid| {
-        Box::new(TestEffect::default())
-    });
-
-    factory
-}
-
-/// The smallest possible [IsController].
-#[derive(Debug, Default, IsController, Metadata)]
-pub struct TestController {
-    uid: Uid,
-}
-impl Displays for TestController {}
-impl HandlesMidi for TestController {}
-impl Controls for TestController {}
-impl Configurable for TestController {}
-impl Serializable for TestController {}
 
 /// The smallest possible [IsInstrument].
 #[derive(Debug, Default, IsInstrument, Metadata)]
@@ -64,17 +42,6 @@ impl Generates<StereoSample> for TestInstrument {
     }
 }
 impl Ticks for TestInstrument {}
-
-/// The smallest possible [IsEffect].
-#[derive(Debug, Default, IsEffect, Metadata)]
-pub struct TestEffect {
-    uid: Uid,
-}
-impl Displays for TestEffect {}
-impl Configurable for TestEffect {}
-impl Controllable for TestEffect {}
-impl Serializable for TestEffect {}
-impl TransformsAudio for TestEffect {}
 
 /// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many
 /// MIDI messages it has received.
@@ -114,13 +81,3 @@ impl TestInstrumentCountsMidiMessages {
     }
 }
 impl Displays for TestInstrumentCountsMidiMessages {}
-
-#[derive(Debug, Default, InnerInstrument, InnerConfigurable, IsController, Metadata)]
-pub struct TestAudioSource {
-    uid: Uid,
-    inner: ensnare_cores::TestAudioSource,
-}
-impl Displays for TestAudioSource {}
-impl HandlesMidi for TestAudioSource {}
-impl Controls for TestAudioSource {}
-impl Serializable for TestAudioSource {}
