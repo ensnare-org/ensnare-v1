@@ -19,7 +19,7 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::orchestration::orchestrator;
+use ensnare_orchestration::orchestrator;
 use std::sync::{Arc, Mutex};
 
 enum EnsnareMessage {
