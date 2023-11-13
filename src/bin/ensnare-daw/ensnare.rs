@@ -19,7 +19,8 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::orchestrator;
+use ensnare_orchestration::{egui::entity_palette, orchestrator, OrchestratorAction};
+use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::sync::{Arc, Mutex};
 
 enum EnsnareMessage {
@@ -34,10 +35,9 @@ pub(super) struct Ensnare {
     orchestrator: Arc<Mutex<OldOrchestrator>>,
 
     menu_bar: MenuBar,
-    control_panel: ControlPanel,
-    orchestrator_panel: OrchestratorPanel,
+    control_bar: ControlBar,
+    orchestrator_panel: OrchestratorService,
     settings_panel: SettingsPanel,
-    palette_panel: PalettePanel,
 
     toasts: Toasts,
 
@@ -81,10 +81,10 @@ impl Ensnare {
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OrchestratorPanel::default();
+        let orchestrator_panel = OrchestratorService::default();
         let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
-        let control_panel = ControlPanel::default();
+        let control_panel = ControlBar::default();
         // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
         //     Some(control_panel.sample_channel.sender.clone());
         // let keyboard_events_sender = orchestrator
@@ -99,11 +99,10 @@ impl Ensnare {
             event_channel: Default::default(),
             orchestrator,
             menu_bar: Default::default(),
-            control_panel,
+            control_bar: control_panel,
 
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
-            palette_panel: Default::default(),
             toasts: Toasts::new()
                 .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
                 .direction(Direction::BottomUp),
@@ -284,9 +283,9 @@ impl Ensnare {
                         match event {
                             MidiPanelEvent::Midi(..) => {
                                 // This was already forwarded to Orchestrator. Here we update the UI.
-                                self.control_panel.tickle_midi_in();
+                                self.control_bar.tickle_midi_in();
                             }
-                            MidiPanelEvent::MidiOut => self.control_panel.tickle_midi_out(),
+                            MidiPanelEvent::MidiOut => self.control_bar.tickle_midi_out(),
                             MidiPanelEvent::SelectInput(_) => {
                                 // TODO: save selection in prefs
                             }
@@ -373,26 +372,31 @@ impl Ensnare {
         let menu_action = self.menu_bar.take_action();
         self.handle_menu_bar_action(menu_action);
         ui.separator();
+
+        let mut control_bar_action = None;
         ui.horizontal_centered(|ui| {
             if let Ok(mut o) = self.orchestrator.lock() {
                 ui.add(transport(&mut o.inner.transport));
             }
-            self.control_panel.ui(ui);
+            ui.add(control_bar_widget(
+                &mut self.control_bar,
+                &mut control_bar_action,
+            ));
         });
         ui.add_space(2.0);
-        if let Some(action) = self.control_panel.take_action() {
+        if let Some(action) = control_bar_action {
             self.handle_control_panel_action(action);
         }
     }
 
-    fn handle_control_panel_action(&mut self, action: ControlPanelAction) {
+    fn handle_control_panel_action(&mut self, action: ControlBarAction) {
         let input = match action {
-            ControlPanelAction::Play => Some(OrchestratorInput::ProjectPlay),
-            ControlPanelAction::Stop => Some(OrchestratorInput::ProjectStop),
-            ControlPanelAction::New => Some(OrchestratorInput::ProjectNew),
-            ControlPanelAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
-            ControlPanelAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
-            ControlPanelAction::ToggleSettings => {
+            ControlBarAction::Play => Some(OrchestratorInput::ProjectPlay),
+            ControlBarAction::Stop => Some(OrchestratorInput::ProjectStop),
+            ControlBarAction::New => Some(OrchestratorInput::ProjectNew),
+            ControlBarAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
+            ControlBarAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
+            ControlBarAction::ToggleSettings => {
                 self.is_settings_panel_open = !self.is_settings_panel_open;
                 None
             }
@@ -416,7 +420,7 @@ impl Ensnare {
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::vertical().show(ui, |ui| {
-            self.palette_panel.ui(ui);
+            ui.add(entity_palette(EntityFactory::global().sorted_keys()))
         });
     }
 
@@ -426,7 +430,25 @@ impl Ensnare {
     }
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
-        self.orchestrator_panel.ui(ui);
+        if let Ok(mut o) = self.orchestrator.lock() {
+            let mut view_range = o.view_range.clone();
+            let mut action = None;
+            let _ = ui.add(orchestrates_trait_widget(
+                o.as_orchestrates_mut(),
+                &mut view_range,
+                &mut action,
+            ));
+            o.view_range = view_range;
+            if let Some(action) = action {
+                self.handle_action(&mut o.inner, action);
+            }
+            // If we're performing, then we know the screen is updating, so we
+            // should draw it..
+            if o.is_performing() {
+                ui.ctx().request_repaint();
+            }
+        }
+
         self.toasts.show(ui.ctx());
     }
 
@@ -451,6 +473,27 @@ impl Ensnare {
                 }
             }
         });
+    }
+
+    fn handle_action(&self, orchestrator: &mut Orchestrator, action: OrchestratorAction) {
+        match action {
+            OrchestratorAction::ClickTrack(_track_uid) => {
+                // TODO: this was in orchestrator_panel, and I'm not too fond of
+                // its design.
+                //
+                // self.track_selection_set.lock().unwrap().click(&track_uid,
+                //     self.is_control_only_down);
+            }
+            OrchestratorAction::DoubleClickTrack(_track_uid) => {
+                // This used to expand/collapse, but that's gone.
+            }
+            OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
+                let uid = orchestrator.mint_entity_uid();
+                if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
+                    let _ = orchestrator.add_entity(&track_uid, entity);
+                }
+            }
+        }
     }
 
     fn handle_menu_bar_action(&mut self, action: Option<MenuBarAction>) {

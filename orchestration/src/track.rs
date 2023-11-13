@@ -31,25 +31,6 @@ use std::{
 };
 use strum_macros::Display;
 
-/// A [TrackAction] represents any UI operation that happens to a [Track] but
-/// that the [Track] can't perform itself.  
-#[derive(Clone, Debug, Display)]
-pub enum TrackAction {
-    /// Using the [EntityFactory], create a new entity of type [EntityKey] and
-    /// add it to the track. [Track]s can't do this themselves because they
-    /// don't have access to [EntityFactory] (or at least we've decided they
-    /// shouldn't).
-    NewDevice(EntityKey),
-
-    /// Establish a control link between the source and target uids for the
-    /// given parameter.
-    LinkControl(Uid, Uid, ControlIndex),
-
-    /// An entity has been selected, and we should show its detail view.
-    EntitySelected(Uid),
-}
-impl IsAction for TrackAction {}
-
 #[derive(Debug)]
 pub struct TrackBuffer(pub [StereoSample; Self::LEN]);
 impl TrackBuffer {
@@ -65,7 +46,6 @@ impl Default for TrackBuffer {
 pub struct TrackEphemerals {
     buffer: TrackBuffer,
     pub piano_roll: Arc<RwLock<PianoRoll>>,
-    pub action: Option<TrackAction>,
     view_range: ViewRange,
     pub title_font_galley: Option<Arc<eframe::epaint::Galley>>,
 }
@@ -231,23 +211,6 @@ impl Track {
     ) -> Result<(), anyhow::Error> {
         self.sequencer
             .record(MidiChannel::default(), pattern_uid, position)
-    }
-}
-impl Displays for Track {}
-impl Acts for Track {
-    type Action = TrackAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        debug_assert!(
-            self.e.action.is_none(),
-            "Uh-oh, tried to set to {action} but it was already set to {:?}",
-            self.e.action
-        );
-        self.e.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.e.action.take()
     }
 }
 impl GeneratesToInternalBuffer<StereoSample> for Track {
@@ -675,7 +638,6 @@ pub fn signal_chain<'a>(
 pub enum SignalChainWidgetAction {
     EntitySelected(Uid, String),
 }
-impl IsAction for SignalChainWidgetAction {}
 
 struct SignalChainWidget<'a> {
     track_uid: TrackUid,
@@ -776,8 +738,8 @@ impl SignalChainItem {
         }
     }
 }
-impl Displays for SignalChainItem {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+impl Widget for SignalChainItem {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.is_control_source {
             ui.horizontal(|ui| {
                 let icon =
@@ -909,14 +871,4 @@ mod tests {
             "After one work(), one MIDI message should have emerged for external processing"
         );
     }
-
-    // #[derive(Default, Debug, Control, IsController, Metadata,)]
-    // struct TimelineDisplayer {
-    //     uid: Uid,
-    // }
-    // impl Serializable for TimelineDisplayer {}
-    // impl Controls for TimelineDisplayer {}
-    // impl Configurable for TimelineDisplayer {}
-    // impl HandlesMidi for TimelineDisplayer {}
-    // impl Displays for TimelineDisplayer {}
 }

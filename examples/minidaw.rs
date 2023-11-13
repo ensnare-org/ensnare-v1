@@ -24,6 +24,8 @@ use ensnare::{
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
 };
+use ensnare_orchestration::egui::entity_palette;
+use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::{
     io::{Read, Write},
     path::PathBuf,
@@ -366,9 +368,8 @@ struct MiniDaw {
     title: ProjectTitle,
 
     menu_bar: MenuBar,
-    control_panel: ControlPanel,
-    orchestrator_panel: OrchestratorPanel,
-    palette_panel: PalettePanel,
+    control_bar: ControlBar,
+    orchestrator_panel: OrchestratorService,
     settings_panel: SettingsPanel,
 
     exit_requested: bool,
@@ -386,16 +387,15 @@ impl MiniDaw {
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OrchestratorPanel::default();
+        let orchestrator_panel = OrchestratorService::default();
         let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
             orchestrator,
             title: Default::default(),
             menu_bar: Default::default(),
-            control_panel: Default::default(),
+            control_bar: Default::default(),
             orchestrator_panel,
-            palette_panel: Default::default(),
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
 
             exit_requested: Default::default(),
@@ -621,14 +621,14 @@ impl MiniDaw {
         }
     }
 
-    fn handle_control_panel_action(&mut self, action: ControlPanelAction) {
+    fn handle_control_panel_action(&mut self, action: ControlBarAction) {
         let input = match action {
-            ControlPanelAction::Play => Some(OrchestratorInput::ProjectPlay),
-            ControlPanelAction::Stop => Some(OrchestratorInput::ProjectStop),
-            ControlPanelAction::New => Some(OrchestratorInput::ProjectNew),
-            ControlPanelAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
-            ControlPanelAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
-            ControlPanelAction::ToggleSettings => {
+            ControlBarAction::Play => Some(OrchestratorInput::ProjectPlay),
+            ControlBarAction::Stop => Some(OrchestratorInput::ProjectStop),
+            ControlBarAction::New => Some(OrchestratorInput::ProjectNew),
+            ControlBarAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
+            ControlBarAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
+            ControlBarAction::ToggleSettings => {
                 self.settings_panel.toggle();
                 None
             }
@@ -687,8 +687,13 @@ impl MiniDaw {
             self.handle_menu_bar_action(action);
         }
         ui.separator();
-        self.control_panel.ui(ui);
-        if let Some(action) = self.control_panel.take_action() {
+        let mut control_bar_action = None;
+        ui.add(control_bar_widget(
+            &mut self.control_bar,
+            &mut control_bar_action,
+        ));
+
+        if let Some(action) = control_bar_action {
             self.handle_control_panel_action(action);
         }
     }
@@ -704,7 +709,7 @@ impl MiniDaw {
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::horizontal().show(ui, |ui| {
-            self.palette_panel.ui(ui);
+            ui.add(entity_palette(EntityFactory::global().sorted_keys()))
         });
     }
 
@@ -716,7 +721,19 @@ impl MiniDaw {
         ScrollArea::vertical().show(ui, |ui| {
             self.orchestrator_panel
                 .set_control_only_down(is_control_only_down);
-            self.orchestrator_panel.ui(ui);
+            if let Ok(mut o) = self.orchestrator.lock() {
+                let mut view_range = o.view_range.clone();
+                let mut action = None;
+                let _ = ui.add(orchestrates_trait_widget(
+                    o.as_orchestrates_mut(),
+                    &mut view_range,
+                    &mut action,
+                ));
+                o.view_range = view_range;
+                if let Some(action) = action {
+                    todo!("deal with this! {action:?}");
+                }
+            }
         });
     }
 

@@ -107,17 +107,3 @@ pub trait Displays {
         ui.label("Coming soon!")
     }
 }
-
-/// Reports an action requested during [Displays::ui()].
-pub trait Acts: Displays {
-    type Action: IsAction;
-
-    /// Sets the current action. Typically called by the UI code that just
-    /// detected a click, drop, change, etc.
-    fn set_action(&mut self, action: Self::Action);
-
-    /// Returns the pending action, if any, and resets it to None. Typically
-    /// called by the UI code that has the context needed to perform the action.
-    fn take_action(&mut self) -> Option<Self::Action>;
-}
-pub trait IsAction: std::fmt::Debug + std::fmt::Display {}

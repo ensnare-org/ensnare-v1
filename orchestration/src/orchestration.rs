@@ -6,7 +6,7 @@ use crate::{
     humidifier::Humidifier,
     main_mixer::MainMixer,
     midi_router::MidiRouter,
-    track::{Track, TrackAction, TrackBuffer},
+    track::{Track, TrackBuffer},
     traits::Orchestrates,
 };
 use anyhow::anyhow;
@@ -49,7 +49,6 @@ pub enum OrchestratorAction {
     /// A [Track] wants a new device of type [Key].
     NewDeviceForTrack(TrackUid, EntityKey),
 }
-impl IsAction for OrchestratorAction {}
 
 /// A grouping mechanism to declare parts of [Orchestrator] that Serde shouldn't
 /// be serializing. Exists so we don't have to spray #[serde(skip)] all over the
@@ -60,7 +59,6 @@ pub struct OrchestratorEphemerals {
     events: Vec<(Uid, EntityEvent)>,
     is_finished: bool,
     is_performing: bool,
-    pub action: Option<OrchestratorAction>,
     pub track_selection_set: SelectionSet<TrackUid>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
     //    pub keyboard_controller: KeyboardController,
@@ -370,22 +368,6 @@ impl OldOrchestrator {
         self.e.track_selection_set = track_selection_set;
     }
 
-    pub fn handle_track_action(&mut self, uid: TrackUid, action: TrackAction) {
-        match action {
-            TrackAction::NewDevice(key) => {
-                self.e.action = Some(OrchestratorAction::NewDeviceForTrack(uid, key))
-            }
-            TrackAction::LinkControl(source_uid, target_uid, control_index) => {
-                if let Some(track) = self.tracks.get_mut(&uid) {
-                    track
-                        .control_router
-                        .link_control(source_uid, target_uid, control_index);
-                }
-            }
-            TrackAction::EntitySelected(uid) => self.e.selected_entity_uid = Some(uid),
-        }
-    }
-
     fn check_keyboard(&mut self) {
         let keyboard_events = Vec::default();
 
@@ -512,37 +494,6 @@ impl Orchestrates for OldOrchestrator {
         self.inner.disconnect_midi_receiver(uid, channel)
     }
 }
-impl Displays for OldOrchestrator {}
-impl Acts for OldOrchestrator {
-    type Action = OrchestratorAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        debug_assert!(
-            self.e.action.is_none(),
-            "Uh-oh, tried to set to {action} but it was already set to {:?}",
-            self.e.action
-        );
-        self.e.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.e.action.take()
-    }
-}
-// impl HasMetadata for OldOrchestrator {
-//     fn uid(&self) -> Uid {
-//         Self::ORCHESTRATOR_UID
-//     }
-//     fn set_uid(&mut self, _: Uid) {
-//         panic!("Orchestrator's UID is reserved and should never change.")
-//     }
-//     fn name(&self) -> &'static str {
-//         Self::ENTITY_NAME
-//     }
-//     fn key(&self) -> &'static str {
-//         Self::ENTITY_KEY
-//     }
-// }
 impl Generates<StereoSample> for OldOrchestrator {
     fn value(&self) -> StereoSample {
         StereoSample::SILENCE

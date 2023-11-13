@@ -11,7 +11,6 @@ use ensnare_cores_egui::{
     piano_roll::piano_roll,
     widgets::timeline::{self, TimelineIconStripAction},
 };
-use ensnare_entity::traits::Acts;
 use std::sync::Arc;
 
 use super::{
@@ -23,8 +22,11 @@ use super::{
 pub fn orchestrates_trait_widget<'a>(
     orchestrates: &'a mut impl Orchestrates,
     view_range: &'a mut ViewRange,
+    action: &'a mut Option<OrchestratorAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OrchestratesTraitWidget::new(orchestrates, view_range).ui(ui)
+    move |ui: &mut eframe::egui::Ui| {
+        OrchestratesTraitWidget::new(orchestrates, view_range, action).ui(ui)
+    }
 }
 
 /// An egui component that draws anything implementing [Orchestrates].
@@ -32,6 +34,7 @@ pub fn orchestrates_trait_widget<'a>(
 struct OrchestratesTraitWidget<'a> {
     orchestrates: &'a mut dyn Orchestrates,
     view_range: &'a mut ViewRange,
+    action: &'a mut Option<OrchestratorAction>,
 }
 impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -64,14 +67,22 @@ impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
                 }
             });
 
+        // suppress warning
+        *self.action = None;
+
         ui.label("placeholder.........")
     }
 }
 impl<'a> OrchestratesTraitWidget<'a> {
-    fn new(orchestrates: &'a mut impl Orchestrates, view_range: &'a mut ViewRange) -> Self {
+    fn new(
+        orchestrates: &'a mut impl Orchestrates,
+        view_range: &'a mut ViewRange,
+        action: &'a mut Option<OrchestratorAction>,
+    ) -> Self {
         Self {
             orchestrates,
             view_range,
+            action,
         }
     }
 }
@@ -110,9 +121,10 @@ pub fn old_orchestrator<'a>(
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
+    action: &'a mut Option<OrchestratorAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        OldOrchestratorWidget::new(orchestrator, view_range, is_piano_roll_visible).ui(ui)
+        OldOrchestratorWidget::new(orchestrator, view_range, is_piano_roll_visible, action).ui(ui)
     }
 }
 
@@ -122,6 +134,7 @@ struct OldOrchestratorWidget<'a> {
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
+    action: &'a mut Option<OrchestratorAction>,
 }
 impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -184,8 +197,6 @@ impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
                 eframe::egui::ScrollArea::vertical()
                     .id_source("orchestrator-scroller")
                     .show(ui, |ui| {
-                        let mut track_action = None;
-                        let mut track_action_track_uid = None;
                         for track_uid in self.orchestrator.inner.track_uids.iter() {
                             if let Some(track) = self.orchestrator.tracks.get_mut(track_uid) {
                                 let is_selected =
@@ -215,22 +226,11 @@ impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
                                     }
                                 }
                                 if response.double_clicked() {
-                                    self.orchestrator.e.action =
+                                    *self.action =
                                         Some(OrchestratorAction::DoubleClickTrack(*track_uid));
                                 } else if response.clicked() {
-                                    self.orchestrator.e.action =
-                                        Some(OrchestratorAction::ClickTrack(*track_uid));
+                                    *self.action = Some(OrchestratorAction::ClickTrack(*track_uid));
                                 }
-
-                                if let Some(action) = track.take_action() {
-                                    track_action = Some(action);
-                                    track_action_track_uid = Some(*track_uid);
-                                }
-                            }
-                        }
-                        if let Some(action) = track_action {
-                            if let Some(track_uid) = track_action_track_uid {
-                                self.orchestrator.handle_track_action(track_uid, action);
                             }
                         }
                     });
@@ -243,11 +243,13 @@ impl<'a> OldOrchestratorWidget<'a> {
         orchestrator: &'a mut OldOrchestrator,
         view_range: &'a mut ViewRange,
         is_piano_roll_visible: &'a mut bool,
+        action: &'a mut Option<OrchestratorAction>,
     ) -> Self {
         Self {
             orchestrator,
             view_range,
             is_piano_roll_visible,
+            action,
         }
     }
 }

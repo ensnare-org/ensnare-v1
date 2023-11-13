@@ -6,7 +6,7 @@
 use ensnare::{
     arrangement::{OldOrchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
-    systems::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
+    services::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
     traits::{EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };

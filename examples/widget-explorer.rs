@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use eframe::{
     egui::{
         self, warn_if_debug_build, CollapsingHeader, DragValue, Id, Layout, ScrollArea, Slider,
-        Style, Ui,
+        Style, Ui, Widget,
     },
     emath::Align,
     epaint::{vec2, Galley},
@@ -32,10 +32,9 @@ use ensnare_cores_egui::{
 };
 use ensnare_entities::controllers::NoteSequencer;
 use ensnare_entities_toy::prelude::*;
-use ensnare_entity::traits::Entity;
 use ensnare_orchestration::{
     egui::{make_title_bar_galley, title_bar},
-    track::{signal_chain, track_widget, Track, TrackAction},
+    track::{signal_chain, track_widget, Track},
 };
 
 #[derive(Debug)]
@@ -152,8 +151,8 @@ impl<'a> PretendDevicePalette<'a> {
         Self { entity_factory }
     }
 }
-impl<'a> Displays for PretendDevicePalette<'a> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
+impl<'a> Widget for PretendDevicePalette<'a> {
+    fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {
             ScrollArea::horizontal()
@@ -220,10 +219,6 @@ impl SignalChainSettings {
                 }
             });
         }
-    }
-
-    pub fn append_entity(&mut self, entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
-        self.track.append_entity(entity, uid)
     }
 }
 impl Displays for SignalChainSettings {
@@ -862,25 +857,6 @@ impl eframe::App for WidgetExplorer {
             self.show_center(ui);
         });
 
-        // TODO: this is bad design because it does non-GUI processing during
-        // the update() method. It's OK here because this is a widget explorer,
-        // not a time-critical app.
-        if let Some(action) = self.signal_chain.track.take_action() {
-            match action {
-                TrackAction::NewDevice(key) => {
-                    eprintln!("SignalChainAction::NewDevice({key})");
-                    if let Some(entity) = EntityFactory::global().new_entity(&key, Uid::default()) {
-                        let _ = self.signal_chain.append_entity(entity, Uid(345698));
-                    }
-                }
-                TrackAction::LinkControl(_source_uid, _target_uid, _index) => {
-                    eprintln!("{action:?}");
-                }
-                TrackAction::EntitySelected(uid) => {
-                    eprintln!("we should show entity {uid}");
-                }
-            }
-        }
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
             if let DragSource::NewDevice(_) = source {
                 todo!()

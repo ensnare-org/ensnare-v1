@@ -2,9 +2,9 @@
 
 [package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "Subsystems"
+description = "Ensnare services"
 edition = "2021"
-name = "ensnare-systems"
+name = "ensnare-services"
 publish = false
 version = "0.1.0"
 

@@ -177,25 +177,23 @@ pub mod synthesizer {
     };
 }
 
-pub mod systems {
-    //! Subsystems that typically run in their own thread and use crossbeam
-    //! channels for communication. They also generally implement
-    //! [Displays](crate::traits::Displays), so they also provide a UI panel
-    //! that helps visualize and manage the subsystem.
+pub mod services {
+    //! Services typically run in their own thread and use crossbeam channels
+    //! for communication. Some also provide a UI panel that helps visualize and
+    //! manage the subsystem, which means that they implement
+    //! [Displays](crate::traits::Displays).
 
-    /// `use ensnare::systems::prelude::*;` when working with systems.
+    /// `use ensnare::systems::prelude::*;` when working with services.
     pub mod prelude {
         pub use super::{
-            AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction,
-            MidiPanel, MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent,
-            OrchestratorInput, OrchestratorPanel, PalettePanel,
+            AudioPanel, AudioPanelEvent, AudioSettings, ControlBar, MidiPanel, MidiPanelEvent,
+            MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
         };
     }
 
-    pub use ensnare_systems::{
-        AudioPanel, AudioPanelEvent, AudioSettings, ControlPanel, ControlPanelAction, MidiPanel,
-        MidiPanelEvent, MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput,
-        OrchestratorPanel, PalettePanel,
+    pub use ensnare_services::{
+        AudioPanel, AudioPanelEvent, AudioSettings, ControlBar, MidiPanel, MidiPanelEvent,
+        MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
     };
 }
 
@@ -208,10 +206,10 @@ pub mod traits {
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            Acts, Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity,
-            EntityEvent, Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata,
-            HasSettings, IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates,
-            Sequences, Serializable, Ticks,
+            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityEvent,
+            Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
+            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences,
+            Serializable, Ticks,
         };
     }
 }
@@ -239,7 +237,9 @@ pub mod ui {
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::widgets::{audio, pattern, placeholder, timeline};
-        pub use ensnare_systems::{audio_settings, midi_settings};
+        pub use ensnare_orchestration::egui::entity_palette;
+        pub use ensnare_services::{audio_settings, midi_settings};
+        pub use ensnare_services::{control_bar_widget, ControlBarAction};
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 
@@ -268,13 +268,10 @@ pub mod prelude {
     pub use super::control::prelude::*;
     pub use super::entities::prelude::*;
     pub use super::midi::prelude::*;
-    pub use super::systems::prelude::*;
+    pub use super::services::prelude::*;
     pub use super::traits::prelude::*;
     pub use super::types::prelude::*;
     pub use super::ui::prelude::*;
-    // pub use super::{ generators::{Envelope, EnvelopeParams, Oscillator,
-    //     OscillatorParams, Waveform}, modulators::{Dca, DcaParams},
-    //     project::{Project, ProjectTitle}, };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;
 }

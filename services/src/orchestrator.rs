@@ -4,10 +4,7 @@ use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
 use ensnare_entity::prelude::*;
-use ensnare_orchestration::{
-    orchestrates_trait_widget, traits::Orchestrates, OldOrchestrator, Orchestrator,
-    OrchestratorAction,
-};
+use ensnare_orchestration::{traits::Orchestrates, OldOrchestrator};
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, MutexGuard},
@@ -82,10 +79,9 @@ pub enum OrchestratorEvent {
 
 /// A wrapper around an [Orchestrator] that manages its lifetime in a separate
 /// thread. Communicate with it by sending [OrchestratorInput] messages and
-/// receiving [OrchestratorEvent] messages, and ask it to render itself by
-/// calling [Displays::ui()].
+/// receiving [OrchestratorEvent] messages.
 #[derive(Debug)]
-pub struct OrchestratorPanel {
+pub struct OrchestratorService {
     pub orchestrator: Arc<Mutex<OldOrchestrator>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
     input_channel_pair: ChannelPair<OrchestratorInput>,
@@ -93,7 +89,7 @@ pub struct OrchestratorPanel {
 
     is_control_only_down: bool,
 }
-impl OrchestratorPanel {
+impl OrchestratorService {
     pub fn set_control_only_down(&mut self, is_control_only_down: bool) {
         self.is_control_only_down = is_control_only_down;
     }
@@ -276,27 +272,6 @@ impl OrchestratorPanel {
         // }
     }
 
-    #[allow(dead_code)]
-    fn handle_action(&self, orchestrator: &mut Orchestrator, action: OrchestratorAction) {
-        match action {
-            OrchestratorAction::ClickTrack(track_uid) => {
-                self.track_selection_set
-                    .lock()
-                    .unwrap()
-                    .click(&track_uid, self.is_control_only_down);
-            }
-            OrchestratorAction::DoubleClickTrack(_track_uid) => {
-                // This used to expand/collapse, but that's gone.
-            }
-            OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
-                let uid = orchestrator.mint_entity_uid();
-                if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
-                    let _ = orchestrator.add_entity(&track_uid, entity);
-                }
-            }
-        }
-    }
-
     /// Whether one or more tracks are currently selected.
     pub fn is_any_track_selected(&self) -> bool {
         if let Ok(tss) = self.track_selection_set.lock() {
@@ -306,39 +281,7 @@ impl OrchestratorPanel {
         }
     }
 }
-impl Displays for OrchestratorPanel {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut o = self.orchestrator.lock().unwrap();
-        //   o.set_track_selection_set(self.track_selection_set.lock().unwrap().clone());
-        //  let is_piano_roll_visible = o.e.is_piano_roll_open;
-        // let response = ui.add(old_orchestrator(
-        //     &mut o,
-        //     &mut view_range,
-        //     &mut is_piano_roll_visible,
-        // ));
-        let mut view_range = o.view_range.clone();
-        let response = ui.add(orchestrates_trait_widget(
-            o.as_orchestrates_mut(),
-            &mut view_range,
-        ));
-        o.view_range = view_range;
-
-        // TODO: now that we've moved over to a widget-heavy pattern, can we get
-        // rid of the Acts trait?
-        // if let Some(action) = o.take_action() {
-        //     self.handle_action(&mut o, action);
-        // }
-
-        // If we're performing, then we know the screen is updating, so we
-        // should draw it..
-        if o.is_performing() {
-            ui.ctx().request_repaint();
-        }
-
-        response
-    }
-}
-impl Default for OrchestratorPanel {
+impl Default for OrchestratorService {
     fn default() -> Self {
         let mut orchestrator = OldOrchestrator::default();
         let _ = orchestrator.create_starter_tracks();

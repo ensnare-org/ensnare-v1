@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
-use ensnare_entity::traits::{Acts, Displays, IsAction};
+use ensnare_entity::traits::Displays;
 use strum_macros::Display;
 
 #[derive(Clone, Debug, Display)]
@@ -19,7 +19,6 @@ pub(crate) enum MenuBarAction {
     TrackAddThing(EntityKey),
     ComingSoon,
 }
-impl IsAction for MenuBarAction {}
 
 #[derive(Debug)]
 struct MenuBarItem {
@@ -133,22 +132,11 @@ impl Displays for MenuBar {
             ];
             for item in menus.iter() {
                 if let Some(a) = item.show(ui) {
-                    self.action = Some(a);
+                    self.set_action(a);
                 }
             }
         })
         .response
-    }
-}
-impl Acts for MenuBar {
-    type Action = MenuBarAction;
-
-    fn set_action(&mut self, action: Self::Action) {
-        self.action = Some(action);
-    }
-
-    fn take_action(&mut self) -> Option<Self::Action> {
-        self.action.take()
     }
 }
 impl MenuBar {
@@ -171,5 +159,13 @@ impl MenuBar {
 
     pub(crate) fn set_is_any_track_selected(&mut self, is_any_track_selected: bool) {
         self.is_track_selected = is_any_track_selected;
+    }
+
+    pub(crate) fn set_action(&mut self, action: MenuBarAction) {
+        self.action = Some(action);
+    }
+
+    pub(crate) fn take_action(&mut self) -> Option<MenuBarAction> {
+        self.action.take()
     }
 }
