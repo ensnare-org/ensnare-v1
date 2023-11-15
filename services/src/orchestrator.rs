@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
 use ensnare_entity::prelude::*;
-use ensnare_orchestration::{traits::Orchestrates, OldOrchestrator, Orchestrator};
+use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, MutexGuard},

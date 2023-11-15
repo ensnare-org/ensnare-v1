@@ -14,7 +14,6 @@ use crossbeam_channel::Sender;
 use derive_builder::Builder;
 use ensnare_core::{
     control::{ControlIndex, ControlValue},
-    controllers::ControlTripBuilder,
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
@@ -40,7 +39,7 @@ use strum_macros::Display;
 
 /// Actions that [Orchestrator]'s UI might need the parent to perform.
 #[derive(Clone, Debug, Display)]
-pub enum OrchestratorAction {
+pub enum ProjectAction {
     /// A [Track] was clicked in the UI.
     ClickTrack(TrackUid),
     /// A [Track] was double-clicked in the UI.

@@ -19,10 +19,11 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
+use ensnare_core::{prelude::*, types::TrackTitle};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::{egui::entity_palette, orchestrator, OrchestratorAction};
+use ensnare_orchestration::{egui::entity_palette, orchestrator, DescribesProject, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
-use std::{ops::DerefMut, sync::Arc};
+use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),
@@ -429,7 +430,20 @@ impl Ensnare {
         let mut view_range = self.project.view_range.clone();
         let mut action = None;
         if let Ok(mut o) = self.project.orchestrator.lock() {
-            let _ = ui.add(orchestrates_trait_widget(
+            #[derive(Debug)]
+            struct ProjectDescriber<'a> {
+                track_titles: &'a HashMap<TrackUid, TrackTitle>,
+            }
+            impl<'a> DescribesProject for ProjectDescriber<'a> {
+                fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
+                    self.track_titles.get(track_uid)
+                }
+            }
+            let project_describer = ProjectDescriber {
+                track_titles: &self.project.track_titles,
+            };
+            let _ = ui.add(project_widget(
+                &project_describer,
                 o.deref_mut(),
                 &mut view_range,
                 &mut action,
@@ -441,7 +455,7 @@ impl Ensnare {
         }
         // If we're performing, then we know the screen is updating, so we
         // should draw it..
-        if let Ok( o) = self.project.orchestrator.lock() {
+        if let Ok(o) = self.project.orchestrator.lock() {
             if o.is_performing() {
                 ui.ctx().request_repaint();
             }
@@ -473,20 +487,20 @@ impl Ensnare {
         });
     }
 
-    fn handle_action(&self, action: OrchestratorAction) {
+    fn handle_action(&self, action: ProjectAction) {
         if let Ok(mut o) = self.project.orchestrator.lock() {
             match action {
-                OrchestratorAction::ClickTrack(_track_uid) => {
+                ProjectAction::ClickTrack(_track_uid) => {
                     // TODO: this was in orchestrator_panel, and I'm not too fond of
                     // its design.
                     //
                     // self.track_selection_set.lock().unwrap().click(&track_uid,
                     //     self.is_control_only_down);
                 }
-                OrchestratorAction::DoubleClickTrack(_track_uid) => {
+                ProjectAction::DoubleClickTrack(_track_uid) => {
                     // This used to expand/collapse, but that's gone.
                 }
-                OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
+                ProjectAction::NewDeviceForTrack(track_uid, key) => {
                     let uid = o.mint_entity_uid();
                     if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
                         let _ = o.add_entity(&track_uid, entity);

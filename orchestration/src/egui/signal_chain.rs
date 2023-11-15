@@ -114,7 +114,7 @@ impl Widget for SignalItem {
                 let response = ui.button(&self.name);
                 DragDropManager::drag_source(
                     ui,
-                    eframe::egui::Id::new(self.name),
+                    eframe::egui::Id::new(self.uid),
                     DragSource::ControlSource(self.uid),
                     |ui| ui.add(ImageButton::new(icon).tint(ui.ctx().style().visuals.text_color())),
                 );

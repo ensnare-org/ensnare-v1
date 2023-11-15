@@ -1,9 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub use crate::orchestration::{
-    OldOrchestrator, Orchestrator, OrchestratorAction, OrchestratorHelper,
-};
-pub use egui::{orchestrates_trait_widget, orchestrator};
+pub use crate::orchestration::{OldOrchestrator, Orchestrator, OrchestratorHelper, ProjectAction};
+pub use egui::{orchestrator, project_widget, DescribesProject};
 
 pub mod bus_route;
 pub mod control_router;
@@ -16,7 +14,7 @@ pub mod track;
 pub mod traits;
 
 pub mod prelude {
-    pub use super::egui::orchestrates_trait_widget;
+    pub use super::egui::project_widget;
     pub use super::traits::Orchestrates;
     pub use super::{OldOrchestrator, Orchestrator, OrchestratorHelper};
 }

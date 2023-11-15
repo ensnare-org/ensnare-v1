@@ -1,13 +1,21 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::{
+    new_track_widget,
+    track::{make_title_bar_galley, title_bar},
+};
 use crate::{
-    orchestration::{OldOrchestrator, Orchestrator, OrchestratorAction},
+    orchestration::{OldOrchestrator, Orchestrator, ProjectAction},
     track::{track_widget, TrackWidgetAction},
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
 use ensnare_core::{
-    piano_roll::PianoRoll, time::ViewRange, traits::Controls, types::TrackTitle, uid::Uid,
+    piano_roll::PianoRoll,
+    time::ViewRange,
+    traits::Controls,
+    types::TrackTitle,
+    uid::{TrackUid, Uid},
 };
 use ensnare_cores_egui::{
     piano_roll::piano_roll,
@@ -15,30 +23,31 @@ use ensnare_cores_egui::{
 };
 use std::sync::Arc;
 
-use super::{
-    new_signal_chain_widget, new_track_widget,
-    track::{make_title_bar_galley, title_bar},
-};
+pub trait DescribesProject: core::fmt::Debug {
+    fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle>;
+}
 
-/// Wraps an [OrchestratesTraitWidget] as a [Widget](eframe::egui::Widget).
-pub fn orchestrates_trait_widget<'a>(
+/// Wraps an [ProjectWidget] as a [Widget](eframe::egui::Widget).
+pub fn project_widget<'a>(
+    project_metadata: &'a impl DescribesProject,
     orchestrates: &'a mut impl Orchestrates,
     view_range: &'a mut ViewRange,
-    action: &'a mut Option<OrchestratorAction>,
+    action: &'a mut Option<ProjectAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        OrchestratesTraitWidget::new(orchestrates, view_range, action).ui(ui)
+        ProjectWidget::new(orchestrates, view_range, project_metadata, action).ui(ui)
     }
 }
 
-/// An egui component that draws anything implementing [Orchestrates].
+/// An egui component that draws the main view of a project.
 #[derive(Debug)]
-struct OrchestratesTraitWidget<'a> {
+struct ProjectWidget<'a> {
     orchestrates: &'a mut dyn Orchestrates,
+    project_metadata: &'a dyn DescribesProject,
     view_range: &'a mut ViewRange,
-    action: &'a mut Option<OrchestratorAction>,
+    action: &'a mut Option<ProjectAction>,
 }
-impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
+impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut action = None;
         ui.add(timeline::timeline_icon_strip(&mut action));
@@ -57,8 +66,12 @@ impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
             .show(ui, |ui| {
                 // Render each track.
                 for track_uid in self.orchestrates.track_uids() {
-                    let font_galley: Option<Arc<Galley>> =
-                        Some(make_title_bar_galley(ui, &TrackTitle::default()));
+                    let track_title = self.project_metadata.track_title(track_uid);
+                    let font_galley: Option<Arc<Galley>> = if let Some(track_title) = track_title {
+                        Some(make_title_bar_galley(ui, track_title))
+                    } else {
+                        None
+                    };
                     // TODO: this feels cacheable
                     let mut signal_items = Vec::default();
                     if let Ok(entity_uids) = self.orchestrates.get_track_entities(track_uid) {
@@ -98,15 +111,17 @@ impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
         ui.label("placeholder.........")
     }
 }
-impl<'a> OrchestratesTraitWidget<'a> {
+impl<'a> ProjectWidget<'a> {
     fn new(
         orchestrates: &'a mut impl Orchestrates,
         view_range: &'a mut ViewRange,
-        action: &'a mut Option<OrchestratorAction>,
+        project_metadata: &'a impl DescribesProject,
+        action: &'a mut Option<ProjectAction>,
     ) -> Self {
         Self {
             orchestrates,
             view_range,
+            project_metadata,
             action,
         }
     }
@@ -146,7 +161,7 @@ pub fn old_orchestrator<'a>(
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
-    action: &'a mut Option<OrchestratorAction>,
+    action: &'a mut Option<ProjectAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
         OldOrchestratorWidget::new(orchestrator, view_range, is_piano_roll_visible, action).ui(ui)
@@ -159,7 +174,7 @@ struct OldOrchestratorWidget<'a> {
     orchestrator: &'a mut OldOrchestrator,
     view_range: &'a mut ViewRange,
     is_piano_roll_visible: &'a mut bool,
-    action: &'a mut Option<OrchestratorAction>,
+    action: &'a mut Option<ProjectAction>,
 }
 impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -252,9 +267,9 @@ impl<'a> eframe::egui::Widget for OldOrchestratorWidget<'a> {
                                 }
                                 if response.double_clicked() {
                                     *self.action =
-                                        Some(OrchestratorAction::DoubleClickTrack(*track_uid));
+                                        Some(ProjectAction::DoubleClickTrack(*track_uid));
                                 } else if response.clicked() {
-                                    *self.action = Some(OrchestratorAction::ClickTrack(*track_uid));
+                                    *self.action = Some(ProjectAction::ClickTrack(*track_uid));
                                 }
                             }
                         }
@@ -268,7 +283,7 @@ impl<'a> OldOrchestratorWidget<'a> {
         orchestrator: &'a mut OldOrchestrator,
         view_range: &'a mut ViewRange,
         is_piano_roll_visible: &'a mut bool,
-        action: &'a mut Option<OrchestratorAction>,
+        action: &'a mut Option<ProjectAction>,
     ) -> Self {
         Self {
             orchestrator,

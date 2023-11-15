@@ -10,14 +10,27 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(super) struct InMemoryProject {
     pub(super) title: ProjectTitle,
     pub(super) orchestrator: Arc<Mutex<Orchestrator>>,
     pub(super) piano_roll: Arc<RwLock<PianoRoll>>,
 
     pub(super) view_range: ViewRange,
-    track_titles: HashMap<TrackUid, TrackTitle>,
+    pub(super) track_titles: HashMap<TrackUid, TrackTitle>,
+}
+impl Default for InMemoryProject {
+    fn default() -> Self {
+        let mut r = Self {
+            title: Default::default(),
+            orchestrator: Default::default(),
+            piano_roll: Default::default(),
+            view_range: MusicalTime::START..MusicalTime::new_with_beats(4 * 4),
+            track_titles: Default::default(),
+        };
+        let _ = r.create_starter_tracks();
+        r
+    }
 }
 impl InMemoryProject {
     /// Adds a set of tracks that make sense for a new project.

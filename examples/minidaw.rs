@@ -24,10 +24,13 @@ use ensnare::{
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
 };
-use ensnare_orchestration::egui::entity_palette;
+use ensnare_core::{types::TrackTitle, uid::TrackUid};
+use ensnare_orchestration::{egui::entity_palette, DescribesProject};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::{
+    collections::HashMap,
     io::{Read, Write},
+    ops::DerefMut,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -116,14 +119,13 @@ struct SettingsPanel {
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<OldOrchestrator>>) -> Self {
+    pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<Orchestrator>>) -> Self {
         let midi_panel = MidiService::new_with(Arc::clone(&settings.midi_settings));
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let o: &mut OldOrchestrator = &mut o;
-                    let mut helper = OrchestratorHelper::new_with(o);
+                    let mut helper = OrchestratorHelper::new_with(o.deref_mut());
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
                         if let EntityEvent::Midi(channel, message) = event {
                             let _ =
@@ -364,13 +366,16 @@ impl MenuBar {
 }
 
 struct MiniDaw {
-    orchestrator: Arc<Mutex<OldOrchestrator>>,
+    orchestrator: Arc<Mutex<Orchestrator>>,
+    track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
     orchestrator_panel: OrchestratorService,
     settings_panel: SettingsPanel,
+
+    view_range: ViewRange,
 
     exit_requested: bool,
 
@@ -392,11 +397,14 @@ impl MiniDaw {
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
             orchestrator,
+            track_titles: Default::default(),
             title: Default::default(),
             menu_bar: Default::default(),
             control_bar: Default::default(),
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
+
+            view_range: Default::default(),
 
             exit_requested: Default::default(),
 
@@ -722,14 +730,27 @@ impl MiniDaw {
             self.orchestrator_panel
                 .set_control_only_down(is_control_only_down);
             if let Ok(mut o) = self.orchestrator.lock() {
-                let mut view_range = o.view_range.clone();
+                #[derive(Debug)]
+                struct ProjectDescriber<'a> {
+                    track_titles: &'a HashMap<TrackUid, TrackTitle>,
+                }
+                impl<'a> DescribesProject for ProjectDescriber<'a> {
+                    fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
+                        self.track_titles.get(track_uid)
+                    }
+                }
+                let project_describer = ProjectDescriber {
+                    track_titles: &self.track_titles,
+                };
+                let mut view_range = self.view_range.clone();
                 let mut action = None;
-                let _ = ui.add(orchestrates_trait_widget(
-                    o.as_orchestrates_mut(),
+                let _ = ui.add(project_widget(
+                    &project_describer,
+                    o.deref_mut(),
                     &mut view_range,
                     &mut action,
                 ));
-                o.view_range = view_range;
+                self.view_range = view_range;
                 if let Some(action) = action {
                     todo!("deal with this! {action:?}");
                 }
