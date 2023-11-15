@@ -4,25 +4,27 @@
 //! persistent global preferences. It also contains [SettingsPanel].
 
 use ensnare::{
-    arrangement::{OldOrchestrator, OrchestratorHelper},
+    arrangement::OrchestratorHelper,
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
-    services::{AudioPanel, AudioSettings, MidiPanel, MidiSettings, NeedsAudioFn},
+    services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
     traits::{EntityEvent, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
 use ensnare_entity::traits::Displays;
+use ensnare_orchestration::Orchestrator;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
+    sync::{Arc, Mutex},
 };
 
 /// Global preferences.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Settings {
     audio_settings: AudioSettings,
-    midi_settings: std::sync::Arc<std::sync::Mutex<MidiSettings>>,
+    midi_settings: Arc<std::sync::Mutex<MidiSettings>>,
 }
 impl Settings {
     const FILENAME: &'static str = "settings.json";
@@ -96,30 +98,28 @@ impl HasSettings for Settings {
 
 #[derive(Debug)]
 pub(crate) struct SettingsPanel {
-    settings: Settings,
-    audio_panel: AudioPanel,
-    midi_panel: MidiPanel,
+    pub(crate) settings: Settings,
+    pub(crate) audio_service: AudioService,
+    pub(crate) midi_service: MidiService,
 
     midi_inputs: Vec<MidiPortDescriptor>,
     midi_outputs: Vec<MidiPortDescriptor>,
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(
-        settings: Settings,
-        orchestrator: std::sync::Arc<std::sync::Mutex<OldOrchestrator>>,
-    ) -> Self {
-        let midi_panel = MidiPanel::new_with(std::sync::Arc::clone(&settings.midi_settings));
-        let midi_panel_sender = midi_panel.sender().clone();
+    pub fn new_with(settings: Settings, orchestrator: &Arc<Mutex<Orchestrator>>) -> Self {
+        let orchestrator = Arc::clone(&orchestrator);
+        let midi_service = MidiService::new_with(Arc::clone(&settings.midi_settings));
+        let midi_service_sender = midi_service.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let o: &mut OldOrchestrator = &mut o;
+                    let o: &mut Orchestrator = &mut o;
                     let mut helper = OrchestratorHelper::new_with(o);
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
                         if let EntityEvent::Midi(channel, message) = event {
-                            let _ =
-                                midi_panel_sender.send(MidiInterfaceInput::Midi(channel, message));
+                            let _ = midi_service_sender
+                                .send(MidiInterfaceInput::Midi(channel, message));
                         }
                     });
                 }
@@ -127,40 +127,22 @@ impl SettingsPanel {
         };
         Self {
             settings,
-            audio_panel: AudioPanel::new_with(needs_audio_fn),
-            midi_panel,
+            audio_service: AudioService::new_with(needs_audio_fn),
+            midi_service,
             midi_inputs: Default::default(),
             midi_outputs: Default::default(),
         }
     }
 
-    /// The owned [AudioPanel].
-    pub fn audio_panel(&self) -> &AudioPanel {
-        &self.audio_panel
-    }
-
-    /// The owned [MidiPanel].
-    pub fn midi_panel(&self) -> &MidiPanel {
-        &self.midi_panel
-    }
-
     /// Asks the panel to shut down any services associated with contained panels.
     pub fn exit(&self) {
-        self.audio_panel.exit();
-        self.midi_panel.exit();
+        self.audio_service.exit();
+        self.midi_service.exit();
     }
 
     pub fn handle_midi_port_refresh(&mut self) {
-        self.midi_inputs = self.midi_panel.inputs().lock().unwrap().clone();
-        self.midi_outputs = self.midi_panel.outputs().lock().unwrap().clone();
-    }
-
-    pub(crate) fn settings(&self) -> &Settings {
-        &self.settings
-    }
-
-    pub(crate) fn settings_mut(&mut self) -> &mut Settings {
-        &mut self.settings
+        self.midi_inputs = self.midi_service.inputs().lock().unwrap().clone();
+        self.midi_outputs = self.midi_service.outputs().lock().unwrap().clone();
     }
 }
 impl Displays for SettingsPanel {
@@ -183,10 +165,10 @@ impl Displays for SettingsPanel {
         };
 
         if let Some(new_input) = &new_input {
-            self.midi_panel.select_input(new_input);
+            self.midi_service.select_input(new_input);
         }
         if let Some(new_output) = &new_output {
-            self.midi_panel.select_output(new_output);
+            self.midi_service.select_output(new_output);
         }
 
         #[cfg(debug_assertions)]

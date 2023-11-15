@@ -4,6 +4,7 @@
 
 use crate::{
     menu::{MenuBar, MenuBarAction},
+    project::InMemoryProject,
     settings::{Settings, SettingsPanel},
 };
 use crossbeam_channel::{unbounded, Select, Sender};
@@ -17,11 +18,11 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{app_version, prelude::*};
+use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use ensnare_orchestration::{egui::entity_palette, orchestrator, OrchestratorAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
-use std::sync::{Arc, Mutex};
+use std::{ops::DerefMut, sync::Arc};
 
 enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),
@@ -32,11 +33,11 @@ enum EnsnareMessage {
 pub(super) struct Ensnare {
     event_channel: ChannelPair<EnsnareMessage>,
 
-    orchestrator: Arc<Mutex<OldOrchestrator>>,
+    project: InMemoryProject,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
-    orchestrator_panel: OrchestratorService,
+    orchestrator_service: OrchestratorService,
     settings_panel: SettingsPanel,
 
     toasts: Toasts,
@@ -54,9 +55,6 @@ pub(super) struct Ensnare {
 impl Ensnare {
     /// The user-visible name of the application.
     pub(super) const NAME: &'static str = "Ensnare";
-
-    /// The default name of a new project.
-    const DEFAULT_PROJECT_NAME: &'static str = "Untitled";
 
     /// internal-only key for regular font.
     const FONT_REGULAR: &'static str = "font-regular";
@@ -80,11 +78,10 @@ impl Ensnare {
         Self::initialize_style(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
+        let project = InMemoryProject::default();
+        let orchestrator = Arc::clone(&project.orchestrator);
+
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OrchestratorService::default();
-        let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
-        let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
-        let control_panel = ControlBar::default();
         // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
         //     Some(control_panel.sample_channel.sender.clone());
         // let keyboard_events_sender = orchestrator
@@ -97,12 +94,11 @@ impl Ensnare {
         let (keyboard_events_sender, _receiver) = unbounded();
         let mut r = Self {
             event_channel: Default::default(),
-            orchestrator,
+            project,
             menu_bar: Default::default(),
-            control_bar: control_panel,
-
-            orchestrator_panel,
-            settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
+            control_bar: Default::default(),
+            orchestrator_service: OrchestratorService::new_with(&orchestrator),
+            settings_panel: SettingsPanel::new_with(settings, &orchestrator),
             toasts: Toasts::new()
                 .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
                 .direction(Direction::BottomUp),
@@ -221,12 +217,12 @@ impl Ensnare {
     /// immediately off the UI thread or forwards them to the app's event
     /// channel.
     fn spawn_channel_aggregator(&mut self) {
-        let r0 = self.settings_panel.midi_panel().receiver().clone();
-        let r1 = self.settings_panel.audio_panel().receiver().clone();
-        let r2 = self.orchestrator_panel.receiver().clone();
+        let r0 = self.settings_panel.midi_service.receiver().clone();
+        let r1 = self.settings_panel.audio_service.receiver().clone();
+        let r2 = self.orchestrator_service.receiver().clone();
 
         let app_sender = self.event_channel.sender.clone();
-        let orchestrator_sender = self.orchestrator_panel.sender().clone();
+        let orchestrator_sender = self.orchestrator_service.sender().clone();
 
         let _ = std::thread::spawn(move || -> ! {
             let mut sel = Select::new();
@@ -313,7 +309,7 @@ impl Ensnare {
                             eprintln!("OrchestratorEvent::Quit")
                         }
                         OrchestratorEvent::Loaded(path, title) => {
-                            let title = title.unwrap_or(String::from(Self::DEFAULT_PROJECT_NAME));
+                            let title = title.unwrap_or(ProjectTitle::default().into());
                             self.toasts.add(Toast {
                                 kind: egui_toast::ToastKind::Success,
                                 text: format!("Loaded {} from {}", title, path.display()).into(),
@@ -359,15 +355,15 @@ impl Ensnare {
     }
 
     fn update_orchestrator_audio_interface_config(&mut self) {
-        let sample_rate = self.settings_panel.audio_panel().sample_rate();
-        if let Ok(mut o) = self.orchestrator.lock() {
+        let sample_rate = self.settings_panel.audio_service.sample_rate();
+        if let Ok(mut o) = self.project.orchestrator.lock() {
             o.update_sample_rate(sample_rate);
         }
     }
 
     fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
         self.menu_bar
-            .set_is_any_track_selected(self.orchestrator_panel.is_any_track_selected());
+            .set_is_any_track_selected(self.orchestrator_service.is_any_track_selected());
         self.menu_bar.ui(ui);
         let menu_action = self.menu_bar.take_action();
         self.handle_menu_bar_action(menu_action);
@@ -375,8 +371,8 @@ impl Ensnare {
 
         let mut control_bar_action = None;
         ui.horizontal_centered(|ui| {
-            if let Ok(mut o) = self.orchestrator.lock() {
-                ui.add(transport(&mut o.inner.transport));
+            if let Ok(mut o) = self.project.orchestrator.lock() {
+                ui.add(transport(&mut o.transport));
             }
             ui.add(control_bar_widget(
                 &mut self.control_bar,
@@ -402,7 +398,7 @@ impl Ensnare {
             }
         };
         if let Some(input) = input {
-            self.orchestrator_panel.send_to_service(input);
+            self.orchestrator_service.send_to_service(input);
         }
     }
 
@@ -430,20 +426,22 @@ impl Ensnare {
     }
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
-        if let Ok(mut o) = self.orchestrator.lock() {
-            let mut view_range = o.view_range.clone();
-            let mut action = None;
+        let mut view_range = self.project.view_range.clone();
+        let mut action = None;
+        if let Ok(mut o) = self.project.orchestrator.lock() {
             let _ = ui.add(orchestrates_trait_widget(
-                o.as_orchestrates_mut(),
+                o.deref_mut(),
                 &mut view_range,
                 &mut action,
             ));
-            o.view_range = view_range;
-            if let Some(action) = action {
-                self.handle_action(&mut o.inner, action);
-            }
-            // If we're performing, then we know the screen is updating, so we
-            // should draw it..
+        }
+        self.project.view_range = view_range;
+        if let Some(action) = action {
+            self.handle_action(action);
+        }
+        // If we're performing, then we know the screen is updating, so we
+        // should draw it..
+        if let Ok( o) = self.project.orchestrator.lock() {
             if o.is_performing() {
                 ui.ctx().request_repaint();
             }
@@ -475,22 +473,24 @@ impl Ensnare {
         });
     }
 
-    fn handle_action(&self, orchestrator: &mut Orchestrator, action: OrchestratorAction) {
-        match action {
-            OrchestratorAction::ClickTrack(_track_uid) => {
-                // TODO: this was in orchestrator_panel, and I'm not too fond of
-                // its design.
-                //
-                // self.track_selection_set.lock().unwrap().click(&track_uid,
-                //     self.is_control_only_down);
-            }
-            OrchestratorAction::DoubleClickTrack(_track_uid) => {
-                // This used to expand/collapse, but that's gone.
-            }
-            OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
-                let uid = orchestrator.mint_entity_uid();
-                if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
-                    let _ = orchestrator.add_entity(&track_uid, entity);
+    fn handle_action(&self, action: OrchestratorAction) {
+        if let Ok(mut o) = self.project.orchestrator.lock() {
+            match action {
+                OrchestratorAction::ClickTrack(_track_uid) => {
+                    // TODO: this was in orchestrator_panel, and I'm not too fond of
+                    // its design.
+                    //
+                    // self.track_selection_set.lock().unwrap().click(&track_uid,
+                    //     self.is_control_only_down);
+                }
+                OrchestratorAction::DoubleClickTrack(_track_uid) => {
+                    // This used to expand/collapse, but that's gone.
+                }
+                OrchestratorAction::NewDeviceForTrack(track_uid, key) => {
+                    let uid = o.mint_entity_uid();
+                    if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
+                        let _ = o.add_entity(&track_uid, entity);
+                    }
                 }
             }
         }
@@ -545,7 +545,7 @@ impl Ensnare {
                 },
             };
             if let Some(input) = input {
-                let _ = self.orchestrator_panel.send_to_service(input);
+                let _ = self.orchestrator_service.send_to_service(input);
             } else {
                 eprintln!("WARNING: unhandled DnD pair: {source:?} {target:?}");
             }
@@ -558,7 +558,7 @@ impl App for Ensnare {
         self.copy_keyboard_events(ctx);
 
         let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
-        self.orchestrator_panel
+        self.orchestrator_service
             .set_control_only_down(is_control_only_down);
 
         let top = TopBottomPanel::top("top-panel")
@@ -603,10 +603,10 @@ impl App for Ensnare {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        if !self.settings_panel.settings().has_been_saved() {
-            let _ = self.settings_panel.settings_mut().save();
+        if !self.settings_panel.settings.has_been_saved() {
+            let _ = self.settings_panel.settings.save();
         }
         self.settings_panel.exit();
-        self.orchestrator_panel.exit();
+        self.orchestrator_service.exit();
     }
 }

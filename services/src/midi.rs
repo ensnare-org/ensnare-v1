@@ -136,7 +136,7 @@ pub enum MidiPanelEvent {
 
 /// [MidiPanel] manages external MIDI hardware interfaces.
 #[derive(Debug)]
-pub struct MidiPanel {
+pub struct MidiService {
     sender: Sender<MidiInterfaceInput>, // for us to send to the interface
     app_channel: ChannelPair<MidiPanelEvent>, // to tell the app what's happened.
 
@@ -145,7 +145,7 @@ pub struct MidiPanel {
 
     settings: Arc<Mutex<MidiSettings>>,
 }
-impl MidiPanel {
+impl MidiService {
     /// Creates a new [MidiPanel].
     pub fn new_with(settings: Arc<Mutex<MidiSettings>>) -> Self {
         let midi_interface_service = MidiInterfaceService::default();

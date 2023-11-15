@@ -2,9 +2,11 @@
 
 pub mod keyboard;
 
+use std::sync::{Arc, RwLock};
+
 use ensnare_core::{
     controllers::{TimerParams, TriggerParams},
-    piano_roll::Pattern,
+    piano_roll::{Pattern, PianoRoll},
     prelude::*,
     time::MusicalTime,
     traits::{Configurable, Controls, Sequences, Serializable},
@@ -107,6 +109,14 @@ pub struct LivePatternSequencer {
     inner: ensnare_cores::LivePatternSequencer,
 }
 impl Displays for LivePatternSequencer {}
+impl LivePatternSequencer {
+    pub fn new_with(uid: Uid, piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+        Self {
+            uid,
+            inner: ensnare_cores::LivePatternSequencer::new_with(piano_roll),
+        }
+    }
+}
 
 #[derive(Debug, Default, InnerControls, IsController, Metadata)]
 pub struct NoteSequencer {

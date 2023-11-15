@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
 use ensnare_entity::prelude::*;
-use ensnare_orchestration::{traits::Orchestrates, OldOrchestrator};
+use ensnare_orchestration::{traits::Orchestrates, OldOrchestrator, Orchestrator};
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, MutexGuard},
@@ -80,9 +80,9 @@ pub enum OrchestratorEvent {
 /// A wrapper around an [Orchestrator] that manages its lifetime in a separate
 /// thread. Communicate with it by sending [OrchestratorInput] messages and
 /// receiving [OrchestratorEvent] messages.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct OrchestratorService {
-    pub orchestrator: Arc<Mutex<OldOrchestrator>>,
+    pub orchestrator: Arc<Mutex<Orchestrator>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
     input_channel_pair: ChannelPair<OrchestratorInput>,
     event_channel_pair: ChannelPair<OrchestratorEvent>,
@@ -90,6 +90,18 @@ pub struct OrchestratorService {
     is_control_only_down: bool,
 }
 impl OrchestratorService {
+    pub fn new_with(orchestrator: &Arc<Mutex<Orchestrator>>) -> Self {
+        let mut r = Self {
+            orchestrator: Arc::clone(orchestrator),
+            track_selection_set: Default::default(),
+            input_channel_pair: Default::default(),
+            event_channel_pair: Default::default(),
+            is_control_only_down: Default::default(),
+        };
+        r.start_thread();
+        r
+    }
+
     pub fn set_control_only_down(&mut self, is_control_only_down: bool) {
         self.is_control_only_down = is_control_only_down;
     }
@@ -140,7 +152,7 @@ impl OrchestratorService {
                         OrchestratorInput::ProjectPlay => o.play(),
                         OrchestratorInput::ProjectStop => o.stop(),
                         OrchestratorInput::ProjectNew => {
-                            let mo = OldOrchestrator::default();
+                            let mo = Orchestrator::default();
                             // o.prepare_successor(&mut mo);
                             // let _ = mo.create_starter_tracks(); // TODO: DRY this
                             *o = mo;
@@ -175,13 +187,13 @@ impl OrchestratorService {
                             break;
                         }
                         OrchestratorInput::TrackNewMidi => {
-                            let _ = o.new_midi_track();
+                            // let _ = o.new_midi_track();
                         }
                         OrchestratorInput::TrackNewAudio => {
-                            let _ = o.new_audio_track();
+                            // let _ = o.new_audio_track();
                         }
                         OrchestratorInput::TrackNewAux => {
-                            let _ = o.new_aux_track();
+                            // let _ = o.new_aux_track();
                         }
                         OrchestratorInput::TrackDeleteSelected => {
                             if let Ok(track_selection_set) = track_selection_set.lock() {
@@ -237,14 +249,14 @@ impl OrchestratorService {
     }
 
     fn handle_input_midi(
-        o: &mut MutexGuard<OldOrchestrator>,
+        orchestrator: &mut MutexGuard<Orchestrator>,
         channel: MidiChannel,
         message: MidiMessage,
     ) {
-        o.handle_midi_message(channel, message, &mut |_, _| {});
+        orchestrator.handle_midi_message(channel, message, &mut |_, _| {});
     }
 
-    fn handle_input_load(_path: &PathBuf) -> anyhow::Result<OldOrchestrator> {
+    fn handle_input_load(_path: &PathBuf) -> anyhow::Result<Orchestrator> {
         Err(anyhow!("FIX THIS"))
         // match std::fs::read_to_string(path) {
         //     Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
@@ -258,7 +270,7 @@ impl OrchestratorService {
         // }
     }
 
-    fn handle_input_save(_o: &MutexGuard<OldOrchestrator>, _path: &PathBuf) -> anyhow::Result<()> {
+    fn handle_input_save(_o: &MutexGuard<Orchestrator>, _path: &PathBuf) -> anyhow::Result<()> {
         Err(anyhow!("FIX THIS"))
         // let o: &Orchestrator = o;
         // match serde_json::to_string_pretty(o)
@@ -279,20 +291,5 @@ impl OrchestratorService {
         } else {
             false
         }
-    }
-}
-impl Default for OrchestratorService {
-    fn default() -> Self {
-        let mut orchestrator = OldOrchestrator::default();
-        let _ = orchestrator.create_starter_tracks();
-        let mut r = Self {
-            orchestrator: Arc::new(Mutex::new(orchestrator)),
-            track_selection_set: Default::default(),
-            input_channel_pair: Default::default(),
-            event_channel_pair: Default::default(),
-            is_control_only_down: Default::default(),
-        };
-        r.start_thread();
-        r
     }
 }

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike and Makeda Tsao. All rights reserved.
 
-use crate::track::{SignalChainWidgetAction, TrackWidgetAction};
+use crate::track::TrackWidgetAction;
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -17,23 +17,38 @@ use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use std::{f32::consts::PI, sync::Arc};
 
+use super::{
+    new_signal_chain_widget,
+    signal_chain::{NewSignalChainWidgetAction, SignalChainItem},
+};
+
 /// Wraps an [NewTrackWidget] as a [Widget](eframe::egui::Widget).
 pub fn new_track_widget<'a>(
     track_uid: TrackUid,
+    signal_items: &'a [SignalChainItem],
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
     title_font_galley: Option<Arc<Galley>>,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        NewTrackWidget::new(track_uid, view_range, cursor, title_font_galley, action).ui(ui)
+        NewTrackWidget::new(
+            track_uid,
+            signal_items,
+            view_range,
+            cursor,
+            title_font_galley,
+            action,
+        )
+        .ui(ui)
     }
 }
 
-/// An egui component that draws anything implementing [Orchestrates].
+/// An egui component that draws a track.
 #[derive(Debug)]
 struct NewTrackWidget<'a> {
     track_uid: TrackUid,
+    signal_items: &'a [SignalChainItem],
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
     title_font_galley: Option<Arc<Galley>>,
@@ -46,6 +61,7 @@ impl<'a> NewTrackWidget<'a> {
 
     pub fn new(
         track_uid: TrackUid,
+        signal_items: &'a [SignalChainItem],
         view_range: ViewRange,
         cursor: Option<MusicalTime>,
         title_font_galley: Option<Arc<Galley>>,
@@ -53,6 +69,7 @@ impl<'a> NewTrackWidget<'a> {
     ) -> Self {
         Self {
             track_uid,
+            signal_items,
             view_range,
             cursor,
             title_font_galley,
@@ -190,12 +207,17 @@ impl<'a> Widget for NewTrackWidget<'a> {
                         .response;
 
                         // Draw the signal chain view for every kind of track.
-                        ui.scope(|_ui| {
-                            let action = None;
-                            // ui.add(signal_chain(self.track_uid, self.track, &mut action));
+                        ui.scope(|ui| {
+                            let mut action = None;
+                            ui.add(new_signal_chain_widget(
+                                self.track_uid,
+                                &self.signal_items,
+                                &mut action,
+                            ));
+
                             if let Some(action) = action {
                                 match action {
-                                    SignalChainWidgetAction::EntitySelected(uid, name) => {
+                                    NewSignalChainWidgetAction::EntitySelected(uid, name) => {
                                         *self.action =
                                             Some(TrackWidgetAction::EntitySelected(uid, name));
                                     }
@@ -213,8 +235,7 @@ impl<'a> Widget for NewTrackWidget<'a> {
                 })
                 .inner
             })
-            .inner;
-        ui.label("asdf")
+            .inner
     }
 }
 
@@ -241,7 +262,7 @@ pub fn title_bar(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget 
     move |ui: &mut eframe::egui::Ui| TitleBar::new(font_galley).ui(ui)
 }
 
-/// An egui widget that draws a [Track]'s sideways title bar.
+/// An egui widget that draws a track's sideways title bar.
 #[derive(Debug)]
 struct TitleBar {
     font_galley: Option<Arc<Galley>>,

@@ -106,8 +106,8 @@ impl HasSettings for Settings {
 #[derive(Debug)]
 struct SettingsPanel {
     settings: Settings,
-    audio_panel: AudioPanel,
-    midi_panel: MidiPanel,
+    audio_panel: AudioService,
+    midi_panel: MidiService,
 
     midi_inputs: Vec<MidiPortDescriptor>,
     midi_outputs: Vec<MidiPortDescriptor>,
@@ -117,7 +117,7 @@ struct SettingsPanel {
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
     pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<OldOrchestrator>>) -> Self {
-        let midi_panel = MidiPanel::new_with(Arc::clone(&settings.midi_settings));
+        let midi_panel = MidiService::new_with(Arc::clone(&settings.midi_settings));
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
@@ -135,7 +135,7 @@ impl SettingsPanel {
         };
         Self {
             settings,
-            audio_panel: AudioPanel::new_with(needs_audio_fn),
+            audio_panel: AudioService::new_with(needs_audio_fn),
             midi_panel,
             midi_inputs: Default::default(),
             midi_outputs: Default::default(),
@@ -154,12 +154,12 @@ impl SettingsPanel {
     }
 
     /// The owned [AudioPanel].
-    pub fn audio_panel(&self) -> &AudioPanel {
+    pub fn audio_panel(&self) -> &AudioService {
         &self.audio_panel
     }
 
     /// The owned [MidiPanel].
-    pub fn midi_panel(&self) -> &MidiPanel {
+    pub fn midi_panel(&self) -> &MidiService {
         &self.midi_panel
     }
 

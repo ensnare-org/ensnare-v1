@@ -186,13 +186,13 @@ pub mod services {
     /// `use ensnare::systems::prelude::*;` when working with services.
     pub mod prelude {
         pub use super::{
-            AudioPanel, AudioPanelEvent, AudioSettings, ControlBar, MidiPanel, MidiPanelEvent,
+            AudioPanelEvent, AudioService, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
             MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
         };
     }
 
     pub use ensnare_services::{
-        AudioPanel, AudioPanelEvent, AudioSettings, ControlBar, MidiPanel, MidiPanelEvent,
+        AudioPanelEvent, AudioService, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
         MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
     };
 }

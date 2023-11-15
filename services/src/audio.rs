@@ -83,9 +83,9 @@ impl<F> NeedsAudioFnT for F where F: FnMut(&AudioQueue, usize) + Sync + Send {}
 /// [StereoSample]s that the audio interface has requested.
 pub type NeedsAudioFn = Box<dyn NeedsAudioFnT>;
 
-/// [AudioPanel] manages the audio interface.
+/// [AudioService] manages the audio interface.
 #[derive(Debug)]
-pub struct AudioPanel {
+pub struct AudioService {
     #[allow(dead_code)]
     sender: Sender<AudioInterfaceInput>,
     app_receiver: Receiver<AudioPanelEvent>, // to give to the app to receive what we sent
@@ -93,8 +93,8 @@ pub struct AudioPanel {
 
     config: Arc<Mutex<Option<AudioSettings>>>,
 }
-impl AudioPanel {
-    /// Construct a new [AudioPanel].
+impl AudioService {
+    /// Construct a new [AudioService].
     pub fn new_with(needs_audio_fn: NeedsAudioFn) -> Self {
         let audio_stream_service = AudioStreamService::default();
         let sender = audio_stream_service.sender().clone();

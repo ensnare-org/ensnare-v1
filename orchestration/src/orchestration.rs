@@ -26,7 +26,6 @@ use ensnare_core::{
     types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
-use ensnare_cores::LivePatternSequencer;
 use ensnare_entity::prelude::*;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use std::{
@@ -158,66 +157,6 @@ impl OldOrchestrator {
     #[allow(dead_code)]
     fn mint_track_uid(&mut self) -> TrackUid {
         self.inner.track_uid_factory.mint_next()
-    }
-
-    fn new_base_track(
-        &mut self,
-        post_creation: impl FnOnce(TrackUid, &mut Track),
-    ) -> anyhow::Result<TrackUid> {
-        let track_uid = self.create_track()?;
-        if let Some(track) = self.tracks.get_mut(&track_uid) {
-            post_creation(track_uid, track);
-            Ok(track_uid)
-        } else {
-            Err(anyhow!("Couldn't find just-created track {track_uid}"))
-        }
-    }
-
-    /// Adds a new MIDI track, which can contain controllers, instruments, and
-    /// effects. Returns the new track's [TrackUid] if successful.
-    pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        let sequencer = LivePatternSequencer::new_with(Arc::clone(&self.piano_roll));
-        let trip_uid = self.mint_entity_uid();
-        self.new_base_track(|track_uid, track| {
-            track.title = TrackTitle(format!("MIDI {}", track_uid));
-            track.set_sequencer(sequencer);
-            track.control_trips.insert(
-                trip_uid,
-                ControlTripBuilder::default()
-                    .random(MusicalTime::START)
-                    .build()
-                    .unwrap(),
-            );
-        })
-    }
-
-    /// Adds a new audio track, which can contain audio clips and effects.
-    /// Returns the new track's [TrackUid] if successful.
-    pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.new_base_track(|track_uid, track| {
-            track.title = TrackTitle(format!("Audio {}", track_uid));
-        })
-    }
-
-    /// Adds a new aux track, which contains only effects, and to which other
-    /// tracks can *send* their output audio. Returns the new track's [TrackUid]
-    /// if successful.
-    pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.new_base_track(|track_uid, track| {
-            track.title = TrackTitle(format!("Aux {}", track_uid));
-        })
-    }
-
-    /// Adds a set of tracks that make sense for a new project.
-    pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
-        if !self.inner.track_uids.is_empty() {
-            return Err(anyhow!("Must be invoked on an empty orchestrator."));
-        }
-        self.new_midi_track()?;
-        self.new_midi_track()?;
-        self.new_audio_track()?;
-        self.new_aux_track()?;
-        Ok(())
     }
 
     /// Sets a new title for the track.
@@ -493,6 +432,22 @@ impl Orchestrates for OldOrchestrator {
     fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
         self.inner.disconnect_midi_receiver(uid, channel)
     }
+
+    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
+        self.inner.get_entity(uid)
+    }
+
+    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
+        self.inner.get_entity_mut(uid)
+    }
+
+    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
+        self.inner.get_entity_track(uid)
+    }
+
+    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+        self.inner.get_track_entities(track_uid)
+    }
 }
 impl Generates<StereoSample> for OldOrchestrator {
     fn value(&self) -> StereoSample {
@@ -732,8 +687,10 @@ pub struct Orchestrator {
 
     /// An ordered list of [TrackUid]s in the order they appear in the UI.
     pub track_uids: Vec<TrackUid>,
-    // A cache for finding an [Entity]'s owning [Track].
+    /// Which [Track] owns which [Entity].
     pub track_for_entity: HashMap<Uid, TrackUid>,
+    /// An ordered list of [Uid]s that each [Track] owns
+    pub entities_for_track: HashMap<TrackUid, Vec<Uid>>,
 
     entity_store: EntityStore,
     controller_uids: HashMap<TrackUid, Vec<Uid>>,
@@ -805,11 +762,50 @@ impl Orchestrator {
         Ok(())
     }
     //////////////////////////////// RECONSIDER
+
+    // Removes all a track's references to a given [Uid].
+    fn remove_entity_uid_from_track(&mut self, uid: &Uid, track_uid: &TrackUid) {
+        // Remove from all entity-type lists.
+        self.controller_uids
+            .entry(*track_uid)
+            .or_default()
+            .retain(|u| *u != *uid);
+        self.instrument_uids
+            .entry(*track_uid)
+            .or_default()
+            .retain(|u| *u != *uid);
+        self.effect_uids
+            .entry(*track_uid)
+            .or_default()
+            .retain(|u| *u != *uid);
+
+        // Remove from prior track's list of entities.
+        let entities = self.entities_for_track.entry(*track_uid).or_default();
+        entities.retain(|u| *u != *uid);
+    }
+
+    fn rebuild_entities_for_track(&mut self, track_uid: &TrackUid) {
+        let entities = self.entities_for_track.entry(*track_uid).or_default();
+        entities.clear();
+
+        // The order controller-instrument-effect reflects the order in which
+        // the orchestrator generally processes entities.
+        entities.append(self.controller_uids.entry(*track_uid).or_default());
+        entities.append(self.instrument_uids.entry(*track_uid).or_default());
+        entities.append(self.effect_uids.entry(*track_uid).or_default());
+    }
 }
 impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
         let track_uid = self.mint_track_uid();
         self.track_uids.push(track_uid);
+
+        // We always want a track's lists of entities to exist.
+        let _ = self.controller_uids.entry(track_uid).or_default();
+        let _ = self.effect_uids.entry(track_uid).or_default();
+        let _ = self.instrument_uids.entry(track_uid).or_default();
+        let _ = self.entities_for_track.entry(track_uid).or_default();
+
         Ok(track_uid)
     }
 
@@ -833,12 +829,16 @@ impl Orchestrates for Orchestrator {
     fn delete_track(&mut self, track_uid: &TrackUid) {
         self.track_uids.retain(|t| *t != *track_uid);
         self.track_for_entity.retain(|_, v| *v != *track_uid);
+        self.controller_uids.remove(track_uid);
+        self.effect_uids.remove(track_uid);
+        self.instrument_uids.remove(track_uid);
+        self.entities_for_track.remove(track_uid);
     }
 
     fn delete_tracks(&mut self, uids: &[TrackUid]) {
         // TODO something something O(n^2) something
-        self.track_uids.retain(|t| !uids.contains(t));
-        self.track_for_entity.retain(|_, v| !uids.contains(v));
+        uids.iter()
+            .for_each(|track_uid| self.delete_track(track_uid));
     }
 
     fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
@@ -862,6 +862,7 @@ impl Orchestrates for Orchestrator {
         if entity.as_effect().is_some() {
             self.effect_uids.entry(*track_uid).or_default().push(uid);
         }
+        self.rebuild_entities_for_track(track_uid);
         self.entity_store.add(entity, uid)
     }
 
@@ -876,35 +877,55 @@ impl Orchestrates for Orchestrator {
         Ok(uid)
     }
 
+    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
+        self.entity_store.get(uid)
+    }
+
+    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
+        self.entity_store.get_mut(uid)
+    }
+
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
-        if let Some(entity) = self.entity_store.remove(uid) {
-            if let Some(track_uid) = self.track_for_entity.get(uid) {
-                self.controller_uids
-                    .entry(*track_uid)
-                    .or_default()
-                    .retain(|uid| *uid != entity.uid());
-                self.instrument_uids
-                    .entry(*track_uid)
-                    .or_default()
-                    .retain(|uid| *uid != entity.uid());
-                self.effect_uids
-                    .entry(*track_uid)
-                    .or_default()
-                    .retain(|uid| *uid != entity.uid());
+        let old_track_uid = {
+            if let Some(old_track_uid) = self.track_for_entity.get(uid) {
+                *old_track_uid
+            } else {
+                return Err(anyhow!("Entity Uid {uid} not found"));
             }
+        };
+
+        if let Some(entity) = self.entity_store.remove(uid) {
+            self.remove_entity_uid_from_track(uid, &old_track_uid);
             Ok(entity)
         } else {
             Err(anyhow!("Entity Uid {uid} not found"))
         }
     }
 
+    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
+        self.track_for_entity.get(uid)
+    }
+
     fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
-        if self.track_for_entity.get(uid).is_some() {
-            self.track_for_entity.remove(uid);
-            self.track_for_entity.insert(*uid, *new_track_uid);
-            Ok(())
+        let old_track_uid = {
+            if let Some(old_track_uid) = self.track_for_entity.get(uid) {
+                *old_track_uid
+            } else {
+                return Err(anyhow!("Entity Uid {uid} not found"));
+            }
+        };
+
+        self.remove_entity_uid_from_track(uid, &old_track_uid);
+        self.track_for_entity.remove(uid);
+        self.track_for_entity.insert(*uid, *new_track_uid);
+        Ok(())
+    }
+
+    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+        if let Some(entities) = self.entities_for_track.get(track_uid) {
+            Ok(&entities)
         } else {
-            Err(anyhow!("Entity Uid {uid} not found"))
+            Err(anyhow!("Entities for track {track_uid} not found"))
         }
     }
 
@@ -1340,9 +1361,8 @@ impl<'a> OrchestratorHelper<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::traits::tests::validate_orchestrates_trait;
-
     use super::*;
+    use crate::traits::tests::validate_orchestrates_trait;
     use ensnare_proc_macros::{IsController, Metadata};
 
     #[test]

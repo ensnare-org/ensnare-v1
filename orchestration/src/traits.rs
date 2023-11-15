@@ -55,12 +55,24 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
         entity: Box<dyn Entity>,
     ) -> anyhow::Result<Uid>;
 
+    /// Returns a reference to the given [Entity], if it exists.
+    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>>;
+
+    /// Returns a mutable reference to the given [Entity], if it exists.
+    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>>;
+
     /// Removes the specified [Entity], returning ownership (if successful) to
     /// the caller.
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>>;
 
+    /// Returns the [TrackUid] of the specified [Entity].
+    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid>;
+
     /// Moves the specified [Entity] to the end of the specified track.
     fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
+
+    /// Returns an ordered list of the entity [Uid]s for the specified track.
+    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]>;
 
     /// Establishes a control link between the source [Entity]'s output and the
     /// given parameter of the target [Entity]'s.
@@ -173,9 +185,40 @@ pub(crate) mod tests {
         );
         orchestrates.delete_track(&track_2_uid);
 
+        assert!(orchestrates.get_track_entities(&track_1_uid).is_ok(), "Getting track entries for a track that exists but is empty should return an empty list");
+        assert!(
+            orchestrates.get_track_entities(&track_2_uid).is_err(),
+            "Getting track entities for nonexistent track should return an error"
+        );
+
+        assert_eq!(
+            orchestrates.get_track_entities(&track_1_uid).unwrap().len(),
+            0
+        );
         let target_uid = orchestrates
             .assign_uid_and_add_entity(&track_1_uid, Box::new(TestInstrument::default()))
             .unwrap();
+        assert_eq!(
+            *orchestrates.get_entity_track(&target_uid).unwrap(),
+            track_1_uid
+        );
+        let track_entities = orchestrates.get_track_entities(&track_1_uid).unwrap();
+        assert_eq!(track_entities.len(), 1);
+        assert!(track_entities.contains(&target_uid));
+
+        assert!(
+            orchestrates.get_entity(&Uid(99999)).is_none(),
+            "getting nonexistent entity should return None"
+        );
+        assert!(
+            orchestrates.get_entity(&target_uid).is_some(),
+            "getting an entity should return it"
+        );
+        assert!(
+            orchestrates.get_entity_mut(&target_uid).is_some(),
+            "getting an entity (mutable) should return it"
+        );
+
         assert!(
             orchestrates
                 .link_control(Uid(123), target_uid, ControlIndex(7))

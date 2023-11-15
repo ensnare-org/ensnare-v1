@@ -6,7 +6,9 @@ use crate::{
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
-use ensnare_core::{piano_roll::PianoRoll, time::ViewRange, traits::Controls, types::TrackTitle};
+use ensnare_core::{
+    piano_roll::PianoRoll, time::ViewRange, traits::Controls, types::TrackTitle, uid::Uid,
+};
 use ensnare_cores_egui::{
     piano_roll::piano_roll,
     widgets::timeline::{self, TimelineIconStripAction},
@@ -14,7 +16,7 @@ use ensnare_cores_egui::{
 use std::sync::Arc;
 
 use super::{
-    new_track_widget,
+    new_signal_chain_widget, new_track_widget,
     track::{make_title_bar_galley, title_bar},
 };
 
@@ -53,17 +55,40 @@ impl<'a> eframe::egui::Widget for OrchestratesTraitWidget<'a> {
         eframe::egui::ScrollArea::vertical()
             .id_source("orchestrator-scroller")
             .show(ui, |ui| {
+                // Render each track.
                 for track_uid in self.orchestrates.track_uids() {
                     let font_galley: Option<Arc<Galley>> =
                         Some(make_title_bar_galley(ui, &TrackTitle::default()));
+                    // TODO: this feels cacheable
+                    let mut signal_items = Vec::default();
+                    if let Ok(entity_uids) = self.orchestrates.get_track_entities(track_uid) {
+                        let foo: Vec<_> = entity_uids
+                            .iter()
+                            .map(|uid| {
+                                if let Some(entity) = self.orchestrates.get_entity(uid) {
+                                    (
+                                        *uid,
+                                        entity.name().to_string(),
+                                        entity.as_controller().is_some(),
+                                    )
+                                } else {
+                                    (Uid::default(), String::new(), false)
+                                }
+                            })
+                            .collect();
+                        signal_items.extend(foo);
+                    }
+
                     let mut action = None;
                     ui.add(new_track_widget(
                         *track_uid,
+                        &signal_items,
                         self.view_range.clone(),
                         None,
                         font_galley,
                         &mut action,
                     ));
+                    // TODO handle action
                 }
             });
 

@@ -13,7 +13,7 @@ mod calculator;
 
 struct CalculatorApp {
     calculator: Arc<Mutex<Calculator>>,
-    audio_interface: AudioPanel,
+    audio_interface: AudioService,
 }
 impl CalculatorApp {
     const APP_NAME: &'static str = "Pocket Calculator";
@@ -48,7 +48,7 @@ impl CalculatorApp {
         };
         Self {
             calculator,
-            audio_interface: AudioPanel::new_with(needs_audio_fn),
+            audio_interface: AudioService::new_with(needs_audio_fn),
         }
     }
 }
