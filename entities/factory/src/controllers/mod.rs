@@ -19,10 +19,11 @@ use ensnare_cores_egui::controllers::{
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
-    InnerTransformsAudio, IsController, IsControllerEffect, Metadata,
+    InnerTransformsAudio, IsEntity, Metadata,
 };
 
-#[derive(Debug, Default, Control, InnerHandlesMidi, IsController, Metadata)]
+#[derive(Debug, Default, Control, InnerHandlesMidi, IsEntity, Metadata)]
+#[entity("controller")]
 pub struct Arpeggiator {
     uid: Uid,
     inner: ensnare_cores::Arpeggiator,
@@ -45,8 +46,9 @@ impl Arpeggiator {
 }
 
 #[derive(
-    Debug, Default, InnerConfigurable, InnerControls, InnerHandlesMidi, IsController, Metadata,
+    Debug, Default, InnerConfigurable, InnerControls, InnerHandlesMidi, IsEntity, Metadata,
 )]
+#[entity("controller")]
 pub struct MidiSequencer {
     uid: Uid,
     inner: ensnare_cores::MidiSequencer,
@@ -54,7 +56,8 @@ pub struct MidiSequencer {
 impl Displays for MidiSequencer {}
 impl Serializable for MidiSequencer {}
 
-#[derive(Debug, Default, InnerControls, IsController, Metadata)]
+#[derive(Debug, Default, InnerControls, IsEntity, Metadata)]
+#[entity("controller")]
 pub struct PatternSequencer {
     uid: Uid,
     inner: ensnare_cores::PatternSequencer,
@@ -101,9 +104,10 @@ impl Sequences for PatternSequencer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct LivePatternSequencer {
     uid: Uid,
     inner: ensnare_cores::LivePatternSequencer,
@@ -118,7 +122,8 @@ impl LivePatternSequencer {
     }
 }
 
-#[derive(Debug, Default, InnerControls, IsController, Metadata)]
+#[derive(Debug, Default, InnerControls, IsEntity, Metadata)]
+#[entity("controller")]
 pub struct NoteSequencer {
     uid: Uid,
     inner: ensnare_cores::NoteSequencer,
@@ -145,10 +150,10 @@ impl NoteSequencer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
-
+#[entity("controller")]
 pub struct LfoController {
     uid: Uid,
     inner: ensnare_cores::LfoController,
@@ -182,9 +187,11 @@ impl Displays for LfoController {
     InnerHandlesMidi,
     InnerSerializable,
     InnerTransformsAudio,
-    IsControllerEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller", "effect")]
+
 pub struct SignalPassthroughController {
     uid: Uid,
     inner: ensnare_cores::controllers::SignalPassthroughController,
@@ -220,9 +227,10 @@ impl SignalPassthroughController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct Timer {
     uid: Uid,
     inner: ensnare_core::controllers::Timer,
@@ -244,9 +252,10 @@ impl Timer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct Trigger {
     uid: Uid,
     inner: ensnare_core::controllers::Trigger,
@@ -268,9 +277,10 @@ impl Trigger {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct ControlTrip {
     uid: Uid,
     inner: ensnare_core::controllers::ControlTrip,

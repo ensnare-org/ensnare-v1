@@ -22,7 +22,7 @@ use ensnare::{
     utils::Paths,
 };
 use ensnare_cores::{Sampler, SamplerVoice};
-use ensnare_proc_macros::{Control, IsControllerInstrument, Metadata};
+use ensnare_proc_macros::{Control, IsEntity, Metadata};
 use std::{ops::Range, path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};
 
@@ -509,7 +509,8 @@ impl CalculatorEphemerals {
 /// [Calculator] is the top-level musical instrument. It contains an [Engine]
 /// that has the song data, as well as a sampler synth that can generate digital
 /// audio. It draws the GUI and handles user input.
-#[derive(Control, IsControllerInstrument, Debug, Metadata)]
+#[derive(Control, IsEntity, Debug, Metadata)]
+#[entity("controller", "instrument")]
 pub struct Calculator {
     /// Required for the [HasMetadata] trait.
     uid: Uid,

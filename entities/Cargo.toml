@@ -15,3 +15,8 @@ ensnare-entities-test = { path = "test", optional = true }
 [features]
 factory = []
 test = ["ensnare-entities-test"]
+
+[dev-dependencies]
+ensnare-core = { path = "../core" }
+ensnare-entity = { path = "../entity" }
+ensnare-proc-macros = { path = "../proc-macros" }

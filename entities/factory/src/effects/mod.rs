@@ -8,7 +8,7 @@ use ensnare_cores::{
 };
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEffect, Metadata,
+    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 pub mod filter;
 
@@ -19,9 +19,10 @@ pub mod filter;
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
 pub struct Bitcrusher {
     uid: Uid,
     inner: ensnare_cores::Bitcrusher,
@@ -53,9 +54,11 @@ impl Bitcrusher {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
+
 pub struct Chorus {
     uid: Uid,
     inner: ensnare_cores::Chorus,
@@ -81,9 +84,11 @@ impl Chorus {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
+
 pub struct Compressor {
     uid: Uid,
     inner: ensnare_cores::Compressor,
@@ -145,9 +150,11 @@ impl Compressor {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
+
 pub struct Gain {
     uid: Uid,
     inner: ensnare_cores::Gain,
@@ -183,9 +190,11 @@ impl Gain {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
+
 pub struct Limiter {
     uid: Uid,
     inner: ensnare_cores::Limiter,
@@ -224,7 +233,9 @@ impl Limiter {
     }
 }
 
-#[derive(Debug, Default, InnerControllable, InnerEffect, IsEffect, Metadata)]
+#[derive(Debug, Default, InnerControllable, InnerEffect, IsEntity, Metadata)]
+#[entity("effect")]
+
 pub struct Mixer {
     uid: Uid,
     inner: ensnare_cores::Mixer,
@@ -252,9 +263,11 @@ impl Mixer {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
+
 pub struct Reverb {
     uid: Uid,
     inner: ensnare_cores::Reverb,

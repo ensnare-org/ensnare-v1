@@ -6,7 +6,7 @@ use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
-    InnerSerializable, IsInstrument, Metadata,
+    InnerSerializable, IsEntity, Metadata,
 };
 
 #[derive(
@@ -16,9 +16,11 @@ use ensnare_proc_macros::{
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
+
 pub struct Drumkit {
     uid: Uid,
     inner: ensnare_cores::Drumkit,
@@ -44,9 +46,10 @@ impl Drumkit {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
 pub struct FmSynth {
     uid: Uid,
     inner: ensnare_cores::FmSynth,
@@ -72,9 +75,10 @@ impl FmSynth {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
 pub struct Sampler {
     uid: Uid,
     inner: ensnare_cores::Sampler,
@@ -104,9 +108,10 @@ impl Sampler {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
 pub struct WelshSynth {
     uid: Uid,
     inner: ensnare_cores::WelshSynth,

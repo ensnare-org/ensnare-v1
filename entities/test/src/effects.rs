@@ -5,10 +5,12 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEffect, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata};
 
-/// The smallest possible [IsEffect].
-#[derive(Debug, Default, IsEffect, Metadata)]
+/// The smallest possible [IsEntity].
+#[derive(Debug, Default, IsEntity, Metadata)]
+#[entity("effect")]
+
 pub struct TestEffect {
     uid: Uid,
 }

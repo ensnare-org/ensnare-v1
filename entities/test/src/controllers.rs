@@ -5,10 +5,11 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsController, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata};
 
-/// The smallest possible [IsController].
-#[derive(Debug, Default, IsController, Metadata)]
+/// The smallest possible [IsEntity].
+#[derive(Debug, Default, IsEntity, Metadata)]
+#[entity("controller")]
 pub struct TestController {
     uid: Uid,
 }

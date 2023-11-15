@@ -10,11 +10,12 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsInstrument, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata};
 use std::sync::{Arc, Mutex};
 
-/// The smallest possible [IsInstrument].
-#[derive(Debug, Default, IsInstrument, Metadata)]
+/// The smallest possible [IsEntity].
+#[derive(Debug, Default, IsEntity, Metadata)]
+#[entity("instrument")]
 pub struct TestInstrument {
     pub uid: Uid,
     pub sample_rate: SampleRate,
@@ -43,9 +44,10 @@ impl Generates<StereoSample> for TestInstrument {
 }
 impl Ticks for TestInstrument {}
 
-/// An [IsInstrument](ensnare::traits::IsInstrument) that counts how many
+/// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
-#[derive(Debug, Default, IsInstrument, Metadata)]
+#[derive(Debug, Default, IsEntity, Metadata)]
+#[entity("instrument")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
     pub received_midi_message_count: Arc<Mutex<usize>>,

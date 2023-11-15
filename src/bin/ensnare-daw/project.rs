@@ -55,7 +55,7 @@ impl InMemoryProject {
             LivePatternSequencer::new_with(o.mint_entity_uid(), Arc::clone(&self.piano_roll));
         //     let trip_uid = o.mint_entity_uid();
         let track_uid = o.create_track()?;
-        o.add_entity(&track_uid, Box::new(sequencer));
+        let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
         // o.add_entity(

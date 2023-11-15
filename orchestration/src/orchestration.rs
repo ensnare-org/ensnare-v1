@@ -1362,7 +1362,7 @@ impl<'a> OrchestratorHelper<'a> {
 mod tests {
     use super::*;
     use crate::traits::tests::validate_orchestrates_trait;
-    use ensnare_proc_macros::{IsController, Metadata};
+    use ensnare_proc_macros::{IsEntity, Metadata};
 
     #[test]
     fn basic_operations() {
@@ -1641,8 +1641,9 @@ mod tests {
         validate_orchestrates_trait(&mut orchestrator);
     }
 
-    /// An [IsController] that sends one Control event each time work() is called.
-    #[derive(Debug, Default, IsController, Metadata)]
+    /// An [IsEntity] that sends one Control event each time work() is called.
+    #[derive(Debug, Default, IsEntity, Metadata)]
+    #[entity("controller")]
     pub struct TestControllerSendsOneEvent {
         uid: Uid,
     }

@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::traits::{Entity, IsEffect, IsInstrument};
+use crate::{
+    prelude::IsInstrument,
+    traits::{Entity, IsEffect},
+};
 use anyhow::anyhow;
 use derive_more::Display;
 use ensnare_core::{
@@ -323,9 +326,10 @@ mod tests {
     use super::EntityStore;
     use crate::prelude::*;
     use ensnare_core::prelude::*;
-    use ensnare_proc_macros::{IsInstrument, Metadata};
+    use ensnare_proc_macros::{IsEntity, Metadata};
 
-    #[derive(Debug, Default, IsInstrument, Metadata)]
+    #[derive(Debug, Default, IsEntity, Metadata)]
+    #[entity("instrument")]
     struct ExampleEntity {
         pub uid: Uid,
         pub sample_rate: SampleRate,

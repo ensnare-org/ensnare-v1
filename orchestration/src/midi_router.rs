@@ -85,10 +85,11 @@ mod tests {
     use super::MidiRouter;
     use ensnare_core::prelude::*;
     use ensnare_entity::prelude::*;
-    use ensnare_proc_macros::{Control, IsInstrument, Metadata};
+    use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use std::sync::{Arc, RwLock};
 
-    #[derive(Debug, Control, Default, IsInstrument, Metadata)]
+    #[derive(Debug, Control, Default, IsEntity, Metadata)]
+    #[entity("instrument")]
     struct TestHandlesMidi {
         uid: Uid,
         rebroadcast_to: Option<MidiChannel>,

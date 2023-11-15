@@ -1,8 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 //! This crate provides macros that make Entity development easier.
+//!
+//! PRO TIP: use `cargo expand --lib entities` to see what's being generated
 
-use entity::{parse_and_generate_entity, EntityType};
+use entity::parse_and_generate_entity;
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
@@ -37,36 +39,10 @@ pub fn params_derive(input: TokenStream) -> TokenStream {
     params::impl_params_derive(input, &make_primitives())
 }
 
-/// Derives helper methods to access Entity traits associated with controllers.
-#[proc_macro_derive(IsController)]
-pub fn controller_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::Controller)
-}
-
-/// Derives helper methods to access Entity traits associated with effects.
-#[proc_macro_derive(IsEffect)]
-pub fn effect_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::Effect)
-}
-
-/// Derives helper methods to access Entity traits associated with instruments.
-#[proc_macro_derive(IsInstrument)]
-pub fn instrument_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::Instrument)
-}
-
-/// Derives helper methods to access Entity traits associated with entities that
-/// are both controllers and effects.
-#[proc_macro_derive(IsControllerEffect)]
-pub fn controller_effect_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::ControllerEffect)
-}
-
-/// Derives helper methods to access Entity traits associated with entities that
-/// are both controllers and instruments.
-#[proc_macro_derive(IsControllerInstrument)]
-pub fn controller_instrument_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input, EntityType::ControllerInstrument)
+/// Derives helper methods to access Entity traits.
+#[proc_macro_derive(IsEntity, attributes(entity))]
+pub fn entity_derive(input: TokenStream) -> TokenStream {
+    parse_and_generate_entity(input)
 }
 
 /// field types that don't recurse further for #[derive(Control)] purposes.

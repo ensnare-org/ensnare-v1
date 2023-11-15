@@ -5,7 +5,7 @@ use ensnare_cores::toys::ToyEffectParams;
 use ensnare_egui_widgets::drag_normal;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEffect, Metadata,
+    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 
 #[derive(
@@ -15,9 +15,10 @@ use ensnare_proc_macros::{
     InnerControllable,
     InnerEffect,
     InnerSerializable,
-    IsEffect,
+    IsEntity,
     Metadata,
 )]
+#[entity("effect")]
 pub struct ToyEffect {
     uid: Uid,
 

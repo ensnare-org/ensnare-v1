@@ -6,7 +6,7 @@ use ensnare_cores::toys::ToyControllerParams;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
-    IsController, Metadata,
+    IsEntity, Metadata,
 };
 
 #[derive(
@@ -17,9 +17,10 @@ use ensnare_proc_macros::{
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct ToyController {
     uid: Uid,
     inner: ensnare_cores::toys::ToyController,
@@ -51,9 +52,10 @@ impl ToyController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsController,
+    IsEntity,
     Metadata,
 )]
+#[entity("controller")]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     uid: Uid,
 

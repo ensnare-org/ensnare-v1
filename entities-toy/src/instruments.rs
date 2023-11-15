@@ -7,7 +7,7 @@ use ensnare_egui_widgets::{envelope, oscillator, waveform};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
-    IsInstrument, Metadata,
+    IsEntity, Metadata,
 };
 
 #[derive(
@@ -18,9 +18,10 @@ use ensnare_proc_macros::{
     InnerInstrument,
     InnerHandlesMidi,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
 pub struct ToyInstrument {
     uid: Uid,
     inner: ensnare_cores::toys::ToyInstrument,
@@ -47,9 +48,10 @@ impl ToyInstrument {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsInstrument,
+    IsEntity,
     Metadata,
 )]
+#[entity("instrument")]
 pub struct ToySynth {
     uid: Uid,
     inner: ensnare_cores::toys::ToySynth,
