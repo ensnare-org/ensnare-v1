@@ -571,6 +571,10 @@ impl App for Ensnare {
         self.handle_app_event_channel();
         self.copy_keyboard_events(ctx);
 
+        // TODO - too much work
+        let project_title_str: String = self.project.title.clone().into();
+        frame.set_window_title(project_title_str.as_str());
+
         let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
         self.orchestrator_service
             .set_control_only_down(is_control_only_down);
