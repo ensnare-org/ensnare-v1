@@ -12,7 +12,7 @@ use ensnare_core::{
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
 use ensnare_entities::controllers::{ControlTrip, LivePatternSequencer, SequencerInput};
-use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
+use ensnare_orchestration::{traits::Orchestrates, DescribesProject, Orchestrator};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, RwLock},
@@ -47,6 +47,19 @@ impl Default for InMemoryProject {
         let _ = r.create_starter_tracks();
         r.switch_to_next_frontmost_timeline_displayer();
         r
+    }
+}
+impl DescribesProject for InMemoryProject {
+    fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
+        self.track_titles.get(track_uid)
+    }
+
+    fn track_frontmost_timeline_displayer(&self, track_uid: &TrackUid) -> Option<Uid> {
+        if let Some(uid) = self.track_frontmost_uids.get(track_uid) {
+            Some(*uid)
+        } else {
+            None
+        }
     }
 }
 impl InMemoryProject {

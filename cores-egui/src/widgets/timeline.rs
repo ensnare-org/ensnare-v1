@@ -15,7 +15,7 @@ pub fn timeline_icon_strip<'a>(
     move |ui: &mut eframe::egui::Ui| TimelineIconStrip::new(action).ui(ui)
 }
 
-/// Wraps a [Legend] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
+/// Wraps a [Legend] as a [Widget](eframe::egui::Widget).
 pub fn legend(view_range: &mut ViewRange) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| Legend::new(view_range).ui(ui)
 }

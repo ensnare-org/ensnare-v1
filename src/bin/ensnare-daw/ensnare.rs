@@ -21,12 +21,11 @@ use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
 
 // TODO: clean these up. Ideally, an app needs to use only the top ensnare crate.
-use ensnare_core::{prelude::*, types::TrackTitle};
 use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::{egui::entity_palette, DescribesProject, ProjectAction};
+use ensnare_orchestration::{egui::entity_palette, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
-use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+use std::{ops::DerefMut, sync::Arc};
 
 enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),
@@ -442,30 +441,8 @@ impl Ensnare {
         let mut view_range = self.project.view_range.clone();
         let mut action = None;
         if let Ok(mut o) = self.project.orchestrator.lock() {
-            #[derive(Debug)]
-            struct ProjectDescriber<'a> {
-                track_titles: &'a HashMap<TrackUid, TrackTitle>,
-                track_frontmost_uids: &'a HashMap<TrackUid, Uid>,
-            }
-            impl<'a> DescribesProject for ProjectDescriber<'a> {
-                fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
-                    self.track_titles.get(track_uid)
-                }
-
-                fn track_frontmost_timeline_displayer(&self, track_uid: &TrackUid) -> Option<Uid> {
-                    if let Some(uid) = self.track_frontmost_uids.get(track_uid) {
-                        Some(*uid)
-                    } else {
-                        None
-                    }
-                }
-            }
-            let project_describer = ProjectDescriber {
-                track_titles: &self.project.track_titles,
-                track_frontmost_uids: &self.project.track_frontmost_uids,
-            };
             let _ = ui.add(project_widget(
-                &project_describer,
+                &self.project,
                 o.deref_mut(),
                 &mut view_range,
                 &mut action,
