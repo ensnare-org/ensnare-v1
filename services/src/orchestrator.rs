@@ -226,6 +226,7 @@ impl OrchestratorService {
                             let uid = o.mint_entity_uid();
                             if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
                                 let _ = o.add_entity(&track_uid, entity);
+                                let _ = o.connect_midi_receiver(uid, MidiChannel::default());
                             }
                         }
                     },

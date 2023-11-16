@@ -29,6 +29,7 @@ impl BusStation {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn send_routes(&self) -> impl Iterator<Item = (&TrackUid, &Vec<BusRoute>)> {
         self.send_routes.iter()
     }

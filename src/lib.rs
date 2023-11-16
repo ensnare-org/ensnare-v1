@@ -9,13 +9,11 @@ pub mod arrangement {
 
     pub use super::project::{Project, ProjectTitle};
     pub use ensnare_core::time::Transport;
-    pub use ensnare_orchestration::orchestration::{
-        OldOrchestrator, Orchestrator, OrchestratorHelper,
-    };
+    pub use ensnare_orchestration::orchestration::{Orchestrator, OrchestratorHelper};
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{OldOrchestrator, Orchestrator, OrchestratorHelper, Transport};
+        pub use super::{Orchestrator, OrchestratorHelper, Transport};
     }
 }
 

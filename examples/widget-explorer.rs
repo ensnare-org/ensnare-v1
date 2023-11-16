@@ -21,7 +21,7 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
-use ensnare_core::{traits::TimeRange, types::TrackTitle, uid::TrackUid};
+use ensnare_core::{traits::TimeRange, types::TrackTitle};
 use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     NoteSequencerBuilder,
@@ -30,12 +30,8 @@ use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
 };
-use ensnare_entities::controllers::NoteSequencer;
 use ensnare_entities_toy::prelude::*;
-use ensnare_orchestration::{
-    egui::{make_title_bar_galley, title_bar},
-    track::{signal_chain, track_widget, Track},
-};
+use ensnare_orchestration::egui::{make_title_bar_galley, title_bar};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -77,66 +73,68 @@ impl Displays for LegendSettings {
     }
 }
 
-#[derive(Debug)]
-struct TrackSettings {
-    hide: bool,
-    track: Track,
-    range: TimeRange,
-    view_range: ViewRange,
-}
-impl TrackSettings {
-    const NAME: &'static str = "Track";
+#[cfg(obsolete)]
+mod obsolete {
+    #[derive(Debug)]
+    struct TrackSettings {
+        hide: bool,
+        track: Track,
+        range: TimeRange,
+        view_range: ViewRange,
+    }
+    impl TrackSettings {
+        const NAME: &'static str = "Track";
 
-    fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        if !self.hide {
-            let mut action = None;
-            ui.add(track_widget(
-                TrackUid(1),
-                &mut self.track,
-                false,
-                Some(MusicalTime::new_with_beats(1)),
-                &self.view_range,
-                &mut action,
-            ));
+        fn show(&mut self, ui: &mut eframe::egui::Ui) {
+            if !self.hide {
+                let mut action = None;
+                ui.add(track_widget(
+                    TrackUid(1),
+                    &mut self.track,
+                    false,
+                    Some(MusicalTime::new_with_beats(1)),
+                    &self.view_range,
+                    &mut action,
+                ));
+            }
+        }
+
+        fn set_view_range(&mut self, view_range: &ViewRange) {
+            self.view_range = view_range.clone();
         }
     }
-
-    fn set_view_range(&mut self, view_range: &ViewRange) {
-        self.view_range = view_range.clone();
+    impl Default for TrackSettings {
+        fn default() -> Self {
+            let mut r = Self {
+                hide: Default::default(),
+                track: Track::default(),
+                range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
+                view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
+            };
+            let _ = r
+                .track
+                .append_entity(Box::<NoteSequencer>::default(), Uid(345));
+            r
+        }
+    }
+    impl Displays for TrackSettings {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.checkbox(&mut self.hide, "Hide");
+            ui.label("Range");
+            let mut range_start = self.range.0.start.total_beats();
+            let mut range_end = self.range.0.end.total_beats();
+            let start_response = ui.add(Slider::new(&mut range_start, 0..=1024));
+            if start_response.changed() {
+                self.range.0.start = MusicalTime::new_with_beats(range_start);
+            };
+            let end_response = ui.add(Slider::new(&mut range_end, 0..=1024));
+            if end_response.changed() {
+                self.range.0.end = MusicalTime::new_with_beats(range_end);
+            };
+            start_response | end_response
+        }
     }
 }
-impl Default for TrackSettings {
-    fn default() -> Self {
-        let mut r = Self {
-            hide: Default::default(),
-            track: Track::default(),
-            range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
-            view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
-        };
-        let _ = r
-            .track
-            .append_entity(Box::<NoteSequencer>::default(), Uid(345));
-        r
-    }
-}
-impl Displays for TrackSettings {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.checkbox(&mut self.hide, "Hide");
-        ui.label("Range");
-        let mut range_start = self.range.0.start.total_beats();
-        let mut range_end = self.range.0.end.total_beats();
-        let start_response = ui.add(Slider::new(&mut range_start, 0..=1024));
-        if start_response.changed() {
-            self.range.0.start = MusicalTime::new_with_beats(range_start);
-        };
-        let end_response = ui.add(Slider::new(&mut range_end, 0..=1024));
-        if end_response.changed() {
-            self.range.0.end = MusicalTime::new_with_beats(range_end);
-        };
-        start_response | end_response
-    }
-}
-
 /// Wraps a PretendDevicePalette as a [Widget](eframe::egui::Widget).
 fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| PretendDevicePalette::new(entity_factory).ui(ui)
@@ -194,36 +192,39 @@ impl Displays for DevicePaletteSettings {
     }
 }
 
-#[derive(Debug, Default)]
-struct SignalChainSettings {
-    hide: bool,
-    is_large_size: bool,
-    track: Track,
-}
-impl SignalChainSettings {
-    const NAME: &'static str = "Signal Chain";
+#[cfg(obsolete)]
+mod obsolete {
+    #[derive(Debug, Default)]
+    struct SignalChainSettings {
+        hide: bool,
+        is_large_size: bool,
+        track: Track,
+    }
+    impl SignalChainSettings {
+        const NAME: &'static str = "Signal Chain";
 
-    fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        if !self.hide {
-            ui.scope(|ui| {
-                // TODO: who should own this value?
-                ui.set_max_height(32.0);
-                let mut action = None;
-                ui.add(signal_chain(
-                    TrackUid::default(),
-                    &mut self.track,
-                    &mut action,
-                ));
-                if action.is_some() {
-                    todo!();
-                }
-            });
+        fn show(&mut self, ui: &mut eframe::egui::Ui) {
+            if !self.hide {
+                ui.scope(|ui| {
+                    // TODO: who should own this value?
+                    ui.set_max_height(32.0);
+                    let mut action = None;
+                    ui.add(signal_chain(
+                        TrackUid::default(),
+                        &mut self.track,
+                        &mut action,
+                    ));
+                    if action.is_some() {
+                        todo!();
+                    }
+                });
+            }
         }
     }
-}
-impl Displays for SignalChainSettings {
-    fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
-        ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
+    impl Displays for SignalChainSettings {
+        fn ui(&mut self, ui: &mut egui::Ui) -> eframe::egui::Response {
+            ui.checkbox(&mut self.hide, "Hide") | ui.checkbox(&mut self.is_large_size, "Large size")
+        }
     }
 }
 
@@ -681,9 +682,9 @@ impl Default for SampleClip {
 struct WidgetExplorer {
     legend: LegendSettings,
     grid: GridSettings,
-    track_widget: TrackSettings,
+    //    track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
-    signal_chain: SignalChainSettings,
+    // signal_chain: SignalChainSettings,
     live_pattern_sequencer: LivePatternSequencerSettings,
     note_sequencer: NoteSequencerSettings,
     pattern_icon: PatternIconSettings,
@@ -722,11 +723,11 @@ impl WidgetExplorer {
                 self.frequency_domain.ui(ui)
             });
             Self::wrap_settings(LegendSettings::NAME, ui, |ui| self.legend.ui(ui));
-            Self::wrap_settings(TrackSettings::NAME, ui, |ui| self.track_widget.ui(ui));
+            //            Self::wrap_settings(TrackSettings::NAME, ui, |ui| self.track_widget.ui(ui));
             Self::wrap_settings(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.ui(ui)
             });
-            Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.signal_chain.ui(ui));
+            // Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.signal_chain.ui(ui));
             Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
             Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
@@ -785,7 +786,7 @@ impl WidgetExplorer {
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::vertical().show(ui, |ui| {
-            self.track_widget.set_view_range(&self.legend.range);
+            //            self.track_widget.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);
             self.live_pattern_sequencer
                 .set_view_range(&self.legend.range);
@@ -802,14 +803,14 @@ impl WidgetExplorer {
             });
             ui.heading("Timeline");
             self.legend.show(ui);
-            self.track_widget.show(ui);
+            //         self.track_widget.show(ui);
 
             Self::wrap_item(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.show(ui)
             });
-            Self::wrap_item(SignalChainSettings::NAME, ui, |ui| {
-                self.signal_chain.show(ui)
-            });
+            // Self::wrap_item(SignalChainSettings::NAME, ui, |ui| {
+            //     self.signal_chain.show(ui)
+            // });
             Self::wrap_item(PianoRollSettings::NAME, ui, |ui| self.piano_roll.show(ui));
 
             Self::wrap_item(GridSettings::NAME, ui, |ui| self.grid.show(ui));

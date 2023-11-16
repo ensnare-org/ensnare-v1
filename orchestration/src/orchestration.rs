@@ -6,36 +6,22 @@ use crate::{
     humidifier::Humidifier,
     main_mixer::MainMixer,
     midi_router::MidiRouter,
-    track::{Track, TrackBuffer},
     traits::Orchestrates,
 };
 use anyhow::anyhow;
-use crossbeam_channel::Sender;
-use derive_builder::Builder;
 use ensnare_core::{
-    control::{ControlIndex, ControlValue},
+    control::ControlIndex,
     midi::{MidiChannel, MidiMessage},
-    piano_roll::{PatternUid, PianoRoll},
-    selection_set::SelectionSet,
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
+    time::{SampleRate, Tempo, TimeSignature, Transport},
     traits::{
         Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
-        Generates, GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
-        TimeRange,
+        Generates, HandlesMidi, MidiMessagesFn, Ticks, TimeRange,
     },
-    types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
+    types::{AudioQueue, Normal, Sample, StereoSample},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
-use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
-use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    path::PathBuf,
-    sync::{Arc, RwLock},
-    vec::Vec,
-};
+use std::{collections::HashMap, fmt::Debug, path::PathBuf, vec::Vec};
 use strum_macros::Display;
 
 /// Actions that [Orchestrator]'s UI might need the parent to perform.
@@ -49,634 +35,684 @@ pub enum ProjectAction {
     NewDeviceForTrack(TrackUid, EntityKey),
 }
 
-/// A grouping mechanism to declare parts of [Orchestrator] that Serde shouldn't
-/// be serializing. Exists so we don't have to spray #[serde(skip)] all over the
-/// place.
-#[derive(Debug, Default)]
-pub struct OrchestratorEphemerals {
-    range: TimeRange,
-    events: Vec<(Uid, EntityEvent)>,
-    is_finished: bool,
-    is_performing: bool,
-    pub track_selection_set: SelectionSet<TrackUid>,
-    pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
-    //    pub keyboard_controller: KeyboardController,
-    pub is_piano_roll_open: bool, // TODO whether this should be serialized
-    pub is_entity_detail_open: bool,
-    pub entity_detail_title: String,
-    pub selected_entity_uid: Option<Uid>,
-}
+#[cfg(obsolete)]
+mod obsolete {
 
-/// Owns all entities (instruments, controllers, and effects), and manages the
-/// relationships among them to create an audio performance.
-#[derive(Debug, Builder)]
-#[builder(setter(skip), default)]
-#[builder_struct_attr(allow(missing_docs))]
-pub struct OldOrchestrator {
-    /// The user-supplied name of this project.
-    #[builder(setter, default)]
-    pub title: Option<String>,
+    use crate::{
+        bus_route::{BusRoute, BusStation},
+        control_router::ControlRouter,
+        humidifier::Humidifier,
+        main_mixer::MainMixer,
+        midi_router::MidiRouter,
+        traits::Orchestrates,
+    };
+    use anyhow::anyhow;
+    use crossbeam_channel::Sender;
+    use derive_builder::Builder;
+    use ensnare_core::{
+        control::{ControlIndex, ControlValue},
+        midi::{MidiChannel, MidiMessage},
+        piano_roll::{PatternUid, PianoRoll},
+        selection_set::SelectionSet,
+        time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
+        traits::{
+            Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
+            Generates, GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
+            TimeRange,
+        },
+        types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
+        uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
+    };
+    use ensnare_egui_widgets::ViewRange;
+    use ensnare_entity::prelude::*;
+    use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
+    use std::{
+        collections::HashMap,
+        fmt::Debug,
+        path::PathBuf,
+        sync::{Arc, RwLock},
+        vec::Vec,
+    };
+    use strum_macros::Display;
 
-    pub inner: Orchestrator,
-
-    /// All [Track]s, indexed by their [TrackUid].
-    pub tracks: HashMap<TrackUid, Track>,
-
-    // This is the owned and serialized instance of PianoRoll. Because we're
-    // using Arc<> in a struct that Serde serializes, we need to have the `rc`
-    // feature enabled for Serde.
-    pub piano_roll: Arc<RwLock<PianoRoll>>,
-
-    // We do want this serialized, unlike many other entities that implement
-    // DisplaysInTimeline, because this field determines the timeline view
-    // range, and it's nicer to remember it when the project is loaded and
-    // saved.
-    pub view_range: ViewRange,
-
-    //////////////////////////////////////////////////////
-    // Nothing below this comment should be serialized. //
-    //////////////////////////////////////////////////////
-    //
-    pub e: OrchestratorEphemerals,
-}
-impl Default for OldOrchestrator {
-    fn default() -> Self {
-        let transport = TransportBuilder::default().build().unwrap();
-        let view_range = ViewRange(
-            MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4),
-        );
-        let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
-        Self {
-            title: Default::default(),
-            inner: Default::default(),
-            tracks: Default::default(),
-            piano_roll,
-            view_range,
-
-            e: Default::default(),
-        }
-    }
-}
-impl OldOrchestrator {
-    /// The expected size of any buffer provided for samples.
-    //
-    // TODO: how hard would it be to make this dynamic? Does adjustability
-    // matter?
-    pub const SAMPLE_BUFFER_SIZE: usize = 64;
-
-    /// The fixed [Uid] for this Orchestrator.
-    pub const ORCHESTRATOR_UID: Uid = Uid(1);
-
-    /// The fixed [Uid] for the global transport.
-    pub const TRANSPORT_UID: Uid = Uid(2);
-
-    pub const ENTITY_NAME: &'static str = "Orchestrator";
-    pub const ENTITY_KEY: &'static str = "orchestrator";
-
-    pub fn as_orchestrates_mut(&mut self) -> &mut impl Orchestrates {
-        self
-    }
-    /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
-    /// specified position to the given track's sequencer.
-    pub fn add_pattern_to_track(
-        &mut self,
-        track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
-        position: MusicalTime,
-    ) -> anyhow::Result<()> {
-        if let Some(track) = self.tracks.get_mut(track_uid) {
-            track.add_pattern(pattern_uid, position)
-        } else {
-            Err(anyhow!("Couldn't find track {track_uid}"))
-        }
+    /// A grouping mechanism to declare parts of [Orchestrator] that Serde shouldn't
+    /// be serializing. Exists so we don't have to spray #[serde(skip)] all over the
+    /// place.
+    #[derive(Debug, Default)]
+    pub struct OrchestratorEphemerals {
+        range: TimeRange,
+        events: Vec<(Uid, EntityEvent)>,
+        is_finished: bool,
+        is_performing: bool,
+        pub track_selection_set: SelectionSet<TrackUid>,
+        pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
+        //    pub keyboard_controller: KeyboardController,
+        pub is_piano_roll_open: bool, // TODO whether this should be serialized
+        pub is_entity_detail_open: bool,
+        pub entity_detail_title: String,
+        pub selected_entity_uid: Option<Uid>,
     }
 
-    pub fn mint_entity_uid(&self) -> Uid {
-        self.inner.entity_uid_factory.mint_next()
-    }
+    /// Owns all entities (instruments, controllers, and effects), and manages the
+    /// relationships among them to create an audio performance.
+    #[derive(Debug, Builder)]
+    #[builder(setter(skip), default)]
+    #[builder_struct_attr(allow(missing_docs))]
+    pub struct OldOrchestrator {
+        /// The user-supplied name of this project.
+        #[builder(setter, default)]
+        pub title: Option<String>,
 
-    #[allow(dead_code)]
-    fn mint_track_uid(&mut self) -> TrackUid {
-        self.inner.track_uid_factory.mint_next()
-    }
+        pub inner: Orchestrator,
 
-    /// Sets a new title for the track.
-    pub fn set_track_title(&mut self, uid: TrackUid, title: TrackTitle) {
-        if let Some(track) = self.tracks.get_mut(&uid) {
-            track.set_title(title);
-        }
-    }
+        /// All [Track]s, indexed by their [TrackUid].
+        pub tracks: HashMap<TrackUid, Track>,
 
-    /// Renders the next set of samples into the provided buffer. This is the
-    /// main event loop.
-    pub fn render(
-        &mut self,
-        samples: &mut [StereoSample],
-        control_events_fn: &mut ControlEventsFn,
-    ) {
-        // Note that advance() can return the same range twice, depending on
-        // sample rate. TODO: we should decide whose responsibility it is to
-        // handle that -- either we skip calling work() if the time range is the
-        // same as prior, or everyone who gets called needs to detect the case
-        // or be idempotent.
-        let range = self.inner.transport.advance(samples.len());
-        self.update_time_range(&range);
-        self.work(control_events_fn);
-        self.generate_batch_values(samples);
-    }
+        // This is the owned and serialized instance of PianoRoll. Because we're
+        // using Arc<> in a struct that Serde serializes, we need to have the `rc`
+        // feature enabled for Serde.
+        pub piano_roll: Arc<RwLock<PianoRoll>>,
 
-    /// A convenience method for callers who would have ignored any
-    /// [EntityEvent]s produced by the render() method.
-    pub fn render_and_ignore_events(&mut self, samples: &mut [StereoSample]) {
-        self.render(samples, &mut |_| {});
-    }
+        // We do want this serialized, unlike many other entities that implement
+        // DisplaysInTimeline, because this field determines the timeline view
+        // range, and it's nicer to remember it when the project is loaded and
+        // saved.
+        pub view_range: ViewRange,
 
-    /// Renders part of the project to audio, creating at least the requested
-    /// number of [StereoSample]s and inserting them in the given [AudioQueue].
-    /// Exceptions: the method operates only in [Self::SAMPLE_BUFFER_SIZE]
-    /// chunks, and it won't generate a chunk unless there is enough room in the
-    /// queue for it.
-    ///
-    /// This method expects to be called continuously, even when the project
-    /// isn't actively playing. In such cases, it will provide a stream of
-    /// silent samples.
-    //
-    // TODO: I don't think there's any reason why this must be limited to an
-    // `AudioQueue` rather than a more general `Vec`-like interface.
-    pub fn render_and_enqueue(
-        &mut self,
-        samples_requested: usize,
-        queue: &AudioQueue,
-        control_events_fn: &mut ControlEventsFn,
-    ) {
-        // Round up
-        let buffers_requested =
-            (samples_requested + Self::SAMPLE_BUFFER_SIZE - 1) / Self::SAMPLE_BUFFER_SIZE;
-        for _ in 0..buffers_requested {
-            // Generate a buffer only if there's enough room in the queue for
-            // it.
-            if queue.capacity() - queue.len() >= Self::SAMPLE_BUFFER_SIZE {
-                let mut samples = [StereoSample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
-                if false {
-                    self.render_debug(&mut samples);
-                } else {
-                    self.render(&mut samples, control_events_fn);
-                }
-                // No need to do the Arc deref each time through the loop. TODO:
-                // is there a queue type that allows pushing a batch?
-                let queue = queue.as_ref();
-                let mut mono_samples = [Sample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
-                for (index, sample) in samples.into_iter().enumerate() {
-                    let _ = queue.push(sample);
-                    mono_samples[index] = Sample::from(sample);
-                }
-
-                // TODO: can we do this work outside this critical loop? And can
-                // we have the recipient do the work of the stereo->mono
-                // conversion?
-                if let Some(sender) = &self.e.sample_buffer_channel_sender {
-                    let _ = sender.send(mono_samples);
-                }
-            }
-        }
-    }
-
-    /// Fills in the given sample buffer with something simple and audible.
-    pub fn render_debug(&mut self, samples: &mut [StereoSample]) {
-        let len = samples.len() as f64;
-        for (i, s) in samples.iter_mut().enumerate() {
-            s.0 = Sample::from(i as f64 / len);
-            s.1 = Sample::from(i as f64 / -len);
-        }
-    }
-
-    /// After loading a new Self from disk, we want to copy all the appropriate
-    /// ephemeral state from this one to the next one.
-    pub fn prepare_successor(&self, new: &mut OldOrchestrator) {
-        // Copy over the current sample rate, whose validity shouldn't change
-        // because we loaded a new project.
-        new.update_sample_rate(self.sample_rate());
-    }
-
-    /// Returns all [Track] uids in UI order.
-    pub fn track_uids(&self) -> &[TrackUid] {
-        self.inner.track_uids.as_ref()
-    }
-
-    fn calculate_is_finished(&self) -> bool {
-        self.tracks.values().all(|t| t.is_finished())
-    }
-
-    // This method is called only for events generated internally (i.e., from
-    // our own Entities). It is not called for external MIDI messages.
-    fn dispatch_event(&mut self, uid: Uid, event: EntityEvent) {
-        match event {
-            EntityEvent::Midi(..) => {
-                panic!("FATAL: we were asked to dispatch an EntityEvent::Midi, which should already have been handled")
-            }
-            EntityEvent::Control(value) => {
-                self.route_control_change(uid, value);
-            }
-        }
-    }
-
-    fn route_midi_message(&mut self, channel: MidiChannel, message: MidiMessage) {
-        for t in self.tracks.values_mut() {
-            t.route_midi_message(channel, message);
-        }
-    }
-
-    fn route_control_change(&mut self, source_uid: Uid, value: ControlValue) {
-        let _ = self.inner.control_router.route(
-            &mut |target_uid, index, value| {
-                if target_uid == &Self::TRANSPORT_UID {
-                    self.inner
-                        .transport
-                        .control_set_param_by_index(index, value);
-                }
-            },
-            source_uid,
-            value,
-        );
-        for t in self.tracks.values_mut() {
-            t.route_control_change(source_uid, value);
-        }
-    }
-
-    #[allow(missing_docs)]
-    pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
-        self.e.track_selection_set = track_selection_set;
-    }
-
-    fn check_keyboard(&mut self) {
-        let keyboard_events = Vec::default();
-
-        // self.e.keyboard_controller.work(&mut |_, m| {
-        //     if let EntityEvent::Midi(channel, message) = m {
-        //         keyboard_events.push((channel, message));
-        //     }
-        // });
-        for (channel, message) in keyboard_events.into_iter() {
-            self.handle_midi_message(channel, message, &mut |_, _| {})
-        }
-    }
-}
-impl Orchestrates for OldOrchestrator {
-    fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.inner.create_track()
-    }
-
-    fn track_uids(&self) -> &[TrackUid] {
-        self.inner.track_uids()
-    }
-
-    fn set_track_position(
-        &mut self,
-        track_uid: TrackUid,
-        new_position: usize,
-    ) -> anyhow::Result<()> {
-        self.inner.set_track_position(track_uid, new_position)
-    }
-
-    fn delete_track(&mut self, track_uid: &TrackUid) {
-        self.inner.delete_track(track_uid)
-    }
-
-    fn delete_tracks(&mut self, uids: &[TrackUid]) {
-        self.inner.delete_tracks(uids)
-    }
-
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
-        self.inner.add_entity(track_uid, entity)
-    }
-
-    fn assign_uid_and_add_entity(
-        &mut self,
-        track_uid: &TrackUid,
-        entity: Box<dyn Entity>,
-    ) -> anyhow::Result<Uid> {
-        self.inner.assign_uid_and_add_entity(track_uid, entity)
-    }
-
-    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
-        self.inner.get_entity(uid)
-    }
-
-    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
-        self.inner.get_entity_mut(uid)
-    }
-
-    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
-        self.inner.remove_entity(uid)
-    }
-
-    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
-        self.inner.get_entity_track(uid)
-    }
-
-    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
-        self.inner.set_entity_track(new_track_uid, uid)
-    }
-
-    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
-        self.inner.get_track_entities(track_uid)
-    }
-
-    fn get_track_timeline_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
-        self.inner.get_track_timeline_entities(track_uid)
-    }
-
-    fn link_control(
-        &mut self,
-        source_uid: Uid,
-        target_uid: Uid,
-        control_index: ControlIndex,
-    ) -> anyhow::Result<()> {
-        self.inner
-            .link_control(source_uid, target_uid, control_index)
-    }
-
-    fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
-        self.inner
-            .unlink_control(source_uid, target_uid, control_index)
-    }
-
-    fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
-        self.inner.set_effect_humidity(uid, humidity)
-    }
-
-    fn set_effect_position(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
-        self.inner.set_effect_position(uid, index)
-    }
-
-    fn send(
-        &mut self,
-        send_track_uid: TrackUid,
-        aux_track_uid: TrackUid,
-        send_amount: Normal,
-    ) -> anyhow::Result<()> {
-        self.inner.send(send_track_uid, aux_track_uid, send_amount)
-    }
-
-    fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid) {
-        self.inner.remove_send(send_track_uid, aux_track_uid)
-    }
-
-    fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
-        self.inner.set_track_output(track_uid, output)
-    }
-
-    fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
-        self.inner.mute_track(track_uid, muted)
-    }
-
-    fn solo_track(&self) -> Option<TrackUid> {
-        self.inner.solo_track()
-    }
-
-    fn set_solo_track(&mut self, track_uid: TrackUid) {
-        self.inner.set_solo_track(track_uid)
-    }
-
-    fn end_solo(&mut self) {
-        self.inner.end_solo()
-    }
-
-    fn next_range(&mut self, frame_count: usize) -> TimeRange {
-        self.inner.next_range(frame_count)
-    }
-
-    fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
-        self.inner.connect_midi_receiver(uid, channel)
-    }
-
-    fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
-        self.inner.disconnect_midi_receiver(uid, channel)
-    }
-}
-impl Generates<StereoSample> for OldOrchestrator {
-    fn value(&self) -> StereoSample {
-        StereoSample::SILENCE
-    }
-
-    // Note! It's the caller's job to prepare the buffer. This method will *add*
-    // its results, rather than overwriting.
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        let len = values.len();
-
-        // Generate all normal tracks in parallel.
+        //////////////////////////////////////////////////////
+        // Nothing below this comment should be serialized. //
+        //////////////////////////////////////////////////////
         //
-        // TODO: I couldn't figure out how to filter() and then spawn the
-        // parallel iteration on the results, so it looks like we're wasting
-        // time spinning up threads on tracks that we know have no work to do.
-        self.tracks.par_iter_mut().for_each(|(_, track)| {
-            track.buffer_mut().0.fill(StereoSample::SILENCE);
-            if track.instruments.is_empty() {
-                // This looks like an aux track. We won't call it yet.
-            } else {
-                // This looks like a non-aux track. It's time for it to generate
-                // its signal.
-                track.generate_batch_values(len);
-            }
-        });
+        pub e: OrchestratorEphemerals,
+    }
+    impl Default for OldOrchestrator {
+        fn default() -> Self {
+            let transport = TransportBuilder::default().build().unwrap();
+            let view_range = ViewRange(
+                MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4),
+            );
+            let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
+            Self {
+                title: Default::default(),
+                inner: Default::default(),
+                tracks: Default::default(),
+                piano_roll,
+                view_range,
 
-        // Send audio to aux tracks...
-        for (track_uid, routes) in self.inner.bus_station.send_routes() {
-            // We need an extra buffer copy to satisfy the borrow checker.
-            // HashMap::get_mut() grabs the entire HashMap, preventing us from
-            // holding references to other elements in it. There are other
-            // implementations of HashMap that allow get_many_mut(), which could
-            // help. TODO
-            let mut send_buffer = TrackBuffer::default();
-            if let Some(send) = self.tracks.get(track_uid) {
-                send_buffer.0.copy_from_slice(&send.buffer().0);
-            } else {
-                eprintln!("Warning: couldn't find send track {track_uid}");
-                continue;
+                e: Default::default(),
             }
+        }
+    }
+    impl OldOrchestrator {
+        /// The expected size of any buffer provided for samples.
+        //
+        // TODO: how hard would it be to make this dynamic? Does adjustability
+        // matter?
+        pub const SAMPLE_BUFFER_SIZE: usize = 64;
 
-            for route in routes {
-                if let Some(aux) = self.tracks.get_mut(&route.aux_track_uid) {
-                    let aux_buffer = aux.buffer_mut();
-                    for (index, sample) in send_buffer.0.iter().enumerate() {
-                        aux_buffer.0[index] += *sample * route.amount
+        /// The fixed [Uid] for this Orchestrator.
+        pub const ORCHESTRATOR_UID: Uid = Uid(1);
+
+        /// The fixed [Uid] for the global transport.
+        pub const TRANSPORT_UID: Uid = Uid(2);
+
+        pub const ENTITY_NAME: &'static str = "Orchestrator";
+        pub const ENTITY_KEY: &'static str = "orchestrator";
+
+        pub fn as_orchestrates_mut(&mut self) -> &mut impl Orchestrates {
+            self
+        }
+        /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
+        /// specified position to the given track's sequencer.
+        pub fn add_pattern_to_track(
+            &mut self,
+            track_uid: &TrackUid,
+            pattern_uid: &PatternUid,
+            position: MusicalTime,
+        ) -> anyhow::Result<()> {
+            if let Some(track) = self.tracks.get_mut(track_uid) {
+                track.add_pattern(pattern_uid, position)
+            } else {
+                Err(anyhow!("Couldn't find track {track_uid}"))
+            }
+        }
+
+        pub fn mint_entity_uid(&self) -> Uid {
+            self.inner.entity_uid_factory.mint_next()
+        }
+
+        #[allow(dead_code)]
+        fn mint_track_uid(&mut self) -> TrackUid {
+            self.inner.track_uid_factory.mint_next()
+        }
+
+        /// Sets a new title for the track.
+        pub fn set_track_title(&mut self, uid: TrackUid, title: TrackTitle) {
+            if let Some(track) = self.tracks.get_mut(&uid) {
+                track.set_title(title);
+            }
+        }
+
+        /// Renders the next set of samples into the provided buffer. This is the
+        /// main event loop.
+        pub fn render(
+            &mut self,
+            samples: &mut [StereoSample],
+            control_events_fn: &mut ControlEventsFn,
+        ) {
+            // Note that advance() can return the same range twice, depending on
+            // sample rate. TODO: we should decide whose responsibility it is to
+            // handle that -- either we skip calling work() if the time range is the
+            // same as prior, or everyone who gets called needs to detect the case
+            // or be idempotent.
+            let range = self.inner.transport.advance(samples.len());
+            self.update_time_range(&range);
+            self.work(control_events_fn);
+            self.generate_batch_values(samples);
+        }
+
+        /// A convenience method for callers who would have ignored any
+        /// [EntityEvent]s produced by the render() method.
+        pub fn render_and_ignore_events(&mut self, samples: &mut [StereoSample]) {
+            self.render(samples, &mut |_| {});
+        }
+
+        /// Renders part of the project to audio, creating at least the requested
+        /// number of [StereoSample]s and inserting them in the given [AudioQueue].
+        /// Exceptions: the method operates only in [Self::SAMPLE_BUFFER_SIZE]
+        /// chunks, and it won't generate a chunk unless there is enough room in the
+        /// queue for it.
+        ///
+        /// This method expects to be called continuously, even when the project
+        /// isn't actively playing. In such cases, it will provide a stream of
+        /// silent samples.
+        //
+        // TODO: I don't think there's any reason why this must be limited to an
+        // `AudioQueue` rather than a more general `Vec`-like interface.
+        pub fn render_and_enqueue(
+            &mut self,
+            samples_requested: usize,
+            queue: &AudioQueue,
+            control_events_fn: &mut ControlEventsFn,
+        ) {
+            // Round up
+            let buffers_requested =
+                (samples_requested + Self::SAMPLE_BUFFER_SIZE - 1) / Self::SAMPLE_BUFFER_SIZE;
+            for _ in 0..buffers_requested {
+                // Generate a buffer only if there's enough room in the queue for
+                // it.
+                if queue.capacity() - queue.len() >= Self::SAMPLE_BUFFER_SIZE {
+                    let mut samples = [StereoSample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
+                    if false {
+                        self.render_debug(&mut samples);
+                    } else {
+                        self.render(&mut samples, control_events_fn);
+                    }
+                    // No need to do the Arc deref each time through the loop. TODO:
+                    // is there a queue type that allows pushing a batch?
+                    let queue = queue.as_ref();
+                    let mut mono_samples = [Sample::SILENCE; Self::SAMPLE_BUFFER_SIZE];
+                    for (index, sample) in samples.into_iter().enumerate() {
+                        let _ = queue.push(sample);
+                        mono_samples[index] = Sample::from(sample);
+                    }
+
+                    // TODO: can we do this work outside this critical loop? And can
+                    // we have the recipient do the work of the stereo->mono
+                    // conversion?
+                    if let Some(sender) = &self.e.sample_buffer_channel_sender {
+                        let _ = sender.send(mono_samples);
                     }
                 }
             }
         }
 
-        // ... and then generate the aux tracks...
-        //
-        // We don't currently support an aux returning to another aux. It's just
-        // regular tracks sending to aux, then aux returning to main. See #143
-        self.tracks.par_iter_mut().for_each(|(_, track)| {
-            if track.instruments.is_empty() {
-                track.generate_batch_values(len);
+        /// Fills in the given sample buffer with something simple and audible.
+        pub fn render_debug(&mut self, samples: &mut [StereoSample]) {
+            let len = samples.len() as f64;
+            for (i, s) in samples.iter_mut().enumerate() {
+                s.0 = Sample::from(i as f64 / len);
+                s.1 = Sample::from(i as f64 / -len);
             }
-        });
+        }
 
-        // ... and we get returns for free, because (for now) all tracks are
-        // connected to the main mixer.
+        /// After loading a new Self from disk, we want to copy all the appropriate
+        /// ephemeral state from this one to the next one.
+        pub fn prepare_successor(&self, new: &mut OldOrchestrator) {
+            // Copy over the current sample rate, whose validity shouldn't change
+            // because we loaded a new project.
+            new.update_sample_rate(self.sample_rate());
+        }
 
-        // TODO: there must be a way to quickly sum same-sized arrays into a
-        // final array. https://stackoverflow.com/questions/41207666/ seems to
-        // address at least some of it, but I don't think it's any faster, if
-        // more idiomatic.
-        //
-        // TODO even more: hmmmmmm, maybe I can use
-        // https://doc.rust-lang.org/std/cell/struct.Cell.html so that we can
-        // get back to the original Generates model of the caller providing the
-        // buffer. And then hmmmm, once we know how things are laid out in
-        // memory, maybe we can even sic some fast matrix code on it.
-        self.tracks.values().for_each(|track| {
-            let generator_values = track.values();
-            let copy_len = len.min(generator_values.len());
-            for i in 0..copy_len {
-                values[i] += generator_values[i];
+        /// Returns all [Track] uids in UI order.
+        pub fn track_uids(&self) -> &[TrackUid] {
+            self.inner.track_uids.as_ref()
+        }
+
+        fn calculate_is_finished(&self) -> bool {
+            self.tracks.values().all(|t| t.is_finished())
+        }
+
+        // This method is called only for events generated internally (i.e., from
+        // our own Entities). It is not called for external MIDI messages.
+        fn dispatch_event(&mut self, uid: Uid, event: EntityEvent) {
+            match event {
+                EntityEvent::Midi(..) => {
+                    panic!("FATAL: we were asked to dispatch an EntityEvent::Midi, which should already have been handled")
+                }
+                EntityEvent::Control(value) => {
+                    self.route_control_change(uid, value);
+                }
             }
-        });
-    }
-}
-impl Ticks for OldOrchestrator {
-    fn tick(&mut self, _tick_count: usize) {
-        panic!()
-    }
-}
-impl Configurable for OldOrchestrator {
-    fn sample_rate(&self) -> SampleRate {
-        self.inner.transport.sample_rate()
-    }
+        }
 
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner.transport.update_sample_rate(sample_rate);
-        for track in self.tracks.values_mut() {
-            track.update_sample_rate(sample_rate);
+        fn route_midi_message(&mut self, channel: MidiChannel, message: MidiMessage) {
+            for t in self.tracks.values_mut() {
+                t.route_midi_message(channel, message);
+            }
+        }
+
+        fn route_control_change(&mut self, source_uid: Uid, value: ControlValue) {
+            let _ = self.inner.control_router.route(
+                &mut |target_uid, index, value| {
+                    if target_uid == &Self::TRANSPORT_UID {
+                        self.inner
+                            .transport
+                            .control_set_param_by_index(index, value);
+                    }
+                },
+                source_uid,
+                value,
+            );
+            for t in self.tracks.values_mut() {
+                t.route_control_change(source_uid, value);
+            }
+        }
+
+        #[allow(missing_docs)]
+        pub fn set_track_selection_set(&mut self, track_selection_set: SelectionSet<TrackUid>) {
+            self.e.track_selection_set = track_selection_set;
+        }
+
+        fn check_keyboard(&mut self) {
+            let keyboard_events = Vec::default();
+
+            // self.e.keyboard_controller.work(&mut |_, m| {
+            //     if let EntityEvent::Midi(channel, message) = m {
+            //         keyboard_events.push((channel, message));
+            //     }
+            // });
+            for (channel, message) in keyboard_events.into_iter() {
+                self.handle_midi_message(channel, message, &mut |_, _| {})
+            }
         }
     }
+    impl Orchestrates for OldOrchestrator {
+        fn create_track(&mut self) -> anyhow::Result<TrackUid> {
+            self.inner.create_track()
+        }
 
-    fn tempo(&self) -> Tempo {
-        self.inner.transport.tempo()
-    }
+        fn track_uids(&self) -> &[TrackUid] {
+            self.inner.track_uids()
+        }
 
-    fn update_tempo(&mut self, tempo: Tempo) {
-        self.inner.transport.set_tempo(tempo);
-        // TODO: how do we let the service know this changed?
-    }
+        fn set_track_position(
+            &mut self,
+            track_uid: TrackUid,
+            new_position: usize,
+        ) -> anyhow::Result<()> {
+            self.inner.set_track_position(track_uid, new_position)
+        }
 
-    fn time_signature(&self) -> TimeSignature {
-        self.inner.transport.time_signature()
-    }
+        fn delete_track(&mut self, track_uid: &TrackUid) {
+            self.inner.delete_track(track_uid)
+        }
 
-    fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.inner.transport.update_time_signature(time_signature);
-    }
-}
-impl HandlesMidi for OldOrchestrator {
-    /// Accepts a [MidiMessage] and handles it, usually by forwarding it to
-    /// controllers and instruments on the given [MidiChannel]. We implement
-    /// this trait only for external messages; for ones generated internally, we
-    /// use [MidiRouter].
-    ///
-    /// REPEAT: this method is called only for MIDI messages from EXTERNAL MIDI
-    /// INTERFACES!
-    fn handle_midi_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        _: &mut MidiMessagesFn,
-    ) {
-        self.route_midi_message(channel, message);
-    }
-}
-impl Controls for OldOrchestrator {
-    fn update_time_range(&mut self, range: &TimeRange) {
-        self.e.range = range.clone();
+        fn delete_tracks(&mut self, uids: &[TrackUid]) {
+            self.inner.delete_tracks(uids)
+        }
 
-        for track in self.tracks.values_mut() {
-            track.update_time_range(&self.e.range);
+        fn add_entity(
+            &mut self,
+            track_uid: &TrackUid,
+            entity: Box<dyn Entity>,
+        ) -> anyhow::Result<()> {
+            self.inner.add_entity(track_uid, entity)
+        }
+
+        fn assign_uid_and_add_entity(
+            &mut self,
+            track_uid: &TrackUid,
+            entity: Box<dyn Entity>,
+        ) -> anyhow::Result<Uid> {
+            self.inner.assign_uid_and_add_entity(track_uid, entity)
+        }
+
+        fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
+            self.inner.get_entity(uid)
+        }
+
+        fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
+            self.inner.get_entity_mut(uid)
+        }
+
+        fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
+            self.inner.remove_entity(uid)
+        }
+
+        fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
+            self.inner.get_entity_track(uid)
+        }
+
+        fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+            self.inner.set_entity_track(new_track_uid, uid)
+        }
+
+        fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+            self.inner.get_track_entities(track_uid)
+        }
+
+        fn get_track_timeline_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+            self.inner.get_track_timeline_entities(track_uid)
+        }
+
+        fn link_control(
+            &mut self,
+            source_uid: Uid,
+            target_uid: Uid,
+            control_index: ControlIndex,
+        ) -> anyhow::Result<()> {
+            self.inner
+                .link_control(source_uid, target_uid, control_index)
+        }
+
+        fn unlink_control(
+            &mut self,
+            source_uid: Uid,
+            target_uid: Uid,
+            control_index: ControlIndex,
+        ) {
+            self.inner
+                .unlink_control(source_uid, target_uid, control_index)
+        }
+
+        fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
+            self.inner.set_effect_humidity(uid, humidity)
+        }
+
+        fn set_effect_position(&mut self, uid: Uid, index: usize) -> anyhow::Result<()> {
+            self.inner.set_effect_position(uid, index)
+        }
+
+        fn send(
+            &mut self,
+            send_track_uid: TrackUid,
+            aux_track_uid: TrackUid,
+            send_amount: Normal,
+        ) -> anyhow::Result<()> {
+            self.inner.send(send_track_uid, aux_track_uid, send_amount)
+        }
+
+        fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid) {
+            self.inner.remove_send(send_track_uid, aux_track_uid)
+        }
+
+        fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+            self.inner.set_track_output(track_uid, output)
+        }
+
+        fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+            self.inner.mute_track(track_uid, muted)
+        }
+
+        fn solo_track(&self) -> Option<TrackUid> {
+            self.inner.solo_track()
+        }
+
+        fn set_solo_track(&mut self, track_uid: TrackUid) {
+            self.inner.set_solo_track(track_uid)
+        }
+
+        fn end_solo(&mut self) {
+            self.inner.end_solo()
+        }
+
+        fn next_range(&mut self, frame_count: usize) -> TimeRange {
+            self.inner.next_range(frame_count)
+        }
+
+        fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()> {
+            self.inner.connect_midi_receiver(uid, channel)
+        }
+
+        fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
+            self.inner.disconnect_midi_receiver(uid, channel)
         }
     }
-
-    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.inner
-            .transport
-            .work(&mut |m| self.e.events.push((Self::TRANSPORT_UID, m)));
-        self.check_keyboard();
-
-        for track in self.tracks.values_mut() {
-            track.work_as_proxy(&mut |u, m| self.e.events.push((u, m)));
+    impl Generates<StereoSample> for OldOrchestrator {
+        fn value(&self) -> StereoSample {
+            StereoSample::SILENCE
         }
-        while let Some((uid, event)) = self.e.events.pop() {
-            if matches!(event, EntityEvent::Midi(_, _)) {
-                // This MIDI message came from one of our internal Entities and
-                // has bubbled all the way up here. We don't want to do anything
-                // with it, and should instead pass it along to the caller, who
-                // will forward it to external MIDI interfaces.
-                //
-                // This MIDI message came from a Track. The Track's
-                // responsibility was to route the message to all the eligible
-                // Entities that it owned. We don't want to route these messages
-                // back to any Tracks; our only responsibility is to send them
-                // to external MIDI interfaces.
-                //
-                // Eventually, we might allow one Track to send MIDI messages to
-                // another Track. But today we don't. TODO?
-                control_events_fn(event);
+
+        // Note! It's the caller's job to prepare the buffer. This method will *add*
+        // its results, rather than overwriting.
+        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+            let len = values.len();
+
+            // Generate all normal tracks in parallel.
+            //
+            // TODO: I couldn't figure out how to filter() and then spawn the
+            // parallel iteration on the results, so it looks like we're wasting
+            // time spinning up threads on tracks that we know have no work to do.
+            self.tracks.par_iter_mut().for_each(|(_, track)| {
+                track.buffer_mut().0.fill(StereoSample::SILENCE);
+                if track.instruments.is_empty() {
+                    // This looks like an aux track. We won't call it yet.
+                } else {
+                    // This looks like a non-aux track. It's time for it to generate
+                    // its signal.
+                    track.generate_batch_values(len);
+                }
+            });
+
+            // Send audio to aux tracks...
+            for (track_uid, routes) in self.inner.bus_station.send_routes() {
+                // We need an extra buffer copy to satisfy the borrow checker.
+                // HashMap::get_mut() grabs the entire HashMap, preventing us from
+                // holding references to other elements in it. There are other
+                // implementations of HashMap that allow get_many_mut(), which could
+                // help. TODO
+                let mut send_buffer = TrackBuffer::default();
+                if let Some(send) = self.tracks.get(track_uid) {
+                    send_buffer.0.copy_from_slice(&send.buffer().0);
+                } else {
+                    eprintln!("Warning: couldn't find send track {track_uid}");
+                    continue;
+                }
+
+                for route in routes {
+                    if let Some(aux) = self.tracks.get_mut(&route.aux_track_uid) {
+                        let aux_buffer = aux.buffer_mut();
+                        for (index, sample) in send_buffer.0.iter().enumerate() {
+                            aux_buffer.0[index] += *sample * route.amount
+                        }
+                    }
+                }
+            }
+
+            // ... and then generate the aux tracks...
+            //
+            // We don't currently support an aux returning to another aux. It's just
+            // regular tracks sending to aux, then aux returning to main. See #143
+            self.tracks.par_iter_mut().for_each(|(_, track)| {
+                if track.instruments.is_empty() {
+                    track.generate_batch_values(len);
+                }
+            });
+
+            // ... and we get returns for free, because (for now) all tracks are
+            // connected to the main mixer.
+
+            // TODO: there must be a way to quickly sum same-sized arrays into a
+            // final array. https://stackoverflow.com/questions/41207666/ seems to
+            // address at least some of it, but I don't think it's any faster, if
+            // more idiomatic.
+            //
+            // TODO even more: hmmmmmm, maybe I can use
+            // https://doc.rust-lang.org/std/cell/struct.Cell.html so that we can
+            // get back to the original Generates model of the caller providing the
+            // buffer. And then hmmmm, once we know how things are laid out in
+            // memory, maybe we can even sic some fast matrix code on it.
+            self.tracks.values().for_each(|track| {
+                let generator_values = track.values();
+                let copy_len = len.min(generator_values.len());
+                for i in 0..copy_len {
+                    values[i] += generator_values[i];
+                }
+            });
+        }
+    }
+    impl Ticks for OldOrchestrator {
+        fn tick(&mut self, _tick_count: usize) {
+            panic!()
+        }
+    }
+    impl Configurable for OldOrchestrator {
+        fn sample_rate(&self) -> SampleRate {
+            self.inner.transport.sample_rate()
+        }
+
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.inner.transport.update_sample_rate(sample_rate);
+            for track in self.tracks.values_mut() {
+                track.update_sample_rate(sample_rate);
+            }
+        }
+
+        fn tempo(&self) -> Tempo {
+            self.inner.transport.tempo()
+        }
+
+        fn update_tempo(&mut self, tempo: Tempo) {
+            self.inner.transport.set_tempo(tempo);
+            // TODO: how do we let the service know this changed?
+        }
+
+        fn time_signature(&self) -> TimeSignature {
+            self.inner.transport.time_signature()
+        }
+
+        fn update_time_signature(&mut self, time_signature: TimeSignature) {
+            self.inner.transport.update_time_signature(time_signature);
+        }
+    }
+    impl HandlesMidi for OldOrchestrator {
+        /// Accepts a [MidiMessage] and handles it, usually by forwarding it to
+        /// controllers and instruments on the given [MidiChannel]. We implement
+        /// this trait only for external messages; for ones generated internally, we
+        /// use [MidiRouter].
+        ///
+        /// REPEAT: this method is called only for MIDI messages from EXTERNAL MIDI
+        /// INTERFACES!
+        fn handle_midi_message(
+            &mut self,
+            channel: MidiChannel,
+            message: MidiMessage,
+            _: &mut MidiMessagesFn,
+        ) {
+            self.route_midi_message(channel, message);
+        }
+    }
+    impl Controls for OldOrchestrator {
+        fn update_time_range(&mut self, range: &TimeRange) {
+            self.e.range = range.clone();
+
+            for track in self.tracks.values_mut() {
+                track.update_time_range(&self.e.range);
+            }
+        }
+
+        fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+            self.inner
+                .transport
+                .work(&mut |m| self.e.events.push((Self::TRANSPORT_UID, m)));
+            self.check_keyboard();
+
+            for track in self.tracks.values_mut() {
+                track.work_as_proxy(&mut |u, m| self.e.events.push((u, m)));
+            }
+            while let Some((uid, event)) = self.e.events.pop() {
+                if matches!(event, EntityEvent::Midi(_, _)) {
+                    // This MIDI message came from one of our internal Entities and
+                    // has bubbled all the way up here. We don't want to do anything
+                    // with it, and should instead pass it along to the caller, who
+                    // will forward it to external MIDI interfaces.
+                    //
+                    // This MIDI message came from a Track. The Track's
+                    // responsibility was to route the message to all the eligible
+                    // Entities that it owned. We don't want to route these messages
+                    // back to any Tracks; our only responsibility is to send them
+                    // to external MIDI interfaces.
+                    //
+                    // Eventually, we might allow one Track to send MIDI messages to
+                    // another Track. But today we don't. TODO?
+                    control_events_fn(event);
+                } else {
+                    self.dispatch_event(uid, event);
+                }
+            }
+            self.e.is_finished = self.calculate_is_finished();
+            if self.is_performing() && self.is_finished() {
+                self.stop();
+            }
+        }
+
+        fn is_finished(&self) -> bool {
+            self.e.is_finished
+        }
+
+        fn play(&mut self) {
+            self.e.is_performing = true;
+            self.inner.transport.play();
+            self.tracks.values_mut().for_each(|t| t.play());
+            self.e.is_finished = self.calculate_is_finished();
+
+            // This handles the case where there isn't anything to play because the
+            // performance is zero-length. It stops the transport from advancing a
+            // tiny bit and looking weird.
+            if self.e.is_finished {
+                self.inner.transport.stop();
+            }
+        }
+
+        fn stop(&mut self) {
+            // If we were performing, stop. Otherwise, it's a stop-while-stopped
+            // action, which means the user wants to rewind to the beginning.
+            if self.e.is_performing {
+                self.e.is_performing = false;
             } else {
-                self.dispatch_event(uid, event);
+                self.skip_to_start();
             }
-        }
-        self.e.is_finished = self.calculate_is_finished();
-        if self.is_performing() && self.is_finished() {
-            self.stop();
-        }
-    }
-
-    fn is_finished(&self) -> bool {
-        self.e.is_finished
-    }
-
-    fn play(&mut self) {
-        self.e.is_performing = true;
-        self.inner.transport.play();
-        self.tracks.values_mut().for_each(|t| t.play());
-        self.e.is_finished = self.calculate_is_finished();
-
-        // This handles the case where there isn't anything to play because the
-        // performance is zero-length. It stops the transport from advancing a
-        // tiny bit and looking weird.
-        if self.e.is_finished {
             self.inner.transport.stop();
+            self.tracks.values_mut().for_each(|t| t.stop());
+        }
+
+        fn skip_to_start(&mut self) {
+            self.inner.transport.skip_to_start();
+            self.tracks.values_mut().for_each(|t| t.skip_to_start());
+        }
+
+        fn is_performing(&self) -> bool {
+            self.e.is_performing
         }
     }
-
-    fn stop(&mut self) {
-        // If we were performing, stop. Otherwise, it's a stop-while-stopped
-        // action, which means the user wants to rewind to the beginning.
-        if self.e.is_performing {
-            self.e.is_performing = false;
-        } else {
-            self.skip_to_start();
+    impl Serializable for OldOrchestrator {
+        fn after_deser(&mut self) {
+            self.tracks.values_mut().for_each(|t| {
+                t.e.piano_roll = Arc::clone(&self.piano_roll);
+                t.after_deser();
+            });
         }
-        self.inner.transport.stop();
-        self.tracks.values_mut().for_each(|t| t.stop());
-    }
-
-    fn skip_to_start(&mut self) {
-        self.inner.transport.skip_to_start();
-        self.tracks.values_mut().for_each(|t| t.skip_to_start());
-    }
-
-    fn is_performing(&self) -> bool {
-        self.e.is_performing
-    }
-}
-impl Serializable for OldOrchestrator {
-    fn after_deser(&mut self) {
-        self.tracks.values_mut().for_each(|t| {
-            t.e.piano_roll = Arc::clone(&self.piano_roll);
-            t.after_deser();
-        });
     }
 }
 
@@ -756,9 +792,9 @@ impl Orchestrator {
 
         // The order controller-instrument-effect reflects the order in which
         // the orchestrator generally processes entities.
-        entities.append(self.controller_uids.entry(*track_uid).or_default());
-        entities.append(self.instrument_uids.entry(*track_uid).or_default());
-        entities.append(self.effect_uids.entry(*track_uid).or_default());
+        entities.extend(self.controller_uids.entry(*track_uid).or_default().iter());
+        entities.extend(self.instrument_uids.entry(*track_uid).or_default().iter());
+        entities.extend(self.effect_uids.entry(*track_uid).or_default().iter());
     }
 }
 impl Orchestrates for Orchestrator {
@@ -814,7 +850,7 @@ impl Orchestrates for Orchestrator {
 
     fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()> {
         let uid = entity.uid();
-        if uid.0 == 0 {
+        if uid == Uid::default() {
             return Err(anyhow!("Entity has invalid Uid {}", uid));
         }
         self.track_for_entity.insert(uid, *track_uid);
@@ -1348,6 +1384,7 @@ impl<'a> OrchestratorHelper<'a> {
 mod tests {
     use super::*;
     use crate::traits::tests::validate_orchestrates_trait;
+    use ensnare_core::{control::ControlValue, time::TransportBuilder, traits::Serializable};
     use ensnare_proc_macros::{IsEntity, Metadata};
 
     #[test]
