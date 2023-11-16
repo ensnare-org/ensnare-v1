@@ -40,6 +40,14 @@ pub fn params_derive(input: TokenStream) -> TokenStream {
 }
 
 /// Derives helper methods to access Entity traits.
+///
+/// Available struct-level attributes:
+///
+/// - `"controller"`: provides scaffolding for the `IsController` trait
+/// - `"effect"`: provides scaffolding for the `IsEffect` trait
+/// - `"instrument"`: provides scaffolding for the `IsInstrument` trait
+/// - `"timeline"`: indicates that this entity should be rendered in the track
+/// timeline, rather than in its own detail view.
 #[proc_macro_derive(IsEntity, attributes(entity))]
 pub fn entity_derive(input: TokenStream) -> TokenStream {
     parse_and_generate_entity(input)

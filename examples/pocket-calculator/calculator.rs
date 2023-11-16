@@ -21,9 +21,10 @@ use ensnare::{
     synthesizer::{Synthesizer, VoicePerNoteStore},
     utils::Paths,
 };
+use ensnare_core::traits::TimeRange;
 use ensnare_cores::{Sampler, SamplerVoice};
 use ensnare_proc_macros::{Control, IsEntity, Metadata};
-use std::{ops::Range, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};
 
 /// Tempo is a u8 that ranges from 60..=240
@@ -367,7 +368,7 @@ impl Engine {
     }
 }
 impl Controls for Engine {
-    fn update_time(&mut self, _range: &Range<MusicalTime>) {
+    fn update_time(&mut self, _range: &TimeRange) {
         todo!()
     }
 
@@ -438,7 +439,7 @@ struct CalculatorEphemerals {
     // use the time slice only to determine how much musical time should be
     // processed during this iteration. We care only about its duration, not its
     // position in time.
-    range: Range<MusicalTime>,
+    range: TimeRange,
 
     // This is our performance's location in musical time. The current musical
     // time slice is cursor..(cursor + (range.end-range.start).
@@ -563,7 +564,7 @@ impl Ticks for Calculator {
     }
 }
 impl Controls for Calculator {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.e.range = range.clone();
     }
 
@@ -584,7 +585,7 @@ impl Controls for Calculator {
                 }
             }
             // We're done with this work slice, so it's time to advance the cursor.
-            let time_slice_duration = self.e.range.end - self.e.range.start;
+            let time_slice_duration = self.e.range.0.end - self.e.range.0.start;
             self.e.cursor += time_slice_duration;
         }
     }

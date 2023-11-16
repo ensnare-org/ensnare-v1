@@ -3,6 +3,7 @@
 use anyhow::anyhow;
 use ensnare::arrangement::ProjectTitle;
 use ensnare_core::{piano_roll::PianoRoll, prelude::*, types::TrackTitle};
+use ensnare_egui_widgets::ViewRange;
 use ensnare_entities::controllers::LivePatternSequencer;
 use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
 use std::{
@@ -25,7 +26,7 @@ impl Default for InMemoryProject {
             title: Default::default(),
             orchestrator: Default::default(),
             piano_roll: Default::default(),
-            view_range: MusicalTime::START..MusicalTime::new_with_beats(4 * 4),
+            view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(4 * 4)),
             track_titles: Default::default(),
         };
         let _ = r.create_starter_tracks();

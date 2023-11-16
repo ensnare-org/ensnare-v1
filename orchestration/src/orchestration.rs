@@ -17,20 +17,21 @@ use ensnare_core::{
     midi::{MidiChannel, MidiMessage},
     piano_roll::{PatternUid, PianoRoll},
     selection_set::SelectionSet,
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder, ViewRange},
+    time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
     traits::{
         Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
         Generates, GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
+        TimeRange,
     },
     types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
+use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use std::{
     collections::HashMap,
     fmt::Debug,
-    ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock},
     vec::Vec,
@@ -53,7 +54,7 @@ pub enum ProjectAction {
 /// place.
 #[derive(Debug, Default)]
 pub struct OrchestratorEphemerals {
-    range: ViewRange,
+    range: TimeRange,
     events: Vec<(Uid, EntityEvent)>,
     is_finished: bool,
     is_performing: bool,
@@ -101,8 +102,9 @@ pub struct OldOrchestrator {
 impl Default for OldOrchestrator {
     fn default() -> Self {
         let transport = TransportBuilder::default().build().unwrap();
-        let view_range =
-            MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4);
+        let view_range = ViewRange(
+            MusicalTime::START..MusicalTime::new_with_bars(&transport.time_signature(), 4),
+        );
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
         Self {
             title: Default::default(),
@@ -420,7 +422,7 @@ impl Orchestrates for OldOrchestrator {
         self.inner.end_solo()
     }
 
-    fn next_range(&mut self, frame_count: usize) -> std::ops::Range<MusicalTime> {
+    fn next_range(&mut self, frame_count: usize) -> TimeRange {
         self.inner.next_range(frame_count)
     }
 
@@ -583,7 +585,7 @@ impl HandlesMidi for OldOrchestrator {
     }
 }
 impl Controls for OldOrchestrator {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.e.range = range.clone();
 
         for track in self.tracks.values_mut() {
@@ -1012,7 +1014,7 @@ impl Orchestrates for Orchestrator {
         self.main_mixer.end_solo()
     }
 
-    fn next_range(&mut self, frame_count: usize) -> std::ops::Range<MusicalTime> {
+    fn next_range(&mut self, frame_count: usize) -> TimeRange {
         // Note that advance() can return the same range twice, depending on
         // sample rate. TODO: we should decide whose responsibility it is to
         // handle that -- either we skip calling work() if the time range is the
@@ -1059,7 +1061,7 @@ impl Configurable for Orchestrator {
     }
 }
 impl Controls for Orchestrator {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         // We don't call self.transport.update_time() because self.transport is
         // the publisher of the current time, not a subscriber.
         self.entity_store.update_time(range);
@@ -1245,7 +1247,7 @@ impl<'a> OrchestratorHelper<'a> {
     /// main event loop.
     pub fn render(
         &mut self,
-        range: Range<MusicalTime>,
+        range: TimeRange,
         samples: &mut [StereoSample],
         control_events_fn: &mut ControlEventsFn,
     ) {
@@ -1256,11 +1258,7 @@ impl<'a> OrchestratorHelper<'a> {
 
     /// A convenience method for callers who would have ignored any
     /// [EntityEvent]s produced by the render() method.
-    pub fn render_and_ignore_events(
-        &mut self,
-        range: Range<MusicalTime>,
-        samples: &mut [StereoSample],
-    ) {
+    pub fn render_and_ignore_events(&mut self, range: TimeRange, samples: &mut [StereoSample]) {
         self.render(range, samples, &mut |_| {});
     }
 

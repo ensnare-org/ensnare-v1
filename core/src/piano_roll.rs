@@ -4,6 +4,7 @@ use super::rng::Rng;
 use crate::{
     prelude::*,
     selection_set::SelectionSet,
+    traits::TimeRange,
     uid::{IsUid, UidFactory},
 };
 use anyhow::anyhow;
@@ -45,7 +46,7 @@ pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
     /// The range of time when this note should play.
-    pub range: ViewRange,
+    pub range: TimeRange,
 }
 impl Note {
     /// Creates a [Note] from a u8.
@@ -53,7 +54,7 @@ impl Note {
         let end = MusicalTime::new_with_units(start.total_units() + duration.total_units());
         Self {
             key,
-            range: start..end,
+            range: TimeRange(start..end),
         }
     }
 
@@ -61,7 +62,7 @@ impl Note {
     pub fn new_with_midi_note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Self {
         Self {
             key: key as u8,
-            range: start..(start + duration),
+            range: TimeRange(start..(start + duration)),
         }
     }
 }
@@ -71,7 +72,7 @@ impl Add<MusicalTime> for Note {
     fn add(self, rhs: MusicalTime) -> Self::Output {
         Self {
             key: self.key,
-            range: (self.range.start + rhs)..(self.range.end + rhs),
+            range: TimeRange((self.range.0.start + rhs)..(self.range.0.end + rhs)),
         }
     }
 }
@@ -86,14 +87,14 @@ impl Into<Vec<MidiEvent>> for Note {
                     key: u7::from(self.key),
                     vel: u7::from(127),
                 },
-                time: self.range.start,
+                time: self.range.0.start,
             },
             MidiEvent {
                 message: MidiMessage::NoteOff {
                     key: u7::from(self.key),
                     vel: u7::from(127),
                 },
-                time: self.range.end,
+                time: self.range.0.end,
             },
         ]
     }
@@ -152,7 +153,7 @@ impl PatternBuilder {
             let duration = Self::DURATION;
             self.note(Note {
                 key: rng.0.rand_range(32..96) as u8,
-                range: start..start + duration,
+                range: TimeRange(start..start + duration),
             });
         }
         self
@@ -185,7 +186,7 @@ impl PatternBuilder {
             if note != 255 {
                 self.note(Note {
                     key: note,
-                    range: position..position + position_delta,
+                    range: TimeRange(position..position + position_delta),
                 });
             }
             position += position_delta;
@@ -252,7 +253,7 @@ impl Pattern {
         let final_event_time = self
             .notes
             .iter()
-            .map(|n| n.range.end)
+            .map(|n| n.range.0.end)
             .max()
             .unwrap_or_default();
 
@@ -299,8 +300,8 @@ impl Pattern {
     /// [Note]. If any are found, returns the new version.
     pub fn move_note(&mut self, note: &Note, new_start: MusicalTime) -> anyhow::Result<Note> {
         let mut new_note = note.clone();
-        let new_note_length = new_note.range.end - new_note.range.start;
-        new_note.range = new_start..new_start + new_note_length;
+        let new_note_length = new_note.range.0.end - new_note.range.0.start;
+        new_note.range = TimeRange(new_start..new_start + new_note_length);
         self.replace_note(note, new_note)
     }
 
@@ -313,7 +314,7 @@ impl Pattern {
         duration: MusicalTime,
     ) -> anyhow::Result<Note> {
         let mut new_note = note.clone();
-        new_note.range = new_start..new_start + duration;
+        new_note.range = TimeRange(new_start..new_start + duration);
         self.replace_note(note, new_note)
     }
 
@@ -464,17 +465,17 @@ mod tests {
         /// half-note
         const TEST_C4: Note = Note {
             key: MidiNote::C4 as u8,
-            range: MusicalTime::START..MusicalTime::DURATION_HALF,
+            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_HALF),
         };
         /// whole note
         const TEST_D4: Note = Note {
             key: MidiNote::D4 as u8,
-            range: MusicalTime::START..MusicalTime::DURATION_WHOLE,
+            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_WHOLE),
         };
         /// two whole notes
         const TEST_E4: Note = Note {
             key: MidiNote::E4 as u8,
-            range: MusicalTime::START..MusicalTime::DURATION_BREVE,
+            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_BREVE),
         };
     }
 
@@ -719,7 +720,7 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            p.notes[0].range.start,
+            p.notes[0].range.0.start,
             MusicalTime::START + MusicalTime::DURATION_SIXTEENTH,
             "moving a note works"
         );
@@ -763,8 +764,10 @@ mod tests {
                 MusicalTime::DURATION_WHOLE,
             )
             .is_ok());
-        let expected_range = (MusicalTime::START + MusicalTime::DURATION_EIGHTH)
-            ..(MusicalTime::START + MusicalTime::DURATION_EIGHTH + MusicalTime::DURATION_WHOLE);
+        let expected_range = TimeRange(
+            (MusicalTime::START + MusicalTime::DURATION_EIGHTH)
+                ..(MusicalTime::START + MusicalTime::DURATION_EIGHTH + MusicalTime::DURATION_WHOLE),
+        );
         assert_eq!(
             p.notes[0].range, expected_range,
             "moving/resizing a note works"
@@ -779,8 +782,8 @@ mod tests {
             .move_and_resize_note(
                 &Note::new_with_midi_note(
                     MidiNote::C4,
-                    expected_range.start,
-                    expected_range.end - expected_range.start,
+                    expected_range.0.start,
+                    expected_range.0.end - expected_range.0.start,
                 ),
                 MusicalTime::new_with_beats(4),
                 MusicalTime::DURATION_WHOLE,
@@ -866,7 +869,10 @@ mod tests {
         assert_eq!(p.notes[15].key, 67);
         assert_eq!(
             p.notes[15].range,
-            MusicalTime::DURATION_QUARTER * 15..MusicalTime::DURATION_WHOLE * p.time_signature.top
+            TimeRange(
+                MusicalTime::DURATION_QUARTER * 15
+                    ..MusicalTime::DURATION_WHOLE * p.time_signature.top
+            )
         );
         assert_eq!(
             p.duration,
@@ -941,7 +947,7 @@ mod tests {
         assert_eq!(p.notes[0].key, 60);
         assert_eq!(
             p.notes[0].range,
-            MusicalTime::START..MusicalTime::DURATION_QUARTER
+            TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER)
         );
         assert_eq!(
             p.duration,

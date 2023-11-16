@@ -3,7 +3,7 @@
 use super::sequencers::NoteSequencer;
 use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
 use ensnare_proc_macros::Params;
-use std::{ops::Range, option::Option};
+use std::option::Option;
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
 
 #[derive(
@@ -59,7 +59,7 @@ impl Configurable for Arpeggiator {
     }
 }
 impl Controls for Arpeggiator {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.sequencer.update_time(range);
     }
 

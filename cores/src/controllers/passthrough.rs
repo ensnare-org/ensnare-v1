@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::*;
+use ensnare_core::{prelude::*, traits::TimeRange};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum SignalPassthroughType {
@@ -36,7 +36,7 @@ pub struct SignalPassthroughController {
 impl Serializable for SignalPassthroughController {}
 impl Configurable for SignalPassthroughController {}
 impl Controls for SignalPassthroughController {
-    fn update_time(&mut self, _range: &ViewRange) {
+    fn update_time(&mut self, _range: &TimeRange) {
         // We can ignore because we already have our own de-duplicating logic.
     }
 

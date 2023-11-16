@@ -117,11 +117,11 @@ impl<'a> PatternWidget<'a> {
         let notes_vert = 24.0;
         const FIGURE_THIS_OUT: f32 = 16.0;
         let ul = Pos2 {
-            x: note.range.start.total_parts() as f32 / FIGURE_THIS_OUT,
+            x: note.range.0.start.total_parts() as f32 / FIGURE_THIS_OUT,
             y: (note.key as f32) / notes_vert,
         };
         let br = Pos2 {
-            x: note.range.end.total_parts() as f32 / FIGURE_THIS_OUT,
+            x: note.range.0.end.total_parts() as f32 / FIGURE_THIS_OUT,
             y: (1.0 + note.key as f32) / notes_vert,
         };
         Rect::from_two_pos(ul, br)
@@ -153,7 +153,7 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
         if response.clicked() {
             let new_note = Note {
                 key,
-                range: position..position + PatternBuilder::DURATION,
+                range: TimeRange(position..position + PatternBuilder::DURATION),
             };
             if self.inner.notes.contains(&new_note) {
                 self.inner.notes.retain(|n| &new_note != n);
@@ -169,10 +169,10 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             .iter()
             .map(|note| {
                 let rect = Rect::from_two_pos(
-                    to_screen * pos2(note.range.start.total_parts() as f32, note.key as f32),
-                    to_screen * pos2(note.range.end.total_parts() as f32, note.key as f32 + 1.0),
+                    to_screen * pos2(note.range.0.start.total_parts() as f32, note.key as f32),
+                    to_screen * pos2(note.range.0.end.total_parts() as f32, note.key as f32 + 1.0),
                 );
-                let hovered = note.key == key && note.range.contains(&position);
+                let hovered = note.key == key && note.range.0.contains(&position);
                 let stroke = if hovered {
                     ui.ctx().style().visuals.widgets.active.fg_stroke
                 } else {

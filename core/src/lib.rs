@@ -47,7 +47,7 @@ pub mod prelude {
     pub use super::{
         control::{ControlIndex, ControlName, ControlValue},
         midi::prelude::*,
-        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
+        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
         types::{
             BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
             SampleType, SignalType, StereoSample,

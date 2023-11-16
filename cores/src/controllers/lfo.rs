@@ -20,7 +20,7 @@ pub struct LfoController {
 
     is_performing: bool,
 
-    time_range: ViewRange,
+    time_range: TimeRange,
 
     last_frame: usize,
 }
@@ -34,13 +34,14 @@ impl Configurable for LfoController {
     }
 }
 impl Controls for LfoController {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let frames = self
             .time_range
+            .0
             .start
             .as_frames(Tempo::from(120), self.oscillator.sample_rate());
 

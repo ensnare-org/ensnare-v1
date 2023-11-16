@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng};
+use crate::{prelude::*, rng::Rng, traits::TimeRange};
 use derive_builder::Builder;
 use ensnare_proc_macros::{Control, Params};
 
@@ -36,19 +36,19 @@ impl Timer {
 impl HandlesMidi for Timer {}
 impl Configurable for Timer {}
 impl Controls for Timer {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         if self.is_performing {
             if self.duration == MusicalTime::default() {
                 // Zero-length timers fire immediately.
                 self.is_finished = true;
             } else if let Some(end_time) = self.end_time {
-                if range.contains(&end_time) {
+                if range.0.contains(&end_time) {
                     self.is_finished = true;
                 }
             } else {
                 // The first time we're called with an update_time() while
                 // performing, we take that as the start of the timer.
-                self.end_time = Some(range.start + self.duration);
+                self.end_time = Some(range.0.start + self.duration);
             }
         }
     }
@@ -85,7 +85,7 @@ pub struct Trigger {
 }
 impl Serializable for Trigger {}
 impl Controls for Trigger {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.timer.update_time(range)
     }
 
@@ -201,7 +201,7 @@ impl ControlTripPath {
 pub struct ControlTripEphemerals {
     /// The time range for this work slice. This is a copy of the value passed
     /// in Controls::update_time().
-    range: ViewRange,
+    range: TimeRange,
 
     /// Which step we're currently processing.
     current_step: usize,
@@ -210,7 +210,7 @@ pub struct ControlTripEphemerals {
     /// The range of values for the current step.
     value_range: std::ops::RangeInclusive<ControlValue>,
     /// The timespan of the current step.
-    time_range: ViewRange,
+    time_range: TimeRange,
 
     /// The value that we last issued as a Control event. We keep track of this
     /// to avoid issuing consecutive identical events.
@@ -228,7 +228,7 @@ impl Default for ControlTripEphemerals {
             current_step: Default::default(),
             current_path: Default::default(),
             value_range: ControlValue::default()..=ControlValue::default(),
-            time_range: MusicalTime::empty_range(),
+            time_range: TimeRange(MusicalTime::empty_range()),
             last_published_value: Default::default(),
             is_current_step_clean: Default::default(),
         }
@@ -241,7 +241,7 @@ impl ControlTripEphemerals {
             self.current_step = Default::default();
             self.current_path = Default::default();
             self.value_range = ControlValue::default()..=ControlValue::default();
-            self.time_range = MusicalTime::empty_range();
+            self.time_range = TimeRange(MusicalTime::empty_range());
         }
     }
 }
@@ -267,7 +267,7 @@ impl ControlTrip {
         self.e.reset_current_path_if_needed();
 
         // Are we in the middle of handling a step?
-        if self.e.time_range.contains(&self.e.range.start) {
+        if self.e.time_range.0.contains(&self.e.range.0.start) {
             // Yes; all the work is configured. Let's return so we can do it.
             return;
         }
@@ -288,7 +288,7 @@ impl ControlTrip {
 
                 // Mark the time range to include all time so that we'll
                 // early-exit this method in future calls.
-                self.e.time_range = MusicalTime::START..MusicalTime::TIME_MAX;
+                self.e.time_range = TimeRange(MusicalTime::START..MusicalTime::TIME_MAX);
             }
             _ => {
                 // We have multiple steps. Find the one that corresponds to the
@@ -321,11 +321,11 @@ impl ControlTrip {
 
                     // Build the range. Is it the right one?
                     let step_time_range = start_time..end_time;
-                    if step_time_range.contains(&self.e.range.start) {
+                    if step_time_range.contains(&self.e.range.0.start) {
                         // Yes, this range contains the current work slice. Set
                         // it up, and get out of here.
                         self.e.current_path = step.path;
-                        self.e.time_range = step_time_range;
+                        self.e.time_range = TimeRange(step_time_range);
                         self.e.value_range = match step.path {
                             ControlTripPath::None => todo!(),
                             ControlTripPath::Flat => start_value..=start_value,
@@ -349,8 +349,8 @@ impl ControlTrip {
 }
 impl HandlesMidi for ControlTrip {}
 impl Controls for ControlTrip {
-    fn update_time(&mut self, range: &ViewRange) {
-        if range.start < self.e.range.start {
+    fn update_time(&mut self, range: &TimeRange) {
+        if range.0.start < self.e.range.0.start {
             // The cursor is jumping around. Mark things dirty.
             self.e.is_current_step_clean = false;
         }
@@ -363,14 +363,14 @@ impl Controls for ControlTrip {
         if matches!(self.e.current_path, ControlTripPath::None) {
             return;
         }
-        if self.e.range.start >= self.e.time_range.end
-            || self.e.range.end <= self.e.time_range.start
+        if self.e.range.0.start >= self.e.time_range.0.end
+            || self.e.range.0.end <= self.e.time_range.0.start
         {
             self.update_interval();
         }
-        let current_point = self.e.range.start.total_units() as f64;
-        let start = self.e.time_range.start.total_units() as f64;
-        let end = self.e.time_range.end.total_units() as f64;
+        let current_point = self.e.range.0.start.total_units() as f64;
+        let start = self.e.time_range.0.start.total_units() as f64;
+        let end = self.e.time_range.0.end.total_units() as f64;
         let duration = end - start;
         let current_point = current_point - start;
         let percentage = if duration > 0.0 {
@@ -452,10 +452,9 @@ mod tests {
         trigger.update_sample_rate(SampleRate::DEFAULT);
         trigger.play();
 
-        trigger.update_time(&std::ops::Range {
-            start: MusicalTime::default(),
-            end: MusicalTime::new_with_parts(1),
-        });
+        trigger.update_time(&TimeRange(
+            MusicalTime::default()..MusicalTime::new_with_parts(1),
+        ));
         let mut count = 0;
         trigger.work(&mut |_| {
             count += 1;
@@ -463,10 +462,9 @@ mod tests {
         assert_eq!(count, 0);
         assert!(!trigger.is_finished());
 
-        trigger.update_time(&std::ops::Range {
-            start: MusicalTime::new_with_bars(&ts, 1),
-            end: MusicalTime::new(&ts, 1, 0, 0, 1),
-        });
+        trigger.update_time(&TimeRange(
+            MusicalTime::new_with_bars(&ts, 1)..MusicalTime::new(&ts, 1, 0, 0, 1),
+        ));
         let mut count = 0;
         trigger.work(&mut |_| {
             count += 1;
@@ -496,7 +494,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let range = MusicalTime::START..MusicalTime::DURATION_QUARTER;
+        let range = TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER);
         ct.update_time(&range);
         const MESSAGE: &'static str = "If there is only one control step, then the trip should remain at that step's level at all times.";
         let mut received_event = None;
@@ -530,7 +528,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let range = MusicalTime::START..MusicalTime::DURATION_QUARTER;
+        let range = TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER);
         ct.update_time(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
@@ -542,8 +540,10 @@ mod tests {
             _ => panic!(),
         }
         assert!(!ct.is_finished());
-        let range = MusicalTime::START + MusicalTime::DURATION_WHOLE
-            ..MusicalTime::DURATION_WHOLE + MusicalTime::new_with_units(1);
+        let range = TimeRange(
+            MusicalTime::START + MusicalTime::DURATION_WHOLE
+                ..MusicalTime::DURATION_WHOLE + MusicalTime::new_with_units(1),
+        );
         ct.update_time(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
@@ -573,8 +573,10 @@ mod tests {
             .build()
             .unwrap();
 
-        let range = MusicalTime::new_with_beats(1)
-            ..MusicalTime::new_with_beats(1) + MusicalTime::new_with_units(1);
+        let range = TimeRange(
+            MusicalTime::new_with_beats(1)
+                ..MusicalTime::new_with_beats(1) + MusicalTime::new_with_units(1),
+        );
         ct.update_time(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
@@ -631,7 +633,7 @@ mod tests {
 
             for (unit, ev, finished) in test_values {
                 let time = MusicalTime::new_with_units(unit);
-                ct.update_time(&(time..(time + MusicalTime::new_with_units(1))));
+                ct.update_time(&TimeRange(time..(time + MusicalTime::new_with_units(1))));
                 let mut received_event = None;
                 ct.work(&mut |event| {
                     assert!(received_event.is_none());

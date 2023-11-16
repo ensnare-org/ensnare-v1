@@ -2,17 +2,17 @@
 
 use ensnare_core::{
     midi::{MidiChannel, MidiEvent, MidiMessage},
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
+    time::{MusicalTime, SampleRate, Tempo, TimeSignature},
     traits::{
         Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
-        SequencesMidi,
+        SequencesMidi, TimeRange,
     },
 };
 
 #[derive(Debug, Default)]
 pub struct MidiSequencer {
     events: Vec<(MidiChannel, MidiEvent)>,
-    pub time_range: ViewRange,
+    pub time_range: TimeRange,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
@@ -59,21 +59,21 @@ impl Configurable for MidiSequencer {
     fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
 }
 impl Controls for MidiSequencer {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 
     //    #[deprecated = "FIX THE CHANNEL!"]
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|(channel, event)| {
-            if self.time_range.contains(&event.time) {
+            if self.time_range.0.contains(&event.time) {
                 control_events_fn(EntityEvent::Midi(*channel, event.message))
             }
         });
     }
 
     fn is_finished(&self) -> bool {
-        self.time_range.end >= self.max_event_time
+        self.time_range.0.end >= self.max_event_time
     }
 
     fn play(&mut self) {
@@ -87,7 +87,7 @@ impl Controls for MidiSequencer {
     }
 
     fn skip_to_start(&mut self) {
-        self.time_range = MusicalTime::default()..MusicalTime::default()
+        self.time_range = TimeRange(MusicalTime::default()..MusicalTime::default())
     }
 
     fn is_performing(&self) -> bool {
@@ -102,7 +102,7 @@ impl HandlesMidi for MidiSequencer {
         _: &mut MidiMessagesFn,
     ) {
         if self.is_recording {
-            let _ = self.record_midi_message(channel, message, self.time_range.start);
+            let _ = self.record_midi_message(channel, message, self.time_range.0.start);
         }
     }
 }

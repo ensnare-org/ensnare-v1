@@ -6,16 +6,11 @@ use eframe::{
     epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
 };
 use ensnare_core::{
-    controllers::ControlTripPath,
-    generators::Waveform,
-    piano_roll::Note,
-    prelude::*,
-    time::{MusicalTime, ViewRange},
-    types::FrequencyRange,
-    uid::Uid,
+    controllers::ControlTripPath, generators::Waveform, piano_roll::Note, prelude::*,
+    time::MusicalTime, types::FrequencyRange, uid::Uid,
 };
 use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode, LivePatternSequencer};
-use ensnare_egui_widgets::{frequency, waveform};
+use ensnare_egui_widgets::{frequency, waveform, ViewRange};
 use strum::IntoEnumIterator;
 
 /// Wraps a [Trip] as a [Widget](eframe::egui::Widget).
@@ -56,8 +51,8 @@ impl<'a> eframe::egui::Widget for Trip<'a> {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
-                self.view_range.start.total_units() as f32
-                    ..=self.view_range.end.total_units() as f32,
+                self.view_range.0.start.total_units() as f32
+                    ..=self.view_range.0.end.total_units() as f32,
                 ControlValue::MAX.0 as f32..=ControlValue::MIN.0 as f32,
             ),
             response.rect,
@@ -89,7 +84,7 @@ impl<'a> eframe::egui::Widget for Trip<'a> {
                     let value = pos.y;
                     // Last step. Extend to end of view range.
                     let mut tmp_pos =
-                        to_screen * pos2(self.view_range.end.total_units() as f32, 0.0);
+                        to_screen * pos2(self.view_range.0.end.total_units() as f32, 0.0);
                     tmp_pos.y = value;
                     tmp_pos
                 } else {
@@ -193,8 +188,8 @@ impl<'a> LivePatternSequencerWidget<'a> {
     fn shape_for_note(to_screen: &RectTransform, visuals: &WidgetVisuals, note: &Note) -> Shape {
         Shape::Rect(RectShape::new(
             Rect::from_two_pos(
-                to_screen * pos2(note.range.start.total_units() as f32, note.key as f32),
-                to_screen * pos2(note.range.end.total_units() as f32, note.key as f32),
+                to_screen * pos2(note.range.0.start.total_units() as f32, note.key as f32),
+                to_screen * pos2(note.range.0.end.total_units() as f32, note.key as f32),
             ),
             visuals.rounding,
             visuals.bg_fill,
@@ -207,8 +202,8 @@ impl<'a> eframe::egui::Widget for LivePatternSequencerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
-            let x_range_f32 = self.view_range.start.total_units() as f32
-                ..=self.view_range.end.total_units() as f32;
+            let x_range_f32 = self.view_range.0.start.total_units() as f32
+                ..=self.view_range.0.end.total_units() as f32;
             let y_range = i8::MAX as f32..=u8::MIN as f32;
             let local_space_rect = Rect::from_x_y_ranges(x_range_f32, y_range);
             let to_screen = RectTransform::from_to(local_space_rect, response.rect);
@@ -248,7 +243,7 @@ impl<'a> eframe::egui::Widget for LivePatternSequencerWidget<'a> {
                     pattern.notes().iter().for_each(|note| {
                         let note = Note {
                             key: note.key,
-                            range: (note.range.start)..(note.range.end),
+                            range: TimeRange((note.range.0.start)..(note.range.0.end)),
                         };
                         v.push(Self::shape_for_note(&to_screen, &visuals, &note));
                     });

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
+    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable, TimeRange},
     types::ParameterType,
 };
 use anyhow::{anyhow, Error};
@@ -439,10 +439,6 @@ impl Sub<Self> for MusicalTime {
     }
 }
 
-/// A [ViewRange] indicates a musical time range. It's used to determine what a
-/// widget should show when it's rendering something in a timeline.
-pub type ViewRange = std::ops::Range<MusicalTime>;
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Seconds(pub f64);
 impl Seconds {
@@ -560,7 +556,7 @@ impl HandlesMidi for Transport {}
 impl Transport {
     /// Advances the clock by the given number of frames. Returns the time range
     /// from the prior time to now.
-    pub fn advance(&mut self, frames: usize) -> ViewRange {
+    pub fn advance(&mut self, frames: usize) -> TimeRange {
         // Calculate the work time range. Note that the range can be zero, which
         // will happen if frames advance faster than MusicalTime units.
         let new_frames = self.e.current_frame + frames;
@@ -591,7 +587,7 @@ impl Transport {
             self.e.current_frame = new_frames;
             self.e.current_time = new_time;
         }
-        range
+        TimeRange(range)
     }
 
     #[allow(missing_docs)]
@@ -635,12 +631,12 @@ impl Configurable for Transport {
     }
 }
 impl Controls for Transport {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         // Nothing - we calculated the range, so we don't need to do anything with it.
         debug_assert!(
-            self.e.current_time == range.end,
+            self.e.current_time == range.0.end,
             "Transport::update_time() was called with the range ..{} but current_time is {}",
-            range.end,
+            range.0.end,
             self.e.current_time
         );
     }
@@ -1004,7 +1000,7 @@ mod tests {
             let mut time_range_covered = 0;
             for _ in 0..transport.sample_rate().0 {
                 let range = transport.advance(1);
-                let delta_units = (range.end - range.start).total_units();
+                let delta_units = (range.0.end - range.0.start).total_units();
                 time_range_covered += delta_units;
             }
             assert_eq!(time_range_covered, MusicalTime::UNITS_IN_BEAT,

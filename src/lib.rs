@@ -217,10 +217,11 @@ pub mod traits {
 pub mod types {
     //! Common data types used throughout the system.
     pub use ensnare_core::{
-        time::{MusicalTime, SampleRate, Tempo, TimeSignature, ViewRange},
+        time::{MusicalTime, SampleRate, Tempo, TimeSignature},
         types::*,
         uid::{Uid, UidFactory},
     };
+    pub use ensnare_egui_widgets::ViewRange;
 
     /// The most commonly used imports.
     pub mod prelude {

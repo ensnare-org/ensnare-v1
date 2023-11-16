@@ -86,7 +86,7 @@ impl Sequences for PatternSequencer {
     }
 }
 impl Controls for PatternSequencer {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.inner.update_time(range)
     }
 
@@ -180,7 +180,7 @@ impl Sequences for LivePatternSequencer {
     }
 }
 impl Controls for LivePatternSequencer {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.inner.update_time(range)
     }
 

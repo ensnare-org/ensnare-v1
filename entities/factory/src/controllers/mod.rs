@@ -16,6 +16,7 @@ use ensnare_cores::{ArpeggiatorParams, LfoControllerParams};
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
 };
+use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
@@ -52,6 +53,7 @@ impl Arpeggiator {
 pub struct MidiSequencer {
     uid: Uid,
     inner: ensnare_cores::MidiSequencer,
+    view_range: ViewRange,
 }
 impl Displays for MidiSequencer {}
 impl Serializable for MidiSequencer {}
@@ -61,11 +63,11 @@ impl Serializable for MidiSequencer {}
 pub struct PatternSequencer {
     uid: Uid,
     inner: ensnare_cores::PatternSequencer,
+    view_range: ViewRange,
 }
 impl Displays for PatternSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let range = self.inner.inner.time_range.clone();
-        ui.add(pattern_sequencer_widget(&mut self.inner, &range))
+        ui.add(pattern_sequencer_widget(&mut self.inner, &self.view_range))
     }
 }
 impl Configurable for PatternSequencer {}
@@ -107,17 +109,24 @@ impl Sequences for PatternSequencer {
     IsEntity,
     Metadata,
 )]
-#[entity("controller")]
+#[entity("controller", "timeline")]
 pub struct LivePatternSequencer {
     uid: Uid,
     inner: ensnare_cores::LivePatternSequencer,
+    view_range: ViewRange,
 }
-impl Displays for LivePatternSequencer {}
+impl Displays for LivePatternSequencer {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.label("askdfjsf")
+        //        ui.add(sequencer)
+    }
+}
 impl LivePatternSequencer {
     pub fn new_with(uid: Uid, piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
         Self {
             uid,
             inner: ensnare_cores::LivePatternSequencer::new_with(piano_roll),
+            view_range: Default::default(),
         }
     }
 }
@@ -127,11 +136,11 @@ impl LivePatternSequencer {
 pub struct NoteSequencer {
     uid: Uid,
     inner: ensnare_cores::NoteSequencer,
+    view_range: ViewRange,
 }
 impl Displays for NoteSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let range = self.inner.inner.time_range.clone();
-        ui.add(note_sequencer_widget(&mut self.inner, &range))
+        ui.add(note_sequencer_widget(&mut self.inner, &self.view_range))
     }
 }
 impl Configurable for NoteSequencer {}
@@ -139,7 +148,11 @@ impl HandlesMidi for NoteSequencer {}
 impl Serializable for NoteSequencer {}
 impl NoteSequencer {
     pub fn new_with_inner(uid: Uid, inner: ensnare_cores::NoteSequencer) -> Self {
-        Self { uid, inner }
+        Self {
+            uid,
+            inner,
+            view_range: Default::default(),
+        }
     }
 }
 

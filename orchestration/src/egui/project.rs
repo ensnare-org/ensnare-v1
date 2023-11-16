@@ -2,7 +2,8 @@
 
 use super::{
     new_track_widget,
-    track::{make_title_bar_galley, title_bar},
+    signal_chain::SignalChainItem,
+    track::{make_title_bar_galley, title_bar, TrackInfo},
 };
 use crate::{
     orchestration::{OldOrchestrator, Orchestrator, ProjectAction},
@@ -10,24 +11,19 @@ use crate::{
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
-use ensnare_core::{
-    piano_roll::PianoRoll,
-    time::ViewRange,
-    traits::Controls,
-    types::TrackTitle,
-    uid::{TrackUid, Uid},
-};
+use ensnare_core::{piano_roll::PianoRoll, traits::Controls, types::TrackTitle, uid::TrackUid};
 use ensnare_cores_egui::{
     piano_roll::piano_roll,
     widgets::timeline::{self, TimelineIconStripAction},
 };
+use ensnare_egui_widgets::ViewRange;
 use std::sync::Arc;
 
 pub trait DescribesProject: core::fmt::Debug {
     fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle>;
 }
 
-/// Wraps an [ProjectWidget] as a [Widget](eframe::egui::Widget).
+/// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
 pub fn project_widget<'a>(
     project_metadata: &'a impl DescribesProject,
     orchestrates: &'a mut impl Orchestrates,
@@ -55,50 +51,58 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         // The timeline needs to be aligned with the track content, so
         // we create an empty track title bar to match with the real
         // ones.
-        ui.horizontal(|ui| {
-            ui.add_enabled(false, title_bar(None));
-            ui.add(timeline::legend(self.view_range));
-        });
+        let response = ui
+            .horizontal(|ui| {
+                ui.add_enabled(false, title_bar(None));
+                ui.add(timeline::legend(self.view_range));
+            })
+            .response;
 
         // Create a scrolling area for all the tracks.
         eframe::egui::ScrollArea::vertical()
             .id_source("orchestrator-scroller")
             .show(ui, |ui| {
-                // Render each track.
-                for track_uid in self.orchestrates.track_uids() {
-                    let track_title = self.project_metadata.track_title(track_uid);
+                let track_uids = self.orchestrates.track_uids().to_vec();
+                for track_uid in track_uids {
+                    let track_title = self.project_metadata.track_title(&track_uid);
                     let font_galley: Option<Arc<Galley>> = if let Some(track_title) = track_title {
                         Some(make_title_bar_galley(ui, track_title))
                     } else {
                         None
                     };
-                    // TODO: this feels cacheable
-                    let mut signal_items = Vec::default();
-                    if let Ok(entity_uids) = self.orchestrates.get_track_entities(track_uid) {
-                        let foo: Vec<_> = entity_uids
-                            .iter()
-                            .map(|uid| {
+
+                    // TODO: this feels cacheable.
+                    let signal_items: Vec<SignalChainItem> = {
+                        if let Ok(entity_uids) = self.orchestrates.get_track_entities(&track_uid) {
+                            entity_uids.iter().fold(Vec::default(), |mut v, uid| {
                                 if let Some(entity) = self.orchestrates.get_entity(uid) {
-                                    (
-                                        *uid,
-                                        entity.name().to_string(),
-                                        entity.as_controller().is_some(),
-                                    )
-                                } else {
-                                    (Uid::default(), String::new(), false)
+                                    if !entity.displays_in_timeline() {
+                                        v.push((
+                                            *uid,
+                                            entity.name().to_string(),
+                                            entity.as_controller().is_some(),
+                                        ));
+                                    }
                                 }
+
+                                v
                             })
-                            .collect();
-                        signal_items.extend(foo);
-                    }
+                        } else {
+                            Vec::default()
+                        }
+                    };
 
                     let mut action = None;
+                    let track_info = TrackInfo {
+                        track_uid,
+                        signal_items: &signal_items,
+                        title_font_galley: font_galley,
+                    };
                     ui.add(new_track_widget(
-                        *track_uid,
-                        &signal_items,
+                        &track_info,
+                        self.orchestrates,
                         self.view_range.clone(),
                         None,
-                        font_galley,
                         &mut action,
                     ));
                     // TODO handle action
@@ -108,7 +112,9 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         // suppress warning
         *self.action = None;
 
-        ui.label("placeholder.........")
+        // Note! This response is from the timeline header and doesn't mean
+        // anything.
+        response
     }
 }
 impl<'a> ProjectWidget<'a> {

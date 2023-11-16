@@ -10,7 +10,7 @@ use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     prelude::*,
-    time::{MusicalTime, SampleRate, TimeSignature, ViewRange},
+    time::{MusicalTime, SampleRate, TimeSignature},
 };
 
 /// Quick import of all important traits.
@@ -18,7 +18,7 @@ pub mod prelude {
     pub use super::{
         Configurable, ControlEventsFn, Controllable, Controls, EntityEvent, Generates,
         GeneratesToInternalBuffer, HandlesMidi, HasSettings, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks,
+        MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks, TimeRange,
         TransformsAudio,
     };
 }
@@ -176,6 +176,9 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
 
 pub type ControlEventsFn<'a> = dyn FnMut(EntityEvent) + 'a;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TimeRange(pub std::ops::Range<MusicalTime>);
+
 /// A device that [Controls] produces [EntityEvent]s that control other things.
 /// It also has a concept of a performance that has a beginning and an end. It
 /// knows how to respond to requests to start, stop, restart, and seek within
@@ -183,7 +186,7 @@ pub type ControlEventsFn<'a> = dyn FnMut(EntityEvent) + 'a;
 #[allow(unused_variables)]
 pub trait Controls: Send {
     /// Sets the range of [MusicalTime] to which the next work() method applies.
-    fn update_time(&mut self, range: &ViewRange) {}
+    fn update_time(&mut self, range: &TimeRange) {}
 
     /// The entity should perform work for the time range specified in the
     /// previous [update_time()]. If the work produces any events, use

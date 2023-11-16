@@ -3,8 +3,10 @@
 use bit_vec::BitVec;
 use ensnare_core::{
     midi::{u7, MidiChannel, MidiMessage},
-    time::ViewRange,
-    traits::{Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn},
+    traits::{
+        Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
+        TimeRange,
+    },
 };
 use std::fmt::Debug;
 
@@ -47,7 +49,7 @@ impl HandlesMidi for MidiNoteMinder {
     }
 }
 impl Controls for MidiNoteMinder {
-    fn update_time(&mut self, _: &ViewRange) {}
+    fn update_time(&mut self, _: &TimeRange) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         for (i, active_note) in self.active_notes.iter().enumerate() {

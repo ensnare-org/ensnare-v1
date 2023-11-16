@@ -6,6 +6,7 @@ use eframe::{
     epaint::{pos2, FontId, RectShape, Shape},
 };
 use ensnare_core::prelude::*;
+use ensnare_egui_widgets::ViewRange;
 
 /// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
 pub fn timeline_icon_strip<'a>(
@@ -47,9 +48,9 @@ impl<'a> Legend<'a> {
     }
 
     fn steps(view_range: &ViewRange) -> std::iter::StepBy<std::ops::Range<usize>> {
-        let beat_count = view_range.end.total_beats() - view_range.start.total_beats();
+        let beat_count = view_range.0.end.total_beats() - view_range.0.start.total_beats();
         let step = (beat_count as f32).log10().round() as usize;
-        (view_range.start.total_beats()..view_range.end.total_beats()).step_by(step * 2)
+        (view_range.0.start.total_beats()..view_range.0.end.total_beats()).step_by(step * 2)
     }
 }
 impl<'a> eframe::egui::Widget for Legend<'a> {
@@ -58,8 +59,8 @@ impl<'a> eframe::egui::Widget for Legend<'a> {
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
-                self.view_range.start.total_beats() as f32
-                    ..=self.view_range.end.total_beats() as f32,
+                self.view_range.0.start.total_beats() as f32
+                    ..=self.view_range.0.end.total_beats() as f32,
                 rect.top()..=rect.bottom(),
             ),
             rect,
@@ -84,15 +85,15 @@ impl<'a> eframe::egui::Widget for Legend<'a> {
 
         response.context_menu(|ui| {
             if ui.button("Start x2").clicked() {
-                self.view_range.start = self.view_range.start * 2;
+                self.view_range.0.start = self.view_range.0.start * 2;
                 ui.close_menu();
             }
             if ui.button("Start x0.5").clicked() {
-                self.view_range.start = self.view_range.start / 2;
+                self.view_range.0.start = self.view_range.0.start / 2;
                 ui.close_menu();
             }
             if ui.button("Start +4").clicked() {
-                self.view_range.start += MusicalTime::new_with_beats(4);
+                self.view_range.0.start += MusicalTime::new_with_beats(4);
                 ui.close_menu();
             }
         })
@@ -124,8 +125,8 @@ impl eframe::egui::Widget for Grid {
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
-                self.view_range.start.total_beats() as f32
-                    ..=self.view_range.end.total_beats() as f32,
+                self.view_range.0.start.total_beats() as f32
+                    ..=self.view_range.0.end.total_beats() as f32,
                 0.0..=1.0,
             ),
             rect,
@@ -178,8 +179,8 @@ impl eframe::egui::Widget for Cursor {
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
-                self.view_range.start.total_units() as f32
-                    ..=self.view_range.end.total_units() as f32,
+                self.view_range.0.start.total_units() as f32
+                    ..=self.view_range.0.end.total_units() as f32,
                 0.0..=1.0,
             ),
             rect,

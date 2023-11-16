@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike and Makeda Tsao. All rights reserved.
 
-use crate::track::TrackWidgetAction;
+use crate::{track::TrackWidgetAction, traits::Orchestrates};
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -8,13 +8,10 @@ use eframe::{
         text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
     },
 };
-use ensnare_core::{
-    time::{MusicalTime, ViewRange},
-    types::TrackTitle,
-    uid::TrackUid,
-};
+use ensnare_core::{time::MusicalTime, types::TrackTitle, uid::TrackUid};
 use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_egui_widgets::ViewRange;
 use std::{f32::consts::PI, sync::Arc};
 
 use super::{
@@ -22,36 +19,33 @@ use super::{
     signal_chain::{NewSignalChainWidgetAction, SignalChainItem},
 };
 
+#[derive(Debug)]
+pub struct TrackInfo<'a> {
+    pub track_uid: TrackUid,
+    pub signal_items: &'a [SignalChainItem],
+    pub title_font_galley: Option<Arc<Galley>>,
+}
+
 /// Wraps an [NewTrackWidget] as a [Widget](eframe::egui::Widget).
 pub fn new_track_widget<'a>(
-    track_uid: TrackUid,
-    signal_items: &'a [SignalChainItem],
+    track_info: &'a TrackInfo<'a>,
+    orchestrates: &'a mut dyn Orchestrates,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
-    title_font_galley: Option<Arc<Galley>>,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        NewTrackWidget::new(
-            track_uid,
-            signal_items,
-            view_range,
-            cursor,
-            title_font_galley,
-            action,
-        )
-        .ui(ui)
+        NewTrackWidget::new(track_info, orchestrates, view_range, cursor, action).ui(ui)
     }
 }
 
 /// An egui component that draws a track.
 #[derive(Debug)]
 struct NewTrackWidget<'a> {
-    track_uid: TrackUid,
-    signal_items: &'a [SignalChainItem],
+    track_info: &'a TrackInfo<'a>,
+    orchestrates: &'a mut dyn Orchestrates,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
-    title_font_galley: Option<Arc<Galley>>,
 
     action: &'a mut Option<TrackWidgetAction>,
 }
@@ -60,19 +54,17 @@ impl<'a> NewTrackWidget<'a> {
     const TRACK_HEIGHT: f32 = 96.0;
 
     pub fn new(
-        track_uid: TrackUid,
-        signal_items: &'a [SignalChainItem],
+        track_info: &'a TrackInfo<'a>,
+        orchestrates: &'a mut dyn Orchestrates,
         view_range: ViewRange,
         cursor: Option<MusicalTime>,
-        title_font_galley: Option<Arc<Galley>>,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
         Self {
-            track_uid,
-            signal_items,
+            track_info,
+            orchestrates,
             view_range,
             cursor,
-            title_font_galley,
             action,
         }
     }
@@ -90,6 +82,8 @@ impl<'a> NewTrackWidget<'a> {
 }
 impl<'a> Widget for NewTrackWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let track_uid = self.track_info.track_uid;
+
         // inner_margin() should be half of the Frame stroke width to leave room
         // for it. Thanks vikrinox on the egui Discord.
         eframe::egui::Frame::default()
@@ -111,7 +105,11 @@ impl<'a> Widget for NewTrackWidget<'a> {
                     // The `Response` is based on the title bar, so
                     // clicking/dragging on the title bar affects the `Track` as
                     // a whole.
-                    let font_galley = self.title_font_galley.as_ref().map(|fg| Arc::clone(&fg));
+                    let font_galley = self
+                        .track_info
+                        .title_font_galley
+                        .as_ref()
+                        .map(|fg| Arc::clone(&fg));
                     let response = ui.add(title_bar(font_galley));
 
                     // Take up all the space we're given, even if we can't fill
@@ -130,13 +128,14 @@ impl<'a> Widget for NewTrackWidget<'a> {
                             let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
                             let (_id, rect) = ui.allocate_space(desired_size);
 
-                            let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
+                            let temp_range =
+                                ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
 
                             let from_screen = RectTransform::from_to(
                                 rect,
                                 Rect::from_x_y_ranges(
-                                    self.view_range.start.total_units() as f32
-                                        ..=self.view_range.end.total_units() as f32,
+                                    self.view_range.0.start.total_units() as f32
+                                        ..=self.view_range.0.end.total_units() as f32,
                                     rect.top()..=rect.bottom(),
                                 ),
                             );
@@ -161,34 +160,53 @@ impl<'a> Widget for NewTrackWidget<'a> {
                             //    item, but disabled.
                             // 3. Render the frontmost, enabled.
 
-                            // ui.add_enabled_ui(true, |ui| {
-                            //     ui.allocate_ui_at_rect(rect, |ui| {
-                            //         ui.add(live_pattern_sequencer_widget(
-                            //             &mut self.track.sequencer,
-                            //             &self.view_range,
-                            //         ));
-                            //     });
-                            // });
+                            let frontmost_uid = if let Ok(entity_uids) =
+                                self.orchestrates.get_track_entities(&track_uid)
+                            {
+                                if let Some(entity_uid) = entity_uids.first() {
+                                    Some(*entity_uid)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            };
 
-                            // Draw control trips.
-                            // let mut enabled = false;
-                            // self.track.control_trips.iter_mut().for_each(|(uid, t)| {
-                            //     ui.add_enabled_ui(enabled, |ui| {
-                            //         ui.allocate_ui_at_rect(rect, |ui| {
-                            //             ui.add(trip(
-                            //                 *uid,
-                            //                 t,
-                            //                 self.track.control_router.control_links(*uid),
-                            //                 self.view_range.clone(),
-                            //             ));
-                            //         });
-                            //     });
-                            //     enabled = false;
-                            // });
+                            let entity_uids = if let Ok(entity_uids) =
+                                self.orchestrates.get_track_entities(&track_uid)
+                            {
+                                entity_uids.to_vec()
+                            } else {
+                                Vec::default()
+                            };
+
+                            entity_uids.iter().for_each(|uid| {
+                                if Some(*uid) != frontmost_uid {
+                                    if let Some(entity) = self.orchestrates.get_entity_mut(uid) {
+                                        ui.add_enabled_ui(false, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                entity.ui(ui);
+                                            });
+                                        });
+                                    }
+                                }
+                            });
+
+                            if let Some(frontmost_uid) = frontmost_uid {
+                                if let Some(entity) =
+                                    self.orchestrates.get_entity_mut(&frontmost_uid)
+                                {
+                                    ui.add_enabled_ui(true, |ui| {
+                                        ui.allocate_ui_at_rect(rect, |ui| {
+                                            entity.ui(ui);
+                                        });
+                                    });
+                                }
+                            }
 
                             // Finally, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
-                                if self.view_range.contains(&position) {
+                                if self.view_range.0.contains(&position) {
                                     let _ = ui
                                         .allocate_ui_at_rect(rect, |ui| {
                                             ui.add(cursor(position, self.view_range.clone()))
@@ -199,9 +217,9 @@ impl<'a> Widget for NewTrackWidget<'a> {
                             if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                                 let time_pos = from_screen * pointer_pos;
                                 let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                ((), DropTarget::TrackPosition(self.track_uid, time))
+                                ((), DropTarget::TrackPosition(track_uid, time))
                             } else {
-                                ((), DropTarget::Track(self.track_uid))
+                                ((), DropTarget::Track(track_uid))
                             }
                         })
                         .response;
@@ -210,8 +228,8 @@ impl<'a> Widget for NewTrackWidget<'a> {
                         ui.scope(|ui| {
                             let mut action = None;
                             ui.add(new_signal_chain_widget(
-                                self.track_uid,
-                                &self.signal_items,
+                                track_uid,
+                                self.track_info.signal_items,
                                 &mut action,
                             ));
 

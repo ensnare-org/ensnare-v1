@@ -26,7 +26,7 @@ impl Default for KeyboardController {
 impl Displays for KeyboardController {}
 #[allow(unused_variables)]
 impl Controls for KeyboardController {
-    fn update_time(&mut self, range: &ViewRange) {}
+    fn update_time(&mut self, range: &TimeRange) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         while let Ok(event) = self.keyboard_events.receiver.try_recv() {

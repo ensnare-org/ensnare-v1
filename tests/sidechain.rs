@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{entities::effects::Gain, prelude::*};
+use ensnare_core::traits::TimeRange;
 use ensnare_entities::controllers::PatternSequencer;
 use ensnare_entities_toy::prelude::*;
 
@@ -79,7 +80,7 @@ fn demo_sidechaining() {
         let lead_pattern = PatternBuilder::default()
             .note(Note {
                 key: MidiNote::C4 as u8,
-                range: MusicalTime::START..MusicalTime::new_with_beats(4),
+                range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
             })
             .build()
             .unwrap();

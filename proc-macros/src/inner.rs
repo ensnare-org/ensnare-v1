@@ -92,7 +92,7 @@ pub(crate) fn impl_derive_inner_controls(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Controls for #struct_name #ty_generics {
-                fn update_time(&mut self, range: &ViewRange) {
+                fn update_time(&mut self, range: &TimeRange) {
                     self.inner.update_time(range)
                 }
 

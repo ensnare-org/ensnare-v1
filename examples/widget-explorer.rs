@@ -21,7 +21,7 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
-use ensnare_core::{types::TrackTitle, uid::TrackUid};
+use ensnare_core::{traits::TimeRange, types::TrackTitle, uid::TrackUid};
 use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     NoteSequencerBuilder,
@@ -55,7 +55,7 @@ impl Default for LegendSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            range: MusicalTime::START..MusicalTime::new_with_beats(128),
+            range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
         }
     }
 }
@@ -63,15 +63,15 @@ impl Displays for LegendSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         ui.label("View range");
-        let mut range_start = self.range.start.total_beats();
-        let mut range_end = self.range.end.total_beats();
+        let mut range_start = self.range.0.start.total_beats();
+        let mut range_end = self.range.0.end.total_beats();
         let start_response = ui.add(Slider::new(&mut range_start, 0..=128));
         if start_response.changed() {
-            self.range.start = MusicalTime::new_with_beats(range_start);
+            self.range.0.start = MusicalTime::new_with_beats(range_start);
         };
         let end_response = ui.add(Slider::new(&mut range_end, 1..=256));
         if end_response.changed() {
-            self.range.end = MusicalTime::new_with_beats(range_end);
+            self.range.0.end = MusicalTime::new_with_beats(range_end);
         };
         start_response | end_response
     }
@@ -81,7 +81,7 @@ impl Displays for LegendSettings {
 struct TrackSettings {
     hide: bool,
     track: Track,
-    range: ViewRange,
+    range: TimeRange,
     view_range: ViewRange,
 }
 impl TrackSettings {
@@ -110,8 +110,8 @@ impl Default for TrackSettings {
         let mut r = Self {
             hide: Default::default(),
             track: Track::default(),
-            range: MusicalTime::START..MusicalTime::new_with_beats(128),
-            view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
+            range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
+            view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
         };
         let _ = r
             .track
@@ -123,15 +123,15 @@ impl Displays for TrackSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         ui.label("Range");
-        let mut range_start = self.range.start.total_beats();
-        let mut range_end = self.range.end.total_beats();
+        let mut range_start = self.range.0.start.total_beats();
+        let mut range_end = self.range.0.end.total_beats();
         let start_response = ui.add(Slider::new(&mut range_start, 0..=1024));
         if start_response.changed() {
-            self.range.start = MusicalTime::new_with_beats(range_start);
+            self.range.0.start = MusicalTime::new_with_beats(range_start);
         };
         let end_response = ui.add(Slider::new(&mut range_end, 0..=1024));
         if end_response.changed() {
-            self.range.end = MusicalTime::new_with_beats(range_end);
+            self.range.0.end = MusicalTime::new_with_beats(range_end);
         };
         start_response | end_response
     }
@@ -250,8 +250,8 @@ impl Default for GridSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            range: MusicalTime::START..MusicalTime::new_with_beats(128),
-            view_range: MusicalTime::START..MusicalTime::new_with_beats(128),
+            range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
+            view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
         }
     }
 }
@@ -300,7 +300,7 @@ impl PatternIconSettings {
     fn note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Note {
         Note {
             key: key as u8,
-            range: start..start + duration,
+            range: TimeRange(start..start + duration),
         }
     }
 
@@ -354,7 +354,9 @@ struct NoteSequencerSettings {
 impl Default for NoteSequencerSettings {
     fn default() -> Self {
         let sequencer = NoteSequencerBuilder::default()
-            .random(MusicalTime::START..MusicalTime::new_with_beats(128))
+            .random(TimeRange(
+                MusicalTime::START..MusicalTime::new_with_beats(128),
+            ))
             .build()
             .unwrap();
         Self {
@@ -375,8 +377,7 @@ impl NoteSequencerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            let view_range = self.sequencer.inner.time_range.clone();
-            ui.add(note_sequencer_widget(&mut self.sequencer, &view_range));
+            ui.add(note_sequencer_widget(&mut self.sequencer, &self.view_range));
         }
     }
 

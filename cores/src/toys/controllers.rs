@@ -4,10 +4,9 @@ use ensnare_core::{
     midi::{prelude::*, MidiEvent},
     piano_roll::Note,
     prelude::*,
-    traits::{Sequences, SequencesMidi},
+    traits::{Sequences, SequencesMidi, TimeRange},
 };
 use ensnare_proc_macros::{Control, Params};
-use std::ops::Range;
 
 enum TestControllerAction {
     Nothing,
@@ -23,12 +22,12 @@ pub struct ToyController {
     pub is_enabled: bool,
     is_playing: bool,
     is_performing: bool,
-    time_range: ViewRange,
+    time_range: TimeRange,
     last_time_handled: MusicalTime,
 }
 impl Serializable for ToyController {}
 impl Controls for ToyController {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 
@@ -103,13 +102,13 @@ impl ToyController {
     }
 
     fn what_to_do(&mut self) -> TestControllerAction {
-        if !self.time_range.contains(&self.last_time_handled) {
-            self.last_time_handled = self.time_range.start;
-            if self.time_range.start.units() == 0 {
-                if self.time_range.start.parts() == 0 {
+        if !self.time_range.0.contains(&self.last_time_handled) {
+            self.last_time_handled = self.time_range.0.start;
+            if self.time_range.0.start.units() == 0 {
+                if self.time_range.0.start.parts() == 0 {
                     return TestControllerAction::NoteOn;
                 }
-                if self.time_range.start.parts() == 8 {
+                if self.time_range.0.start.parts() == 8 {
                     return TestControllerAction::NoteOff;
                 }
             }
@@ -164,7 +163,7 @@ impl Serializable for ToyControllerAlwaysSendsMidiMessage {}
 struct ToySequencer {
     events: Vec<MidiEvent>,
     notes: Vec<Note>,
-    time_range: ViewRange,
+    time_range: TimeRange,
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
@@ -212,7 +211,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.start + position,
+            unit.range.0.start + position,
         );
         let _ = self.record_midi_message(
             channel,
@@ -220,7 +219,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.end + position,
+            unit.range.0.end + position,
         );
         self.notes.push(unit.clone());
         Ok(())
@@ -238,7 +237,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            position + unit.range.start,
+            position + unit.range.0.start,
         );
         let _ = self.remove_midi_message(
             channel,
@@ -246,7 +245,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            position + unit.range.end,
+            position + unit.range.0.end,
         );
         self.notes.retain(|n| n != unit);
         Ok(())
@@ -259,20 +258,20 @@ impl Sequences for ToySequencer {
 }
 impl Configurable for ToySequencer {}
 impl Controls for ToySequencer {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
-            if self.time_range.contains(&e.time) {
+            if self.time_range.0.contains(&e.time) {
                 control_events_fn(EntityEvent::Midi(MidiChannel::default(), e.message))
             }
         });
     }
 
     fn is_finished(&self) -> bool {
-        self.time_range.end >= self.max_event_time
+        self.time_range.0.end >= self.max_event_time
     }
 
     fn play(&mut self) {
@@ -286,7 +285,7 @@ impl Controls for ToySequencer {
     }
 
     fn skip_to_start(&mut self) {
-        self.time_range = MusicalTime::default()..MusicalTime::default()
+        self.time_range = TimeRange(MusicalTime::default()..MusicalTime::default())
     }
 
     fn is_performing(&self) -> bool {
@@ -301,7 +300,7 @@ impl HandlesMidi for ToySequencer {
         _: &mut MidiMessagesFn,
     ) {
         if self.is_recording {
-            let _ = self.record_midi_message(channel, message, self.time_range.start);
+            let _ = self.record_midi_message(channel, message, self.time_range.0.start);
         }
     }
 }

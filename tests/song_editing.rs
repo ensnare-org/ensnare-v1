@@ -4,6 +4,7 @@ use ensnare::{
     entities::effects::{Gain, Reverb},
     prelude::*,
 };
+use ensnare_core::traits::TimeRange;
 use ensnare_entities::controllers::PatternSequencer;
 use ensnare_entities_toy::prelude::*;
 use std::sync::RwLock;
@@ -41,7 +42,9 @@ fn edit_song() {
 
             let mut note = Note {
                 key: 60,
-                range: MusicalTime::START..(MusicalTime::START + MusicalTime::DURATION_HALF),
+                range: TimeRange(
+                    MusicalTime::START..(MusicalTime::START + MusicalTime::DURATION_HALF),
+                ),
             };
             // Add to the pattern.
             drum_pattern.add_note(note.clone());
@@ -57,7 +60,7 @@ fn edit_song() {
             let note = drum_pattern
                 .move_note(
                     &note.clone(),
-                    note.range.start + MusicalTime::DURATION_BREVE,
+                    note.range.0.start + MusicalTime::DURATION_BREVE,
                 )
                 .unwrap();
             let _ = drum_pattern
@@ -232,7 +235,9 @@ fn old_edit_song() {
 
             let mut note = Note {
                 key: 60,
-                range: MusicalTime::START..(MusicalTime::START + MusicalTime::DURATION_HALF),
+                range: TimeRange(
+                    MusicalTime::START..(MusicalTime::START + MusicalTime::DURATION_HALF),
+                ),
             };
             // Add to the pattern.
             drum_pattern.add_note(note.clone());
@@ -248,7 +253,7 @@ fn old_edit_song() {
             let note = drum_pattern
                 .move_note(
                     &note.clone(),
-                    note.range.start + MusicalTime::DURATION_BREVE,
+                    note.range.0.start + MusicalTime::DURATION_BREVE,
                 )
                 .unwrap();
             let _ = drum_pattern

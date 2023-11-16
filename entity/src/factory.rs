@@ -246,7 +246,7 @@ impl Configurable for EntityStore {
     }
 }
 impl Controls for EntityStore {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.iter_mut().for_each(|t| {
             if let Some(t) = t.as_controller_mut() {
                 t.update_time(range);

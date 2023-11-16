@@ -112,8 +112,9 @@ impl<'a> eframe::egui::Widget for Icon<'a> {
         );
         for note in self.notes {
             let key = note.key as f32;
-            let p1 = to_screen * eframe::epaint::pos2(note.range.start.total_parts() as f32, key);
-            let mut p2 = to_screen * eframe::epaint::pos2(note.range.end.total_parts() as f32, key);
+            let p1 = to_screen * eframe::epaint::pos2(note.range.0.start.total_parts() as f32, key);
+            let mut p2 =
+                to_screen * eframe::epaint::pos2(note.range.0.end.total_parts() as f32, key);
 
             // Even very short notes should be visible.
             if p1.x == p2.x {

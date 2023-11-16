@@ -93,8 +93,8 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         };
         let displays_in_timeline_items = if displays_in_timeline {
             quote! {
-                fn as_displays_in_timeline_mut(&self) -> Option<&dyn #entity_crate::traits::DisplaysInTimeline> {
-                    Some(self)
+                fn displays_in_timeline(&self) -> bool {
+                    true
                 }
             }
         } else {

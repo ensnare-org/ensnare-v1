@@ -7,6 +7,7 @@ use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
 use ensnare::prelude::*;
+use ensnare_core::traits::TimeRange;
 use std::sync::{Arc, Mutex};
 
 mod calculator;
@@ -29,12 +30,14 @@ impl CalculatorApp {
                     if let Ok(mut calculator) = c4na.lock() {
                         // This is a lot of redundant calculation for something that
                         // doesn't change much, but it's cheap.
-                        let range = MusicalTime::START
-                            ..MusicalTime::new_with_units(MusicalTime::frames_to_units(
-                                calculator.tempo(),
-                                calculator.sample_rate(),
-                                buffer.len(),
-                            ));
+                        let range = TimeRange(
+                            MusicalTime::START
+                                ..MusicalTime::new_with_units(MusicalTime::frames_to_units(
+                                    calculator.tempo(),
+                                    calculator.sample_rate(),
+                                    buffer.len(),
+                                )),
+                        );
 
                         calculator.update_time(&range);
                         calculator.work(&mut |_| {});

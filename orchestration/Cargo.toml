@@ -15,8 +15,9 @@ derive_builder = "0.12.0"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
-ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-cores-egui = { path = "../cores-egui" }
+ensnare-drag-drop = { path = "../drag-drop" }
+ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
 hound = "3.5.0"

@@ -22,10 +22,10 @@ use ensnare_cores_egui::{
     widgets::timeline::{cursor, grid},
 };
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
 use std::{
     collections::HashMap,
-    ops::Range,
     option::Option,
     sync::{Arc, RwLock},
 };
@@ -300,7 +300,7 @@ impl HandlesMidi for Track {
     }
 }
 impl Controls for Track {
-    fn update_time(&mut self, range: &Range<MusicalTime>) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.sequencer.update_time(range);
         self.control_trips
             .values_mut()
@@ -487,13 +487,14 @@ impl<'a> Widget for TrackWidget<'a> {
                             let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
                             let (_id, rect) = ui.allocate_space(desired_size);
 
-                            let temp_range = MusicalTime::START..MusicalTime::DURATION_WHOLE;
+                            let temp_range =
+                                ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
 
                             let from_screen = RectTransform::from_to(
                                 rect,
                                 Rect::from_x_y_ranges(
-                                    self.view_range.start.total_units() as f32
-                                        ..=self.view_range.end.total_units() as f32,
+                                    self.view_range.0.start.total_units() as f32
+                                        ..=self.view_range.0.end.total_units() as f32,
                                     rect.top()..=rect.bottom(),
                                 ),
                             );
@@ -545,7 +546,7 @@ impl<'a> Widget for TrackWidget<'a> {
 
                             // Finally, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
-                                if self.view_range.contains(&position) {
+                                if self.view_range.0.contains(&position) {
                                     let _ = ui
                                         .allocate_ui_at_rect(rect, |ui| {
                                             ui.add(cursor(position, self.view_range.clone()))

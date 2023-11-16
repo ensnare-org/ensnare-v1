@@ -3,8 +3,7 @@
 use ensnare_core::{
     control::ControlIndex,
     midi::MidiChannel,
-    time::MusicalTime,
-    traits::{Configurable, Controls, Generates},
+    traits::{Configurable, Controls, Generates, TimeRange},
     types::{Normal, StereoSample},
     uid::{TrackUid, Uid},
 };
@@ -142,7 +141,7 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
 
     /// Given the number of digital audio samples that we want, returns the next
     /// slice of musical time that we should render in this performance.
-    fn next_range(&mut self, sample_count: usize) -> std::ops::Range<MusicalTime>;
+    fn next_range(&mut self, sample_count: usize) -> TimeRange;
 
     /// Connect the specified Entity to the given MIDI channel.
     fn connect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) -> anyhow::Result<()>;

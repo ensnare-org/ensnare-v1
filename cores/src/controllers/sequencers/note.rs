@@ -18,15 +18,15 @@ impl NoteSequencerBuilder {
     }
 
     /// Produces a random sequence of quarter-note notes. For debugging.
-    pub fn random(&mut self, range: ViewRange) -> &mut Self {
+    pub fn random(&mut self, range: TimeRange) -> &mut Self {
         let mut rng = Rng::default();
 
         for _ in 0..32 {
-            let beat_range = range.start.total_beats() as u64..range.end.total_beats() as u64;
+            let beat_range = range.0.start.total_beats() as u64..range.0.end.total_beats() as u64;
             let note_start = MusicalTime::new_with_beats(rng.0.rand_range(beat_range) as usize);
             self.note(Note {
                 key: rng.0.rand_range(16..100) as u8,
-                range: note_start..note_start + MusicalTime::DURATION_QUARTER,
+                range: TimeRange(note_start..note_start + MusicalTime::DURATION_QUARTER),
             });
         }
         self
@@ -73,7 +73,7 @@ impl Sequences for NoteSequencer {
                 key: u7::from(note.key),
                 vel: u7::from(127),
             },
-            note.range.start,
+            note.range.0.start,
         );
         let _ = self.inner.remove_midi_message(
             channel,
@@ -81,7 +81,7 @@ impl Sequences for NoteSequencer {
                 key: u7::from(note.key),
                 vel: u7::from(127),
             },
-            note.range.end,
+            note.range.0.end,
         );
         self.notes.retain(|n| *n != note);
         Ok(())
@@ -93,7 +93,7 @@ impl Sequences for NoteSequencer {
     }
 }
 impl Controls for NoteSequencer {
-    fn update_time(&mut self, range: &ViewRange) {
+    fn update_time(&mut self, range: &TimeRange) {
         self.inner.update_time(range)
     }
 
