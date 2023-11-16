@@ -49,7 +49,7 @@ impl HandlesMidi for MidiNoteMinder {
     }
 }
 impl Controls for MidiNoteMinder {
-    fn update_time(&mut self, _: &TimeRange) {}
+    fn update_time_range(&mut self, _: &TimeRange) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         for (i, active_note) in self.active_notes.iter().enumerate() {

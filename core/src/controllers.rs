@@ -36,7 +36,7 @@ impl Timer {
 impl HandlesMidi for Timer {}
 impl Configurable for Timer {}
 impl Controls for Timer {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         if self.is_performing {
             if self.duration == MusicalTime::default() {
                 // Zero-length timers fire immediately.
@@ -85,8 +85,8 @@ pub struct Trigger {
 }
 impl Serializable for Trigger {}
 impl Controls for Trigger {
-    fn update_time(&mut self, range: &TimeRange) {
-        self.timer.update_time(range)
+    fn update_time_range(&mut self, range: &TimeRange) {
+        self.timer.update_time_range(range)
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -349,7 +349,7 @@ impl ControlTrip {
 }
 impl HandlesMidi for ControlTrip {}
 impl Controls for ControlTrip {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         if range.0.start < self.e.range.0.start {
             // The cursor is jumping around. Mark things dirty.
             self.e.is_current_step_clean = false;
@@ -452,7 +452,7 @@ mod tests {
         trigger.update_sample_rate(SampleRate::DEFAULT);
         trigger.play();
 
-        trigger.update_time(&TimeRange(
+        trigger.update_time_range(&TimeRange(
             MusicalTime::default()..MusicalTime::new_with_parts(1),
         ));
         let mut count = 0;
@@ -462,7 +462,7 @@ mod tests {
         assert_eq!(count, 0);
         assert!(!trigger.is_finished());
 
-        trigger.update_time(&TimeRange(
+        trigger.update_time_range(&TimeRange(
             MusicalTime::new_with_bars(&ts, 1)..MusicalTime::new(&ts, 1, 0, 0, 1),
         ));
         let mut count = 0;
@@ -495,7 +495,7 @@ mod tests {
             .unwrap();
 
         let range = TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER);
-        ct.update_time(&range);
+        ct.update_time_range(&range);
         const MESSAGE: &'static str = "If there is only one control step, then the trip should remain at that step's level at all times.";
         let mut received_event = None;
         ct.work(&mut |event| {
@@ -529,7 +529,7 @@ mod tests {
             .unwrap();
 
         let range = TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER);
-        ct.update_time(&range);
+        ct.update_time_range(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
             assert!(received_event.is_none());
@@ -544,7 +544,7 @@ mod tests {
             MusicalTime::START + MusicalTime::DURATION_WHOLE
                 ..MusicalTime::DURATION_WHOLE + MusicalTime::new_with_units(1),
         );
-        ct.update_time(&range);
+        ct.update_time_range(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
             assert!(received_event.is_none());
@@ -577,7 +577,7 @@ mod tests {
             MusicalTime::new_with_beats(1)
                 ..MusicalTime::new_with_beats(1) + MusicalTime::new_with_units(1),
         );
-        ct.update_time(&range);
+        ct.update_time_range(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
             assert!(received_event.is_none());
@@ -633,7 +633,7 @@ mod tests {
 
             for (unit, ev, finished) in test_values {
                 let time = MusicalTime::new_with_units(unit);
-                ct.update_time(&TimeRange(time..(time + MusicalTime::new_with_units(1))));
+                ct.update_time_range(&TimeRange(time..(time + MusicalTime::new_with_units(1))));
                 let mut received_event = None;
                 ct.work(&mut |event| {
                     assert!(received_event.is_none());

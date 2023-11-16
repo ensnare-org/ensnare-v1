@@ -27,7 +27,7 @@ pub mod tests {
         duration: MusicalTime,
     ) -> Vec<(MidiChannel, MidiMessage)> {
         let mut v = Vec::default();
-        sequences.update_time(&TimeRange(start_time..start_time + duration));
+        sequences.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences.work(&mut |event| match event {
             EntityEvent::Midi(channel, message) => v.push((channel, message)),
             EntityEvent::Control(_) => panic!(),
@@ -278,7 +278,7 @@ pub mod tests {
         duration: MusicalTime,
     ) -> Vec<(MidiChannel, MidiMessage)> {
         let mut v = Vec::default();
-        sequences_midi.update_time(&TimeRange(start_time..start_time + duration));
+        sequences_midi.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences_midi.work(&mut |event| match event {
             EntityEvent::Midi(channel, message) => v.push((channel, message)),
             EntityEvent::Control(_) => panic!(),
@@ -348,7 +348,7 @@ pub mod tests {
 
         sequences.start_recording();
         assert!(sequences.is_recording());
-        sequences.update_time(&TimeRange(
+        sequences.update_time_range(&TimeRange(
             MusicalTime::new_with_beats(1)..MusicalTime::DURATION_QUARTER,
         ));
         sequences.handle_midi_message(
@@ -356,7 +356,7 @@ pub mod tests {
             SAMPLE_NOTE_ON_MESSAGE,
             &mut do_nothing,
         );
-        sequences.update_time(&TimeRange(
+        sequences.update_time_range(&TimeRange(
             MusicalTime::new_with_beats(2)..MusicalTime::DURATION_QUARTER,
         ));
         sequences.handle_midi_message(

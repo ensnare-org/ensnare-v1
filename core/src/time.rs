@@ -631,7 +631,7 @@ impl Configurable for Transport {
     }
 }
 impl Controls for Transport {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         // Nothing - we calculated the range, so we don't need to do anything with it.
         debug_assert!(
             self.e.current_time == range.0.end,

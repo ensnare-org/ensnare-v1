@@ -59,8 +59,8 @@ impl Configurable for Arpeggiator {
     }
 }
 impl Controls for Arpeggiator {
-    fn update_time(&mut self, range: &TimeRange) {
-        self.sequencer.update_time(range);
+    fn update_time_range(&mut self, range: &TimeRange) {
+        self.sequencer.update_time_range(range);
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {

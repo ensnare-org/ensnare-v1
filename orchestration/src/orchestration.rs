@@ -180,7 +180,7 @@ impl OldOrchestrator {
         // same as prior, or everyone who gets called needs to detect the case
         // or be idempotent.
         let range = self.inner.transport.advance(samples.len());
-        self.update_time(&range);
+        self.update_time_range(&range);
         self.work(control_events_fn);
         self.generate_batch_values(samples);
     }
@@ -589,11 +589,11 @@ impl HandlesMidi for OldOrchestrator {
     }
 }
 impl Controls for OldOrchestrator {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.e.range = range.clone();
 
         for track in self.tracks.values_mut() {
-            track.update_time(&self.e.range);
+            track.update_time_range(&self.e.range);
         }
     }
 
@@ -1045,10 +1045,10 @@ impl Configurable for Orchestrator {
     }
 }
 impl Controls for Orchestrator {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         // We don't call self.transport.update_time() because self.transport is
         // the publisher of the current time, not a subscriber.
-        self.entity_store.update_time(range);
+        self.entity_store.update_time_range(range);
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -1117,6 +1117,10 @@ impl Controls for Orchestrator {
 
     fn is_performing(&self) -> bool {
         self.transport.is_performing() || self.entity_store.is_performing()
+    }
+
+    fn time_range(&self) -> Option<TimeRange> {
+        self.entity_store.time_range()
     }
 }
 impl Ticks for Orchestrator {
@@ -1235,7 +1239,7 @@ impl<'a> OrchestratorHelper<'a> {
         samples: &mut [StereoSample],
         control_events_fn: &mut ControlEventsFn,
     ) {
-        self.orchestrator.update_time(&range);
+        self.orchestrator.update_time_range(&range);
         self.orchestrator.work(control_events_fn);
         self.orchestrator.generate_batch_values(samples);
     }

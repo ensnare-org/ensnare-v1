@@ -300,12 +300,12 @@ impl HandlesMidi for Track {
     }
 }
 impl Controls for Track {
-    fn update_time(&mut self, range: &TimeRange) {
-        self.sequencer.update_time(range);
+    fn update_time_range(&mut self, range: &TimeRange) {
+        self.sequencer.update_time_range(range);
         self.control_trips
             .values_mut()
-            .for_each(|ct| ct.update_time(range));
-        self.entity_store.update_time(range);
+            .for_each(|ct| ct.update_time_range(range));
+        self.entity_store.update_time_range(range);
     }
 
     fn work(&mut self, _: &mut ControlEventsFn) {

@@ -34,7 +34,7 @@ impl Configurable for LfoController {
     }
 }
 impl Controls for LfoController {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 

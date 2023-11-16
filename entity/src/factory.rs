@@ -146,6 +146,10 @@ impl EntityFactory {
 pub struct EntityStore {
     sample_rate: SampleRate,
     entities: HashMap<Uid, Box<dyn Entity>>,
+
+    // We store our own copy of this value to make Controls::time_range() easier
+    // to implement.
+    time_range: TimeRange,
 }
 impl EntityStore {
     /// Adds an [Entity] to the store.
@@ -246,10 +250,19 @@ impl Configurable for EntityStore {
     }
 }
 impl Controls for EntityStore {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn time_range(&self) -> Option<TimeRange> {
+        if self.is_performing() {
+            Some(self.time_range.clone())
+        } else {
+            None
+        }
+    }
+
+    fn update_time_range(&mut self, time_range: &TimeRange) {
+        self.time_range = time_range.clone();
         self.iter_mut().for_each(|t| {
             if let Some(t) = t.as_controller_mut() {
-                t.update_time(range);
+                t.update_time_range(time_range);
             }
         });
     }

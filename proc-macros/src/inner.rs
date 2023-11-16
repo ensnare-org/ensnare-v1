@@ -92,8 +92,12 @@ pub(crate) fn impl_derive_inner_controls(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Controls for #struct_name #ty_generics {
-                fn update_time(&mut self, range: &TimeRange) {
-                    self.inner.update_time(range)
+                fn time_range(&self) -> Option<TimeRange> {
+                    self.inner.time_range()
+                }
+
+                fn update_time_range(&mut self, time_range: &TimeRange) {
+                    self.inner.update_time_range(time_range)
                 }
 
                 fn work(&mut self, control_events_fn: &mut ControlEventsFn) {

@@ -27,7 +27,7 @@ pub struct ToyController {
 }
 impl Serializable for ToyController {}
 impl Controls for ToyController {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 
@@ -258,7 +258,7 @@ impl Sequences for ToySequencer {
 }
 impl Configurable for ToySequencer {}
 impl Controls for ToySequencer {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 

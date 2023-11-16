@@ -368,7 +368,7 @@ impl Engine {
     }
 }
 impl Controls for Engine {
-    fn update_time(&mut self, _range: &TimeRange) {
+    fn update_time_range(&mut self, _range: &TimeRange) {
         todo!()
     }
 
@@ -564,7 +564,7 @@ impl Ticks for Calculator {
     }
 }
 impl Controls for Calculator {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.e.range = range.clone();
     }
 

@@ -36,7 +36,7 @@ pub struct SignalPassthroughController {
 impl Serializable for SignalPassthroughController {}
 impl Configurable for SignalPassthroughController {}
 impl Controls for SignalPassthroughController {
-    fn update_time(&mut self, _range: &TimeRange) {
+    fn update_time_range(&mut self, _range: &TimeRange) {
         // We can ignore because we already have our own de-duplicating logic.
     }
 

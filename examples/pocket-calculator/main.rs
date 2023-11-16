@@ -39,7 +39,7 @@ impl CalculatorApp {
                                 )),
                         );
 
-                        calculator.update_time(&range);
+                        calculator.update_time_range(&range);
                         calculator.work(&mut |_| {});
                         calculator.generate_batch_values(&mut buffer);
                         for sample in buffer {

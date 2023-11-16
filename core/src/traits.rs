@@ -185,8 +185,13 @@ pub struct TimeRange(pub std::ops::Range<MusicalTime>);
 /// the performance.
 #[allow(unused_variables)]
 pub trait Controls: Send {
+    /// Returns the current [MusicalTime] range, or None if not performing.
+    fn time_range(&self) -> Option<TimeRange> {
+        None
+    }
+
     /// Sets the range of [MusicalTime] to which the next work() method applies.
-    fn update_time(&mut self, range: &TimeRange) {}
+    fn update_time_range(&mut self, time_range: &TimeRange) {}
 
     /// The entity should perform work for the time range specified in the
     /// previous [update_time()]. If the work produces any events, use

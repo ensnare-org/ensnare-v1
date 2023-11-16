@@ -181,8 +181,7 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                         if entity.displays_in_timeline() {
                                             ui.add_enabled_ui(false, |ui| {
                                                 ui.allocate_ui_at_rect(rect, |ui| {
-                                                    entity
-                                                        .set_timeline_view_range(&self.view_range);
+                                                    entity.set_view_range(&self.view_range);
                                                     entity.ui(ui);
                                                 });
                                             });
@@ -197,14 +196,14 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                 {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
-                                            entity.set_timeline_view_range(&self.view_range);
+                                            entity.set_view_range(&self.view_range);
                                             entity.ui(ui);
                                         });
                                     });
                                 }
                             }
 
-                            // Finally, if it's present, draw the cursor.
+                            // Next, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
                                 if self.view_range.0.contains(&position) {
                                     let _ = ui
@@ -215,10 +214,23 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                 }
                             }
 
-                            // Note drag/drop position
-                            if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                            let time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                                 let time_pos = from_screen * pointer_pos;
                                 let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                if self.view_range.0.contains(&time) {
+                                    let _ = ui
+                                        .allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(cursor(time, self.view_range.clone()))
+                                        })
+                                        .inner;
+                                }
+                                Some(time)
+                            } else {
+                                None
+                            };
+
+                            // Note drag/drop position
+                            if let Some(time) = time {
                                 ((), DropTarget::TrackPosition(track_uid, time))
                             } else {
                                 ((), DropTarget::Track(track_uid))

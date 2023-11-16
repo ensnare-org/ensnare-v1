@@ -114,5 +114,5 @@ pub trait Displays {
     /// Indicates which section of the timeline is being displayed. Entities
     /// that don't render in the timeline can ignore this.
     #[allow(unused_variables)]
-    fn set_timeline_view_range(&mut self, view_range: &ViewRange) {}
+    fn set_view_range(&mut self, view_range: &ViewRange) {}
 }

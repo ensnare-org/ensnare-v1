@@ -59,7 +59,7 @@ impl Configurable for MidiSequencer {
     fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
 }
 impl Controls for MidiSequencer {
-    fn update_time(&mut self, range: &TimeRange) {
+    fn update_time_range(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
 

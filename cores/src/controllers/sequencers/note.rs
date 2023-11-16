@@ -93,8 +93,8 @@ impl Sequences for NoteSequencer {
     }
 }
 impl Controls for NoteSequencer {
-    fn update_time(&mut self, range: &TimeRange) {
-        self.inner.update_time(range)
+    fn update_time_range(&mut self, range: &TimeRange) {
+        self.inner.update_time_range(range)
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {

@@ -104,12 +104,17 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         signal_items: &signal_items,
                         title_font_galley: font_galley,
                     };
+                    let cursor = if let Some(time_range) = self.orchestrates.time_range() {
+                        Some(time_range.0.start)
+                    } else {
+                        None
+                    };
                     ui.add(new_track_widget(
                         &track_info,
                         self.orchestrates,
                         self.view_range.clone(),
                         frontmost_uid,
-                        None,
+                        cursor,
                         &mut action,
                     ));
                     // TODO handle action
