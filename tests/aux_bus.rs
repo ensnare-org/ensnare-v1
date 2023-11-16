@@ -1,11 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::effects::{Gain, Reverb},
+    entities::{
+        controllers::PatternSequencer,
+        effects::{Gain, Reverb},
+        toys::ToySynth,
+    },
     prelude::*,
 };
-use ensnare_entities::controllers::PatternSequencer;
-use ensnare_entities_toy::prelude::*;
 
 // Demonstrates use of aux buses.
 #[test]

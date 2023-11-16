@@ -102,6 +102,3 @@ fn patching_to_device_with_no_input_fails_with_proper_error() {
         "Input device doesn't transform audio and can't be patched from output device"
     );
 }
-
-#[test]
-fn simple_sound_production() {}

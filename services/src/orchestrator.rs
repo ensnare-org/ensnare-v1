@@ -2,7 +2,7 @@
 
 use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
-use ensnare_core::{piano_roll::PatternUid, prelude::*, selection_set::SelectionSet};
+use ensnare_core::{prelude::*, selection_set::SelectionSet};
 use ensnare_entity::prelude::*;
 use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
 use std::{
@@ -11,6 +11,18 @@ use std::{
 };
 
 /// Commands that [Orchestrator] accepts.
+///
+/// TODO: these are almost all out of date. Things I've learned:
+///
+/// - The concept of selection belongs elsewhere. `TrackDeleteSelected`, for
+///   example, isn't something Orchestrator should care about.
+/// - Anything that would interact directly with an Entity should happen
+///   elsewhere. `TrackPatternAdd`, for example, would require Orchestrator to
+///   know who manages pattern arrangements, and that should not be
+///   Orchestrator.
+/// - `ProjectOpen` et al. should be happening elsewhere as well. Orchestrator
+///   was a contender for the notion of a project, but it was too big a
+///   responsibility.
 #[derive(Clone, Debug)]
 pub enum OrchestratorInput {
     /// An external MIDI message arrived.
@@ -38,12 +50,8 @@ pub enum OrchestratorInput {
     TrackNewMidi,
     /// Delete the selected arranged patterns.
     TrackPatternRemoveSelected,
-    /// Add the given PianoRoll pattern to the track at the specified time.
-    TrackPatternAdd(TrackUid, PatternUid, MusicalTime),
     /// Add a new entity to the specified track.
     TrackAddEntity(TrackUid, EntityKey),
-    /// Add a new entity to the selected track.
-    //TrackAddEntity(EntityKey),
     /// Sets the tempo.
     Tempo(Tempo),
     /// Link the given source controller to the target controllable's parameter.
@@ -213,9 +221,6 @@ impl OrchestratorService {
                         }
                         OrchestratorInput::LinkControl(source_uid, target_uid, control_index) => {
                             let _ = o.link_control(source_uid, target_uid, control_index);
-                        }
-                        OrchestratorInput::TrackPatternAdd(track_uid, pattern_uid, position) => {
-                            let _ = o.add_pattern_to_track(&track_uid, &pattern_uid, position);
                         }
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
                             let uid = o.mint_entity_uid();

@@ -54,6 +54,10 @@ pub mod control {
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
     pub use ensnare_orchestration::control_router::ControlRouter;
 
+    pub use ensnare_core::controllers::{
+        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+    };
+
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{ControlIndex, ControlName, ControlRouter, ControlValue};
@@ -62,7 +66,10 @@ pub mod control {
 
 pub mod cores {
     //! The core business logic that powers musical instruments.
-    pub use ensnare_cores::*;
+    pub use ensnare_cores::controllers::*;
+    pub use ensnare_cores::effects::*;
+    pub use ensnare_cores::instruments::*;
+    pub use ensnare_cores::toys::*;
 }
 
 pub mod entities {
@@ -90,7 +97,7 @@ pub mod entities {
         //! Controllers implement the
         //! [IsController](crate::traits::IsController) trait, which means that
         //! they control other devices. An example of a controller is a
-        //! [MidiSequencer], which replays programmed MIDI messages.
+        //! [PatternSequencer], which replays patterns of MIDI messages.
         //!
         //! Generally, controllers produce only control signals, and not audio.
         //! But adapters exist that change one kind of signal into another, such
@@ -98,9 +105,6 @@ pub mod entities {
         //! [sidechaining](https://en.wikipedia.org/wiki/Dynamic_range_compression#Side-chaining).
         //! In theory, a similar adapter could be used to change a control
         //! signal into an audio signal.
-        pub use ensnare_core::controllers::{
-            ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
-        };
         pub use ensnare_entities::controllers::*;
     }
     pub mod effects {
@@ -121,12 +125,16 @@ pub mod entities {
         pub use ensnare_entities::instruments::*;
     }
 
+    pub mod toys {
+        //! Extremely simple implementations of various types of entities.
+        pub use ensnare_entities_toy::controllers::*;
+        pub use ensnare_entities_toy::effects::*;
+        pub use ensnare_entities_toy::instruments::*;
+    }
+
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{
-            controllers::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-            EntityFactory, EntityKey, EntityStore,
-        };
+        pub use super::{EntityFactory, EntityKey, EntityStore};
         pub use ensnare_entities::register_factory_entities;
         pub use ensnare_entities_toy::register_toy_entities;
     }
@@ -218,6 +226,7 @@ pub mod types {
     //! Common data types used throughout the system.
     pub use ensnare_core::{
         time::{MusicalTime, SampleRate, Tempo, TimeSignature},
+        traits::TimeRange,
         types::*,
         uid::{Uid, UidFactory},
     };
@@ -227,7 +236,7 @@ pub mod types {
     pub mod prelude {
         pub use super::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeSignature, Uid, UidFactory, ViewRange,
+            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, Uid, UidFactory, ViewRange,
         };
     }
 }

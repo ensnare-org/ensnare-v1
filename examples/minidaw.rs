@@ -369,6 +369,7 @@ struct MiniDaw {
     orchestrator: Arc<Mutex<Orchestrator>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
+    track_frontmost_uids: HashMap<TrackUid, Uid>,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
@@ -399,6 +400,7 @@ impl MiniDaw {
             orchestrator,
             track_titles: Default::default(),
             title: Default::default(),
+            track_frontmost_uids: Default::default(),
             menu_bar: Default::default(),
             control_bar: Default::default(),
             orchestrator_panel,
@@ -733,14 +735,27 @@ impl MiniDaw {
                 #[derive(Debug)]
                 struct ProjectDescriber<'a> {
                     track_titles: &'a HashMap<TrackUid, TrackTitle>,
+                    track_frontmost_uids: &'a HashMap<TrackUid, Uid>,
                 }
                 impl<'a> DescribesProject for ProjectDescriber<'a> {
                     fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
                         self.track_titles.get(track_uid)
                     }
+
+                    fn track_frontmost_timeline_displayer(
+                        &self,
+                        track_uid: &TrackUid,
+                    ) -> Option<Uid> {
+                        if let Some(uid) = self.track_frontmost_uids.get(track_uid) {
+                            Some(*uid)
+                        } else {
+                            None
+                        }
+                    }
                 }
                 let project_describer = ProjectDescriber {
                     track_titles: &self.track_titles,
+                    track_frontmost_uids: &self.track_frontmost_uids,
                 };
                 let mut view_range = self.view_range.clone();
                 let mut action = None;

@@ -1,10 +1,15 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
-use ensnare_core::{generators::Waveform, prelude::ControlValue};
-use ensnare_cores::LfoControllerParams;
-use ensnare_entities::controllers::{ControlTrip, LfoController, PatternSequencer};
-use ensnare_entities_toy::prelude::*;
+use ensnare::{
+    control::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+    cores::LfoControllerParams,
+    entities::{
+        controllers::{ControlTrip, LfoController, PatternSequencer},
+        toys::ToySynth,
+    },
+    generators::Waveform,
+    prelude::*,
+};
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.

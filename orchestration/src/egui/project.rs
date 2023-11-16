@@ -11,7 +11,12 @@ use crate::{
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
-use ensnare_core::{piano_roll::PianoRoll, traits::Controls, types::TrackTitle, uid::TrackUid};
+use ensnare_core::{
+    piano_roll::PianoRoll,
+    traits::Controls,
+    types::TrackTitle,
+    uid::{TrackUid, Uid},
+};
 use ensnare_cores_egui::{
     piano_roll::piano_roll,
     widgets::timeline::{self, TimelineIconStripAction},
@@ -21,6 +26,7 @@ use std::sync::Arc;
 
 pub trait DescribesProject: core::fmt::Debug {
     fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle>;
+    fn track_frontmost_timeline_displayer(&self, track_uid: &TrackUid) -> Option<Uid>;
 }
 
 /// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
@@ -62,6 +68,9 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                 let track_uids = self.orchestrates.track_uids().to_vec();
                 for track_uid in track_uids {
                     let track_title = self.project_metadata.track_title(&track_uid);
+                    let frontmost_uid = self
+                        .project_metadata
+                        .track_frontmost_timeline_displayer(&track_uid);
                     let font_galley: Option<Arc<Galley>> = if let Some(track_title) = track_title {
                         Some(make_title_bar_galley(ui, track_title))
                     } else {
@@ -99,6 +108,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         &track_info,
                         self.orchestrates,
                         self.view_range.clone(),
+                        frontmost_uid,
                         None,
                         &mut action,
                     ));

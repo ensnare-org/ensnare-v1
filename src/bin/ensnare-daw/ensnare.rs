@@ -19,6 +19,8 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
+
+// TODO: clean these up. Ideally, an app needs to use only the top ensnare crate.
 use ensnare_core::{prelude::*, types::TrackTitle};
 use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
@@ -428,7 +430,9 @@ impl Ensnare {
         ui.add(timeline_icon_strip(&mut action));
         if let Some(action) = action {
             match action {
-                TimelineIconStripAction::NextTimelineView => todo!(),
+                TimelineIconStripAction::NextTimelineView => {
+                    self.project.switch_to_next_frontmost_timeline_displayer();
+                }
                 TimelineIconStripAction::ShowPianoRoll => {
                     self.project.is_piano_roll_visible = !self.project.is_piano_roll_visible
                 }
@@ -441,14 +445,24 @@ impl Ensnare {
             #[derive(Debug)]
             struct ProjectDescriber<'a> {
                 track_titles: &'a HashMap<TrackUid, TrackTitle>,
+                track_frontmost_uids: &'a HashMap<TrackUid, Uid>,
             }
             impl<'a> DescribesProject for ProjectDescriber<'a> {
                 fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
                     self.track_titles.get(track_uid)
                 }
+
+                fn track_frontmost_timeline_displayer(&self, track_uid: &TrackUid) -> Option<Uid> {
+                    if let Some(uid) = self.track_frontmost_uids.get(track_uid) {
+                        Some(*uid)
+                    } else {
+                        None
+                    }
+                }
             }
             let project_describer = ProjectDescriber {
                 track_titles: &self.project.track_titles,
+                track_frontmost_uids: &self.project.track_frontmost_uids,
             };
             let _ = ui.add(project_widget(
                 &project_describer,
@@ -539,6 +553,7 @@ impl Ensnare {
 
     fn check_drag_and_drop(&mut self) {
         if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
+            let mut handled = false;
             let input = match source {
                 DragSource::NewDevice(ref key) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
@@ -554,9 +569,12 @@ impl Ensnare {
                 DragSource::Pattern(pattern_uid) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
                     DropTarget::Track(_) => todo!(),
-                    DropTarget::TrackPosition(track_uid, position) => Some(
-                        OrchestratorInput::TrackPatternAdd(track_uid, pattern_uid, position),
-                    ),
+                    DropTarget::TrackPosition(track_uid, position) => {
+                        self.project
+                            .request_pattern_add(track_uid, pattern_uid, position);
+                        handled = true;
+                        None
+                    }
                 },
                 DragSource::ControlSource(source_uid) => match target {
                     DropTarget::Controllable(target_uid, index) => Some(
@@ -569,7 +587,9 @@ impl Ensnare {
             if let Some(input) = input {
                 let _ = self.orchestrator_service.send_to_service(input);
             } else {
-                eprintln!("WARNING: unhandled DnD pair: {source:?} {target:?}");
+                if !handled {
+                    eprintln!("WARNING: unhandled DnD pair: {source:?} {target:?}");
+                }
             }
         }
     }

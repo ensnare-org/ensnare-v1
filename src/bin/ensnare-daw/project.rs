@@ -1,11 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use anyhow::anyhow;
+use crossbeam_channel::Sender;
 use ensnare::arrangement::ProjectTitle;
-use ensnare_core::{piano_roll::PianoRoll, prelude::*, types::TrackTitle};
+use ensnare_core::{
+    controllers::ControlTripBuilder,
+    piano_roll::{PatternUid, PianoRoll},
+    prelude::*,
+    types::TrackTitle,
+};
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
-use ensnare_entities::controllers::LivePatternSequencer;
+use ensnare_entities::controllers::{ControlTrip, LivePatternSequencer, SequencerInput};
 use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
 use std::{
     collections::HashMap,
@@ -20,6 +26,9 @@ pub(super) struct InMemoryProject {
 
     pub(super) view_range: ViewRange,
     pub(super) track_titles: HashMap<TrackUid, TrackTitle>,
+    pub(super) track_frontmost_uids: HashMap<TrackUid, Uid>,
+
+    pub(super) track_to_sequencer_sender: HashMap<TrackUid, Sender<SequencerInput>>,
 
     pub(super) is_piano_roll_visible: bool,
 }
@@ -31,9 +40,12 @@ impl Default for InMemoryProject {
             piano_roll: Default::default(),
             view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(4 * 4)),
             track_titles: Default::default(),
+            track_frontmost_uids: Default::default(),
+            track_to_sequencer_sender: Default::default(),
             is_piano_roll_visible: Default::default(),
         };
         let _ = r.create_starter_tracks();
+        r.switch_to_next_frontmost_timeline_displayer();
         r
     }
 }
@@ -56,30 +68,26 @@ impl InMemoryProject {
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
         let mut o = self.orchestrator.lock().unwrap();
-        let sequencer =
-            LivePatternSequencer::new_with(o.mint_entity_uid(), Arc::clone(&self.piano_roll));
-
-        // let sequencer = NoteSequencer::new_with_inner(
-        //     o.mint_entity_uid(),
-        //     ensnare_cores::NoteSequencerBuilder::default()
-        //         .build()
-        //         .unwrap(),
-        // );
-
-        //     let trip_uid = o.mint_entity_uid();
         let track_uid = o.create_track()?;
-        let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
+
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
-        // o.add_entity(
-        //     &track_uid,
-        //     Box::new(
-        //         ControlTripBuilder::default()
-        //             .random(MusicalTime::START)
-        //             .build()
-        //             .unwrap(),
-        //     ),
-        // );
+
+        let sequencer =
+            LivePatternSequencer::new_with(o.mint_entity_uid(), Arc::clone(&self.piano_roll));
+        self.track_to_sequencer_sender
+            .insert(track_uid, sequencer.sender().clone());
+        let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
+
+        let control_trip = ControlTrip::new_with(
+            o.mint_entity_uid(),
+            ControlTripBuilder::default()
+                .random(MusicalTime::START)
+                .build()
+                .unwrap(),
+        );
+        let _trip_uid = o.add_entity(&track_uid, Box::new(control_trip));
+
         Ok(track_uid)
     }
 
@@ -119,5 +127,46 @@ impl InMemoryProject {
                 let mut inner = self.piano_roll.write().unwrap();
                 ui.add(piano_roll(&mut inner))
             });
+    }
+
+    pub(crate) fn request_pattern_add(
+        &self,
+        track_uid: TrackUid,
+        pattern_uid: PatternUid,
+        position: MusicalTime,
+    ) {
+        if let Some(channel) = self.track_to_sequencer_sender.get(&track_uid) {
+            let _ = channel.send(SequencerInput::AddPattern(pattern_uid, position));
+        }
+    }
+
+    pub(crate) fn switch_to_next_frontmost_timeline_displayer(&mut self) {
+        if let Ok(o) = self.orchestrator.lock() {
+            for track_uid in o.track_uids() {
+                // Have the current frontmost Uid ready.
+                let frontmost_uid = self.track_frontmost_uids.get(track_uid).copied();
+                if let Ok(entity_uids) = o.get_track_timeline_entities(track_uid) {
+                    if entity_uids.is_empty() {
+                        // We don't have any timeline displayers in this track.
+                        // Remove any existing entry.
+                        self.track_frontmost_uids.remove(track_uid);
+                    } else {
+                        // Find where the current one is in the list.
+                        let position = entity_uids
+                            .iter()
+                            .position(|uid| Some(*uid) == frontmost_uid);
+                        if let Some(position) = position {
+                            // Pick the one after the current one, wrapping back if needed.
+                            let position = (position + 1) % entity_uids.len();
+                            self.track_frontmost_uids
+                                .insert(*track_uid, entity_uids[position]);
+                        } else {
+                            // We couldn't find the current one. Go back to the first one.
+                            self.track_frontmost_uids.insert(*track_uid, entity_uids[0]);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

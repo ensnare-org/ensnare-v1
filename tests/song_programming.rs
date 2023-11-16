@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{effects::Reverb, instruments::Drumkit},
+    entities::{
+        controllers::PatternSequencer, effects::Reverb, instruments::Drumkit, toys::ToySynth,
+    },
     prelude::*,
 };
-use ensnare_entities::controllers::PatternSequencer;
-use ensnare_entities_toy::prelude::*;
 
 fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.

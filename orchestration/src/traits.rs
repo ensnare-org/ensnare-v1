@@ -70,8 +70,12 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
     /// Moves the specified [Entity] to the end of the specified track.
     fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()>;
 
-    /// Returns an ordered list of the entity [Uid]s for the specified track.
+    /// For the specified track, returns an ordered list of its entity [Uid]s.
     fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]>;
+
+    /// For the specified track, returns an ordered list of entity [Uid]s that
+    /// display themselves in the timeline view.
+    fn get_track_timeline_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]>;
 
     /// Establishes a control link between the source [Entity]'s output and the
     /// given parameter of the target [Entity]'s.

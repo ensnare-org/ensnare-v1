@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
 
     // An Orchestrator manages a set of Tracks, which are what actually contains
     // musical devices.
-    let track_uid = orchestrator.new_midi_track().unwrap();
+    let track_uid = orchestrator.create_track().unwrap();
 
     // The sequencer sends MIDI commands to the synth. Each MIDI track
     // automatically includes one. There are lots of different ways to populate

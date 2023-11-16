@@ -2,11 +2,10 @@
 
 pub mod keyboard;
 
-use std::sync::{Arc, RwLock};
-
+use crossbeam_channel::Sender;
 use ensnare_core::{
     controllers::{TimerParams, TriggerParams},
-    piano_roll::{Pattern, PianoRoll},
+    piano_roll::{Pattern, PatternUid, PianoRoll},
     prelude::*,
     time::MusicalTime,
     traits::{Configurable, Controls, Sequences, Serializable},
@@ -14,7 +13,8 @@ use ensnare_core::{
 };
 use ensnare_cores::{ArpeggiatorParams, LfoControllerParams};
 use ensnare_cores_egui::controllers::{
-    arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
+    arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
+    pattern_sequencer_widget, trip,
 };
 use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
@@ -22,6 +22,12 @@ use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,
 };
+use std::sync::{Arc, RwLock};
+
+#[derive(Debug)]
+pub enum SequencerInput {
+    AddPattern(PatternUid, MusicalTime),
+}
 
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsEntity, Metadata)]
 #[entity("controller")]
@@ -46,18 +52,6 @@ impl Arpeggiator {
     }
 }
 
-#[derive(
-    Debug, Default, InnerConfigurable, InnerControls, InnerHandlesMidi, IsEntity, Metadata,
-)]
-#[entity("controller")]
-pub struct MidiSequencer {
-    uid: Uid,
-    inner: ensnare_cores::MidiSequencer,
-    view_range: ViewRange,
-}
-impl Displays for MidiSequencer {}
-impl Serializable for MidiSequencer {}
-
 #[derive(Debug, Default, InnerControls, IsEntity, Metadata)]
 #[entity("controller")]
 pub struct PatternSequencer {
@@ -68,6 +62,10 @@ pub struct PatternSequencer {
 impl Displays for PatternSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(pattern_sequencer_widget(&mut self.inner, &self.view_range))
+    }
+
+    fn set_timeline_view_range(&mut self, view_range: &ViewRange) {
+        self.view_range = view_range.clone();
     }
 }
 impl Configurable for PatternSequencer {}
@@ -100,25 +98,25 @@ impl Sequences for PatternSequencer {
 }
 
 #[derive(
-    Debug,
-    Default,
-    InnerConfigurable,
-    InnerControls,
-    InnerHandlesMidi,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
+    Debug, Default, InnerConfigurable, InnerHandlesMidi, InnerSerializable, IsEntity, Metadata,
 )]
 #[entity("controller", "timeline")]
 pub struct LivePatternSequencer {
     uid: Uid,
     inner: ensnare_cores::LivePatternSequencer,
+    channel: ChannelPair<SequencerInput>,
     view_range: ViewRange,
 }
 impl Displays for LivePatternSequencer {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label("askdfjsf")
-        //        ui.add(sequencer)
+        ui.add(live_pattern_sequencer_widget(
+            &mut self.inner,
+            &self.view_range,
+        ))
+    }
+
+    fn set_timeline_view_range(&mut self, view_range: &ViewRange) {
+        self.view_range = view_range.clone();
     }
 }
 impl LivePatternSequencer {
@@ -127,7 +125,50 @@ impl LivePatternSequencer {
             uid,
             inner: ensnare_cores::LivePatternSequencer::new_with(piano_roll),
             view_range: Default::default(),
+            channel: Default::default(),
         }
+    }
+
+    pub fn sender(&self) -> &Sender<SequencerInput> {
+        &self.channel.sender
+    }
+}
+impl Controls for LivePatternSequencer {
+    fn update_time(&mut self, range: &TimeRange) {
+        self.inner.update_time(range)
+    }
+
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+        while let Ok(input) = self.channel.receiver.try_recv() {
+            match input {
+                SequencerInput::AddPattern(pattern_uid, position) => {
+                    let _ = self
+                        .inner
+                        .record(MidiChannel::default(), &pattern_uid, position);
+                }
+            }
+        }
+        self.inner.work(control_events_fn)
+    }
+
+    fn is_finished(&self) -> bool {
+        self.inner.is_finished()
+    }
+
+    fn play(&mut self) {
+        self.inner.play()
+    }
+
+    fn stop(&mut self) {
+        self.inner.stop()
+    }
+
+    fn skip_to_start(&mut self) {
+        self.inner.skip_to_start()
+    }
+
+    fn is_performing(&self) -> bool {
+        self.inner.is_performing()
     }
 }
 
@@ -293,14 +334,32 @@ impl Trigger {
     IsEntity,
     Metadata,
 )]
-#[entity("controller")]
+#[entity("controller", "timeline")]
 pub struct ControlTrip {
     uid: Uid,
     inner: ensnare_core::controllers::ControlTrip,
+    view_range: ViewRange,
 }
-impl Displays for ControlTrip {}
+impl Displays for ControlTrip {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(trip(
+            self.uid,
+            &mut self.inner,
+            None,
+            self.view_range.clone(),
+        ))
+    }
+
+    fn set_timeline_view_range(&mut self, view_range: &ViewRange) {
+        self.view_range = view_range.clone();
+    }
+}
 impl ControlTrip {
     pub fn new_with(uid: Uid, inner: ensnare_core::controllers::ControlTrip) -> Self {
-        Self { uid, inner }
+        Self {
+            uid,
+            inner,
+            view_range: Default::default(),
+        }
     }
 }

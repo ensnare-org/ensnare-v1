@@ -358,12 +358,32 @@ impl Orchestrates for OldOrchestrator {
         self.inner.assign_uid_and_add_entity(track_uid, entity)
     }
 
-    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
-        self.inner.set_entity_track(new_track_uid, uid)
+    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
+        self.inner.get_entity(uid)
+    }
+
+    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
+        self.inner.get_entity_mut(uid)
     }
 
     fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>> {
         self.inner.remove_entity(uid)
+    }
+
+    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
+        self.inner.get_entity_track(uid)
+    }
+
+    fn set_entity_track(&mut self, new_track_uid: &TrackUid, uid: &Uid) -> anyhow::Result<()> {
+        self.inner.set_entity_track(new_track_uid, uid)
+    }
+
+    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+        self.inner.get_track_entities(track_uid)
+    }
+
+    fn get_track_timeline_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+        self.inner.get_track_timeline_entities(track_uid)
     }
 
     fn link_control(
@@ -432,22 +452,6 @@ impl Orchestrates for OldOrchestrator {
 
     fn disconnect_midi_receiver(&mut self, uid: Uid, channel: MidiChannel) {
         self.inner.disconnect_midi_receiver(uid, channel)
-    }
-
-    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
-        self.inner.get_entity(uid)
-    }
-
-    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
-        self.inner.get_entity_mut(uid)
-    }
-
-    fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid> {
-        self.inner.get_entity_track(uid)
-    }
-
-    fn get_track_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
-        self.inner.get_track_entities(track_uid)
     }
 }
 impl Generates<StereoSample> for OldOrchestrator {
@@ -690,8 +694,10 @@ pub struct Orchestrator {
     pub track_uids: Vec<TrackUid>,
     /// Which [Track] owns which [Entity].
     pub track_for_entity: HashMap<Uid, TrackUid>,
-    /// An ordered list of [Uid]s that each [Track] owns
+    /// An ordered list of [Uid]s that each [Track] owns.
     pub entities_for_track: HashMap<TrackUid, Vec<Uid>>,
+    /// An ordered list of timeline [Uid]s that each [Track] owns.
+    pub timeline_entities_for_track: HashMap<TrackUid, Vec<Uid>>,
 
     entity_store: EntityStore,
     controller_uids: HashMap<TrackUid, Vec<Uid>>,
@@ -716,55 +722,6 @@ impl Orchestrator {
         self.track_uid_factory.mint_next()
     }
 
-    //////////////////////////////// RECONSIDER
-    /// Adds the pattern with the given [PatternUid] (in [PianoRoll]) at the
-    /// specified position to the given track's sequencer.
-    pub fn add_pattern_to_track(
-        &mut self,
-        _track_uid: &TrackUid,
-        _pattern_uid: &PatternUid,
-        _position: MusicalTime,
-    ) -> anyhow::Result<()> {
-        todo!("fix this!!!");
-        // if let Some(track) = self.tracks.get_mut(track_uid) {
-        //     track.add_pattern(pattern_uid, position)
-        // } else {
-        //        Err(anyhow!("Couldn't find track {track_uid}"))
-        // }
-    }
-
-    /// Adds a new MIDI track, which can contain controllers, instruments, and
-    /// effects. Returns the new track's [TrackUid] if successful.
-    pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.create_track()
-    }
-
-    /// Adds a new audio track, which can contain audio clips and effects.
-    /// Returns the new track's [TrackUid] if successful.
-    pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.create_track()
-    }
-
-    /// Adds a new aux track, which contains only effects, and to which other
-    /// tracks can *send* their output audio. Returns the new track's [TrackUid]
-    /// if successful.
-    pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.create_track()
-    }
-
-    /// Adds a set of tracks that make sense for a new project.
-    pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
-        if !self.track_uids.is_empty() {
-            return Err(anyhow!("Must be invoked on an empty orchestrator."));
-        }
-        self.new_midi_track()?;
-        self.new_midi_track()?;
-        self.new_audio_track()?;
-        self.new_aux_track()?;
-        Ok(())
-    }
-    //////////////////////////////// RECONSIDER
-
     // Removes all a track's references to a given [Uid].
     fn remove_entity_uid_from_track(&mut self, uid: &Uid, track_uid: &TrackUid) {
         // Remove from all entity-type lists.
@@ -781,11 +738,18 @@ impl Orchestrator {
             .or_default()
             .retain(|u| *u != *uid);
 
-        // Remove from prior track's list of entities.
-        let entities = self.entities_for_track.entry(*track_uid).or_default();
-        entities.retain(|u| *u != *uid);
+        // Remove from prior track's lists of entities.
+        self.entities_for_track
+            .entry(*track_uid)
+            .or_default()
+            .retain(|u| *u != *uid);
+        self.timeline_entities_for_track
+            .entry(*track_uid)
+            .or_default()
+            .retain(|u| *u != *uid);
     }
 
+    // Beware: this does *not* rebuild self.timeline_entities_for_track!
     fn rebuild_entities_for_track(&mut self, track_uid: &TrackUid) {
         let entities = self.entities_for_track.entry(*track_uid).or_default();
         entities.clear();
@@ -807,6 +771,10 @@ impl Orchestrates for Orchestrator {
         let _ = self.effect_uids.entry(track_uid).or_default();
         let _ = self.instrument_uids.entry(track_uid).or_default();
         let _ = self.entities_for_track.entry(track_uid).or_default();
+        let _ = self
+            .timeline_entities_for_track
+            .entry(track_uid)
+            .or_default();
 
         Ok(track_uid)
     }
@@ -835,6 +803,7 @@ impl Orchestrates for Orchestrator {
         self.effect_uids.remove(track_uid);
         self.instrument_uids.remove(track_uid);
         self.entities_for_track.remove(track_uid);
+        self.timeline_entities_for_track.remove(track_uid);
     }
 
     fn delete_tracks(&mut self, uids: &[TrackUid]) {
@@ -863,6 +832,12 @@ impl Orchestrates for Orchestrator {
         }
         if entity.as_effect().is_some() {
             self.effect_uids.entry(*track_uid).or_default().push(uid);
+        }
+        if entity.displays_in_timeline() {
+            self.timeline_entities_for_track
+                .entry(*track_uid)
+                .or_default()
+                .push(uid);
         }
         self.rebuild_entities_for_track(track_uid);
         self.entity_store.add(entity, uid)
@@ -928,6 +903,14 @@ impl Orchestrates for Orchestrator {
             Ok(&entities)
         } else {
             Err(anyhow!("Entities for track {track_uid} not found"))
+        }
+    }
+
+    fn get_track_timeline_entities(&self, track_uid: &TrackUid) -> anyhow::Result<&[Uid]> {
+        if let Some(entities) = self.timeline_entities_for_track.get(track_uid) {
+            Ok(&entities)
+        } else {
+            Err(anyhow!("Timeline entities for track {track_uid} not found"))
         }
     }
 

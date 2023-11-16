@@ -326,3 +326,48 @@ What I did today:
 
 I'm going to commit this on a branch because it has a lot of roughness, and I'll
 lose track of which still need work if I commit on main.
+
+# 2023-11-16: displaying in timeline
+
+I think things are coming together.
+
+- `Orchestrator` is just entity CRUD plus management of the inner event loop.
+- `OrchestratorHelper` renders `Orchestrator` as audio.
+- `InMemoryProject` owns `Orchestrator`. Crucially, it *and not `Orchestrator`*
+  knows about specific entities. So a method like `new_midi_track()` is
+  implemented in `InMemoryProject`, not in `Orchestrator`.
+- To fulfill its job, `InMemoryProject` gives only fully-functional entities to
+  `Orchestrator`. For example, `LivePatternSequencer` needs a `PianoRoll`, so
+  `InMemoryProject` manages a `PianoRoll` and supplies it when creating
+  `LivePatternSequencer`. But it *also* asks `LivePatternSequencer` for a
+  `crossbeam_channel` `Sender<SequencerInput>` so that it can pass along the
+  drag-and-drop event that is supposed to drop a pattern onto the timeline.
+  `InMemoryProject` is the mediator between entities that need to communicate
+  with each other, *not* `Orchestrator`.
+- If I stick to this pattern, then `ControlRouter` will need to become a shared
+  entity like `PianoRoll`, so that each `ControlTrip` can maintain a reference
+  to it when it's rendering itself. This shouldn't be too much trouble.
+
+Why did this take so long? I was stuck in a mental loop that `Orchestrator` was
+the backstop for all responsibilities, so I kept trying to cram things into it,
+which violated all sorts of architectural boundaries. Once I realized that
+`Orchestrator` should just orchestrate, I was able to imagine it not handling
+pattern-adds. Unfortunately I implemented that by creating the `Orchestrates`
+trait and thinking that each concrete `Orchestrator` would have more
+responsibilities than just the basic trait, which was an improvement but not
+quite the breakthrough that *Orchestrator should only orchestrate*. When I took
+a break to work on serialization, developing `Project` and then
+`InMemoryProject`, I started to see the difference between orchestrating and
+providing `Orchestrator` with *complete* entities that it could generically
+orchestrate. Now I think (hope) the thought has come all the way to fruition. To
+reiterate:
+
+- `Orchestrator` orchestrates.
+- `OrchestratorHelper` renders.
+- `Project` serializes.
+- `InMemoryProject` constructs Entities and coordinates communication among them.
+
+It's possible that `InMemoryProject` will become `Orchestrator` v2 in the sense
+that it becomes the dumping ground for all new responsibilities. The "and" in
+the description above is a hint. But I know how to decompose it if that does
+happen.

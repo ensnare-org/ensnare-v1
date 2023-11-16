@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
+use ensnare_egui_widgets::ViewRange;
 
 /// [Entity] is a generic type of thing that can have various discoverable
 /// capabilities. Almost everything in this system is an Entity of some kind. A
@@ -109,4 +110,9 @@ pub trait Displays {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label("Coming soon!")
     }
+
+    /// Indicates which section of the timeline is being displayed. Entities
+    /// that don't render in the timeline can ignore this.
+    #[allow(unused_variables)]
+    fn set_timeline_view_range(&mut self, view_range: &ViewRange) {}
 }

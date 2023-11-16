@@ -8,7 +8,11 @@ use eframe::{
         text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
     },
 };
-use ensnare_core::{time::MusicalTime, types::TrackTitle, uid::TrackUid};
+use ensnare_core::{
+    time::MusicalTime,
+    types::TrackTitle,
+    uid::{TrackUid, Uid},
+};
 use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui_widgets::ViewRange;
@@ -31,11 +35,20 @@ pub fn new_track_widget<'a>(
     track_info: &'a TrackInfo<'a>,
     orchestrates: &'a mut dyn Orchestrates,
     view_range: ViewRange,
+    frontmost_uid: Option<Uid>,
     cursor: Option<MusicalTime>,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        NewTrackWidget::new(track_info, orchestrates, view_range, cursor, action).ui(ui)
+        NewTrackWidget::new(
+            track_info,
+            orchestrates,
+            view_range,
+            frontmost_uid,
+            cursor,
+            action,
+        )
+        .ui(ui)
     }
 }
 
@@ -44,6 +57,7 @@ pub fn new_track_widget<'a>(
 struct NewTrackWidget<'a> {
     track_info: &'a TrackInfo<'a>,
     orchestrates: &'a mut dyn Orchestrates,
+    frontmost_uid: Option<Uid>,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
 
@@ -57,6 +71,7 @@ impl<'a> NewTrackWidget<'a> {
         track_info: &'a TrackInfo<'a>,
         orchestrates: &'a mut dyn Orchestrates,
         view_range: ViewRange,
+        frontmost_uid: Option<Uid>,
         cursor: Option<MusicalTime>,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
@@ -64,6 +79,7 @@ impl<'a> NewTrackWidget<'a> {
             track_info,
             orchestrates,
             view_range,
+            frontmost_uid,
             cursor,
             action,
         }
@@ -147,31 +163,7 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                 })
                                 .inner;
 
-                            // The following code is incomplete. I want to check
-                            // in anyway because the changes are getting too
-                            // big.
-                            //
-                            // The intent is this (similar to code from a couple
-                            // revs ago):
-                            //
-                            // 1. Have a way of representing which item is
-                            //    frontmost. Maybe a smart enum.
-                            // 2. Cycle through and render all but the frontmost
-                            //    item, but disabled.
-                            // 3. Render the frontmost, enabled.
-
-                            let frontmost_uid = if let Ok(entity_uids) =
-                                self.orchestrates.get_track_entities(&track_uid)
-                            {
-                                if let Some(entity_uid) = entity_uids.first() {
-                                    Some(*entity_uid)
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            };
-
+                            // Get all the entities for this track.
                             let entity_uids = if let Ok(entity_uids) =
                                 self.orchestrates.get_track_entities(&track_uid)
                             {
@@ -180,24 +172,32 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                 Vec::default()
                             };
 
-                            entity_uids.iter().for_each(|uid| {
-                                if Some(*uid) != frontmost_uid {
+                            // Render non-foreground timeline displayers.
+                            entity_uids
+                                .iter()
+                                .filter(|uid| Some(**uid) != self.frontmost_uid)
+                                .for_each(|uid| {
                                     if let Some(entity) = self.orchestrates.get_entity_mut(uid) {
-                                        ui.add_enabled_ui(false, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| {
-                                                entity.ui(ui);
+                                        if entity.displays_in_timeline() {
+                                            ui.add_enabled_ui(false, |ui| {
+                                                ui.allocate_ui_at_rect(rect, |ui| {
+                                                    entity
+                                                        .set_timeline_view_range(&self.view_range);
+                                                    entity.ui(ui);
+                                                });
                                             });
-                                        });
+                                        }
                                     }
-                                }
-                            });
+                                });
 
-                            if let Some(frontmost_uid) = frontmost_uid {
+                            // Render the foreground timeline displayer, if there is one.
+                            if let Some(frontmost_uid) = self.frontmost_uid {
                                 if let Some(entity) =
                                     self.orchestrates.get_entity_mut(&frontmost_uid)
                                 {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
+                                            entity.set_timeline_view_range(&self.view_range);
                                             entity.ui(ui);
                                         });
                                     });
@@ -214,6 +214,8 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                         .inner;
                                 }
                             }
+
+                            // Note drag/drop position
                             if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                                 let time_pos = from_screen * pointer_pos;
                                 let time = MusicalTime::new_with_units(time_pos.x as usize);
