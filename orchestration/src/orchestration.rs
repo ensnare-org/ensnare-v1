@@ -20,6 +20,7 @@ use ensnare_core::{
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
 };
+use ensnare_cores_egui::controllers::KeyboardController;
 use ensnare_entity::prelude::*;
 use std::{collections::HashMap, fmt::Debug, path::PathBuf, vec::Vec};
 use strum_macros::Display;
@@ -745,6 +746,7 @@ pub struct Orchestrator {
     humidifier: Humidifier,
     bus_station: BusStation,
     main_mixer: MainMixer,
+    pub keyboard_controller: KeyboardController,
 }
 impl Orchestrator {
     /// The fixed [Uid] for the global transport.
@@ -795,6 +797,19 @@ impl Orchestrator {
         entities.extend(self.controller_uids.entry(*track_uid).or_default().iter());
         entities.extend(self.instrument_uids.entry(*track_uid).or_default().iter());
         entities.extend(self.effect_uids.entry(*track_uid).or_default().iter());
+    }
+
+    fn check_keyboard(&mut self) {
+        let mut keyboard_events = Vec::default();
+
+        self.keyboard_controller.work(&mut |m| {
+            if let EntityEvent::Midi(channel, message) = m {
+                keyboard_events.push((channel, message));
+            }
+        });
+        for (channel, message) in keyboard_events.into_iter() {
+            self.handle_midi_message(channel, message, &mut |_, _| {})
+        }
     }
 }
 impl Orchestrates for Orchestrator {
@@ -1089,6 +1104,7 @@ impl Controls for Orchestrator {
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let mut events = Vec::default();
+        self.check_keyboard();
 
         self.transport
             .work(&mut |m| events.push((Self::TRANSPORT_UID, m)));

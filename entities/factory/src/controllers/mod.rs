@@ -1,7 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub mod keyboard;
-
 use crossbeam_channel::Sender;
 use ensnare_core::{
     controllers::{TimerParams, TriggerParams},

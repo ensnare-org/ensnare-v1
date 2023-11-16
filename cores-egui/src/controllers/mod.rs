@@ -13,6 +13,10 @@ use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode, LivePatternSequencer
 use ensnare_egui_widgets::{frequency, waveform, ViewRange};
 use strum::IntoEnumIterator;
 
+pub use keyboard::KeyboardController;
+
+mod keyboard;
+
 /// Wraps a [Trip] as a [Widget](eframe::egui::Widget).
 pub fn trip<'a>(
     uid: Uid,

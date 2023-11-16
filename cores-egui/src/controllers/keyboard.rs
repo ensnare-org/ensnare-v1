@@ -3,13 +3,9 @@
 use crossbeam_channel::Sender;
 use eframe::egui::{Event, Key};
 use ensnare_core::prelude::*;
-use ensnare_entity::prelude::*;
-use ensnare_proc_macros::Metadata;
 
-#[derive(Debug, Metadata)]
+#[derive(Debug)]
 pub struct KeyboardController {
-    uid: Uid,
-
     octave: u8,
 
     keyboard_events: ChannelPair<Event>,
@@ -17,13 +13,11 @@ pub struct KeyboardController {
 impl Default for KeyboardController {
     fn default() -> Self {
         Self {
-            uid: Default::default(),
             octave: 5,
             keyboard_events: Default::default(),
         }
     }
 }
-impl Displays for KeyboardController {}
 #[allow(unused_variables)]
 impl Controls for KeyboardController {
     fn update_time_range(&mut self, range: &TimeRange) {}

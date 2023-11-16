@@ -7,7 +7,7 @@ use crate::{
     project::InMemoryProject,
     settings::{Settings, SettingsPanel},
 };
-use crossbeam_channel::{unbounded, Select, Sender};
+use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
         CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, ScrollArea,
@@ -81,18 +81,17 @@ impl Ensnare {
 
         let project = InMemoryProject::default();
         let orchestrator = Arc::clone(&project.orchestrator);
-
         let settings = Settings::load().unwrap_or_default();
+        let keyboard_events_sender = orchestrator
+            .lock()
+            .unwrap()
+            .keyboard_controller
+            .sender()
+            .clone();
+
         // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
         //     Some(control_panel.sample_channel.sender.clone());
-        // let keyboard_events_sender = orchestrator
-        //     .lock()
-        //     .unwrap()
-        //     .e
-        //     .keyboard_controller
-        //     .sender()
-        //     .clone();
-        let (keyboard_events_sender, _receiver) = unbounded();
+
         let mut r = Self {
             event_channel: Default::default(),
             project,

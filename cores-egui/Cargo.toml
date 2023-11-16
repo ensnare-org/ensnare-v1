@@ -10,6 +10,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.75"
+crossbeam-channel = "0.5.8"
 eframe = "0.23"
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
