@@ -721,14 +721,15 @@ impl Orchestrator {
     /// specified position to the given track's sequencer.
     pub fn add_pattern_to_track(
         &mut self,
-        track_uid: &TrackUid,
+        _track_uid: &TrackUid,
         _pattern_uid: &PatternUid,
         _position: MusicalTime,
     ) -> anyhow::Result<()> {
+        todo!("fix this!!!");
         // if let Some(track) = self.tracks.get_mut(track_uid) {
         //     track.add_pattern(pattern_uid, position)
         // } else {
-        Err(anyhow!("Couldn't find track {track_uid}"))
+        //        Err(anyhow!("Couldn't find track {track_uid}"))
         // }
     }
 

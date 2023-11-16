@@ -20,8 +20,9 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
 use ensnare_core::{prelude::*, types::TrackTitle};
+use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::{egui::entity_palette, orchestrator, DescribesProject, ProjectAction};
+use ensnare_orchestration::{egui::entity_palette, DescribesProject, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
@@ -50,8 +51,6 @@ pub(super) struct Ensnare {
     keyboard_events_sender: Sender<Event>,
 
     pub is_settings_panel_open: bool,
-
-    new_orchestrator: Orchestrator,
 }
 impl Ensnare {
     /// The user-visible name of the application.
@@ -107,7 +106,6 @@ impl Ensnare {
             exit_requested: Default::default(),
             keyboard_events_sender,
             is_settings_panel_open: Default::default(),
-            new_orchestrator: Default::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator();
@@ -422,11 +420,21 @@ impl Ensnare {
     }
 
     fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
-        ui.add(orchestrator(&mut self.new_orchestrator));
-        //        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
+        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
+        let mut action = None;
+        ui.add(timeline_icon_strip(&mut action));
+        if let Some(action) = action {
+            match action {
+                TimelineIconStripAction::NextTimelineView => todo!(),
+                TimelineIconStripAction::ShowPianoRoll => {
+                    self.project.is_piano_roll_visible = !self.project.is_piano_roll_visible
+                }
+            }
+        }
+        self.project.show_piano_roll(ui);
         let mut view_range = self.project.view_range.clone();
         let mut action = None;
         if let Ok(mut o) = self.project.orchestrator.lock() {

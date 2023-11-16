@@ -45,9 +45,6 @@ struct ProjectWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut action = None;
-        ui.add(timeline::timeline_icon_strip(&mut action));
-
         // The timeline needs to be aligned with the track content, so
         // we create an empty track title bar to match with the real
         // ones.
