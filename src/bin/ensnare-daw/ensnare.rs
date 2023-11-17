@@ -10,8 +10,8 @@ use crate::{
 use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
-        CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, ScrollArea,
-        SidePanel, TextStyle, TopBottomPanel,
+        CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, Modifiers,
+        ScrollArea, SidePanel, TextStyle, TopBottomPanel,
     },
     emath::{Align, Align2},
     epaint::{Color32, FontFamily, FontId},
@@ -53,6 +53,9 @@ pub(super) struct Ensnare {
     keyboard_events_sender: Sender<Event>,
 
     pub is_settings_panel_open: bool,
+
+    // Copy of keyboard modifier state at top of frame
+    modifiers: Modifiers,
 }
 impl Ensnare {
     /// The user-visible name of the application.
@@ -110,6 +113,7 @@ impl Ensnare {
             exit_requested: Default::default(),
             keyboard_events_sender,
             is_settings_panel_open: Default::default(),
+            modifiers: Modifiers::default(),
         };
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator();
@@ -472,8 +476,10 @@ impl Ensnare {
             .show(ctx, |ui| self.settings_panel.ui(ui));
     }
 
-    fn copy_keyboard_events(&mut self, ctx: &eframe::egui::Context) {
+    fn handle_input_events(&mut self, ctx: &eframe::egui::Context) {
         ctx.input(|i| {
+            self.modifiers = i.modifiers.clone();
+
             for e in i.events.iter() {
                 match e {
                     eframe::egui::Event::Key {
@@ -481,6 +487,17 @@ impl Ensnare {
                     } => {
                         if !repeat && !modifiers.any() {
                             let _ = self.keyboard_events_sender.send(e.clone());
+                        }
+                    }
+                    Event::MouseWheel {
+                        delta, modifiers, ..
+                    } => {
+                        if modifiers.command_only() {
+                            if delta.y > 0.0 {
+                                eprintln!("zoom timeline in")
+                            } else {
+                                eprintln!("zoom timeline out")
+                            }
                         }
                     }
                     _ => {}
@@ -577,15 +594,13 @@ impl Ensnare {
 impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
         self.handle_app_event_channel();
-        self.copy_keyboard_events(ctx);
+        self.handle_input_events(ctx);
+        self.orchestrator_service
+            .set_control_only_down(self.modifiers.command_only());
 
         // TODO - too much work
         let project_title_str: String = self.project.title.clone().into();
         frame.set_window_title(project_title_str.as_str());
-
-        let is_control_only_down = ctx.input(|i| i.modifiers.command_only());
-        self.orchestrator_service
-            .set_control_only_down(is_control_only_down);
 
         let top = TopBottomPanel::top("top-panel")
             .resizable(false)
