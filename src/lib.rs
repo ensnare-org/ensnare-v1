@@ -50,7 +50,7 @@ pub mod control {
     //! all applicable types in the system.
 
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
-    pub use ensnare_orchestration::control_router::ControlRouter;
+    pub use ensnare_orchestration::ControlRouter;
 
     pub use ensnare_core::controllers::{
         ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,

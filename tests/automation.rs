@@ -124,6 +124,7 @@ fn demo_control_trips() {
     let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::default();
+    let control_router_clone = orchestrator.control_router.clone();
 
     // Per my epiphany from a few days ago, Orchestrates (the trait) defines
     // arrangement of Entities, and doesn't get into the actual information that
@@ -210,7 +211,11 @@ fn demo_control_trips() {
             )
             .build()
             .unwrap();
-        let outer_trip = Box::new(ControlTrip::new_with(Uid::default(), trip));
+        let outer_trip = Box::new(ControlTrip::new_with(
+            Uid::default(),
+            trip,
+            control_router_clone,
+        ));
         let trip_uid = orchestrator
             .assign_uid_and_add_entity(&track_uid, outer_trip)
             .unwrap();

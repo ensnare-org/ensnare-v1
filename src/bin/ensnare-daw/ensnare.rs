@@ -19,13 +19,14 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
+use std::{ops::DerefMut, sync::Arc};
 
-// TODO: clean these up. Ideally, an app needs to use only the top ensnare crate.
+// TODO: clean these up. An app should need to use only the top ensnare crate,
+// and ideally it can get by with just importing prelude::*.
 use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use ensnare_orchestration::{egui::entity_palette, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
-use std::{ops::DerefMut, sync::Arc};
 
 enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),

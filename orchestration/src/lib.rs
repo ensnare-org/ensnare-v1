@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 pub use crate::orchestration::{Orchestrator, OrchestratorHelper, ProjectAction};
+pub use control_router::ControlRouter;
 pub use egui::{orchestrator, project_widget, DescribesProject};
 
 pub mod bus_route;

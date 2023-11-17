@@ -98,6 +98,7 @@ impl InMemoryProject {
                 .random(MusicalTime::START)
                 .build()
                 .unwrap(),
+            o.control_router.clone(),
         );
         let _trip_uid = o.add_entity(&track_uid, Box::new(control_trip));
 

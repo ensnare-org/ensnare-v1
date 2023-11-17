@@ -23,7 +23,13 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::controllers::KeyboardController;
 use ensnare_entity::prelude::*;
-use std::{collections::HashMap, fmt::Debug, path::PathBuf, vec::Vec};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+    vec::Vec,
+};
 use strum_macros::Display;
 
 /// Actions that [Orchestrator]'s UI might need the parent to perform.
@@ -742,7 +748,7 @@ pub struct Orchestrator {
     instrument_uids: HashMap<TrackUid, Vec<Uid>>,
     effect_uids: HashMap<TrackUid, Vec<Uid>>,
 
-    control_router: ControlRouter,
+    pub control_router: Arc<RwLock<ControlRouter>>,
     midi_router: MidiRouter,
     humidifier: Humidifier,
     bus_station: BusStation,
@@ -973,12 +979,16 @@ impl Orchestrates for Orchestrator {
         control_index: ControlIndex,
     ) -> anyhow::Result<()> {
         self.control_router
+            .write()
+            .unwrap()
             .link_control(source_uid, target_uid, control_index);
         Ok(())
     }
 
     fn unlink_control(&mut self, source_uid: Uid, target_uid: Uid, control_index: ControlIndex) {
         self.control_router
+            .write()
+            .unwrap()
             .unlink_control(source_uid, target_uid, control_index)
     }
 
@@ -1125,7 +1135,7 @@ impl Controls for Orchestrator {
                         .route(&mut self.entity_store, channel, message);
                 }
                 EntityEvent::Control(value) => {
-                    let _ = self.control_router.route(
+                    let _ = self.control_router.read().unwrap().route(
                         &mut |target_uid, index, value| {
                             if target_uid == &Self::TRANSPORT_UID {
                                 self.transport.control_set_param_by_index(index, value);

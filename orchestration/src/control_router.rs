@@ -50,7 +50,7 @@ impl ControlRouter {
     /// Given a control event consisting of a source [Entity] and a
     /// [ControlValue], routes that event to the control surfaces linked to it.
     pub fn route(
-        &mut self,
+        &self,
         entity_store_fn: &mut dyn FnMut(&Uid, ControlIndex, ControlValue),
         source_uid: Uid,
         value: ControlValue,

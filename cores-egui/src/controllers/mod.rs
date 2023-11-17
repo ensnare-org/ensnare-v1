@@ -157,8 +157,7 @@ impl<'a> eframe::egui::Widget for Trip<'a> {
                 // TODO: this is incomplete. It's a placeholder while I figure
                 // out the best way to present this information (it might
                 // actually be DnD rather than menu-driven).
-                // self.control_router
-                //     .link_control(self.uid, Uid(234), ControlIndex(456));
+                eprintln!("got a link request");
             }
         }
 

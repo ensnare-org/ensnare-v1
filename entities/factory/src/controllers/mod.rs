@@ -16,6 +16,7 @@ use ensnare_cores_egui::controllers::{
 };
 use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
+use ensnare_orchestration::ControlRouter;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,
@@ -336,14 +337,16 @@ impl Trigger {
 pub struct ControlTrip {
     uid: Uid,
     inner: ensnare_core::controllers::ControlTrip,
+    control_router: Arc<RwLock<ControlRouter>>,
     view_range: ViewRange,
 }
 impl Displays for ControlTrip {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let control_router = self.control_router.read().unwrap();
         ui.add(trip(
             self.uid,
             &mut self.inner,
-            None,
+            control_router.control_links(self.uid),
             self.view_range.clone(),
         ))
     }
@@ -353,10 +356,15 @@ impl Displays for ControlTrip {
     }
 }
 impl ControlTrip {
-    pub fn new_with(uid: Uid, inner: ensnare_core::controllers::ControlTrip) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        inner: ensnare_core::controllers::ControlTrip,
+        control_router: Arc<RwLock<ControlRouter>>,
+    ) -> Self {
         Self {
             uid,
             inner,
+            control_router,
             view_range: Default::default(),
         }
     }
