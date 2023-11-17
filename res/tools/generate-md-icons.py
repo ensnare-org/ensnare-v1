@@ -50,6 +50,7 @@ SYMBOLS = [
         'new_window',
         'piano',
         'play_arrow',
+        'settings',
         'stop',
         'view_timeline',
 ]

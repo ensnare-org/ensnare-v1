@@ -146,7 +146,13 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 }
             });
             ui.separator();
-            if ui.button("settings").clicked() {
+            if ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/settings.png"
+                )))
+                .on_hover_text("Settings")
+                .clicked()
+            {
                 *self.action = Some(ControlBarAction::ToggleSettings);
             }
         })
