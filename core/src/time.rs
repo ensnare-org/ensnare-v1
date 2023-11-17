@@ -537,7 +537,6 @@ pub struct TransportEphemerals {
 
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
-
 #[derive(Clone, Control, Debug, Default, Builder)]
 pub struct Transport {
     /// The current global time signature.
@@ -654,7 +653,13 @@ impl Controls for Transport {
     }
 
     fn stop(&mut self) {
-        self.e.is_performing = false;
+        // Stopping when already stopped resets the time to start, which gives
+        // the stop button a convenient dual function.
+        if self.e.is_performing {
+            self.e.is_performing = false;
+        } else {
+            self.skip_to_start();
+        }
     }
 
     fn skip_to_start(&mut self) {
