@@ -3,15 +3,15 @@
 //! The `settings` module contains [Settings], which are all the user's
 //! persistent global preferences. It also contains [SettingsPanel].
 
+use crossbeam_channel::Sender;
 use ensnare::{
-    arrangement::OrchestratorHelper,
+    arrangement::{Orchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
-    traits::{EntityEvent, HasSettings},
+    traits::{Displays, EntityEvent, HasSettings},
+    types::Sample,
     ui::widgets::{audio_settings, midi_settings},
 };
-use ensnare_entity::traits::Displays;
-use ensnare_orchestration::Orchestrator;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -107,15 +107,23 @@ pub(crate) struct SettingsPanel {
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(settings: Settings, orchestrator: &Arc<Mutex<Orchestrator>>) -> Self {
+    pub fn new_with(
+        settings: Settings,
+        orchestrator: &Arc<Mutex<Orchestrator>>,
+        sample_buffer_sender: Option<Sender<[Sample; 64]>>,
+    ) -> Self {
         let orchestrator = Arc::clone(&orchestrator);
         let midi_service = MidiService::new_with(Arc::clone(&settings.midi_settings));
         let midi_service_sender = midi_service.sender().clone();
+        let sample_buffer_sender = sample_buffer_sender.clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
                     let o: &mut Orchestrator = &mut o;
-                    let mut helper = OrchestratorHelper::new_with(o);
+                    let mut helper = OrchestratorHelper::new_with_sample_buffer_sender(
+                        o,
+                        sample_buffer_sender.clone(),
+                    );
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
                         if let EntityEvent::Midi(channel, message) = event {
                             let _ = midi_service_sender

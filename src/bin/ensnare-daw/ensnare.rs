@@ -88,17 +88,20 @@ impl Ensnare {
             .keyboard_controller
             .sender()
             .clone();
-
-        // orchestrator.lock().unwrap().e.sample_buffer_channel_sender =
-        //     Some(control_panel.sample_channel.sender.clone());
+        let control_bar = ControlBar::default();
+        let sample_buffer_sender = control_bar.sample_channel.sender.clone();
 
         let mut r = Self {
             event_channel: Default::default(),
             project,
             menu_bar: Default::default(),
-            control_bar: Default::default(),
+            control_bar,
             orchestrator_service: OrchestratorService::new_with(&orchestrator),
-            settings_panel: SettingsPanel::new_with(settings, &orchestrator),
+            settings_panel: SettingsPanel::new_with(
+                settings,
+                &orchestrator,
+                Some(sample_buffer_sender),
+            ),
             toasts: Toasts::new()
                 .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
                 .direction(Direction::BottomUp),

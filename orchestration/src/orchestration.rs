@@ -9,6 +9,7 @@ use crate::{
     traits::Orchestrates,
 };
 use anyhow::anyhow;
+use crossbeam_channel::Sender;
 use ensnare_core::{
     control::ControlIndex,
     midi::{MidiChannel, MidiMessage},
@@ -1265,6 +1266,7 @@ impl HandlesMidi for Orchestrator {
 
 pub struct OrchestratorHelper<'a> {
     orchestrator: &'a mut dyn Orchestrates,
+    pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
 }
 impl<'a> OrchestratorHelper<'a> {
     /// The expected size of any buffer provided for samples.
@@ -1274,7 +1276,17 @@ impl<'a> OrchestratorHelper<'a> {
     pub const SAMPLE_BUFFER_SIZE: usize = 64;
 
     pub fn new_with(orchestrator: &'a mut dyn Orchestrates) -> Self {
-        Self { orchestrator }
+        Self::new_with_sample_buffer_sender(orchestrator, None)
+    }
+
+    pub fn new_with_sample_buffer_sender(
+        orchestrator: &'a mut dyn Orchestrates,
+        buffer_sender: Option<Sender<[Sample; 64]>>,
+    ) -> Self {
+        Self {
+            orchestrator,
+            sample_buffer_channel_sender: buffer_sender.clone(),
+        }
     }
 
     /// Returns the number of channels in the audio stream. For now, this is
@@ -1346,9 +1358,9 @@ impl<'a> OrchestratorHelper<'a> {
                 // TODO: can we do this work outside this critical loop? And can
                 // we have the recipient do the work of the stereo->mono
                 // conversion?
-                // if let Some(sender) = &self.e.sample_buffer_channel_sender {
-                //     let _ = sender.send(mono_samples);
-                // }
+                if let Some(sender) = &self.sample_buffer_channel_sender {
+                    let _ = sender.send(mono_samples);
+                }
             }
         }
     }
