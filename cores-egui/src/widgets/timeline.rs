@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::{
-    egui::{vec2, Widget},
+    egui::{vec2, ImageButton, Widget},
     emath::{Align2, RectTransform},
-    epaint::{pos2, FontId, RectShape, Shape},
+    epaint::{pos2, FontId, RectShape, Shape, Vec2},
 };
 use ensnare_core::prelude::*;
 use ensnare_egui_widgets::ViewRange;
@@ -212,11 +212,21 @@ impl<'a> TimelineIconStrip<'a> {
 impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal(|ui| {
-            let next_response = ui.button("Next timeline view");
+            ui.spacing_mut().button_padding = Vec2::splat(0.0);
+            ui.set_min_height(30.0);
+            let next_response = ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/view_timeline.png"
+                )))
+                .on_hover_text("Next Timeline View");
             if next_response.clicked() {
                 *self.action = Some(TimelineIconStripAction::NextTimelineView);
             }
-            let piano_roll_response = ui.button("Piano Roll");
+            let piano_roll_response = ui
+                .add(ImageButton::new(eframe::egui::include_image!(
+                    "../../../res/images/md-symbols/piano.png"
+                )))
+                .on_hover_text("Show Piano Roll");
             if piano_roll_response.clicked() {
                 *self.action = Some(TimelineIconStripAction::ShowPianoRoll);
             }

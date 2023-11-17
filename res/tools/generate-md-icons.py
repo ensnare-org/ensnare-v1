@@ -51,6 +51,7 @@ SYMBOLS = [
         'piano',
         'play_arrow',
         'stop',
+        'view_timeline',
 ]
 for (symbol) in SYMBOLS:
     outfile = "res/images/md-symbols/{symbol}.png".format(symbol=symbol)
