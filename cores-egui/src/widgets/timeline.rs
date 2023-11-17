@@ -213,7 +213,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal(|ui| {
             ui.spacing_mut().button_padding = Vec2::splat(0.0);
-            ui.set_min_height(30.0);
+            ui.set_min_height(30.0); // TODO: I just want the image unscaled. How do I do that?
             let next_response = ui
                 .add(ImageButton::new(eframe::egui::include_image!(
                     "../../../res/images/md-symbols/view_timeline.png"
