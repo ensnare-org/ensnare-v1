@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     orchestration::{Orchestrator, ProjectAction},
+    track::TrackWidgetAction,
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
@@ -111,12 +112,15 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         cursor,
                         &mut action,
                     ));
-                    // TODO handle action
+                    if let Some(action) = action {
+                        match action {
+                            TrackWidgetAction::EntitySelected(uid, name) => {
+                                *self.action = Some(ProjectAction::EntitySelected(uid, name));
+                            }
+                        }
+                    }
                 }
             });
-
-        // suppress warning
-        *self.action = None;
 
         // Note! This response is from the timeline header and doesn't mean
         // anything.

@@ -2,6 +2,7 @@
 
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
+use eframe::egui::Id;
 use ensnare::arrangement::ProjectTitle;
 use ensnare_core::{
     controllers::ControlTripBuilder,
@@ -31,6 +32,9 @@ pub(super) struct InMemoryProject {
     pub(super) track_to_sequencer_sender: HashMap<TrackUid, Sender<SequencerInput>>,
 
     pub(super) is_piano_roll_visible: bool,
+    pub(super) detail_is_visible: bool,
+    pub(super) detail_title: String,
+    pub(super) detail_uid: Option<Uid>,
 }
 impl Default for InMemoryProject {
     fn default() -> Self {
@@ -43,6 +47,9 @@ impl Default for InMemoryProject {
             track_frontmost_uids: Default::default(),
             track_to_sequencer_sender: Default::default(),
             is_piano_roll_visible: Default::default(),
+            detail_is_visible: Default::default(),
+            detail_title: Default::default(),
+            detail_uid: Default::default(),
         };
         let _ = r.create_starter_tracks();
         r.switch_to_next_frontmost_timeline_displayer();
@@ -182,5 +189,28 @@ impl InMemoryProject {
                 }
             }
         }
+    }
+
+    pub(crate) fn show_detail(&mut self, ui: &mut eframe::egui::Ui) {
+        eframe::egui::Window::new(self.detail_title.to_string())
+            .id(Id::new("Entity Detail"))
+            .open(&mut self.detail_is_visible)
+            .anchor(
+                eframe::emath::Align2::RIGHT_BOTTOM,
+                eframe::epaint::vec2(5.0, 5.0),
+            )
+            .show(ui.ctx(), |ui| {
+                if let Some(uid) = self.detail_uid {
+                    if let Some(entity) = self.orchestrator.lock().unwrap().get_entity_mut(&uid) {
+                        entity.ui(ui);
+                    }
+                }
+            });
+    }
+
+    pub(crate) fn select_detail(&mut self, uid: Uid, name: String) {
+        self.detail_is_visible = true;
+        self.detail_title = name;
+        self.detail_uid = Some(uid);
     }
 }

@@ -445,6 +445,7 @@ impl Ensnare {
             }
         }
         self.project.show_piano_roll(ui);
+        self.project.show_detail(ui);
         let mut view_range = self.project.view_range.clone();
         let mut action = None;
         if let Ok(mut o) = self.project.orchestrator.lock() {
@@ -506,25 +507,28 @@ impl Ensnare {
         });
     }
 
-    fn handle_action(&self, action: ProjectAction) {
-        if let Ok(mut o) = self.project.orchestrator.lock() {
-            match action {
-                ProjectAction::ClickTrack(_track_uid) => {
-                    // TODO: this was in orchestrator_panel, and I'm not too fond of
-                    // its design.
-                    //
-                    // self.track_selection_set.lock().unwrap().click(&track_uid,
-                    //     self.is_control_only_down);
-                }
-                ProjectAction::DoubleClickTrack(_track_uid) => {
-                    // This used to expand/collapse, but that's gone.
-                }
-                ProjectAction::NewDeviceForTrack(track_uid, key) => {
+    fn handle_action(&mut self, action: ProjectAction) {
+        match action {
+            ProjectAction::ClickTrack(_track_uid) => {
+                // TODO: this was in orchestrator_panel, and I'm not too fond of
+                // its design.
+                //
+                // self.track_selection_set.lock().unwrap().click(&track_uid,
+                //     self.is_control_only_down);
+            }
+            ProjectAction::DoubleClickTrack(_track_uid) => {
+                // This used to expand/collapse, but that's gone.
+            }
+            ProjectAction::NewDeviceForTrack(track_uid, key) => {
+                if let Ok(mut o) = self.project.orchestrator.lock() {
                     let uid = o.mint_entity_uid();
                     if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
                         let _ = o.add_entity(&track_uid, entity);
                     }
                 }
+            }
+            ProjectAction::EntitySelected(uid, name) => {
+                self.project.select_detail(uid, name);
             }
         }
     }

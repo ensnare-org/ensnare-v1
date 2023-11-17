@@ -41,6 +41,9 @@ pub enum ProjectAction {
     DoubleClickTrack(TrackUid),
     /// A [Track] wants a new device of type [Key].
     NewDeviceForTrack(TrackUid, EntityKey),
+    // The user selected an entity with the given uid and name. The UI should
+    // show that entity's detail view.
+    EntitySelected(Uid, String),
 }
 
 #[cfg(obsolete)]

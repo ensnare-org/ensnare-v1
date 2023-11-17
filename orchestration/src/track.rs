@@ -5,6 +5,8 @@ use strum_macros::Display;
 
 #[derive(Debug, Display)]
 pub enum TrackWidgetAction {
+    // The user selected an entity with the given uid and name. The UI should
+    // show that entity's detail view.
     EntitySelected(Uid, String),
 }
 
