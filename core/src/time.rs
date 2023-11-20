@@ -8,6 +8,7 @@ use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
@@ -15,7 +16,7 @@ use std::{
 use strum_macros::{FromRepr, IntoStaticStr};
 
 /// Beats per minute.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Tempo(pub ParameterType);
 impl Default for Tempo {
     fn default() -> Self {
@@ -121,7 +122,7 @@ impl BeatValue {
 /// each beat takes a half-second (120 beats/minute, 60 seconds/minute -> 120/60
 /// beats/second = 60/120 seconds/beat), and a measure takes four beats (4
 /// beats/measure * 1/2 seconds/beat = 4/2 seconds/measure).
-#[derive(Clone, Control, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Control, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TimeSignature {
     /// The number of beats in a measure.
     #[control]

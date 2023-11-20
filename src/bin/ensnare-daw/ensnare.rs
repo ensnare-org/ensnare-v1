@@ -4,7 +4,7 @@
 
 use crate::{
     menu::{MenuBar, MenuBarAction},
-    project::InMemoryProject,
+    project::DawProject,
     settings::{Settings, SettingsPanel},
 };
 use crossbeam_channel::{Select, Sender};
@@ -19,7 +19,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
-use std::{ops::DerefMut, sync::Arc};
+use std::{ops::DerefMut, path::PathBuf, sync::Arc};
 
 // TODO: clean these up. An app should need to use only the top ensnare crate,
 // and ideally it can get by with just importing prelude::*.
@@ -28,16 +28,30 @@ use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use ensnare_orchestration::{egui::entity_palette, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 
+#[allow(dead_code)]
+#[derive(Debug, derive_more::Display)]
+enum LoadError {
+    Todo,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, derive_more::Display)]
+enum SaveError {
+    Todo,
+}
+
 enum EnsnareMessage {
     MidiPanelEvent(MidiPanelEvent),
     AudioPanelEvent(AudioPanelEvent),
     OrchestratorEvent(OrchestratorEvent),
+    ProjectLoaded(Result<DawProject, LoadError>),
+    ProjectSaved(Result<PathBuf, SaveError>),
 }
 
 pub(super) struct Ensnare {
     event_channel: ChannelPair<EnsnareMessage>,
 
-    project: InMemoryProject,
+    project: DawProject,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
@@ -83,7 +97,7 @@ impl Ensnare {
         Self::initialize_style(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
-        let project = InMemoryProject::default();
+        let project = DawProject::default();
         let orchestrator = Arc::clone(&project.orchestrator);
         let settings = Settings::load().unwrap_or_default();
         let keyboard_events_sender = orchestrator
@@ -354,6 +368,50 @@ impl Ensnare {
                             // No special UI needed for this.
                         }
                     },
+                    EnsnareMessage::ProjectLoaded(result) => match result {
+                        Ok(project) => {
+                            self.project = project;
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Success,
+                                text: format!(
+                                    "Loaded {} from {}",
+                                    self.project.title,
+                                    self.project.load_path.as_ref().unwrap().display()
+                                )
+                                .into(),
+                                options: ToastOptions::default()
+                                    .duration_in_seconds(2.0)
+                                    .show_progress(false),
+                            });
+                        }
+                        Err(err) => {
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Error,
+                                text: format!("Error loading {}", err).into(),
+                                options: ToastOptions::default().duration_in_seconds(5.0),
+                            });
+                        }
+                    },
+                    EnsnareMessage::ProjectSaved(result) => match result {
+                        Ok(save_path) => {
+                            // TODO: this should happen only if the save operation was
+                            // explicit. Autosaves should be invisible.
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Success,
+                                text: format!("Saved to {}", save_path.display()).into(),
+                                options: ToastOptions::default()
+                                    .duration_in_seconds(1.0)
+                                    .show_progress(false),
+                            });
+                        }
+                        Err(err) => {
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Error,
+                                text: format!("Error saving {}", err).into(),
+                                options: ToastOptions::default().duration_in_seconds(5.0),
+                            });
+                        }
+                    },
                 }
             } else {
                 break;
@@ -396,9 +454,18 @@ impl Ensnare {
         let input = match action {
             ControlBarAction::Play => Some(OrchestratorInput::ProjectPlay),
             ControlBarAction::Stop => Some(OrchestratorInput::ProjectStop),
-            ControlBarAction::New => Some(OrchestratorInput::ProjectNew),
-            ControlBarAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
-            ControlBarAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
+            ControlBarAction::New => {
+                self.handle_project_new();
+                None
+            }
+            ControlBarAction::Open(path) => {
+                self.handle_project_load(Some(path));
+                None
+            }
+            ControlBarAction::Save(path) => {
+                self.handle_project_save(Some(path));
+                None
+            }
             ControlBarAction::ToggleSettings => {
                 self.is_settings_panel_open = !self.is_settings_panel_open;
                 None
@@ -537,9 +604,15 @@ impl Ensnare {
         if let Some(action) = action {
             match action {
                 MenuBarAction::Quit => self.exit_requested = true,
-                MenuBarAction::ProjectNew => todo!(),
-                MenuBarAction::ProjectOpen => todo!(),
-                MenuBarAction::ProjectSave => todo!(),
+                MenuBarAction::ProjectNew => {
+                    self.handle_project_new();
+                }
+                MenuBarAction::ProjectOpen => {
+                    self.handle_project_load(Some(PathBuf::from("ensnare-project.json")));
+                }
+                MenuBarAction::ProjectSave => {
+                    self.handle_project_save(None);
+                }
                 MenuBarAction::TrackNewMidi => todo!(),
                 MenuBarAction::TrackNewAudio => todo!(),
                 MenuBarAction::TrackNewAux => todo!(),
@@ -549,6 +622,29 @@ impl Ensnare {
                 MenuBarAction::TrackAddThing(_) => todo!(),
                 MenuBarAction::ComingSoon => todo!(),
             }
+        }
+    }
+
+    fn handle_project_new(&mut self) {
+        self.project = DawProject::default();
+    }
+
+    fn handle_project_save(&mut self, path: Option<PathBuf>) {
+        if let Ok(save_path) = self.project.save(path) {
+            let _ = self
+                .event_channel
+                .sender
+                .send(EnsnareMessage::ProjectSaved(Ok(save_path)));
+        }
+    }
+
+    fn handle_project_load(&mut self, path: Option<PathBuf>) {
+        // TODO: pop up chooser if needed
+        if let Ok(project) = DawProject::load(path.unwrap()) {
+            let _ = self
+                .event_channel
+                .sender
+                .send(EnsnareMessage::ProjectLoaded(Ok(project)));
         }
     }
 

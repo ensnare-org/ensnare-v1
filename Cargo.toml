@@ -17,6 +17,7 @@ version = "0.0.2"
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
 eframe = "0.24"
+derive_more = "0.99.17"
 egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
 egui_extras = { version = "0.24", features = ["all_loaders"] }
 ensnare-core = { path = "core" }

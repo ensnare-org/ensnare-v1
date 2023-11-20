@@ -3,7 +3,7 @@
 //! The `render` example generates a WAV file from a serialized [Project].
 
 use clap::Parser;
-use ensnare::{prelude::*, Project};
+use ensnare::{arrangement::ProjectTitle, prelude::*, Project};
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -24,6 +24,19 @@ struct Args {
     version: bool,
 }
 
+struct RenderProject {
+    title: ProjectTitle,
+    orchestrator: Orchestrator,
+}
+impl From<Project> for RenderProject {
+    fn from(project: Project) -> Self {
+        Self {
+            title: project.title,
+            orchestrator: Orchestrator::default(), // TODO
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -31,7 +44,11 @@ fn main() -> anyhow::Result<()> {
         match std::fs::File::open(input_filename.clone()) {
             Ok(f) => match serde_json::from_reader::<_, Project>(std::io::BufReader::new(f)) {
                 Ok(project) => {
-                    let (mut orchestrator, _title) = project.deserialize()?;
+                    let mut render_project: RenderProject = project.into();
+                    eprintln!(
+                        "Successfully read {} from {}",
+                        render_project.title, input_filename
+                    );
                     if args.wav {
                         let re = regex::Regex::new(r"\.json$").unwrap();
                         let output_filename = re.replace(&input_filename, ".wav");
@@ -39,7 +56,8 @@ fn main() -> anyhow::Result<()> {
                             panic!("would overwrite input file; couldn't generate output filename");
                         }
                         let output_path = std::path::PathBuf::from(output_filename.to_string());
-                        let mut helper = OrchestratorHelper::new_with(&mut orchestrator);
+                        let mut helper =
+                            OrchestratorHelper::new_with(&mut render_project.orchestrator);
                         if let Err(e) = helper.write_to_file(&output_path) {
                             eprintln!(
                                 "error while writing {input_filename} render to {}: {e:?}",

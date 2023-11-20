@@ -3,7 +3,7 @@
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use eframe::egui::Id;
-use ensnare::arrangement::ProjectTitle;
+use ensnare::{arrangement::ProjectTitle, Project};
 use ensnare_core::{
     controllers::ControlTripBuilder,
     piano_roll::{PatternUid, PianoRoll},
@@ -16,12 +16,25 @@ use ensnare_entities::controllers::{ControlTrip, LivePatternSequencer, Sequencer
 use ensnare_orchestration::{traits::Orchestrates, DescribesProject, Orchestrator};
 use std::{
     collections::HashMap,
+    path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
 
+/// An in-memory representation of the project. Explicitly meant *not* to be
+/// #[derive(Serialize, Deserialize)]. Complemented by [Project], which *is*
+/// #[derive(Serialize, Deserialize)] and hopefully moves more slowly.
+///
+/// [DawProject] is located within the `ensnare-daw` app module, whereas
+/// [Project] is in the top-level crate. This difference is meant to indicate
+/// that [Project] should be the serialization format for multiple applications
+/// (such as the `render` example), while [DawProject] is just for the DAW app.
 #[derive(Debug)]
-pub(super) struct InMemoryProject {
+pub(super) struct DawProject {
     pub(super) title: ProjectTitle,
+
+    // If present, then this is the path that was used to load this project from
+    // disk.
+    pub(super) load_path: Option<PathBuf>,
     pub(super) orchestrator: Arc<Mutex<Orchestrator>>,
     pub(super) piano_roll: Arc<RwLock<PianoRoll>>,
 
@@ -36,10 +49,11 @@ pub(super) struct InMemoryProject {
     pub(super) detail_title: String,
     pub(super) detail_uid: Option<Uid>,
 }
-impl Default for InMemoryProject {
+impl Default for DawProject {
     fn default() -> Self {
         let mut r = Self {
             title: Default::default(),
+            load_path: Default::default(),
             orchestrator: Default::default(),
             piano_roll: Default::default(),
             view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(4 * 4)),
@@ -56,7 +70,7 @@ impl Default for InMemoryProject {
         r
     }
 }
-impl DescribesProject for InMemoryProject {
+impl DescribesProject for DawProject {
     fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
         self.track_titles.get(track_uid)
     }
@@ -69,7 +83,7 @@ impl DescribesProject for InMemoryProject {
         }
     }
 }
-impl InMemoryProject {
+impl DawProject {
     /// Adds a set of tracks that make sense for a new project.
     pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
         if !self.orchestrator.lock().unwrap().track_uids.is_empty() {
@@ -212,5 +226,112 @@ impl InMemoryProject {
         self.detail_is_visible = true;
         self.detail_title = name;
         self.detail_uid = Some(uid);
+    }
+
+    pub(crate) fn load(path: PathBuf) -> anyhow::Result<Self> {
+        let json = std::fs::read_to_string(&path)?;
+        let project = serde_json::from_str::<Project>(&json)?;
+        let mut daw_project: DawProject = (&project).into();
+        daw_project.load_path = Some(path);
+        Ok(daw_project)
+    }
+
+    pub(crate) fn save(&self, path: Option<PathBuf>) -> anyhow::Result<PathBuf> {
+        let save_path = {
+            if let Some(path) = path.as_ref() {
+                path.clone()
+            } else if let Some(path) = self.load_path.as_ref() {
+                path.clone()
+            } else {
+                PathBuf::from("ensnare-project.json")
+            }
+        };
+
+        let project: Project = self.into();
+        let json = serde_json::to_string_pretty(&project)?;
+        std::fs::write(&save_path, json)?;
+        Ok(save_path)
+    }
+}
+
+impl From<&DawProject> for Project {
+    fn from(src: &DawProject) -> Self {
+        let mut dst = Project::default();
+        if let Ok(src_orchestrator) = src.orchestrator.lock() {
+            dst.title = src.title.clone();
+            dst.tempo = src_orchestrator.transport.tempo;
+            dst.time_signature = src_orchestrator.transport.time_signature();
+        }
+        dst
+    }
+}
+impl From<&Project> for DawProject {
+    fn from(src: &Project) -> Self {
+        let mut dst = DawProject::default();
+        if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
+            dst.title = src.title.clone();
+            dst_orchestrator.transport.tempo = src.tempo;
+            dst_orchestrator
+                .transport
+                .update_time_signature(src.time_signature);
+        }
+
+        dst
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ensnare::Project;
+
+    struct OrchestratorWrapper<'a>(&'a Orchestrator);
+    impl<'a> OrchestratorWrapper<'a> {
+        fn debug_eq(&self, other: &Self) -> bool {
+            if self.0.tempo() != other.0.tempo() {
+                return false;
+            }
+            if self.0.time_signature() != other.0.time_signature() {
+                return false;
+            }
+            if self.0.time_range() != other.0.time_range() {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    impl DawProject {
+        fn debug_eq(&self, other: &Self) -> bool {
+            if self.title != other.title {
+                return false;
+            }
+            if let Ok(o) = self.orchestrator.lock() {
+                if let Ok(other_o) = other.orchestrator.lock() {
+                    let o = OrchestratorWrapper(&o);
+                    let other_o = OrchestratorWrapper(&other_o);
+                    if !o.debug_eq(&other_o) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
+    #[test]
+    fn identity_starting_with_in_memory() {
+        let src = DawProject::default();
+        let dst: Project = <&DawProject>::into(&src);
+        let src_copy: DawProject = <&Project>::into(&dst);
+        assert!(src.debug_eq(&src_copy));
+    }
+
+    #[test]
+    fn identity_starting_with_serialized() {
+        let src = Project::default();
+        let dst: DawProject = <&Project>::into(&src);
+        let src_copy: Project = <&DawProject>::into(&dst);
+        assert_eq!(src, src_copy);
     }
 }

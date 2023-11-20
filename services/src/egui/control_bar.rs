@@ -107,7 +107,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .clicked()
             {
                 *self.action = Some(ControlBarAction::Open(PathBuf::from(
-                    "my-ensnare-project.json",
+                    "ensnare-project.json",
                 )));
             }
             if ui
@@ -121,7 +121,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .clicked()
             {
                 *self.action = Some(ControlBarAction::Save(PathBuf::from(
-                    "my-ensnare-project.json",
+                    "ensnare-project.json",
                 )));
             }
             ui.separator();

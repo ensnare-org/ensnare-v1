@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_orchestration::orchestration::Orchestrator;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// A user-visible project title.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derive_more::Display, PartialEq, Serialize, Deserialize)]
 pub struct ProjectTitle(String);
 impl Default for ProjectTitle {
     fn default() -> Self {
@@ -22,25 +22,17 @@ impl From<&str> for ProjectTitle {
     }
 }
 
-/// A serializable representation of a project.
-#[derive(Debug, Default, Serialize, Deserialize)]
+/// A serializable representation of a project. Most applications that use
+/// [Project] will need to create `From` implementations to/from their own
+/// custom representation of the data contained within it.
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct Project {
-    title: String,
-}
-impl Project {
-    /// Returns the in-memory components that make up a [Project].
-    pub fn deserialize(&self) -> anyhow::Result<(Orchestrator, ProjectTitle)> {
-        anyhow::Ok((
-            Orchestrator::default(),
-            ProjectTitle::from(self.title.as_str()),
-        ))
-    }
+    /// The user-visible title of this project. Used only for display.
+    pub title: ProjectTitle,
 
-    /// Creates a new [Project] from the given components.
-    pub fn serialize(_orchestrator: &Orchestrator, title: &ProjectTitle) -> anyhow::Result<Self> {
-        let r = Self {
-            title: title.0.clone(),
-        };
-        Ok(r)
-    }
+    /// The project's global [Tempo].
+    pub tempo: Tempo,
+
+    /// The project's global [TimeSignature].
+    pub time_signature: TimeSignature,
 }
