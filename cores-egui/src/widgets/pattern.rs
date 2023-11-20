@@ -2,7 +2,7 @@
 
 use super::parts::MIDI_NOTE_F32_RANGE;
 use eframe::{
-    egui::{Id as EguiId, ImageButton, Widget},
+    egui::{Id as EguiId, Image, ImageButton, Widget},
     emath::RectTransform,
     epaint::{pos2, RectShape, Shape, Vec2},
 };
@@ -140,8 +140,10 @@ impl DraggableIcon {
 impl eframe::egui::Widget for DraggableIcon {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size * Vec2::splat(1.25);
-        let icon =
-            eframe::egui::include_image!("../../../res/images/md-symbols/drag_indicator.png");
+        let icon = Image::new(eframe::egui::include_image!(
+            "../../../res/images/md-symbols/drag_indicator.png"
+        ))
+        .fit_to_original_size(1.0);
         ui.add_sized(desired_size, ImageButton::new(icon))
 
         // response

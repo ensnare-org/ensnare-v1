@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use eframe::egui::{ImageButton, Widget};
+use eframe::egui::{Image, ImageButton, Widget};
 use ensnare_core::uid::{TrackUid, Uid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use strum_macros::Display;
@@ -71,7 +71,15 @@ impl<'a> Widget for NewSignalChainWidget<'a> {
                         });
                     let _ = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
                         (
-                            ui.add_enabled(false, eframe::egui::Button::new("Drag Items Here")),
+                            ui.add_enabled(
+                                false,
+                                ImageButton::new(
+                                    Image::new(eframe::egui::include_image!(
+                                        "../../../res/images/md-symbols/playlist_add_circle.png"
+                                    ))
+                                    .fit_to_original_size(1.0),
+                                ),
+                            ),
                             DropTarget::Track(self.track_uid),
                         )
                     })
@@ -108,9 +116,10 @@ impl Widget for SignalItem {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.is_control_source {
             ui.horizontal(|ui| {
-                let icon = eframe::egui::include_image!(
+                let icon = Image::new(eframe::egui::include_image!(
                     "../../../res/images/md-symbols/drag_indicator.png"
-                );
+                ))
+                .fit_to_original_size(1.0);
                 let response = ui.button(&self.name);
                 DragDropManager::drag_source(
                     ui,
