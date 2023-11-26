@@ -781,7 +781,7 @@ impl MiniDaw {
             Self::APP_NAME,
             <ProjectTitle as Into<String>>::into(self.title.clone())
         );
-        frame.set_window_title(&full_title);
+        // 0.24        frame.set_window_title(&full_title);
     }
 
     fn show_settings_panel(&mut self, ctx: &Context) {
@@ -842,7 +842,7 @@ impl eframe::App for MiniDaw {
         self.show_settings_panel(ctx);
 
         if self.exit_requested {
-            frame.close();
+            // 0.24            frame.close();
         }
     }
 
@@ -857,10 +857,7 @@ impl eframe::App for MiniDaw {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1366.0, 768.0)),
-        ..Default::default()
-    };
+    let options = eframe::NativeOptions::default();
 
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);

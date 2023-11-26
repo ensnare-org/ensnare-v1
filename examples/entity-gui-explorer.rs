@@ -180,10 +180,7 @@ impl eframe::App for EntityGuiExplorer {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1366.0, 768.0)),
-        ..Default::default()
-    };
+    let options = eframe::NativeOptions::default();
 
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().

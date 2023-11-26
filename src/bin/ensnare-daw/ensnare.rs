@@ -10,10 +10,10 @@ use crate::{
 use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
-        CentralPanel, Context, Direction, Event, FontData, FontDefinitions, Layout, Modifiers,
-        ScrollArea, SidePanel, TextStyle, TopBottomPanel,
+        CentralPanel, Context, Event, FontData, FontDefinitions, Layout, Modifiers, ScrollArea,
+        SidePanel, TextStyle, TopBottomPanel,
     },
-    emath::{Align, Align2},
+    emath::Align,
     epaint::{Color32, FontFamily, FontId},
     App, CreationContext,
 };
@@ -107,8 +107,8 @@ impl Ensnare {
                 Some(sample_buffer_sender),
             ),
             toasts: Toasts::new()
-                .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
-                .direction(Direction::BottomUp),
+                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
+                .direction(eframe::egui::Direction::BottomUp),
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
             keyboard_events_sender,
@@ -604,7 +604,7 @@ impl App for Ensnare {
 
         // TODO - too much work
         let project_title_str: String = self.project.title.clone().into();
-        frame.set_window_title(project_title_str.as_str());
+//        frame.set_window_title(project_title_str.as_str());
 
         let top = TopBottomPanel::top("top-panel")
             .resizable(false)
@@ -643,7 +643,7 @@ impl App for Ensnare {
         self.check_drag_and_drop();
 
         if self.exit_requested {
-            frame.close();
+         //   frame.close();
         }
     }
 

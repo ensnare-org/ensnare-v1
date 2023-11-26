@@ -77,10 +77,8 @@ impl eframe::App for CalculatorApp {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(348.0, 576.0)),
-        ..Default::default()
-    };
+    let options = eframe::NativeOptions::default();
+    //        initial_window_size: Some(eframe::egui::vec2(348.0, 576.0)),
 
     if let Err(e) = eframe::run_native(
         CalculatorApp::APP_NAME,

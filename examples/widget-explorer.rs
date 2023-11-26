@@ -872,10 +872,7 @@ impl eframe::App for WidgetExplorer {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1366.0, 768.0)),
-        ..Default::default()
-    };
+    let options = eframe::NativeOptions::default();
 
     let mut factory = EntityFactory::default();
     register_factory_entities(&mut factory);

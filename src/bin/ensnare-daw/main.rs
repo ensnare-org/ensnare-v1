@@ -13,10 +13,7 @@ mod settings;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(1366.0, 768.0)),
-        ..Default::default()
-    };
+    let options = eframe::NativeOptions::default();
 
     if let Err(e) = eframe::run_native(
         Ensnare::NAME,
