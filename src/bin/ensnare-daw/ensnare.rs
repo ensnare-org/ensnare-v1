@@ -604,7 +604,7 @@ impl App for Ensnare {
 
         // TODO - too much work
         let project_title_str: String = self.project.title.clone().into();
-//        frame.set_window_title(project_title_str.as_str());
+        //        frame.set_window_title(project_title_str.as_str());
 
         let top = TopBottomPanel::top("top-panel")
             .resizable(false)
@@ -643,7 +643,7 @@ impl App for Ensnare {
         self.check_drag_and_drop();
 
         if self.exit_requested {
-         //   frame.close();
+            //   frame.close();
         }
     }
 
