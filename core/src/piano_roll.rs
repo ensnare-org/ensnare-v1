@@ -148,11 +148,11 @@ impl PatternBuilder {
     fn random(&mut self) -> &mut Self {
         let mut rng = Rng::default();
 
-        for _ in 0..rng.0.rand_range(8..16) {
-            let start = MusicalTime::new_with_parts(rng.0.rand_range(0..64) as usize);
+        for _ in 0..rng.rand_range(8..16) {
+            let start = MusicalTime::new_with_parts(rng.rand_range(0..64) as usize);
             let duration = Self::DURATION;
             self.note(Note {
-                key: rng.0.rand_range(32..96) as u8,
+                key: rng.rand_range(32..96) as u8,
                 range: TimeRange(start..start + duration),
             });
         }

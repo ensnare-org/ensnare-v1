@@ -275,7 +275,7 @@ mod tests {
         // We should keep getting back what we put in.
         let mut rng = Rng::default();
         for i in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            let random_bipolar_normal = rng.0.rand_float() * 2.0 - 1.0;
+            let random_bipolar_normal = rng.rand_float() * 2.0 - 1.0;
             let sample = Sample::from(random_bipolar_normal);
             assert_eq!(
                 fx.transform_channel(0, sample),

@@ -28,7 +28,7 @@ pub mod tests {
         let mut rng = Rng::default();
 
         for _ in 0..100 {
-            instrument.tick(rng.0.rand_range(1..10) as usize);
+            instrument.tick(rng.rand_range(1..10) as usize);
             let _ = instrument.value();
         }
     }

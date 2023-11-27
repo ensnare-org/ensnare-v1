@@ -74,7 +74,7 @@ impl CircularSampleBuffer {
     /// TODO remove - temp for development
     pub fn add_some_noise(&mut self) {
         let new_samples: Vec<Sample> = (0..8)
-            .map(|_| Sample::from(Normal::from(self.rng.0.rand_u64() as f64 / u64::MAX as f64)))
+            .map(|_| Sample::from(Normal::from(self.rng.rand_u64() as f64 / u64::MAX as f64)))
             .collect();
         self.push(&new_samples);
     }
@@ -113,7 +113,7 @@ pub fn init_random_samples() -> [Sample; 256] {
     let mut r = [Sample::default(); 256];
     let mut rng = Rng::default();
     for s in &mut r {
-        let value = rng.0.rand_float().fract() * 2.0 - 1.0;
+        let value = rng.rand_float().fract() * 2.0 - 1.0;
         *s = Sample::from(value);
     }
     r

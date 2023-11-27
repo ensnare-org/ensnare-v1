@@ -153,16 +153,16 @@ impl ControlTripBuilder {
         let mut rng = Rng::default();
 
         let mut pos = start;
-        for _ in 0..rng.0.rand_range(5..8) {
+        for _ in 0..rng.rand_range(5..8) {
             self.step(
                 ControlStepBuilder::default()
                     .time(pos)
                     .path(ControlTripPath::Flat)
-                    .value(ControlValue(rng.0.rand_float()))
+                    .value(ControlValue(rng.rand_float()))
                     .build()
                     .unwrap(),
             );
-            pos += MusicalTime::new_with_beats(rng.0.rand_range(4..12) as usize);
+            pos += MusicalTime::new_with_beats(rng.rand_range(4..12) as usize);
         }
         self
     }
