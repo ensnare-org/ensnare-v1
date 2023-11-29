@@ -16,36 +16,12 @@ use crate::{
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        Configurable, ControlEventsFn, Controllable, Controls, EntityEvent, Generates,
+        Configurable, ControlEventsFn, Controllable, Controls, Generates,
         GeneratesToInternalBuffer, HandlesMidi, HasSettings, IsStereoSampleVoice, IsVoice,
         MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks, TimeRange,
-        TransformsAudio,
+        TransformsAudio, WorkEvent,
     };
 }
-
-#[allow(missing_docs)]
-pub trait MessageBounds: std::fmt::Debug + Send {}
-
-/// [Entities](Entity) produce these events to communicate with other Entities.
-/// Only the system receives [EntityEvent]s; rather than forwarding them
-/// directly, the system converts them into something else.
-#[derive(Clone, Debug)]
-pub enum EntityEvent {
-    /// A MIDI message sent to a channel. Controllers produce this message, and
-    /// the system transforms it into one or more
-    /// [HandlesMidi::handle_midi_message()] calls to route it to instruments or
-    /// other controllers.
-    Midi(MidiChannel, MidiMessage),
-
-    /// A control event. Indicates that the sender's value has changed, and that
-    /// subscribers should receive the update. This is how we perform
-    /// automation: a controller produces a [EntityEvent::Control] message, and
-    /// the system transforms it into [Controllable::control_set_param_by_index]
-    /// method calls to inform subscribing [Entities](Entity) that their linked
-    /// parameters should change.
-    Control(ControlValue),
-}
-impl MessageBounds for EntityEvent {}
 
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
@@ -174,7 +150,31 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
     fn tick(&mut self, tick_count: usize) {}
 }
 
-pub type ControlEventsFn<'a> = dyn FnMut(EntityEvent) + 'a;
+#[allow(missing_docs)]
+pub trait MessageBounds: std::fmt::Debug + Send {}
+
+/// Implementers of [Controls] produce these events. Only the system receives
+/// them; rather than forwarding them directly, the system converts them into
+/// something else that might then get forwarded to recipients.
+#[derive(Clone, Debug)]
+pub enum WorkEvent {
+    /// A MIDI message sent to a channel. Controllers produce this message, and
+    /// the system transforms it into one or more
+    /// [HandlesMidi::handle_midi_message()] calls to route it to instruments or
+    /// other controllers.
+    Midi(MidiChannel, MidiMessage),
+
+    /// A control event. Indicates that the sender's value has changed, and that
+    /// subscribers should receive the update. This is how we perform
+    /// automation: a controller produces a [EntityEvent::Control] message, and
+    /// the system transforms it into [Controllable::control_set_param_by_index]
+    /// method calls to inform subscribing [Entities](Entity) that their linked
+    /// parameters should change.
+    Control(ControlValue),
+}
+impl MessageBounds for WorkEvent {}
+
+pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TimeRange(pub std::ops::Range<MusicalTime>);
@@ -229,7 +229,7 @@ pub trait Controls: Send {
     }
 }
 
-pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, EntityEvent) + 'a;
+pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, WorkEvent) + 'a;
 
 #[allow(unused_variables)]
 pub trait ControlsAsProxy: Controls {

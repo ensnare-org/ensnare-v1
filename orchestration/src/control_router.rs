@@ -11,7 +11,7 @@ use ensnare_core::prelude::*;
 /// them means that the cutoff should follow the LFO. When the LFO's value
 /// changes, the synth receives a notification of the new [ControlValue] and
 /// responds by updating its cutoff.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct ControlRouter {
     uid_to_control: std::collections::HashMap<Uid, Vec<(Uid, ControlIndex)>>,
 }

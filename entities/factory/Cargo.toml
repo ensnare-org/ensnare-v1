@@ -19,3 +19,4 @@ ensnare-egui-widgets = { path = "../../egui-widgets" }
 ensnare-entity = { path = "../../entity" }
 ensnare-orchestration = { path = "../../orchestration" }
 ensnare-proc-macros = { path = "../../proc-macros" }
+serde = "1.0.193"

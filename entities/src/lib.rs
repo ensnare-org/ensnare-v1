@@ -24,7 +24,7 @@ pub mod piano_roll {
     pub use ensnare_entities_factory::piano_roll::PianoRoll;
 }
 
-pub use ensnare_entities_factory::register_factory_entities;
+pub use ensnare_entities_factory::{register_factory_entities, FactoryEntity};
 #[cfg(feature = "test")]
 pub use ensnare_entities_test::register_test_entities;
 

@@ -5,7 +5,7 @@ use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct MidiRouter {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,

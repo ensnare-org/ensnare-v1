@@ -89,6 +89,7 @@ pub mod entities {
     //! [IsInstrument](crate::traits::IsInstrument) (or one of the hybrids of
     //! these traits).
 
+    pub use ensnare_entities::FactoryEntity;
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub mod controllers {
@@ -212,10 +213,10 @@ pub mod traits {
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityEvent,
-            Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
-            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences,
-            Serializable, Ticks,
+            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, Generates,
+            GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings, IsController,
+            IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences, Serializable, Ticks,
+            WorkEvent,
         };
     }
 }
@@ -226,7 +227,7 @@ pub mod types {
         time::{MusicalTime, SampleRate, Tempo, TimeSignature},
         traits::TimeRange,
         types::*,
-        uid::{Uid, UidFactory},
+        uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
     };
     pub use ensnare_egui_widgets::ViewRange;
 
@@ -234,7 +235,8 @@ pub mod types {
     pub mod prelude {
         pub use super::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, Uid, UidFactory, ViewRange,
+            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, TrackUid, TrackUidFactory,
+            Uid, UidFactory, ViewRange,
         };
     }
 }
@@ -265,8 +267,9 @@ pub mod utils {
 pub use project::Project;
 pub use version::app_version;
 
-mod project;
 mod version;
+
+pub mod project;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.

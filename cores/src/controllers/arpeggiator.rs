@@ -17,6 +17,8 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     FromRepr,
     IntoStaticStr,
     PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
 )]
 pub enum ArpeggioMode {
     #[default]
@@ -37,7 +39,7 @@ pub struct Arpeggiator {
     is_sequencer_enabled: bool,
 
     #[params]
-    bpm: ParameterType,
+    pub bpm: ParameterType,
 
     #[params(leaf = true)]
     pub mode: ArpeggioMode,

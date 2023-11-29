@@ -8,7 +8,7 @@ use ensnare::{
     arrangement::{Orchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
-    traits::{Displays, EntityEvent, HasSettings},
+    traits::{Displays, HasSettings, WorkEvent},
     types::Sample,
     ui::widgets::{audio_settings, midi_settings},
 };
@@ -125,7 +125,7 @@ impl SettingsPanel {
                         sample_buffer_sender.clone(),
                     );
                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
-                        if let EntityEvent::Midi(channel, message) = event {
+                        if let WorkEvent::Midi(channel, message) = event {
                             let _ = midi_service_sender
                                 .send(MidiInterfaceInput::Midi(channel, message));
                         }

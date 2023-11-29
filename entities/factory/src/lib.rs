@@ -8,7 +8,7 @@ pub mod factory;
 pub mod instruments;
 pub mod piano_roll;
 
-pub use factory::register_factory_entities;
+pub use factory::{register_factory_entities, FactoryEntity};
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

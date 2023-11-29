@@ -4,8 +4,7 @@ use bit_vec::BitVec;
 use ensnare_core::{
     midi::{u7, MidiChannel, MidiMessage},
     traits::{
-        Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
-        TimeRange,
+        Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, TimeRange, WorkEvent,
     },
 };
 use std::fmt::Debug;
@@ -54,7 +53,7 @@ impl Controls for MidiNoteMinder {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         for (i, active_note) in self.active_notes.iter().enumerate() {
             if active_note {
-                control_events_fn(EntityEvent::Midi(
+                control_events_fn(WorkEvent::Midi(
                     MidiChannel::default(),
                     MidiMessage::NoteOff {
                         key: u7::from_int_lossy(i as u8),
@@ -76,8 +75,8 @@ pub mod tests {
     fn gather_all_messages(mnm: &mut MidiNoteMinder) -> Vec<MidiMessage> {
         let mut v = Vec::default();
         mnm.work(&mut |e| match e {
-            EntityEvent::Midi(_, message) => v.push(message),
-            EntityEvent::Control(_) => panic!("didn't expect a Control event here"),
+            WorkEvent::Midi(_, message) => v.push(message),
+            WorkEvent::Control(_) => panic!("didn't expect a Control event here"),
         });
         v
     }

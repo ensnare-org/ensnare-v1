@@ -356,7 +356,7 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
     pub uids_to_patterns: HashMap<PatternUid, Pattern>,

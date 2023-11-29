@@ -3,22 +3,26 @@
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use eframe::egui::Id;
-use ensnare::{arrangement::ProjectTitle, Project};
+use ensnare::{arrangement::ProjectTitle, project::TrackInfo, Project};
 use ensnare_core::{
     controllers::ControlTripBuilder,
     piano_roll::{PatternUid, PianoRoll},
     prelude::*,
     types::TrackTitle,
+    uid::EntityUidFactory,
 };
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
 use ensnare_entities::controllers::{ControlTrip, LivePatternSequencer, SequencerInput};
+use ensnare_entity::factory::EntityFactory;
 use ensnare_orchestration::{traits::Orchestrates, DescribesProject, Orchestrator};
 use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
+
+use crate::entities::EntityParams;
 
 /// An in-memory representation of the project. Explicitly meant *not* to be
 /// #[derive(Serialize, Deserialize)]. Complemented by [Project], which *is*
@@ -51,7 +55,7 @@ pub(super) struct DawProject {
 }
 impl Default for DawProject {
     fn default() -> Self {
-        let mut r = Self {
+        Self {
             title: Default::default(),
             load_path: Default::default(),
             orchestrator: Default::default(),
@@ -64,10 +68,7 @@ impl Default for DawProject {
             detail_is_visible: Default::default(),
             detail_title: Default::default(),
             detail_uid: Default::default(),
-        };
-        let _ = r.create_starter_tracks();
-        r.switch_to_next_frontmost_timeline_displayer();
-        r
+        }
     }
 }
 impl DescribesProject for DawProject {
@@ -83,7 +84,30 @@ impl DescribesProject for DawProject {
         }
     }
 }
+impl PartialEq for DawProject {
+    fn eq(&self, other: &Self) -> bool {
+        self.title == other.title
+            && self.load_path == other.load_path
+            && *self.orchestrator.lock().unwrap() == *other.orchestrator.lock().unwrap()
+            && *self.piano_roll.read().unwrap() == *other.piano_roll.read().unwrap()
+            && self.view_range == other.view_range
+            && self.track_titles == other.track_titles
+            && self.track_frontmost_uids == other.track_frontmost_uids
+            && self.is_piano_roll_visible == other.is_piano_roll_visible
+            && self.detail_is_visible == other.detail_is_visible
+            && self.detail_title == other.detail_title
+            && self.detail_uid == other.detail_uid
+    }
+}
 impl DawProject {
+    /// Starts with a default project and configures for easy first use.
+    pub fn new_project() -> Self {
+        let mut r = Self::default();
+        let _ = r.create_starter_tracks();
+        r.switch_to_next_frontmost_timeline_displayer();
+        r
+    }
+
     /// Adds a set of tracks that make sense for a new project.
     pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
         if !self.orchestrator.lock().unwrap().track_uids.is_empty() {
@@ -261,6 +285,28 @@ impl From<&DawProject> for Project {
             dst.title = src.title.clone();
             dst.tempo = src_orchestrator.transport.tempo;
             dst.time_signature = src_orchestrator.transport.time_signature();
+            dst.entity_uid_factory_next_uid = src_orchestrator.entity_uid_factory.peek_next();
+            dst.track_uid_factory_next_uid = src_orchestrator.track_uid_factory.peek_next();
+            let track_uids = src_orchestrator.track_uids.clone();
+
+            track_uids.iter().for_each(|track_uid| {
+                let dst_entities = dst.entities.entry(*track_uid).or_default();
+                if let Some(entities) = src_orchestrator.entities_for_track.get(track_uid) {
+                    entities.iter().for_each(|uid| {
+                        if let Some(entity) = src_orchestrator.get_entity(uid) {
+                            let params: Box<EntityParams> = entity.try_into().unwrap();
+                            dst_entities.push((*uid, params));
+                        }
+                    })
+                }
+            });
+            dst.tracks = track_uids.iter().fold(Vec::default(), |mut v, track_uid| {
+                v.push(TrackInfo {
+                    uid: *track_uid,
+                    title: src.track_titles.get(track_uid).unwrap().clone(),
+                });
+                v
+            });
         }
         dst
     }
@@ -270,10 +316,28 @@ impl From<&Project> for DawProject {
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
             dst.title = src.title.clone();
-            dst_orchestrator.transport.tempo = src.tempo;
-            dst_orchestrator
-                .transport
-                .update_time_signature(src.time_signature);
+            dst_orchestrator.update_tempo(src.tempo);
+            dst_orchestrator.update_time_signature(src.time_signature);
+            dst_orchestrator.entity_uid_factory =
+                EntityUidFactory::new(src.entity_uid_factory_next_uid);
+            dst_orchestrator.track_uid_factory =
+                TrackUidFactory::new(src.track_uid_factory_next_uid);
+            src.tracks.iter().for_each(|track_info| {
+                let _ = dst_orchestrator.create_track_with_uid(track_info.uid);
+                dst.track_titles
+                    .insert(track_info.uid, track_info.title.clone());
+            });
+            src.entities.keys().for_each(|track_uid| {
+                src.entities
+                    .get(track_uid)
+                    .unwrap()
+                    .iter()
+                    .for_each(|(uid, key)| {
+                        if let Some(entity) = EntityFactory::global().new_entity(key, *uid) {
+                            let _ = dst_orchestrator.add_entity(track_uid, entity);
+                        }
+                    })
+            });
         }
 
         dst
@@ -283,21 +347,19 @@ impl From<&Project> for DawProject {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare::Project;
+    use ensnare_core::rng::Rng;
+    use ensnare_entities::register_factory_entities;
+    use std::sync::Arc;
 
-    struct OrchestratorWrapper<'a>(&'a Orchestrator);
-    impl<'a> OrchestratorWrapper<'a> {
-        fn debug_eq(&self, other: &Self) -> bool {
-            if self.0.tempo() != other.0.tempo() {
-                return false;
-            }
-            if self.0.time_signature() != other.0.time_signature() {
-                return false;
-            }
-            if self.0.time_range() != other.0.time_range() {
-                return false;
-            }
-            return true;
+    #[derive(Debug, PartialEq)]
+    struct OrchestratorWrapper(pub Orchestrator);
+    impl OrchestratorWrapper {
+        fn test_random() -> Self {
+            let mut rng = Rng::default();
+            let mut o = Orchestrator::default();
+            o.update_sample_rate(SampleRate(rng.rand_range(11000..30000) as usize));
+
+            Self(o)
         }
     }
 
@@ -306,22 +368,51 @@ mod tests {
             if self.title != other.title {
                 return false;
             }
-            if let Ok(o) = self.orchestrator.lock() {
-                if let Ok(other_o) = other.orchestrator.lock() {
-                    let o = OrchestratorWrapper(&o);
-                    let other_o = OrchestratorWrapper(&other_o);
-                    if !o.debug_eq(&other_o) {
-                        return false;
-                    }
-                }
+            if *self.orchestrator.lock().unwrap() != *other.orchestrator.lock().unwrap() {
+                return false;
             }
             return true;
+        }
+
+        fn test_random() -> Self {
+            let mut rng = Rng::default();
+
+            Self {
+                title: ProjectTitle::from(format!("Title {}", rng.rand_u64()).as_str()),
+                load_path: Some(PathBuf::from(
+                    format!("/dev/proc/ouch/{}", rng.rand_u64()).to_string(),
+                )),
+                orchestrator: Arc::new(Mutex::new(OrchestratorWrapper::test_random().0)),
+                view_range: ViewRange(
+                    MusicalTime::new_with_units(rng.rand_range(0..10000) as usize)
+                        ..MusicalTime::new_with_units(rng.rand_range(20000..30000) as usize),
+                ),
+                ..Default::default()
+            }
+        }
+    }
+
+    fn init_factory() {
+        let mut factory = EntityFactory::default();
+        register_factory_entities(&mut factory);
+        if EntityFactory::initialize(factory).is_err() {
+            panic!("Couldn't set EntityFactory once_cell");
         }
     }
 
     #[test]
     fn identity_starting_with_in_memory() {
-        let src = DawProject::default();
+        init_factory();
+        let src = DawProject::new_project();
+        let dst: Project = <&DawProject>::into(&src);
+        let src_copy: DawProject = <&Project>::into(&dst);
+        assert!(src.debug_eq(&src_copy));
+    }
+
+    #[test]
+    fn identity_starting_with_in_memory_nondefault() {
+        init_factory();
+        let src = DawProject::test_random();
         let dst: Project = <&DawProject>::into(&src);
         let src_copy: DawProject = <&Project>::into(&dst);
         assert!(src.debug_eq(&src_copy));
@@ -329,6 +420,7 @@ mod tests {
 
     #[test]
     fn identity_starting_with_serialized() {
+        init_factory();
         let src = Project::default();
         let dst: DawProject = <&Project>::into(&src);
         let src_copy: Project = <&DawProject>::into(&dst);

@@ -27,7 +27,7 @@ impl From<usize> for ControlIndex {
 }
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Display)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Display, serde::Serialize, serde::Deserialize)]
 pub struct ControlValue(pub f64);
 #[allow(missing_docs)]
 impl ControlValue {

@@ -22,7 +22,7 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     EnumIter,
     FromRepr,
     IntoStaticStr,
-    PartialEq,
+    PartialEq, serde::Serialize, serde::Deserialize
 )]
 pub enum Waveform {
     None,

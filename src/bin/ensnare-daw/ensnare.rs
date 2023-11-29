@@ -83,21 +83,12 @@ impl Ensnare {
     const FONT_MONO: &'static str = "font-mono";
 
     pub(super) fn new(cc: &CreationContext) -> Self {
-        let mut factory = EntityFactory::default();
-        register_factory_entities(&mut factory);
-        if EntityFactory::initialize(factory).is_err() {
-            panic!("Couldn't set EntityFactory once_cell");
-        }
-        if DragDropManager::initialize(DragDropManager::default()).is_err() {
-            panic!("Couldn't set DragDropManager once_cell");
-        }
-
         Self::initialize_fonts(&cc.egui_ctx);
         Self::initialize_visuals(&cc.egui_ctx);
         Self::initialize_style(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
-        let project = DawProject::default();
+        let project = DawProject::new_project();
         let orchestrator = Arc::clone(&project.orchestrator);
         let settings = Settings::load().unwrap_or_default();
         let keyboard_events_sender = orchestrator
@@ -626,7 +617,7 @@ impl Ensnare {
     }
 
     fn handle_project_new(&mut self) {
-        self.project = DawProject::default();
+        self.project = DawProject::new_project();
     }
 
     fn handle_project_save(&mut self, path: Option<PathBuf>) {

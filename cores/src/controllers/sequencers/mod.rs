@@ -17,7 +17,7 @@ pub mod tests {
     use ensnare_core::{
         piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
         prelude::*,
-        traits::{EntityEvent, Sequences},
+        traits::{Sequences, WorkEvent},
     };
     use std::sync::{Arc, RwLock};
 
@@ -29,8 +29,8 @@ pub mod tests {
         let mut v = Vec::default();
         sequences.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences.work(&mut |event| match event {
-            EntityEvent::Midi(channel, message) => v.push((channel, message)),
-            EntityEvent::Control(_) => panic!(),
+            WorkEvent::Midi(channel, message) => v.push((channel, message)),
+            WorkEvent::Control(_) => panic!(),
         });
         v
     }
@@ -280,8 +280,8 @@ pub mod tests {
         let mut v = Vec::default();
         sequences_midi.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences_midi.work(&mut |event| match event {
-            EntityEvent::Midi(channel, message) => v.push((channel, message)),
-            EntityEvent::Control(_) => panic!(),
+            WorkEvent::Midi(channel, message) => v.push((channel, message)),
+            WorkEvent::Control(_) => panic!(),
         });
         v
     }

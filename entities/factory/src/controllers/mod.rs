@@ -50,6 +50,23 @@ impl Arpeggiator {
         }
     }
 }
+impl TryFrom<(Uid, &ArpeggiatorParams)> for Arpeggiator {
+    type Error = anyhow::Error;
+
+    fn try_from(value: (Uid, &ArpeggiatorParams)) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value.0, value.1))
+    }
+}
+impl TryFrom<&Arpeggiator> for ArpeggiatorParams {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Arpeggiator) -> Result<Self, Self::Error> {
+        Ok(Self {
+            bpm: value.inner.bpm,
+            mode: value.inner.mode,
+        })
+    }
+}
 
 #[derive(Debug, Default, InnerControls, IsEntity, Metadata)]
 #[entity("controller")]

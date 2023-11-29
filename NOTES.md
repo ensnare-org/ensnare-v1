@@ -371,3 +371,38 @@ It's possible that `InMemoryProject` will become `Orchestrator` v2 in the sense
 that it becomes the dumping ground for all new responsibilities. The "and" in
 the description above is a hint. But I know how to decompose it if that does
 happen.
+
+# 2023-11-28: Serde
+
+I have a spike solution for serializing dyn-trait things. That is relatively
+straightforward. But I don't know how to handle rewiring deserialized structs to
+things like PianoRoll and channels. If there were very few such things, then I
+could add to the Entity trait, but I'm not sure how many there will be.
+
+Things that need extra stuff:
+
+- `LivePatternSequencer`: needs a ref to `PianoRoll` (which could be a
+  per-project global).
+- `Drumkit` needs a ref to `Paths` (which could be a per-project global,
+  possibly a real global).
+- `ControlTrip` needs a ref to `ControlRouter` (which could be a per-project
+  global, possibly per-track).
+
+Options:
+
+1. Design things not to need anything at construction. Not practical.
+2. Trait expands to allow Project to provide common items to everyone as they're
+   constructed. Default does nothing. Concerns about scaling.
+3. Trait defines a single extra method to set up a channel. I think this is the
+   same as #2, but more complicated. Adds the ability to continue to communicate
+   with the struct later on, but I don't know if I actually need that.
+
+Continuing to think about #3, what would that channel look like?
+
+- Give me a ref to `PianoRoll`. Presumably whoever is listening on the other end
+  knows who I am, so if we're ever multi-project, we can return the right one.
+- Give me a ref to `Paths`. This feels like a plain old global function.
+- Give me a ref to `ControlRouter`. I think this is identical to the `PianoRoll`
+  case.
+- I just changed something that the system might need to know about.
+- (assuming bidirectional) Something in the system just changed; here it is.

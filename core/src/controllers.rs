@@ -92,7 +92,7 @@ impl Controls for Trigger {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.timer.is_finished() && self.is_performing && !self.has_triggered {
             self.has_triggered = true;
-            control_events_fn(EntityEvent::Control(self.value));
+            control_events_fn(WorkEvent::Control(self.value));
         }
     }
 
@@ -382,7 +382,7 @@ impl Controls for ControlTrip {
             + percentage * (self.e.value_range.end().0 - self.e.value_range.start().0);
         if current_value != self.e.last_published_value {
             self.e.last_published_value = current_value;
-            control_events_fn(EntityEvent::Control(ControlValue::from(current_value)));
+            control_events_fn(WorkEvent::Control(ControlValue::from(current_value)));
         }
     }
 
@@ -503,7 +503,7 @@ mod tests {
             received_event = Some(event);
         });
         match received_event.unwrap() {
-            EntityEvent::Control(value) => assert_eq!(value.0, 0.5, "{}", MESSAGE),
+            WorkEvent::Control(value) => assert_eq!(value.0, 0.5, "{}", MESSAGE),
             _ => panic!(),
         }
         assert!(
@@ -536,7 +536,7 @@ mod tests {
             received_event = Some(event);
         });
         match received_event.unwrap() {
-            EntityEvent::Control(value) => assert_eq!(value.0, 0.5, "{}", "Flat step should work"),
+            WorkEvent::Control(value) => assert_eq!(value.0, 0.5, "{}", "Flat step should work"),
             _ => panic!(),
         }
         assert!(!ct.is_finished());
@@ -551,7 +551,7 @@ mod tests {
             received_event = Some(event);
         });
         match received_event.unwrap() {
-            EntityEvent::Control(value) => assert_eq!(value.0, 0.75, "{}", "Flat step should work"),
+            WorkEvent::Control(value) => assert_eq!(value.0, 0.75, "{}", "Flat step should work"),
             _ => panic!(),
         }
         assert!(ct.is_finished());
@@ -584,7 +584,7 @@ mod tests {
             received_event = Some(event);
         });
         match received_event.unwrap() {
-            EntityEvent::Control(value) => assert_eq!(
+            WorkEvent::Control(value) => assert_eq!(
                 value.0, 0.5,
                 "{}",
                 "Halfway through linear 0.0..=1.0 should be 0.5"
@@ -641,7 +641,7 @@ mod tests {
                 });
                 assert!(received_event.is_some());
                 match received_event.unwrap() {
-                    EntityEvent::Control(value) => {
+                    WorkEvent::Control(value) => {
                         assert_eq!(
                             value.0, ev,
                             "{i}: Expected {ev} at {time} but got {}",

@@ -53,7 +53,8 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     parse_and_generate_entity(input)
 }
 
-/// field types that don't recurse further for #[derive(Control)] purposes.
+/// field types that don't recurse further for #[derive(Control)] and
+/// #[derive(Params)] purposes.
 fn make_primitives() -> HashSet<Ident> {
     vec![
         "BipolarNormal",
@@ -63,6 +64,7 @@ fn make_primitives() -> HashSet<Ident> {
         "Normal",
         "ParameterType",
         "Ratio",
+        "SampleRate",
         "String",
         "Tempo",
         "VoiceCount",

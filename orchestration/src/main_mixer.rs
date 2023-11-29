@@ -3,7 +3,7 @@
 use ensnare_core::{types::Normal, uid::TrackUid};
 use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct MainMixer {
     pub track_output: HashMap<TrackUid, Normal>,
     pub track_mute: HashMap<TrackUid, bool>,

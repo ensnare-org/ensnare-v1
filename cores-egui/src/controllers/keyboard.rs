@@ -18,6 +18,11 @@ impl Default for KeyboardController {
         }
     }
 }
+impl PartialEq for KeyboardController {
+    fn eq(&self, other: &Self) -> bool {
+        self.octave == other.octave
+    }
+}
 #[allow(unused_variables)]
 impl Controls for KeyboardController {
     fn update_time_range(&mut self, range: &TimeRange) {}
@@ -32,7 +37,7 @@ impl Controls for KeyboardController {
                     modifiers,
                 } => {
                     if let Some((channel, message)) = self.handle_key(&key, pressed) {
-                        control_events_fn(EntityEvent::Midi(channel, message));
+                        control_events_fn(WorkEvent::Midi(channel, message));
                     }
                 }
                 _ => {}

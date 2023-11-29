@@ -1,7 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+//! Representation of a whole music project, including support for serialization.
+
+use crate::{entities::FactoryEntity, prelude::*, types::TrackTitle};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// A user-visible project title.
 #[derive(Clone, Debug, derive_more::Display, PartialEq, Serialize, Deserialize)]
@@ -22,6 +25,19 @@ impl From<&str> for ProjectTitle {
     }
 }
 
+/// A serializable representation of a track's metadata.
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct TrackInfo {
+    pub uid: TrackUid,
+    pub title: TrackTitle,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum ProjectEntity {
+    Factory(FactoryEntity),
+}
+
 /// A serializable representation of a project. Most applications that use
 /// [Project] will need to create `From` implementations to/from their own
 /// custom representation of the data contained within it.
@@ -35,4 +51,16 @@ pub struct Project {
 
     /// The project's global [TimeSignature].
     pub time_signature: TimeSignature,
+
+    /// The next Uid that EntityUidFactory should assign.
+    pub entity_uid_factory_next_uid: usize,
+
+    /// The next Uid that TrackUidFactory should assign.
+    pub track_uid_factory_next_uid: usize,
+
+    /// An ordered list of tracks in the order they appear in the UI.
+    pub tracks: Vec<TrackInfo>,
+
+    /// The entities in each track.
+    pub entities: HashMap<TrackUid, Vec<(Uid, ProjectEntity)>>,
 }

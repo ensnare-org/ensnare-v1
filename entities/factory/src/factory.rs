@@ -20,6 +20,13 @@ use ensnare_cores::{
     LfoControllerParams, ReverbParams, SamplerParams, WelshSynthParams,
 };
 use ensnare_entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum FactoryEntity {
+    Arpeggiator(ArpeggiatorParams),
+    LfoController(LfoControllerParams),
+}
 
 /// Registers all [EntityFactory]'s entities.
 pub fn register_factory_entities(factory: &mut EntityFactory) {

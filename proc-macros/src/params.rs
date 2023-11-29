@@ -106,12 +106,11 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         }
 
         let params_struct_block = quote! {
-            #[derive(Debug, Default, PartialEq)]
+            #[derive(Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
             #[allow(missing_docs)]
             pub struct #params_name {
                 #( pub #field_names: #field_types ),*
             }
-
         };
 
         let getter_setter_block = quote! {

@@ -7,7 +7,7 @@ use crate::{
 use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
-use ensnare_proc_macros::Control;
+use ensnare_proc_macros::{Control, Params};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -196,9 +196,23 @@ impl Default for TimeSignature {
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 units.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    Hash,
+    Ord,
+    Params,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
+    #[params]
     units: usize,
 }
 
@@ -477,7 +491,7 @@ impl Add<Seconds> for Seconds {
 }
 
 /// Samples per second. Always a positive integer; cannot be zero.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SampleRate(pub usize);
 #[allow(missing_docs)]
 impl SampleRate {
@@ -551,6 +565,11 @@ pub struct Transport {
 
     #[builder(setter(skip))]
     e: TransportEphemerals,
+}
+impl PartialEq for Transport {
+    fn eq(&self, other: &Self) -> bool {
+        self.time_signature == other.time_signature && self.tempo == other.tempo
+    }
 }
 impl HandlesMidi for Transport {}
 impl Transport {

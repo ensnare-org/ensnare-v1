@@ -1,6 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::{fmt::Display, hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
+use std::{
+    fmt::Display,
+    hash::Hash,
+    marker::PhantomData,
+    sync::atomic::{AtomicUsize, Ordering},
+};
+
+use serde::{Deserialize, Serialize};
 
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
@@ -8,13 +15,57 @@ pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
 /// A [Uid] is an [Entity](crate::traits::Entity) identifier that is unique
 /// within the current project.
 #[derive(
-    Clone, Copy, Debug, Default, derive_more::Display, Eq, Hash, Ord, PartialEq, PartialOrd,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    derive_more::Display,
 )]
 pub struct Uid(pub usize);
 impl IsUid for Uid {}
 impl From<usize> for Uid {
     fn from(value: usize) -> Self {
         Self(value)
+    }
+}
+
+/// Generates unique [Uid]s.
+#[derive(Debug)]
+pub struct UidFactory<U: IsUid> {
+    pub(crate) next_uid_value: AtomicUsize,
+    pub(crate) _phantom: PhantomData<U>,
+}
+impl<U: IsUid> UidFactory<U> {
+    /// Creates a new [UidFactory] starting with the given value.
+    pub fn new(first_uid: usize) -> Self {
+        Self {
+            next_uid_value: AtomicUsize::new(first_uid),
+            _phantom: Default::default(),
+        }
+    }
+
+    /// Get the value of the next [Uid] without incrementing the internal
+    /// counter. Used for serialization.
+    pub fn peek_next(&self) -> usize {
+        self.next_uid_value.load(Ordering::Relaxed)
+    }
+
+    /// Generates the next unique [Uid].
+    pub fn mint_next(&self) -> U {
+        let uid_value = self.next_uid_value.fetch_add(1, Ordering::Relaxed);
+        U::from(uid_value)
+    }
+}
+impl<U: IsUid> PartialEq for UidFactory<U> {
+    fn eq(&self, other: &Self) -> bool {
+        self.next_uid_value.load(Ordering::Relaxed) == other.next_uid_value.load(Ordering::Relaxed)
     }
 }
 
@@ -31,32 +82,8 @@ impl Default for UidFactory<Uid> {
     }
 }
 
-/// Generates unique [Uid]s.
-#[derive(Debug)]
-pub struct UidFactory<U: IsUid> {
-    pub(crate) next_uid_value: AtomicUsize,
-    pub(crate) _phantom: PhantomData<U>,
-}
-impl<U: IsUid> UidFactory<U> {
-    /// Creates a new UidFactory starting with the given [Uid] value.
-    pub fn new(first_uid: usize) -> Self {
-        Self {
-            next_uid_value: AtomicUsize::new(first_uid),
-            _phantom: Default::default(),
-        }
-    }
-
-    /// Generates the next unique [Uid].
-    pub fn mint_next(&self) -> U {
-        let uid_value = self
-            .next_uid_value
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        U::from(uid_value)
-    }
-}
-
 /// Identifies a [Track].
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TrackUid(pub usize);
 impl Default for TrackUid {
     fn default() -> Self {

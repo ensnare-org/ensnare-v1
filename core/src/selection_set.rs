@@ -5,7 +5,7 @@ use std::collections::{hash_set::Iter, HashSet};
 
 /// A utility class to help manage selection sets of things that implement the
 /// [IsUid] trait.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SelectionSet<T: IsUid> {
     selected_uids: HashSet<T>,
 }

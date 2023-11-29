@@ -4,8 +4,8 @@ use ensnare_core::{
     midi::{MidiChannel, MidiEvent, MidiMessage},
     time::{MusicalTime, SampleRate, Tempo, TimeSignature},
     traits::{
-        Configurable, ControlEventsFn, Controls, EntityEvent, HandlesMidi, MidiMessagesFn,
-        SequencesMidi, TimeRange,
+        Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, SequencesMidi,
+        TimeRange, WorkEvent,
     },
 };
 
@@ -67,7 +67,7 @@ impl Controls for MidiSequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|(channel, event)| {
             if self.time_range.0.contains(&event.time) {
-                control_events_fn(EntityEvent::Midi(*channel, event.message))
+                control_events_fn(WorkEvent::Midi(*channel, event.message))
             }
         });
     }

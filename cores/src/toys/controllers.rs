@@ -40,18 +40,12 @@ impl Controls for ToyController {
                 // then we still send the off note,
                 if self.is_enabled && self.is_performing {
                     self.is_playing = true;
-                    control_events_fn(EntityEvent::Midi(
-                        self.midi_channel_out,
-                        new_note_on(60, 127),
-                    ));
+                    control_events_fn(WorkEvent::Midi(self.midi_channel_out, new_note_on(60, 127)));
                 }
             }
             TestControllerAction::NoteOff => {
                 if self.is_playing {
-                    control_events_fn(EntityEvent::Midi(
-                        self.midi_channel_out,
-                        new_note_off(60, 0),
-                    ));
+                    control_events_fn(WorkEvent::Midi(self.midi_channel_out, new_note_off(60, 0)));
                 }
             }
         }
@@ -94,6 +88,11 @@ impl HandlesMidi for ToyController {
     }
 }
 impl ToyController {
+    // TODO: `midi_channel_out` might be obsolete as a regular controller
+    // parameter. The owner should take care of receiver/sender channels, which
+    // might mean that WorkEvent::Midi's channel parameter would be Option<>.
+    // There are devices like sequencers that might be smart enough to send to
+    // multiple channels, in which case the channel parameter would be used.
     pub fn new_with(_params: &ToyControllerParams, midi_channel_out: MidiChannel) -> Self {
         Self {
             midi_channel_out,
@@ -126,7 +125,7 @@ impl HandlesMidi for ToyControllerAlwaysSendsMidiMessage {}
 impl Controls for ToyControllerAlwaysSendsMidiMessage {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.is_performing {
-            control_events_fn(EntityEvent::Midi(
+            control_events_fn(WorkEvent::Midi(
                 MidiChannel::default(),
                 MidiMessage::NoteOn {
                     key: u7::from(self.midi_note),
@@ -265,7 +264,7 @@ impl Controls for ToySequencer {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.events.iter().for_each(|e| {
             if self.time_range.0.contains(&e.time) {
-                control_events_fn(EntityEvent::Midi(MidiChannel::default(), e.message))
+                control_events_fn(WorkEvent::Midi(MidiChannel::default(), e.message))
             }
         });
     }

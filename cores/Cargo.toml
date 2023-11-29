@@ -16,6 +16,7 @@ ensnare-core = { path = "../core" }
 ensnare-proc-macros = { path = "../proc-macros" }
 float-cmp = "0.9.0"
 hound = "3.5.0"
+serde = { version = "1.0.193", features = ["derive"] }
 strum = "0.25"
 strum_macros = "0.25"
 

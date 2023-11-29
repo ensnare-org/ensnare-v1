@@ -8,7 +8,7 @@ use ensnare_entity::traits::IsEffect;
 use std::collections::HashMap;
 
 /// Controls the wet/dry mix of arranged effects.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Humidifier {
     uid_to_humidity: HashMap<Uid, Normal>,
 }

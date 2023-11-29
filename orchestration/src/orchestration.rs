@@ -15,8 +15,8 @@ use ensnare_core::{
     midi::{MidiChannel, MidiMessage},
     time::{SampleRate, Tempo, TimeSignature, Transport},
     traits::{
-        Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
-        Generates, HandlesMidi, MidiMessagesFn, Ticks, TimeRange,
+        Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, Generates,
+        HandlesMidi, MidiMessagesFn, Ticks, TimeRange, WorkEvent,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
@@ -67,9 +67,9 @@ mod obsolete {
         selection_set::SelectionSet,
         time::{MusicalTime, SampleRate, Tempo, TimeSignature, Transport, TransportBuilder},
         traits::{
-            Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, EntityEvent,
-            Generates, GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
-            TimeRange,
+            Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, Generates,
+            GeneratesToInternalBuffer, HandlesMidi, MidiMessagesFn, Serializable, Ticks, TimeRange,
+            WorkEvent,
         },
         types::{AudioQueue, Normal, Sample, StereoSample, TrackTitle},
         uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},
@@ -92,7 +92,7 @@ mod obsolete {
     #[derive(Debug, Default)]
     pub struct OrchestratorEphemerals {
         range: TimeRange,
-        events: Vec<(Uid, EntityEvent)>,
+        events: Vec<(Uid, WorkEvent)>,
         is_finished: bool,
         is_performing: bool,
         pub track_selection_set: SelectionSet<TrackUid>,
@@ -306,12 +306,12 @@ mod obsolete {
 
         // This method is called only for events generated internally (i.e., from
         // our own Entities). It is not called for external MIDI messages.
-        fn dispatch_event(&mut self, uid: Uid, event: EntityEvent) {
+        fn dispatch_event(&mut self, uid: Uid, event: WorkEvent) {
             match event {
-                EntityEvent::Midi(..) => {
+                WorkEvent::Midi(..) => {
                     panic!("FATAL: we were asked to dispatch an EntityEvent::Midi, which should already have been handled")
                 }
-                EntityEvent::Control(value) => {
+                WorkEvent::Control(value) => {
                     self.route_control_change(uid, value);
                 }
             }
@@ -653,7 +653,7 @@ mod obsolete {
                 track.work_as_proxy(&mut |u, m| self.e.events.push((u, m)));
             }
             while let Some((uid, event)) = self.e.events.pop() {
-                if matches!(event, EntityEvent::Midi(_, _)) {
+                if matches!(event, WorkEvent::Midi(_, _)) {
                     // This MIDI message came from one of our internal Entities and
                     // has bubbled all the way up here. We don't want to do anything
                     // with it, and should instead pass it along to the caller, who
@@ -732,14 +732,14 @@ mod obsolete {
 /// to produce an audio performance.
 #[derive(Debug, Default)]
 pub struct Orchestrator {
-    entity_uid_factory: EntityUidFactory,
-    track_uid_factory: TrackUidFactory,
+    pub entity_uid_factory: EntityUidFactory,
+    pub track_uid_factory: TrackUidFactory,
 
     pub transport: Transport,
 
     /// An ordered list of [TrackUid]s in the order they appear in the UI.
     pub track_uids: Vec<TrackUid>,
-    /// Which [Track] owns which [Entity].
+    /// Which track owns which [Entity].
     pub track_for_entity: HashMap<Uid, TrackUid>,
     /// An ordered list of [Uid]s that each [Track] owns.
     pub entities_for_track: HashMap<TrackUid, Vec<Uid>>,
@@ -766,7 +766,7 @@ impl Orchestrator {
         self.entity_uid_factory.mint_next()
     }
 
-    fn mint_track_uid(&mut self) -> TrackUid {
+    pub fn mint_track_uid(&self) -> TrackUid {
         self.track_uid_factory.mint_next()
     }
 
@@ -813,7 +813,7 @@ impl Orchestrator {
         let mut keyboard_events = Vec::default();
 
         self.keyboard_controller.work(&mut |m| {
-            if let EntityEvent::Midi(channel, message) = m {
+            if let WorkEvent::Midi(channel, message) = m {
                 keyboard_events.push((channel, message));
             }
         });
@@ -822,9 +822,33 @@ impl Orchestrator {
         }
     }
 }
+impl PartialEq for Orchestrator {
+    fn eq(&self, other: &Self) -> bool {
+        self.entity_uid_factory == other.entity_uid_factory
+            && self.track_uid_factory == other.track_uid_factory
+            && self.transport == other.transport
+            && self.track_uids == other.track_uids
+            && self.track_for_entity == other.track_for_entity
+            && self.entities_for_track == other.entities_for_track
+            && self.timeline_entities_for_track == other.timeline_entities_for_track
+            && self.entity_store == other.entity_store
+            && self.controller_uids == other.controller_uids
+            && self.instrument_uids == other.instrument_uids
+            && self.effect_uids == other.effect_uids
+            && *self.control_router.read().unwrap() == *other.control_router.read().unwrap()
+            && self.midi_router == other.midi_router
+            && self.humidifier == other.humidifier
+            && self.bus_station == other.bus_station
+            && self.main_mixer == other.main_mixer
+            && self.keyboard_controller == other.keyboard_controller
+    }
+}
 impl Orchestrates for Orchestrator {
     fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.mint_track_uid();
+        self.create_track_with_uid(self.mint_track_uid())
+    }
+
+    fn create_track_with_uid(&mut self, track_uid: TrackUid) -> anyhow::Result<TrackUid> {
         self.track_uids.push(track_uid);
 
         // We always want a track's lists of entities to exist.
@@ -1129,7 +1153,7 @@ impl Controls for Orchestrator {
         // Dispatch all the events accumulated during work().
         while let Some((uid, event)) = events.pop() {
             match event {
-                EntityEvent::Midi(channel, message) => {
+                WorkEvent::Midi(channel, message) => {
                     // Let the caller forward the MIDI message to external interfaces.
                     control_events_fn(event);
 
@@ -1137,7 +1161,7 @@ impl Controls for Orchestrator {
                         .midi_router
                         .route(&mut self.entity_store, channel, message);
                 }
-                EntityEvent::Control(value) => {
+                WorkEvent::Control(value) => {
                     let _ = self.control_router.read().unwrap().route(
                         &mut |target_uid, index, value| {
                             if target_uid == &Self::TRANSPORT_UID {
@@ -1715,7 +1739,7 @@ mod tests {
     impl HandlesMidi for TestControllerSendsOneEvent {}
     impl Controls for TestControllerSendsOneEvent {
         fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-            control_events_fn(EntityEvent::Control(ControlValue::MAX));
+            control_events_fn(WorkEvent::Control(ControlValue::MAX));
         }
     }
     impl Configurable for TestControllerSendsOneEvent {}

@@ -19,6 +19,10 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
     /// The [TrackUid] should be appended to the internal list of [TrackUid]s.
     fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
+    /// Similar to `create_track()`, but uses the given [TrackUid] rather than
+    /// generating a new one. Fails if the given [TrackUid] already exists.
+    fn create_track_with_uid(&mut self, track_uid: TrackUid) -> anyhow::Result<TrackUid>;
+
     /// Returns an ordered list of [TrackUid]s. The ordering of tracks
     /// determines how tracks are presented in a visual rendering of the
     /// project, but it shouldn't affect how the project sounds.

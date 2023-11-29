@@ -4,7 +4,7 @@ use ensnare_core::prelude::*;
 use std::{collections::HashMap, vec::Vec};
 
 /// A [BusRoute] represents a signal connection between two tracks.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct BusRoute {
     /// The [TrackUid] of the receiving track.
     pub aux_track_uid: TrackUid,
@@ -14,7 +14,7 @@ pub struct BusRoute {
 
 /// A [BusStation] manages how signals move between tracks and aux tracks. These
 /// collections of signals are sometimes called buses.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct BusStation {
     send_routes: HashMap<TrackUid, Vec<BusRoute>>,
 }

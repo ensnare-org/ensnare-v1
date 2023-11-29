@@ -11,6 +11,7 @@ use ensnare_core::{
     traits::{ControlProxyEventsFn, ControlsAsProxy},
 };
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
     option::Option,
@@ -18,7 +19,7 @@ use std::{
 
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct EntityKey(String);
 impl From<&String> for EntityKey {
     fn from(value: &String) -> Self {
@@ -145,6 +146,7 @@ impl EntityFactory {
 #[derive(Debug, Default)]
 pub struct EntityStore {
     sample_rate: SampleRate,
+    tempo: Tempo,
     entities: HashMap<Uid, Box<dyn Entity>>,
 
     // We store our own copy of this value to make Controls::time_range() easier
@@ -230,17 +232,26 @@ impl Ticks for EntityStore {
     }
 }
 impl Configurable for EntityStore {
+    fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
         self.iter_mut().for_each(|t| {
             t.update_sample_rate(sample_rate);
         });
+        self.sample_rate = sample_rate;
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.tempo
     }
 
     fn update_tempo(&mut self, tempo: Tempo) {
         self.iter_mut().for_each(|t| {
             t.update_tempo(tempo);
         });
+        self.tempo = tempo;
     }
 
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
@@ -333,18 +344,35 @@ impl Serializable for EntityStore {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
+impl PartialEq for EntityStore {
+    fn eq(&self, other: &Self) -> bool {
+        self.time_range == other.time_range && {
+            self.entities.len() == other.entities.len() && {
+                self.entities.iter().all(|(self_uid, _self_entity)| {
+                    if let Some(_other_entity) = other.entities.get(self_uid) {
+                        // TODO: how should we compare entities for equality?
+                        true
+                    } else {
+                        false
+                    }
+                })
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
     use crate::prelude::*;
     use ensnare_core::prelude::*;
-    use ensnare_proc_macros::{IsEntity, Metadata};
+    use ensnare_proc_macros::{IsEntity, Metadata, Params};
 
-    #[derive(Debug, Default, IsEntity, Metadata)]
+    #[derive(Debug, Default, IsEntity, Metadata, Params)]
     #[entity("instrument")]
     struct ExampleEntity {
         pub uid: Uid,
+        #[params]
         pub sample_rate: SampleRate,
     }
     impl Displays for ExampleEntity {}
@@ -370,6 +398,21 @@ mod tests {
         }
     }
     impl Ticks for ExampleEntity {}
+    impl From<ExampleEntityParams> for ExampleEntity {
+        fn from(value: ExampleEntityParams) -> Self {
+            Self {
+                sample_rate: value.sample_rate,
+                ..Default::default()
+            }
+        }
+    }
+    impl From<ExampleEntity> for ExampleEntityParams {
+        fn from(value: ExampleEntity) -> Self {
+            Self {
+                sample_rate: value.sample_rate,
+            }
+        }
+    }
 
     #[test]
     fn store_is_responsible_for_sample_rate() {
@@ -417,5 +460,19 @@ mod tests {
             t.add(two, uid_2).is_ok(),
             "Adding a second unique UID should succeed."
         );
+    }
+
+    #[test]
+    fn entity_store_partial_eq_excludes_sample_rate() {
+        let es1 = EntityStore::default();
+        let mut es2 = EntityStore::default();
+
+        assert_eq!(es1, es2, "Two default EntityStores should be equal");
+
+        es2.update_sample_rate(SampleRate(es2.sample_rate.0 + 1));
+        assert_eq!(es1, es2, "Two EntityStores that differ only by sample rate should still be equal, because sample rate is a DAW attribute, not a project attribute");
+
+        es2.update_tempo(Tempo(es2.tempo().0 + 1.1));
+        assert_ne!(es1, es2, "Tempo is part of PartialEq");
     }
 }
