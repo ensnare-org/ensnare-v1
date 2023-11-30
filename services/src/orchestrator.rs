@@ -231,7 +231,7 @@ impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
                             let uid = o.mint_entity_uid();
                             if let Some(entity) = factory.new_entity(&key, uid) {
-                                // TODO DON'T CHECK IN WITH THIS let _ = o.add_entity(&track_uid, entity);
+                                let _ = o.add_entity(&track_uid, entity);
                                 let _ = o.connect_midi_receiver(uid, MidiChannel::default());
                             }
                         }
