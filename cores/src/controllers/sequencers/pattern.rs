@@ -7,6 +7,7 @@ use ensnare_core::{
     prelude::*,
     traits::Sequences,
 };
+use ensnare_proc_macros::Params;
 use std::{
     ops::Range,
     sync::{Arc, RwLock},
@@ -131,7 +132,7 @@ pub struct LivePatternArrangement {
     range: Range<MusicalTime>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Params)]
 pub struct LivePatternSequencer {
     arrangements: Vec<LivePatternArrangement>,
 

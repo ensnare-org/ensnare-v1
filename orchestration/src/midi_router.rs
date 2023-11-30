@@ -3,14 +3,23 @@
 use anyhow::anyhow;
 use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
-#[derive(Debug, Default, PartialEq)]
-pub struct MidiRouter {
+#[derive(Debug, PartialEq)]
+pub struct MidiRouter<E: Entity + ?Sized> {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,
+    _phantom: PhantomData<E>,
 }
-impl MidiRouter {
+impl<E: Entity + ?Sized> Default for MidiRouter<E> {
+    fn default() -> Self {
+        Self {
+            midi_channel_to_receiver_uid: Default::default(),
+            _phantom: Default::default(),
+        }
+    }
+}
+impl<E: Entity + ?Sized> MidiRouter<E> {
     /// The entities receiving on the given MIDI channel.
     pub fn receivers(&mut self, channel: &MidiChannel) -> &Vec<Uid> {
         self.midi_channel_to_receiver_uid
@@ -44,7 +53,7 @@ impl MidiRouter {
     // think the arp's MIDI gets back to the outside world.
     pub fn route(
         &mut self,
-        entity_store: &mut EntityStore,
+        entity_store: &mut EntityStore<E>,
         channel: MidiChannel,
         message: MidiMessage,
     ) -> anyhow::Result<()> {

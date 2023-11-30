@@ -1,28 +1,28 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::factory::EnsnareEntityFactory;
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use eframe::egui::Id;
-use ensnare::{arrangement::ProjectTitle, project::TrackInfo, Project};
-use ensnare_core::{
-    controllers::ControlTripBuilder,
-    piano_roll::{PatternUid, PianoRoll},
+use ensnare::{
+    arrangement::{DescribesProject, Orchestrates, Orchestrator},
+    control::ControlTripParams,
+    cores::LivePatternSequencerParams,
+    entities::{
+        controllers::{ControlTrip, LivePatternSequencer, SequencerInput},
+        EntityUidFactory,
+    },
     prelude::*,
-    types::TrackTitle,
-    uid::EntityUidFactory,
+    project::{ProjectTitle, TrackInfo},
+    Project, all_entities::{EntityWrapper, EntityParams},
 };
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
-use ensnare_entities::controllers::{ControlTrip, LivePatternSequencer, SequencerInput};
-use ensnare_entity::factory::EntityFactory;
-use ensnare_orchestration::{traits::Orchestrates, DescribesProject, Orchestrator};
 use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
-
-use crate::entities::EntityParams;
 
 /// An in-memory representation of the project. Explicitly meant *not* to be
 /// #[derive(Serialize, Deserialize)]. Complemented by [Project], which *is*
@@ -39,7 +39,7 @@ pub(super) struct DawProject {
     // If present, then this is the path that was used to load this project from
     // disk.
     pub(super) load_path: Option<PathBuf>,
-    pub(super) orchestrator: Arc<Mutex<Orchestrator>>,
+    pub(super) orchestrator: Arc<Mutex<Orchestrator<dyn EntityWrapper>>>,
     pub(super) piano_roll: Arc<RwLock<PianoRoll>>,
 
     pub(super) view_range: ViewRange,
@@ -58,7 +58,7 @@ impl Default for DawProject {
         Self {
             title: Default::default(),
             load_path: Default::default(),
-            orchestrator: Default::default(),
+            orchestrator: Arc::new(Mutex::new(Orchestrator::new())),
             piano_roll: Default::default(),
             view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(4 * 4)),
             track_titles: Default::default(),
@@ -131,18 +131,26 @@ impl DawProject {
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
 
-        let sequencer =
-            LivePatternSequencer::new_with(o.mint_entity_uid(), Arc::clone(&self.piano_roll));
+        let sequencer = LivePatternSequencer::new_with(
+            o.mint_entity_uid(),
+            &LivePatternSequencerParams::default(),
+            Arc::clone(&self.piano_roll),
+        );
         self.track_to_sequencer_sender
             .insert(track_uid, sequencer.sender().clone());
         let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
 
+        // TODO: if you want this back again, figure out how to do it with ControlTripParams
+        // ControlTripBuilder::default()
+        // .random(MusicalTime::START)
+        // .build()
+        // .unwrap()
+        // .try_into()
+        // .unwrap(),
+
         let control_trip = ControlTrip::new_with(
             o.mint_entity_uid(),
-            ControlTripBuilder::default()
-                .random(MusicalTime::START)
-                .build()
-                .unwrap(),
+            &ControlTripParams::default(),
             o.control_router.clone(),
         );
         let _trip_uid = o.add_entity(&track_uid, Box::new(control_trip));
@@ -252,10 +260,10 @@ impl DawProject {
         self.detail_uid = Some(uid);
     }
 
-    pub(crate) fn load(path: PathBuf) -> anyhow::Result<Self> {
+    pub(crate) fn load(path: PathBuf, factory: &EnsnareEntityFactory) -> anyhow::Result<Self> {
         let json = std::fs::read_to_string(&path)?;
         let project = serde_json::from_str::<Project>(&json)?;
-        let mut daw_project: DawProject = (&project).into();
+        let mut daw_project: DawProject = (&project, factory).into();
         daw_project.load_path = Some(path);
         Ok(daw_project)
     }
@@ -311,8 +319,9 @@ impl From<&DawProject> for Project {
         dst
     }
 }
-impl From<&Project> for DawProject {
-    fn from(src: &Project) -> Self {
+impl From<(&Project, &EnsnareEntityFactory)> for DawProject {
+    fn from(value: (&Project, &EnsnareEntityFactory)) -> Self {
+        let (src, factory) = value;
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
             dst.title = src.title.clone();
@@ -333,9 +342,12 @@ impl From<&Project> for DawProject {
                     .unwrap()
                     .iter()
                     .for_each(|(uid, key)| {
-                        if let Some(entity) = EntityFactory::global().new_entity(key, *uid) {
-                            let _ = dst_orchestrator.add_entity(track_uid, entity);
-                        }
+
+                        // TODO
+
+                        // if let Some(entity) = factory.new_entity(key, *uid) {
+                        //     let _ = dst_orchestrator.add_entity(track_uid, entity);
+                        // }
                     })
             });
         }
@@ -348,15 +360,14 @@ impl From<&Project> for DawProject {
 mod tests {
     use super::*;
     use ensnare_core::rng::Rng;
-    use ensnare_entities::register_factory_entities;
     use std::sync::Arc;
 
     #[derive(Debug, PartialEq)]
-    struct OrchestratorWrapper(pub Orchestrator);
+    struct OrchestratorWrapper(pub Orchestrator<dyn EntityWrapper>);
     impl OrchestratorWrapper {
         fn test_random() -> Self {
             let mut rng = Rng::default();
-            let mut o = Orchestrator::default();
+            let mut o = Orchestrator::<dyn EntityWrapper>::new();
             o.update_sample_rate(SampleRate(rng.rand_range(11000..30000) as usize));
 
             Self(o)
@@ -392,37 +403,29 @@ mod tests {
         }
     }
 
-    fn init_factory() {
-        let mut factory = EntityFactory::default();
-        register_factory_entities(&mut factory);
-        if EntityFactory::initialize(factory).is_err() {
-            panic!("Couldn't set EntityFactory once_cell");
-        }
-    }
-
     #[test]
     fn identity_starting_with_in_memory() {
-        init_factory();
+        let factory = EnsnareEntityFactory::register_entities();
         let src = DawProject::new_project();
         let dst: Project = <&DawProject>::into(&src);
-        let src_copy: DawProject = <&Project>::into(&dst);
+        let src_copy: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
     #[test]
     fn identity_starting_with_in_memory_nondefault() {
-        init_factory();
+        let factory = EnsnareEntityFactory::register_entities();
         let src = DawProject::test_random();
         let dst: Project = <&DawProject>::into(&src);
-        let src_copy: DawProject = <&Project>::into(&dst);
+        let src_copy: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
     #[test]
     fn identity_starting_with_serialized() {
-        init_factory();
+        let factory = EnsnareEntityFactory::register_entities();
         let src = Project::default();
-        let dst: DawProject = <&Project>::into(&src);
+        let dst: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&src, &factory));
         let src_copy: Project = <&DawProject>::into(&dst);
         assert_eq!(src, src_copy);
     }

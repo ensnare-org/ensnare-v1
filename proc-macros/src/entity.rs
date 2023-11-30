@@ -139,6 +139,8 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
                 #handles_midi_items
                 #controllable_items
             }
+            #[automatically_derived]
+            impl #generics #entity_crate::traits::EntityBounds for #struct_name #ty_generics {}
         };
         quote
     })

@@ -5,13 +5,13 @@ use ensnare_core::prelude::*;
 use ensnare_cores::toys::{
     ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams,
 };
-use ensnare_entity::prelude::*;
+use ensnare_entity::{prelude::*, traits::EntityBounds};
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very
 /// simple but working instruments. They're helpful when you think you're going
 /// nuts because nothing is working, so you want something that doesn't have
 /// lots of settings.
-pub fn register_toy_entities(factory: &mut EntityFactory) {
+pub fn register_toy_entities(factory: &mut EntityFactory<dyn EntityBounds>) {
     factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
         Box::new(ToySynth::new_with(uid, &ToySynthParams::default()))
     });

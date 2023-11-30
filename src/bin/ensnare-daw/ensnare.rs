@@ -3,6 +3,7 @@
 //! Main struct for Ensnare DAW application.
 
 use crate::{
+    factory::EnsnareEntityFactory,
     menu::{MenuBar, MenuBarAction},
     project::DawProject,
     settings::{Settings, SettingsPanel},
@@ -18,7 +19,8 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{app_version, arrangement::ProjectTitle, prelude::*};
+use ensnare::{all_entities::EntityWrapper, app_version, prelude::*, project::ProjectTitle};
+use ensnare_entity::traits::EntityBounds;
 use std::{ops::DerefMut, path::PathBuf, sync::Arc};
 
 // TODO: clean these up. An app should need to use only the top ensnare crate,
@@ -49,13 +51,15 @@ enum EnsnareMessage {
 }
 
 pub(super) struct Ensnare {
+    factory: Arc<EntityFactory<dyn EntityWrapper>>,
+
     event_channel: ChannelPair<EnsnareMessage>,
 
     project: DawProject,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
-    orchestrator_service: OrchestratorService,
+    orchestrator_service: OrchestratorService<dyn EntityWrapper>,
     settings_panel: SettingsPanel,
 
     toasts: Toasts,
@@ -82,7 +86,7 @@ impl Ensnare {
     /// internal-only key for monospaced font.
     const FONT_MONO: &'static str = "font-mono";
 
-    pub(super) fn new(cc: &CreationContext) -> Self {
+    pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityWrapper>) -> Self {
         Self::initialize_fonts(&cc.egui_ctx);
         Self::initialize_visuals(&cc.egui_ctx);
         Self::initialize_style(&cc.egui_ctx);
@@ -99,13 +103,20 @@ impl Ensnare {
             .clone();
         let control_bar = ControlBar::default();
         let sample_buffer_sender = control_bar.sample_channel.sender.clone();
+        let f_0: &EntityFactory<dyn EntityBounds> = &factory;
+        let factory_1: Arc<EntityFactory<dyn EntityWrapper>> = Arc::new(factory);
+        let factory_2: Arc<EntityFactory<dyn EntityBounds>> = Arc::new(factory);
 
         let mut r = Self {
+            factory: Arc::clone(&factory),
             event_channel: Default::default(),
             project,
             menu_bar: Default::default(),
             control_bar,
-            orchestrator_service: OrchestratorService::new_with(&orchestrator),
+            orchestrator_service: OrchestratorService::<dyn EntityWrapper>::new_with(
+                &orchestrator,
+                &factory,
+            ),
             settings_panel: SettingsPanel::new_with(
                 settings,
                 &orchestrator,
@@ -507,7 +518,7 @@ impl Ensnare {
         let mut view_range = self.project.view_range.clone();
         let mut action = None;
         if let Ok(mut o) = self.project.orchestrator.lock() {
-            let _ = ui.add(project_widget(
+            let _ = ui.add(project_widget::<dyn EntityWrapper>(
                 &self.project,
                 o.deref_mut(),
                 &mut view_range,
@@ -580,7 +591,7 @@ impl Ensnare {
             ProjectAction::NewDeviceForTrack(track_uid, key) => {
                 if let Ok(mut o) = self.project.orchestrator.lock() {
                     let uid = o.mint_entity_uid();
-                    if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
+                    if let Some(entity) = self.factory.new_entity(&key, uid) {
                         let _ = o.add_entity(&track_uid, entity);
                     }
                 }
@@ -631,7 +642,7 @@ impl Ensnare {
 
     fn handle_project_load(&mut self, path: Option<PathBuf>) {
         // TODO: pop up chooser if needed
-        if let Ok(project) = DawProject::load(path.unwrap()) {
+        if let Ok(project) = DawProject::load(path.unwrap(), &self.factory) {
             let _ = self
                 .event_channel
                 .sender

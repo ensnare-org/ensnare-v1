@@ -10,7 +10,7 @@ use ensnare_core::{
 use ensnare_entity::traits::Entity;
 
 /// Manages relationships among [Entities](Entity) to produce a song.
-pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
+pub trait Orchestrates<E: Entity + ?Sized>: Configurable + Controls + Generates<StereoSample> {
     /// Creates a new track, returning its [TrackUid] if successful. A track is
     /// a group of musical instruments that together produce a single sample for
     /// every frame of audio. Each track's frame sample is then merged into a
@@ -48,25 +48,25 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
 
     /// Adds the given [Entity] to the end of the specified track. The [Entity]
     /// must have a valid [Uid].
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<()>;
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<E>) -> anyhow::Result<()>;
 
     /// Assigns a new [Uid] to the given [Entity] and adds it to the end of the
     /// specified track.
     fn assign_uid_and_add_entity(
         &mut self,
         track_uid: &TrackUid,
-        entity: Box<dyn Entity>,
+        entity: Box<E>,
     ) -> anyhow::Result<Uid>;
 
     /// Returns a reference to the given [Entity], if it exists.
-    fn get_entity(&self, uid: &Uid) -> Option<&Box<dyn Entity>>;
+    fn get_entity(&self, uid: &Uid) -> Option<&Box<E>>;
 
     /// Returns a mutable reference to the given [Entity], if it exists.
-    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>>;
+    fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<E>>;
 
     /// Removes the specified [Entity], returning ownership (if successful) to
     /// the caller.
-    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<dyn Entity>>;
+    fn remove_entity(&mut self, uid: &Uid) -> anyhow::Result<Box<E>>;
 
     /// Returns the [TrackUid] of the specified [Entity].
     fn get_entity_track(&self, uid: &Uid) -> Option<&TrackUid>;
@@ -162,10 +162,11 @@ pub trait Orchestrates: Configurable + Controls + Generates<StereoSample> {
 pub(crate) mod tests {
     use super::*;
     use ensnare_entities::instruments::TestInstrument;
+    use ensnare_entity::traits::EntityBounds;
     use more_asserts::assert_gt;
     use std::collections::HashSet;
 
-    pub(crate) fn validate_orchestrates_trait(orchestrates: &mut dyn Orchestrates) {
+    pub(crate) fn validate_orchestrates_trait(orchestrates: &mut dyn Orchestrates<dyn EntityBounds>) {
         assert!(
             orchestrates.track_uids().is_empty(),
             "Initial impl should have no tracks"

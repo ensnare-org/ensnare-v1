@@ -46,6 +46,7 @@ pub trait Entity:
         false
     }
 }
+pub trait EntityBounds: Entity {}
 
 /// A [HasMetadata] has basic information about an [Entity]. Some methods apply
 /// to the "class" of [Entity] (for example, all `ToyInstrument`s share the name

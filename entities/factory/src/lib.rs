@@ -8,20 +8,20 @@ pub mod factory;
 pub mod instruments;
 pub mod piano_roll;
 
-pub use factory::{register_factory_entities, FactoryEntity};
+pub use factory::{BuiltInEntities, BuiltInEntityFactory};
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::register_factory_entities;
+    pub use super::BuiltInEntities;
 }
 
 #[cfg(test)]
 pub mod tests {
     use ensnare_core::uid::Uid;
-    use ensnare_entity::prelude::*;
+    use ensnare_entity::{prelude::*, traits::EntityBounds};
 
     // TODO: this is copied from ensnare_core::entities::factory
-    pub fn check_entity_factory(factory: EntityFactory) {
+    pub fn check_entity_factory(factory: EntityFactory<dyn EntityBounds>) {
         assert!(factory
             .new_entity(&EntityKey::from(".9-#$%)@#)"), Uid::default())
             .is_none());

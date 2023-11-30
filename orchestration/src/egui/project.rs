@@ -17,6 +17,7 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::widgets::timeline::legend;
 use ensnare_egui_widgets::ViewRange;
+use ensnare_entity::traits::EntityBounds;
 use std::sync::Arc;
 
 pub trait DescribesProject: core::fmt::Debug {
@@ -25,9 +26,9 @@ pub trait DescribesProject: core::fmt::Debug {
 }
 
 /// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
-pub fn project_widget<'a>(
+pub fn project_widget<'a, E: EntityBounds + ?Sized>(
     project_metadata: &'a impl DescribesProject,
-    orchestrates: &'a mut impl Orchestrates,
+    orchestrates: &'a mut impl Orchestrates<E>,
     view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 ) -> impl eframe::egui::Widget + 'a {
@@ -38,13 +39,13 @@ pub fn project_widget<'a>(
 
 /// An egui component that draws the main view of a project.
 #[derive(Debug)]
-struct ProjectWidget<'a> {
-    orchestrates: &'a mut dyn Orchestrates,
+struct ProjectWidget<'a, E: EntityBounds + ?Sized> {
+    orchestrates: &'a mut dyn Orchestrates<E>,
     project_metadata: &'a dyn DescribesProject,
     view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 }
-impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
+impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         // The timeline needs to be aligned with the track content, so
         // we create an empty track title bar to match with the real
@@ -127,9 +128,9 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         response
     }
 }
-impl<'a> ProjectWidget<'a> {
+impl<'a, E: EntityBounds + ?Sized> ProjectWidget<'a, E> {
     fn new(
-        orchestrates: &'a mut impl Orchestrates,
+        orchestrates: &'a mut impl Orchestrates<E>,
         view_range: &'a mut ViewRange,
         project_metadata: &'a impl DescribesProject,
         action: &'a mut Option<ProjectAction>,
@@ -144,16 +145,18 @@ impl<'a> ProjectWidget<'a> {
 }
 
 /// Wraps an [OrchestratorWidget] as a [Widget](eframe::egui::Widget).
-pub fn orchestrator<'a>(orchestrator: &'a mut Orchestrator) -> impl eframe::egui::Widget + 'a {
+pub fn orchestrator<'a, E: EntityBounds>(
+    orchestrator: &'a mut Orchestrator<E>,
+) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| OrchestratorWidget::new(orchestrator).ui(ui)
 }
 
 /// An egui component that draws an [Orchestrator].
 #[derive(Debug)]
-struct OrchestratorWidget<'a> {
-    orchestrator: &'a mut Orchestrator,
+struct OrchestratorWidget<'a, E: EntityBounds> {
+    orchestrator: &'a mut Orchestrator<E>,
 }
-impl<'a> eframe::egui::Widget for OrchestratorWidget<'a> {
+impl<'a, E: EntityBounds> eframe::egui::Widget for OrchestratorWidget<'a, E> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label(format!(
             "There are {} tracks",
@@ -166,8 +169,8 @@ impl<'a> eframe::egui::Widget for OrchestratorWidget<'a> {
         add_track_button_response
     }
 }
-impl<'a> OrchestratorWidget<'a> {
-    pub fn new(orchestrator: &'a mut Orchestrator) -> Self {
+impl<'a, E: EntityBounds> OrchestratorWidget<'a, E> {
+    pub fn new(orchestrator: &'a mut Orchestrator<E>) -> Self {
         Self { orchestrator }
     }
 }

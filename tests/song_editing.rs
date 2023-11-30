@@ -8,21 +8,21 @@ use ensnare::{
     },
     prelude::*,
 };
+use ensnare_entity::traits::EntityBounds;
 
 #[test]
 fn edit_song() {
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    register_toy_entities(&mut factory);
-    let _ = EntityFactory::initialize(factory);
-    let factory = EntityFactory::global();
+    let factory = BuiltInEntities::register(EntityFactory::default());
+//    register_toy_entities(&mut factory);
+    // let _ = EntityFactory::initialize(factory);
+    // let factory = EntityFactory::global();
 
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
     let mut piano_roll = PianoRoll::default();
 
     // Work with just the Orchestrates trait for a while.
     {
-        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
+        let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
 
         // Create two MIDI tracks.
         let rhythm_track_uid = orchestrator.create_track().unwrap();

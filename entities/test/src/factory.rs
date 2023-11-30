@@ -3,12 +3,14 @@
 use super::controllers::TestController;
 use super::effects::TestEffect;
 use super::instruments::{TestInstrument, TestInstrumentCountsMidiMessages};
-use ensnare_entity::factory::EntityFactory;
+use ensnare_entity::{factory::EntityFactory, traits::EntityBounds};
 
 /// Registers all [EntityFactory]'s test entities. Test entities are generally
 /// simple, and provide instrumentation rather than useful audio functionality.
 #[must_use]
-pub fn register_test_entities(mut factory: EntityFactory) -> EntityFactory {
+pub fn register_test_entities(
+    mut factory: EntityFactory<dyn EntityBounds>,
+) -> EntityFactory<dyn EntityBounds> {
     factory.register_entity_with_str_key(TestInstrument::ENTITY_KEY, |_uid| {
         Box::new(TestInstrument::default())
     });

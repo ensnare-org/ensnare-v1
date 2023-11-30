@@ -20,11 +20,12 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
-    arrangement::ProjectTitle,
     prelude::*,
     ui::widgets::{audio_settings, midi_settings},
 };
 use ensnare_core::{types::TrackTitle, uid::TrackUid};
+use ensnare_entities::BuiltInEntityFactory;
+use ensnare_entity::traits::EntityBounds;
 use ensnare_orchestration::{egui::entity_palette, DescribesProject};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::{
@@ -119,7 +120,10 @@ struct SettingsPanel {
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(settings: Settings, orchestrator: Arc<Mutex<Orchestrator>>) -> Self {
+    pub fn new_with(
+        settings: Settings,
+        orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
+    ) -> Self {
         let midi_panel = MidiService::new_with(Arc::clone(&settings.midi_settings));
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
@@ -366,14 +370,14 @@ impl MenuBar {
 }
 
 struct MiniDaw {
-    orchestrator: Arc<Mutex<Orchestrator>>,
+    orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
     track_frontmost_uids: HashMap<TrackUid, Uid>,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
-    orchestrator_panel: OrchestratorService,
+    orchestrator_panel: OrchestratorService<dyn EntityBounds>,
     settings_panel: SettingsPanel,
 
     view_range: ViewRange,
@@ -393,8 +397,8 @@ impl MiniDaw {
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator_panel = OrchestratorService::default();
-        let orchestrator = Arc::clone(&orchestrator_panel.orchestrator);
+        let orchestrator = Arc::new(Mutex::new(Orchestrator::<dyn EntityBounds>::new()));
+        let orchestrator_panel = OrchestratorService::<dyn EntityBounds>::new_with(&orchestrator);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
             orchestrator,

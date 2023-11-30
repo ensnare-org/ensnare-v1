@@ -1,33 +1,34 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    control::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+    control::{ControlStepBuilder, ControlTripBuilder, ControlTripParams, ControlTripPath},
     cores::LfoControllerParams,
     entities::{
         controllers::{ControlTrip, LfoController, PatternSequencer},
         toys::ToySynth,
+        BuiltInEntities,
     },
     generators::Waveform,
     prelude::*,
 };
+use ensnare_entities_toy::factory;
+use ensnare_entity::traits::EntityBounds;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
     let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    register_toy_entities(&mut factory);
-    let _ = EntityFactory::initialize(factory);
-    let factory = EntityFactory::global();
+    let mut factory = BuiltInEntities::register(factory);
+    //    register_toy_entities(&mut factory);
 
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 
     // We scope this block so that we can work with Orchestrator only as
     // something implementing the [Orchestrates] trait. This makes sure we're
     // testing the generic trait behavior as much as possible.
     {
-        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
+        let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
 
         orchestrator.update_tempo(Tempo(128.0));
 
@@ -118,12 +119,12 @@ fn demo_automation() {
 #[test]
 fn demo_control_trips() {
     let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    register_toy_entities(&mut factory);
-    let _ = EntityFactory::initialize(factory);
-    let factory = EntityFactory::global();
+    let mut factory = BuiltInEntities::register(factory);
+//    register_toy_entities(&mut factory);
+    // let _ = EntityFactory::initialize(factory);
+    // let factory = EntityFactory::global();
 
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
     let control_router_clone = orchestrator.control_router.clone();
 
     // Per my epiphany from a few days ago, Orchestrates (the trait) defines
@@ -142,7 +143,7 @@ fn demo_control_trips() {
     // something implementing the [Orchestrates] trait. This makes sure we're
     // testing the generic trait behavior as much as possible.
     {
-        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
+        let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
 
         orchestrator.update_tempo(Tempo(128.0));
 
@@ -192,7 +193,10 @@ fn demo_control_trips() {
 
         // Create a ControlTrip that ramps from zero to max over the desired
         // amount of time.
-        let trip = ControlTripBuilder::default()
+
+        // TODO: To get settings work to build, I'm substituting a default
+        // ControlTripParams instead of all this.
+        let _trip = ControlTripBuilder::default()
             .step(
                 ControlStepBuilder::default()
                     .value(ControlValue::MIN)
@@ -211,9 +215,10 @@ fn demo_control_trips() {
             )
             .build()
             .unwrap();
+        let trip_params = ControlTripParams::default();
         let outer_trip = Box::new(ControlTrip::new_with(
             Uid::default(),
-            trip,
+            &trip_params,
             control_router_clone,
         ));
         let trip_uid = orchestrator

@@ -10,7 +10,7 @@ use ensnare::{
     services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
     traits::{Displays, HasSettings, WorkEvent},
     types::Sample,
-    ui::widgets::{audio_settings, midi_settings},
+    ui::widgets::{audio_settings, midi_settings}, all_entities::EntityWrapper,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -109,7 +109,7 @@ impl SettingsPanel {
     /// Creates a new [SettingsPanel].
     pub fn new_with(
         settings: Settings,
-        orchestrator: &Arc<Mutex<Orchestrator>>,
+        orchestrator: &Arc<Mutex<Orchestrator<dyn EntityWrapper>>>,
         sample_buffer_sender: Option<Sender<[Sample; 64]>>,
     ) -> Self {
         let orchestrator = Arc::clone(&orchestrator);
@@ -119,7 +119,7 @@ impl SettingsPanel {
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
                 if let Ok(mut o) = orchestrator.lock() {
-                    let o: &mut Orchestrator = &mut o;
+                    let o: &mut Orchestrator<dyn EntityWrapper> = &mut o;
                     let mut helper = OrchestratorHelper::new_with_sample_buffer_sender(
                         o,
                         sample_buffer_sender.clone(),

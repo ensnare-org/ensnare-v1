@@ -3,7 +3,8 @@
 //! The `render` example generates a WAV file from a serialized [Project].
 
 use clap::Parser;
-use ensnare::{arrangement::ProjectTitle, prelude::*, Project};
+use ensnare::prelude::*;
+use ensnare_entity::traits::EntityBounds;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -26,13 +27,13 @@ struct Args {
 
 struct RenderProject {
     title: ProjectTitle,
-    orchestrator: Orchestrator,
+    orchestrator: Orchestrator<dyn EntityBounds>,
 }
 impl From<Project> for RenderProject {
     fn from(project: Project) -> Self {
         Self {
             title: project.title,
-            orchestrator: Orchestrator::default(), // TODO
+            orchestrator: Orchestrator::new(), // TODO
         }
     }
 }
@@ -56,8 +57,9 @@ fn main() -> anyhow::Result<()> {
                             panic!("would overwrite input file; couldn't generate output filename");
                         }
                         let output_path = std::path::PathBuf::from(output_filename.to_string());
-                        let mut helper =
-                            OrchestratorHelper::new_with(&mut render_project.orchestrator);
+                        let mut helper = OrchestratorHelper::<dyn EntityBounds>::new_with(
+                            &mut render_project.orchestrator,
+                        );
                         if let Err(e) = helper.write_to_file(&output_path) {
                             eprintln!(
                                 "error while writing {input_filename} render to {}: {e:?}",

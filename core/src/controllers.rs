@@ -252,7 +252,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Clone, Debug, Default, Builder)]
+#[derive(Clone, Debug, Default, Builder, Params)]
 pub struct ControlTrip {
     /// The [ControlStep]s that make up this trip. They must be in ascending
     /// time order. TODO: enforce that.
@@ -263,6 +263,13 @@ pub struct ControlTrip {
     e: ControlTripEphemerals,
 }
 impl ControlTrip {
+    pub fn new_with(_params: &ControlTripParams) -> Self {
+        Self {
+            steps: Default::default(),
+            e: Default::default(),
+        }
+    }
+    
     fn update_interval(&mut self) {
         self.e.reset_current_path_if_needed();
 

@@ -2,7 +2,7 @@
 
 use crate::{
     prelude::IsInstrument,
-    traits::{Entity, IsEffect},
+    traits::{Entity, IsEffect, EntityBounds},
 };
 use anyhow::anyhow;
 use derive_more::Display;
@@ -10,7 +10,6 @@ use ensnare_core::{
     prelude::*,
     traits::{ControlProxyEventsFn, ControlsAsProxy},
 };
-use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
@@ -37,22 +36,36 @@ impl From<String> for EntityKey {
     }
 }
 
-type EntityFactoryFn = fn(Uid) -> Box<dyn Entity>;
+pub type EntityFactoryFn<E> = fn(Uid) -> Box<E>;
 
-/// The one and only EntityFactory. Access it with `EntityFactory::global()`.
-static FACTORY: OnceCell<EntityFactory> = OnceCell::new();
+// /// The one and only EntityFactory. Access it with `EntityFactory::global()`.
+// static FACTORY: OnceCell<EntityFactory<dyn EntityBounds>> = OnceCell::new();
+// impl EntityFactory<dyn EntityBounds> {
+//     /// Provides the one and only [EntityFactory].
+//     pub fn global() -> &'static Self {
+//         FACTORY
+//             .get()
+//             .expect("EntityFactory has not been initialized")
+//     }
+
+//     /// Sets the singleton [EntityFactory].
+//     pub fn initialize(mut entity_factory: Self) -> Result<(), Self> {
+//         entity_factory.complete_registration();
+//         FACTORY.set(entity_factory)
+//     }
+// }
 
 /// [EntityFactory] accepts [EntityKey]s and creates instruments, controllers,
 /// and effects. It makes sure every entity has a proper [Uid].
 #[derive(Debug)]
-pub struct EntityFactory {
-    entities: HashMap<EntityKey, EntityFactoryFn>,
+pub struct EntityFactory<E: EntityBounds + ?Sized> {
+    entities: HashMap<EntityKey, EntityFactoryFn<E>>,
     keys: HashSet<EntityKey>,
 
     is_registration_complete: bool,
     sorted_keys: Vec<EntityKey>,
 }
-impl Default for EntityFactory {
+impl<E: EntityBounds + ?Sized> Default for EntityFactory<E> {
     fn default() -> Self {
         Self {
             entities: Default::default(),
@@ -62,19 +75,12 @@ impl Default for EntityFactory {
         }
     }
 }
-impl EntityFactory {
+impl<E: EntityBounds + ?Sized> EntityFactory<E> {
     /// Specifies the range of [Uid]s that [EntityFactory] will never issue.
     pub const MAX_RESERVED_UID: usize = 1023;
 
-    /// Provides the one and only [EntityFactory].
-    pub fn global() -> &'static Self {
-        FACTORY
-            .get()
-            .expect("EntityFactory has not been initialized")
-    }
-
     /// Registers a new type for the given [EntityKey] using the given closure.
-    pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn) {
+    pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn<E>) {
         if self.is_registration_complete {
             panic!("attempt to register an entity after registration completed");
         }
@@ -87,7 +93,7 @@ impl EntityFactory {
 
     /// Registers a new type for the given [EntityKey] using the given closure,
     /// but takes a &str and creates the [EntityKey] from it.
-    pub fn register_entity_with_str_key(&mut self, key: &str, f: EntityFactoryFn) {
+    pub fn register_entity_with_str_key(&mut self, key: &str, f: EntityFactoryFn<E>) {
         self.register_entity(EntityKey::from(key), f)
     }
 
@@ -102,7 +108,7 @@ impl EntityFactory {
 
     /// Creates a new entity of the type corresponding to the given [EntityKey]
     /// with the given [Uid].
-    pub fn new_entity(&self, key: &EntityKey, uid: Uid) -> Option<Box<dyn Entity>> {
+    pub fn new_entity(&self, key: &EntityKey, uid: Uid) -> Option<Box<E>> {
         if let Some(f) = self.entities.get(key) {
             let mut entity = f(uid);
             entity.set_uid(uid);
@@ -119,7 +125,7 @@ impl EntityFactory {
     }
 
     /// Returns the [HashMap] for all [EntityKey] and entity pairs.
-    pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn> {
+    pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn<E>> {
         &self.entities
     }
 
@@ -131,31 +137,35 @@ impl EntityFactory {
         }
         &self.sorted_keys
     }
-
-    /// Sets the singleton [EntityFactory].
-    pub fn initialize(mut entity_factory: Self) -> Result<(), Self> {
-        entity_factory.complete_registration();
-        FACTORY.set(entity_factory)
-    }
 }
 
 /// An [EntityStore] owns [Entities](Entity). It implements some [Entity]
 /// traits, such as [Configurable], and fans out usage of those traits to the
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
 /// all its entities as a single [Entity].
-#[derive(Debug, Default)]
-pub struct EntityStore {
+#[derive(Debug)]
+pub struct EntityStore<E: Entity + ?Sized> {
     sample_rate: SampleRate,
     tempo: Tempo,
-    entities: HashMap<Uid, Box<dyn Entity>>,
+    entities: HashMap<Uid, Box<E>>,
 
     // We store our own copy of this value to make Controls::time_range() easier
     // to implement.
     time_range: TimeRange,
 }
-impl EntityStore {
+impl<E: Entity + ?Sized> Default for EntityStore<E> {
+    fn default() -> Self {
+        Self {
+            sample_rate: Default::default(),
+            tempo: Default::default(),
+            entities: Default::default(),
+            time_range: Default::default(),
+        }
+    }
+}
+impl<E: Entity + ?Sized> EntityStore<E> {
     /// Adds an [Entity] to the store.
-    pub fn add(&mut self, mut entity: Box<dyn Entity>, uid: Uid) -> anyhow::Result<()> {
+    pub fn add(&mut self, mut entity: Box<E>, uid: Uid) -> anyhow::Result<()> {
         if uid.0 == 0 {
             return Err(anyhow!("Entity Uid zero is invalid"));
         }
@@ -167,30 +177,30 @@ impl EntityStore {
         Ok(())
     }
     /// Returns the specified [Entity].
-    pub fn get(&self, uid: &Uid) -> Option<&Box<dyn Entity>> {
+    pub fn get(&self, uid: &Uid) -> Option<&Box<E>> {
         self.entities.get(uid)
     }
     /// Returns the specified mutable [Entity].
-    pub fn get_mut(&mut self, uid: &Uid) -> Option<&mut Box<dyn Entity>> {
+    pub fn get_mut(&mut self, uid: &Uid) -> Option<&mut Box<E>> {
         self.entities.get_mut(uid)
     }
     /// Removes the specified [Entity] from the store, returning it (and thus
     /// ownership of it) to the caller.
-    pub fn remove(&mut self, uid: &Uid) -> Option<Box<dyn Entity>> {
+    pub fn remove(&mut self, uid: &Uid) -> Option<Box<E>> {
         self.entities.remove(uid)
     }
     /// Returns all the [Uid]s of owned [Entities](Entity). Order is undefined
     /// and may change frequently.
-    pub fn uids(&self) -> hash_map::Keys<'_, Uid, Box<dyn Entity>> {
+    pub fn uids(&self) -> hash_map::Keys<'_, Uid, Box<E>> {
         self.entities.keys()
     }
     /// Returns all owned [Entities](Entity) as an iterator. Order is undefined.
-    pub fn iter(&self) -> hash_map::Values<'_, Uid, Box<dyn Entity>> {
+    pub fn iter(&self) -> hash_map::Values<'_, Uid, Box<E>> {
         self.entities.values()
     }
     /// Returns all owned [Entities](Entity) as an iterator (mutable). Order is
     /// undefined.
-    pub fn iter_mut(&mut self) -> hash_map::ValuesMut<'_, Uid, Box<dyn Entity>> {
+    pub fn iter_mut(&mut self) -> hash_map::ValuesMut<'_, Uid, Box<E>> {
         self.entities.values_mut()
     }
     #[allow(missing_docs)]
@@ -222,7 +232,7 @@ impl EntityStore {
         }
     }
 }
-impl Ticks for EntityStore {
+impl<E: Entity + ?Sized> Ticks for EntityStore<E> {
     fn tick(&mut self, tick_count: usize) {
         self.iter_mut().for_each(|t| {
             if let Some(t) = t.as_instrument_mut() {
@@ -231,7 +241,7 @@ impl Ticks for EntityStore {
         });
     }
 }
-impl Configurable for EntityStore {
+impl<E: Entity + ?Sized> Configurable for EntityStore<E> {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -260,7 +270,7 @@ impl Configurable for EntityStore {
         });
     }
 }
-impl Controls for EntityStore {
+impl<E: Entity + ?Sized> Controls for EntityStore<E> {
     fn time_range(&self) -> Option<TimeRange> {
         if self.is_performing() {
             Some(self.time_range.clone())
@@ -328,7 +338,7 @@ impl Controls for EntityStore {
         })
     }
 }
-impl ControlsAsProxy for EntityStore {
+impl<E: Entity + ?Sized> ControlsAsProxy for EntityStore<E> {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             if let Some(e) = entity.as_controller_mut() {
@@ -339,12 +349,12 @@ impl ControlsAsProxy for EntityStore {
         });
     }
 }
-impl Serializable for EntityStore {
+impl<E: Entity + ?Sized> Serializable for EntityStore<E> {
     fn after_deser(&mut self) {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
-impl PartialEq for EntityStore {
+impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
     fn eq(&self, other: &Self) -> bool {
         self.time_range == other.time_range && {
             self.entities.len() == other.entities.len() && {
@@ -464,7 +474,7 @@ mod tests {
 
     #[test]
     fn entity_store_partial_eq_excludes_sample_rate() {
-        let es1 = EntityStore::default();
+        let es1 = EntityStore::<dyn Entity>::default();
         let mut es2 = EntityStore::default();
 
         assert_eq!(es1, es2, "Two default EntityStores should be equal");

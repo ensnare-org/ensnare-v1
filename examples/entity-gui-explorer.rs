@@ -9,9 +9,9 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
-use ensnare::{app_version, prelude::*};
-use ensnare_core::uid::EntityUidFactory;
-use ensnare_entity::traits::Entity; // TODO clean up
+use ensnare::{app_version, entities::EntityUidFactory, prelude::*};
+use ensnare_entities::BuiltInEntityFactory;
+use ensnare_entity::traits::EntityBounds; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -28,7 +28,7 @@ struct EntityGuiExplorer {
     selected_key: Option<EntityKey>,
     uid_factory: EntityUidFactory,
     display_mode: DisplayMode,
-    entities: HashMap<EntityKey, Box<dyn Entity>>,
+    entities: HashMap<EntityKey, Box<dyn EntityBounds>>,
 }
 impl EntityGuiExplorer {
     pub const NAME: &'static str = "Entity GUI Explorer";
@@ -184,15 +184,12 @@ fn main() -> anyhow::Result<()> {
 
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
-    let mut factory = EntityFactory::default();
+    let mut factory = BuiltInEntityFactory::default();
     factory
         .register_entity_with_str_key(ensnare_entities::piano_roll::PianoRoll::ENTITY_KEY, |uid| {
             Box::new(ensnare_entities::piano_roll::PianoRoll::new(uid))
         });
-    register_factory_entities(&mut factory);
-    if EntityFactory::initialize(factory).is_err() {
-        return Err(anyhow!("Couldn't initialize EntityFactory"));
-    }
+    factory.register_known_entities();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         return Err(anyhow!("Couldn't set DragDropManager once_cell"));
     }

@@ -24,12 +24,12 @@ pub mod piano_roll {
     pub use ensnare_entities_factory::piano_roll::PianoRoll;
 }
 
-pub use ensnare_entities_factory::{register_factory_entities, FactoryEntity};
+pub use ensnare_entities_factory::BuiltInEntities;
 #[cfg(feature = "test")]
 pub use ensnare_entities_test::register_test_entities;
 
 pub mod prelude {
-    pub use super::register_factory_entities;
     #[cfg(feature = "test")]
     pub use super::register_test_entities;
+    pub use super::BuiltInEntities;
 }

@@ -31,6 +31,7 @@ use ensnare_cores_egui::{
     prelude::live_pattern_sequencer_widget,
 };
 use ensnare_entities_toy::prelude::*;
+use ensnare_entity::traits::EntityBounds;
 use ensnare_orchestration::egui::{make_title_bar_galley, title_bar};
 
 #[derive(Debug)]
@@ -136,20 +137,22 @@ mod obsolete {
     }
 }
 /// Wraps a PretendDevicePalette as a [Widget](eframe::egui::Widget).
-fn pretend_device_palette(entity_factory: &EntityFactory) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| PretendDevicePalette::new(entity_factory).ui(ui)
+fn pretend_device_palette<E: EntityBounds>(
+    entity_factory: &EntityFactory<E>,
+) -> impl eframe::egui::Widget + '_ {
+    move |ui: &mut eframe::egui::Ui| PretendDevicePalette::<E>::new(entity_factory).ui(ui)
 }
 
 #[derive(Debug)]
-struct PretendDevicePalette<'a> {
-    entity_factory: &'a EntityFactory,
+struct PretendDevicePalette<'a, E: EntityBounds> {
+    entity_factory: &'a EntityFactory<E>,
 }
-impl<'a> PretendDevicePalette<'a> {
-    fn new(entity_factory: &'a EntityFactory) -> Self {
+impl<'a, E: EntityBounds> PretendDevicePalette<'a, E> {
+    fn new(entity_factory: &'a EntityFactory<E>) -> Self {
         Self { entity_factory }
     }
 }
-impl<'a> Widget for PretendDevicePalette<'a> {
+impl<'a, E: EntityBounds> Widget for PretendDevicePalette<'a, E> {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {
@@ -182,7 +185,7 @@ impl DevicePaletteSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(pretend_device_palette(EntityFactory::global()));
+            // TODO            ui.add(pretend_device_palette(EntityFactory::global()));
         }
     }
 }

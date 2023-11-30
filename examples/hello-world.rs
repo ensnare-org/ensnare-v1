@@ -5,6 +5,7 @@
 use clap::Parser;
 use ensnare::prelude::*;
 use ensnare_entities_toy::prelude::*;
+use ensnare_entity::traits::EntityBounds;
 
 /// The program's command-line arguments.
 #[derive(clap::Parser, Debug, Default)]
@@ -34,7 +35,7 @@ fn main() -> anyhow::Result<()> {
 
     // Orchestrator understands the relationships among the instruments,
     // controllers, and effects, and uses them to produce a song.
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 
     // Orchestrator owns the sample rate and propagates it to the devices
     // that it controls.

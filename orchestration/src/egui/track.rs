@@ -16,6 +16,7 @@ use ensnare_core::{
 use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui_widgets::ViewRange;
+use ensnare_entity::traits::Entity;
 use std::{f32::consts::PI, sync::Arc};
 
 use super::{
@@ -31,9 +32,9 @@ pub struct TrackInfo<'a> {
 }
 
 /// Wraps an [NewTrackWidget] as a [Widget](eframe::egui::Widget).
-pub fn new_track_widget<'a>(
+pub fn new_track_widget<'a, E: Entity + ?Sized>(
     track_info: &'a TrackInfo<'a>,
-    orchestrates: &'a mut dyn Orchestrates,
+    orchestrates: &'a mut dyn Orchestrates<E>,
     view_range: ViewRange,
     frontmost_uid: Option<Uid>,
     cursor: Option<MusicalTime>,
@@ -54,22 +55,22 @@ pub fn new_track_widget<'a>(
 
 /// An egui component that draws a track.
 #[derive(Debug)]
-struct NewTrackWidget<'a> {
+struct NewTrackWidget<'a, E: Entity + ?Sized> {
     track_info: &'a TrackInfo<'a>,
-    orchestrates: &'a mut dyn Orchestrates,
+    orchestrates: &'a mut dyn Orchestrates<E>,
     frontmost_uid: Option<Uid>,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
 
     action: &'a mut Option<TrackWidgetAction>,
 }
-impl<'a> NewTrackWidget<'a> {
+impl<'a, E: Entity + ?Sized> NewTrackWidget<'a,E> {
     const TIMELINE_HEIGHT: f32 = 64.0;
     const TRACK_HEIGHT: f32 = 96.0;
 
     pub fn new(
         track_info: &'a TrackInfo<'a>,
-        orchestrates: &'a mut dyn Orchestrates,
+        orchestrates: &'a mut dyn Orchestrates<E>,
         view_range: ViewRange,
         frontmost_uid: Option<Uid>,
         cursor: Option<MusicalTime>,
@@ -96,7 +97,7 @@ impl<'a> NewTrackWidget<'a> {
         false
     }
 }
-impl<'a> Widget for NewTrackWidget<'a> {
+impl<'a, E: Entity + ?Sized> Widget for NewTrackWidget<'a,E> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let track_uid = self.track_info.track_uid;
 

@@ -6,8 +6,12 @@ use ensnare::{
     },
     prelude::*,
 };
+use ensnare_entity::traits::EntityBounds;
 
-fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
+fn set_up_drum_track(
+    o: &mut dyn Orchestrates<dyn EntityBounds>,
+    factory: &EntityFactory<dyn EntityBounds>,
+) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
     let track_uid = o.create_track().unwrap();
     o.set_track_output(track_uid, Normal::from(0.5));
@@ -77,7 +81,10 @@ fn set_up_drum_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
     assert!(o.set_effect_humidity(filter_uid, Normal::from(0.0)).is_ok());
 }
 
-fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
+fn set_up_lead_track(
+    o: &mut dyn Orchestrates<dyn EntityBounds>,
+    factory: &EntityFactory<dyn EntityBounds>,
+) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
     let track_uid = o.create_track().unwrap();
     o.set_track_output(track_uid, Normal::from(0.5));
@@ -138,22 +145,19 @@ fn set_up_lead_track(o: &mut dyn Orchestrates, factory: &EntityFactory) {
 // removing them, as you'd expect a GUI DAW to do.
 #[test]
 fn program_song() {
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    register_toy_entities(&mut factory);
-    let _ = EntityFactory::initialize(factory);
-    let factory = EntityFactory::global();
+    let factory = BuiltInEntities::register(EntityFactory::default());
+    // register_toy_entities(&mut factory);
 
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 
     // Work with just the Orchestrates trait for a while.
     {
-        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
+        let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
 
         orchestrator.update_tempo(Tempo(128.0));
 
-        set_up_drum_track(orchestrator, factory);
-        set_up_lead_track(orchestrator, factory);
+        set_up_drum_track(orchestrator, &factory);
+        set_up_lead_track(orchestrator, &factory);
     }
 
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example

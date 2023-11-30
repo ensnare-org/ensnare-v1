@@ -3,7 +3,7 @@
 use anyhow::anyhow;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{prelude::*, selection_set::SelectionSet};
-use ensnare_entity::prelude::*;
+use ensnare_entity::{prelude::*, traits::EntityBounds};
 use ensnare_orchestration::{traits::Orchestrates, Orchestrator};
 use std::{
     path::PathBuf,
@@ -88,22 +88,27 @@ pub enum OrchestratorEvent {
 /// A wrapper around an [Orchestrator] that manages its lifetime in a separate
 /// thread. Communicate with it by sending [OrchestratorInput] messages and
 /// receiving [OrchestratorEvent] messages.
-#[derive(Debug, Default)]
-pub struct OrchestratorService {
-    pub orchestrator: Arc<Mutex<Orchestrator>>,
+#[derive(Debug)]
+pub struct OrchestratorService<E: EntityBounds + ?Sized> {
+    pub orchestrator: Arc<Mutex<Orchestrator<E>>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
     input_channel_pair: ChannelPair<OrchestratorInput>,
     event_channel_pair: ChannelPair<OrchestratorEvent>,
+    factory: Arc<EntityFactory<dyn EntityBounds>>,
 
     is_control_only_down: bool,
 }
-impl OrchestratorService {
-    pub fn new_with(orchestrator: &Arc<Mutex<Orchestrator>>) -> Self {
+impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
+    pub fn new_with(
+        orchestrator: &Arc<Mutex<Orchestrator<E>>>,
+        factory: &Arc<EntityFactory<dyn EntityBounds>>,
+    ) -> Self {
         let mut r = Self {
             orchestrator: Arc::clone(orchestrator),
             track_selection_set: Default::default(),
             input_channel_pair: Default::default(),
             event_channel_pair: Default::default(),
+            factory: Arc::clone(factory),
             is_control_only_down: Default::default(),
         };
         r.start_thread();
@@ -144,6 +149,7 @@ impl OrchestratorService {
         self.introduce();
         let orchestrator = Arc::clone(&self.orchestrator);
         let track_selection_set = Arc::clone(&self.track_selection_set);
+        let factory = Arc::clone(&self.factory);
         std::thread::spawn(move || loop {
             let recv = receiver.recv();
             if let Ok(mut o) = orchestrator.lock() {
@@ -160,7 +166,7 @@ impl OrchestratorService {
                         OrchestratorInput::ProjectPlay => o.play(),
                         OrchestratorInput::ProjectStop => o.stop(),
                         OrchestratorInput::ProjectNew => {
-                            let mo = Orchestrator::default();
+                            let mo = Orchestrator::<E>::new();
                             // o.prepare_successor(&mut mo);
                             // let _ = mo.create_starter_tracks(); // TODO: DRY this
                             *o = mo;
@@ -224,8 +230,8 @@ impl OrchestratorService {
                         }
                         OrchestratorInput::TrackAddEntity(track_uid, key) => {
                             let uid = o.mint_entity_uid();
-                            if let Some(entity) = EntityFactory::global().new_entity(&key, uid) {
-                                let _ = o.add_entity(&track_uid, entity);
+                            if let Some(entity) = factory.new_entity(&key, uid) {
+                                // TODO DON'T CHECK IN WITH THIS let _ = o.add_entity(&track_uid, entity);
                                 let _ = o.connect_midi_receiver(uid, MidiChannel::default());
                             }
                         }
@@ -255,14 +261,14 @@ impl OrchestratorService {
     }
 
     fn handle_input_midi(
-        orchestrator: &mut MutexGuard<Orchestrator>,
+        orchestrator: &mut MutexGuard<Orchestrator<E>>,
         channel: MidiChannel,
         message: MidiMessage,
     ) {
         orchestrator.handle_midi_message(channel, message, &mut |_, _| {});
     }
 
-    fn handle_input_load(_path: &PathBuf) -> anyhow::Result<Orchestrator> {
+    fn handle_input_load(_path: &PathBuf) -> anyhow::Result<Orchestrator<E>> {
         Err(anyhow!("FIX THIS"))
         // match std::fs::read_to_string(path) {
         //     Ok(project_string) => match serde_json::from_str::<Orchestrator>(&project_string) {
@@ -276,7 +282,7 @@ impl OrchestratorService {
         // }
     }
 
-    fn handle_input_save(_o: &MutexGuard<Orchestrator>, _path: &PathBuf) -> anyhow::Result<()> {
+    fn handle_input_save(_o: &MutexGuard<Orchestrator<E>>, _path: &PathBuf) -> anyhow::Result<()> {
         Err(anyhow!("FIX THIS"))
         // let o: &Orchestrator = o;
         // match serde_json::to_string_pretty(o)

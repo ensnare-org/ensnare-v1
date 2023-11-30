@@ -1,14 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
+use ensnare_entity::traits::EntityBounds;
 
 #[test]
 fn entity_validator_production_entities() {
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    if EntityFactory::initialize(factory).is_err() {
-        panic!("Couldn't set EntityFactory once_cell");
-    }
+    let factory = BuiltInEntities::register(EntityFactory::default());
     validate_factory_entities();
 }
 
@@ -23,12 +20,12 @@ fn validate_factory_entities() {
     }
 }
 
-fn validate_entity(key: &EntityKey, entity: &mut Box<dyn Entity>) {
+fn validate_entity(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     validate_configurable(key, entity);
     validate_entity_type(key, entity);
 }
 
-fn validate_configurable(key: &EntityKey, entity: &mut Box<dyn Entity>) {
+fn validate_configurable(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     const TEST_SAMPLE_RATE: SampleRate = SampleRate(1111111);
     entity.update_tempo(Tempo(1234.5678));
     entity.update_time_signature(TimeSignature::new_with(127, 128).unwrap());
@@ -56,7 +53,7 @@ fn validate_configurable(key: &EntityKey, entity: &mut Box<dyn Entity>) {
     }
 }
 
-fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn Entity>) {
+fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     let mut is_something = false;
     if let Some(e) = entity.as_controller_mut() {
         is_something = true;
@@ -79,7 +76,7 @@ fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn Entity>) {
     );
 }
 
-fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn Entity>) {
+fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     assert!(entity.as_instrument().is_some() || entity.as_effect().is_some());
 
     entity.update_sample_rate(SampleRate(1));
@@ -96,7 +93,7 @@ fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn Entity>) 
 
 // This doesn't assert anything. We are looking to make sure the entity doesn't
 // blow up with weird sample rates.
-fn exercise_instrument_or_effect(_key: &EntityKey, entity: &mut Box<dyn Entity>) {
+fn exercise_instrument_or_effect(_key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     let mut buffer = [StereoSample::SILENCE; 64];
     if let Some(e) = entity.as_instrument_mut() {
         e.generate_batch_values(&mut buffer);

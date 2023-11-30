@@ -2,14 +2,14 @@
 
 use crossbeam_channel::Sender;
 use ensnare_core::{
-    controllers::{TimerParams, TriggerParams},
+    controllers::{ControlTripParams, TimerParams, TriggerParams},
     piano_roll::{Pattern, PatternUid, PianoRoll},
     prelude::*,
     time::MusicalTime,
     traits::{Configurable, Controls, Sequences, Serializable},
     uid::Uid,
 };
-use ensnare_cores::{ArpeggiatorParams, LfoControllerParams};
+use ensnare_cores::{ArpeggiatorParams, LfoControllerParams, LivePatternSequencerParams};
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
     pattern_sequencer_widget, trip,
@@ -136,7 +136,11 @@ impl Displays for LivePatternSequencer {
     }
 }
 impl LivePatternSequencer {
-    pub fn new_with(uid: Uid, piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        _params: &LivePatternSequencerParams,
+        piano_roll: Arc<RwLock<PianoRoll>>,
+    ) -> Self {
         Self {
             uid,
             inner: ensnare_cores::LivePatternSequencer::new_with(piano_roll),
@@ -185,6 +189,23 @@ impl Controls for LivePatternSequencer {
 
     fn is_performing(&self) -> bool {
         self.inner.is_performing()
+    }
+}
+impl TryFrom<(Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>)> for LivePatternSequencer {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: (Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>),
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value.0, value.1, Arc::clone(value.2)))
+    }
+}
+impl TryFrom<&LivePatternSequencer> for LivePatternSequencerParams {
+    type Error = anyhow::Error;
+
+    #[allow(unused_variables)]
+    fn try_from(value: &LivePatternSequencer) -> Result<Self, Self::Error> {
+        Ok(Self::default())
     }
 }
 
@@ -375,14 +396,31 @@ impl Displays for ControlTrip {
 impl ControlTrip {
     pub fn new_with(
         uid: Uid,
-        inner: ensnare_core::controllers::ControlTrip,
+        params: &ControlTripParams,
         control_router: Arc<RwLock<ControlRouter>>,
     ) -> Self {
         Self {
             uid,
-            inner,
+            inner: ensnare_core::controllers::ControlTrip::new_with(params),
             control_router,
             view_range: Default::default(),
         }
+    }
+}
+impl TryFrom<(Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>)> for ControlTrip {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: (Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>),
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value.0, value.1, Arc::clone(value.2)))
+    }
+}
+impl TryFrom<&ControlTrip> for ControlTripParams {
+    type Error = anyhow::Error;
+
+    #[allow(unused_variables)]
+    fn try_from(value: &ControlTrip) -> Result<Self, Self::Error> {
+        Ok(Self::default())
     }
 }

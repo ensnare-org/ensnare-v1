@@ -7,9 +7,12 @@
 pub mod arrangement {
     //! Organization of musical elements.
 
-    pub use super::project::{Project, ProjectTitle};
     pub use ensnare_core::time::Transport;
-    pub use ensnare_orchestration::orchestration::{Orchestrator, OrchestratorHelper};
+    pub use ensnare_orchestration::{
+        orchestration::{Orchestrator, OrchestratorHelper},
+        traits::Orchestrates,
+        DescribesProject,
+    };
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -53,7 +56,8 @@ pub mod control {
     pub use ensnare_orchestration::ControlRouter;
 
     pub use ensnare_core::controllers::{
-        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripParams,
+        ControlTripPath,
     };
 
     /// The most commonly used imports.
@@ -89,7 +93,8 @@ pub mod entities {
     //! [IsInstrument](crate::traits::IsInstrument) (or one of the hybrids of
     //! these traits).
 
-    pub use ensnare_entities::FactoryEntity;
+    pub use ensnare_core::uid::{EntityUidFactory, TrackUidFactory};
+    pub use ensnare_entities::BuiltInEntities;
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub mod controllers {
@@ -133,8 +138,8 @@ pub mod entities {
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{EntityFactory, EntityKey, EntityStore};
-        pub use ensnare_entities::register_factory_entities;
+        pub use super::{BuiltInEntities, EntityFactory, EntityKey, EntityStore};
+        // pub use ensnare_entities::register_factory_entities;
         pub use ensnare_entities_toy::register_toy_entities;
     }
 }
@@ -235,8 +240,8 @@ pub mod types {
     pub mod prelude {
         pub use super::{
             BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, TrackUid, TrackUidFactory,
-            Uid, UidFactory, ViewRange,
+            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, TrackTitle, TrackUid,
+            TrackUidFactory, Uid, UidFactory, ViewRange,
         };
     }
 }
@@ -269,6 +274,7 @@ pub use version::app_version;
 
 mod version;
 
+pub mod all_entities;
 pub mod project;
 
 /// A collection of imports that are useful to users of this crate. `use
@@ -279,6 +285,7 @@ pub mod prelude {
     pub use super::control::prelude::*;
     pub use super::entities::prelude::*;
     pub use super::midi::prelude::*;
+    pub use super::project::prelude::*;
     pub use super::services::prelude::*;
     pub use super::traits::prelude::*;
     pub use super::types::prelude::*;

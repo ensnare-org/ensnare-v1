@@ -4,22 +4,20 @@ use ensnare::{
     entities::controllers::PatternSequencer, entities::effects::Gain, entities::toys::ToySynth,
     prelude::*,
 };
+use ensnare_entity::traits::EntityBounds;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
 // experience and not merely possible).
 #[test]
 fn demo_sidechaining() {
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    register_toy_entities(&mut factory);
-    let _ = EntityFactory::initialize(factory);
-    let factory = EntityFactory::global();
+    let factory = BuiltInEntities::register(EntityFactory::default());
+//    register_toy_entities(&mut factory);
 
-    let mut orchestrator = Orchestrator::default();
+    let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 
     {
-        let orchestrator: &mut dyn Orchestrates = &mut orchestrator;
+        let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
         // Add the sidechain source track.
         let sidechain_pattern = PatternBuilder::default()
             .note_sequence(

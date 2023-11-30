@@ -2,9 +2,13 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::{entities::FactoryEntity, prelude::*, types::TrackTitle};
+use crate::{all_entities::EntityParams, prelude::*, types::TrackTitle};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+pub mod prelude {
+    pub use super::{Project, ProjectTitle, TrackInfo};
+}
 
 /// A user-visible project title.
 #[derive(Clone, Debug, derive_more::Display, PartialEq, Serialize, Deserialize)]
@@ -33,11 +37,6 @@ pub struct TrackInfo {
     pub title: TrackTitle,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum ProjectEntity {
-    Factory(FactoryEntity),
-}
-
 /// A serializable representation of a project. Most applications that use
 /// [Project] will need to create `From` implementations to/from their own
 /// custom representation of the data contained within it.
@@ -62,5 +61,5 @@ pub struct Project {
     pub tracks: Vec<TrackInfo>,
 
     /// The entities in each track.
-    pub entities: HashMap<TrackUid, Vec<(Uid, ProjectEntity)>>,
+    pub entities: HashMap<TrackUid, Vec<(Uid, Box<EntityParams>)>>,
 }
