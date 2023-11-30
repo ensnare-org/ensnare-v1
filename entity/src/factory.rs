@@ -139,6 +139,12 @@ impl<E: EntityBounds + ?Sized> EntityFactory<E> {
     }
 }
 
+/// The purpose of this trait is to allow MidiRouter not to have to worry about
+/// [Entity] trait bounds.
+pub trait ReturnsHandlesMidi {
+    fn get_handles_midi_mut(&mut self, uid: &Uid) -> Option<&mut dyn HandlesMidi>;
+}
+
 /// An [EntityStore] owns [Entities](Entity). It implements some [Entity]
 /// traits, such as [Configurable], and fans out usage of those traits to the
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
@@ -160,6 +166,15 @@ impl<E: Entity + ?Sized> Default for EntityStore<E> {
             tempo: Default::default(),
             entities: Default::default(),
             time_range: Default::default(),
+        }
+    }
+}
+impl<E: Entity + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
+    fn get_handles_midi_mut(&mut self, uid: &Uid) -> Option<&mut dyn HandlesMidi> {
+        if let Some(e) = self.entities.get_mut(uid) {
+            e.as_handles_midi_mut()
+        } else {
+            None
         }
     }
 }
@@ -374,11 +389,11 @@ impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
-    use crate::prelude::*;
+    use crate::{prelude::*, traits::EntityBounds};
     use ensnare_core::prelude::*;
     use ensnare_proc_macros::{IsEntity, Metadata, Params};
 
-    #[derive(Debug, Default, IsEntity, Metadata, Params)]
+    #[derive(Debug, Default, IsEntity, Metadata, Params, PartialEq)]
     #[entity("instrument")]
     struct ExampleEntity {
         pub uid: Uid,
@@ -474,7 +489,7 @@ mod tests {
 
     #[test]
     fn entity_store_partial_eq_excludes_sample_rate() {
-        let es1 = EntityStore::<dyn Entity>::default();
+        let es1 = EntityStore::<dyn EntityBounds>::default();
         let mut es2 = EntityStore::default();
 
         assert_eq!(es1, es2, "Two default EntityStores should be equal");

@@ -752,7 +752,7 @@ pub struct Orchestrator<E: EntityBounds + ?Sized> {
     effect_uids: HashMap<TrackUid, Vec<Uid>>,
 
     pub control_router: Arc<RwLock<ControlRouter>>,
-    midi_router: MidiRouter<E>,
+    midi_router: MidiRouter,
     humidifier: Humidifier,
     bus_station: BusStation,
     main_mixer: MainMixer,
@@ -858,7 +858,7 @@ impl<E: EntityBounds + ?Sized> PartialEq for Orchestrator<E> {
             && self.instrument_uids == other.instrument_uids
             && self.effect_uids == other.effect_uids
             && *self.control_router.read().unwrap() == *other.control_router.read().unwrap()
-           // TODO DO NOT CHECK IN && self.midi_router == other.midi_router
+            && self.midi_router == other.midi_router
             && self.humidifier == other.humidifier
             && self.bus_station == other.bus_station
             && self.main_mixer == other.main_mixer
@@ -1327,7 +1327,7 @@ pub struct OrchestratorHelper<'a, E: EntityBounds + ?Sized> {
     orchestrator: &'a mut dyn Orchestrates<E>,
     pub sample_buffer_channel_sender: Option<Sender<[Sample; 64]>>,
 }
-impl<'a, E: EntityBounds+ ?Sized> OrchestratorHelper<'a, E> {
+impl<'a, E: EntityBounds + ?Sized> OrchestratorHelper<'a, E> {
     /// The expected size of any buffer provided for samples.
     //
     // TODO: how hard would it be to make this dynamic? Does adjustability
@@ -1745,13 +1745,13 @@ mod tests {
     #[test]
     fn orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::<dyn TestEntity>::new();
-      // TODO  validate_orchestrates_trait(&mut orchestrator);
+        //TODO    validate_orchestrates_trait(&mut orchestrator);
     }
 
     #[test]
     fn new_orchestrator_orchestrates() {
         let mut orchestrator = Orchestrator::<dyn TestEntity>::new();
-      // TODO  validate_orchestrates_trait(&mut orchestrator);
+        //TODO     validate_orchestrates_trait(&mut orchestrator);
     }
 
     /// An [IsEntity] that sends one Control event each time work() is called.
@@ -1781,7 +1781,11 @@ mod tests {
 
         const TEMPO_INDEX: ControlIndex = ControlIndex(0);
         assert!(orchestrator
-            .link_control(uid, Orchestrator::<dyn TestEntity>::TRANSPORT_UID, TEMPO_INDEX)
+            .link_control(
+                uid,
+                Orchestrator::<dyn TestEntity>::TRANSPORT_UID,
+                TEMPO_INDEX
+            )
             .is_ok());
 
         assert_eq!(orchestrator.tempo(), Tempo::default());

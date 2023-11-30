@@ -2,24 +2,22 @@
 
 use anyhow::anyhow;
 use ensnare_core::prelude::*;
-use ensnare_entity::prelude::*;
-use std::{collections::HashMap, marker::PhantomData};
+use ensnare_entity::factory::ReturnsHandlesMidi;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
-pub struct MidiRouter<E: Entity + ?Sized> {
+pub struct MidiRouter {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,
-    _phantom: PhantomData<E>,
 }
-impl<E: Entity + ?Sized> Default for MidiRouter<E> {
+impl Default for MidiRouter {
     fn default() -> Self {
         Self {
             midi_channel_to_receiver_uid: Default::default(),
-            _phantom: Default::default(),
         }
     }
 }
-impl<E: Entity + ?Sized> MidiRouter<E> {
+impl MidiRouter {
     /// The entities receiving on the given MIDI channel.
     pub fn receivers(&mut self, channel: &MidiChannel) -> &Vec<Uid> {
         self.midi_channel_to_receiver_uid
@@ -45,7 +43,7 @@ impl<E: Entity + ?Sized> MidiRouter<E> {
     }
 
     /// Route the [MidiMessage] to everyone listening on the [MidiChannel],
-    /// using the provided closure to map [Uid] to [HandlesMidi]. Also routes
+    /// calling the provided closure that maps [Uid] to [HandlesMidi]. Also routes
     /// all the [MidiMessage]s that are produced in response.
     //
     // TODO: I think this is incomplete. If an external sequencer drives an
@@ -53,7 +51,7 @@ impl<E: Entity + ?Sized> MidiRouter<E> {
     // think the arp's MIDI gets back to the outside world.
     pub fn route(
         &mut self,
-        entity_store: &mut EntityStore<E>,
+        entity_store: &mut dyn ReturnsHandlesMidi,
         channel: MidiChannel,
         message: MidiMessage,
     ) -> anyhow::Result<()> {
@@ -63,8 +61,7 @@ impl<E: Entity + ?Sized> MidiRouter<E> {
         while let Some((channel, message)) = v.pop() {
             let receiver_uids = self.receivers(&channel);
             receiver_uids.iter().for_each(|uid| {
-                if let Some(e) = entity_store.get_mut(uid) {
-                    if let Some(e) = e.as_handles_midi_mut() {
+                if let Some(e) = entity_store.get_handles_midi_mut(uid) {
                         e.handle_midi_message(channel, message, &mut | response_channel, response_message| {
                             if channel != response_channel {
                                 v.push((response_channel, response_message));
@@ -73,9 +70,6 @@ impl<E: Entity + ?Sized> MidiRouter<E> {
                                 eprintln!("Warning: loop detected; while sending to channel {channel}, received request to send {:#?} to same channel", &response_message);
                             }
                         });
-                    } else {
-                        eprintln!("Warning: somehow device id {uid} that doesn't handle MIDI got on a receiver list");
-                    }
                 } else {
                     eprintln!("Warning: a receiver list refers to nonexistent entity id {uid}");
                 }
