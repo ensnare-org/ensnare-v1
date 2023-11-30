@@ -4,6 +4,7 @@ use ensnare::{
     entities::controllers::PatternSequencer, entities::effects::Gain, entities::toys::ToySynth,
     prelude::*,
 };
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
@@ -11,7 +12,7 @@ use ensnare_entity::traits::EntityBounds;
 // experience and not merely possible).
 #[test]
 fn demo_sidechaining() {
-    let factory = BuiltInEntities::register(EntityFactory::default());
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
 //    register_toy_entities(&mut factory);
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();

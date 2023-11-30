@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::factory::EnsnareEntityFactory;
 use anyhow::anyhow;
 use crossbeam_channel::Sender;
 use eframe::egui::Id;
 use ensnare::{
+    all_entities::{EntityParams, EntityWrapper},
     arrangement::{DescribesProject, Orchestrates, Orchestrator},
     control::ControlTripParams,
     cores::LivePatternSequencerParams,
@@ -14,7 +14,7 @@ use ensnare::{
     },
     prelude::*,
     project::{ProjectTitle, TrackInfo},
-    Project, all_entities::{EntityWrapper, EntityParams},
+    Project,
 };
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
@@ -260,7 +260,10 @@ impl DawProject {
         self.detail_uid = Some(uid);
     }
 
-    pub(crate) fn load(path: PathBuf, factory: &EnsnareEntityFactory) -> anyhow::Result<Self> {
+    pub(crate) fn load(
+        path: PathBuf,
+        factory: &EntityFactory<dyn EntityWrapper>,
+    ) -> anyhow::Result<Self> {
         let json = std::fs::read_to_string(&path)?;
         let project = serde_json::from_str::<Project>(&json)?;
         let mut daw_project: DawProject = (&project, factory).into();
@@ -319,8 +322,8 @@ impl From<&DawProject> for Project {
         dst
     }
 }
-impl From<(&Project, &EnsnareEntityFactory)> for DawProject {
-    fn from(value: (&Project, &EnsnareEntityFactory)) -> Self {
+impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
+    fn from(value: (&Project, &EntityFactory<dyn EntityWrapper>)) -> Self {
         let (src, factory) = value;
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
@@ -358,6 +361,8 @@ impl From<(&Project, &EnsnareEntityFactory)> for DawProject {
 
 #[cfg(test)]
 mod tests {
+    use crate::factory::EnsnareEntities;
+
     use super::*;
     use ensnare_core::rng::Rng;
     use std::sync::Arc;
@@ -405,27 +410,33 @@ mod tests {
 
     #[test]
     fn identity_starting_with_in_memory() {
-        let factory = EnsnareEntityFactory::register_entities();
+        let factory =
+            EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::new_project();
         let dst: Project = <&DawProject>::into(&src);
-        let src_copy: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&dst, &factory));
+        let src_copy: DawProject =
+            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
     #[test]
     fn identity_starting_with_in_memory_nondefault() {
-        let factory = EnsnareEntityFactory::register_entities();
+        let factory =
+        EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::test_random();
         let dst: Project = <&DawProject>::into(&src);
-        let src_copy: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&dst, &factory));
+        let src_copy: DawProject =
+            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
     #[test]
     fn identity_starting_with_serialized() {
-        let factory = EnsnareEntityFactory::register_entities();
+        let factory =
+        EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = Project::default();
-        let dst: DawProject = <(&Project, &EnsnareEntityFactory)>::into((&src, &factory));
+        let dst: DawProject =
+            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&src, &factory));
         let src_copy: Project = <&DawProject>::into(&dst);
         assert_eq!(src, src_copy);
     }

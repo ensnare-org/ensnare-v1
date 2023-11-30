@@ -94,7 +94,6 @@ pub mod entities {
     //! these traits).
 
     pub use ensnare_core::uid::{EntityUidFactory, TrackUidFactory};
-    pub use ensnare_entities::BuiltInEntities;
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub mod controllers {
@@ -138,7 +137,7 @@ pub mod entities {
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{BuiltInEntities, EntityFactory, EntityKey, EntityStore};
+        pub use super::{EntityFactory, EntityKey, EntityStore};
         // pub use ensnare_entities::register_factory_entities;
         pub use ensnare_entities_toy::register_toy_entities;
     }

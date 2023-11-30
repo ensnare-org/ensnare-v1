@@ -2,11 +2,13 @@
 
 //! A digital audio workstation.
 
+use ::ensnare::all_entities::EntityWrapper;
 use anyhow::anyhow;
 use ensnare::Ensnare;
 use ensnare_drag_drop::DragDropManager;
+use ensnare_entity::factory::EntityFactory;
 use env_logger;
-use factory::EnsnareEntityFactory;
+use factory::EnsnareEntities;
 
 mod ensnare;
 mod factory;
@@ -18,6 +20,9 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions::default();
 
+    let factory =
+        EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
+
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         panic!("Couldn't set DragDropManager once_cell");
     }
@@ -25,7 +30,7 @@ fn main() -> anyhow::Result<()> {
     if let Err(e) = eframe::run_native(
         Ensnare::NAME,
         options,
-        Box::new(|cc| Box::new(Ensnare::new(cc, EnsnareEntityFactory::register_entities()))),
+        Box::new(|cc| Box::new(Ensnare::new(cc, factory))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {

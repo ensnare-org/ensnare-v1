@@ -6,20 +6,18 @@ use ensnare::{
     entities::{
         controllers::{ControlTrip, LfoController, PatternSequencer},
         toys::ToySynth,
-        BuiltInEntities,
     },
     generators::Waveform,
     prelude::*,
 };
-use ensnare_entities_toy::factory;
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
-    let mut factory = EntityFactory::default();
-    let mut factory = BuiltInEntities::register(factory);
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     //    register_toy_entities(&mut factory);
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
@@ -118,9 +116,8 @@ fn demo_automation() {
 
 #[test]
 fn demo_control_trips() {
-    let mut factory = EntityFactory::default();
-    let mut factory = BuiltInEntities::register(factory);
-//    register_toy_entities(&mut factory);
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
+    //    register_toy_entities(&mut factory);
     // let _ = EntityFactory::initialize(factory);
     // let factory = EntityFactory::global();
 

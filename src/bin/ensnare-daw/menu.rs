@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use std::sync::{Arc, RwLock};
+
+use ensnare::{all_entities::EntityWrapper, prelude::*};
 use ensnare_entity::traits::Displays;
 use strum_macros::Display;
 
@@ -67,10 +69,20 @@ impl MenuBarItem {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct MenuBar {
+    factory: Arc<EntityFactory<dyn EntityWrapper>>,
     action: Option<MenuBarAction>,
     is_track_selected: bool,
+}
+impl MenuBar {
+    pub fn new_with(factory: &Arc<EntityFactory<dyn EntityWrapper>>) -> Self {
+        Self {
+            factory: Arc::clone(factory),
+            action: Default::default(),
+            is_track_selected: Default::default(),
+        }
+    }
 }
 impl Displays for MenuBar {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -143,7 +155,7 @@ impl MenuBar {
     fn new_entity_menu(&self) -> Vec<MenuBarItem> {
         vec![MenuBarItem::node(
             "Things",
-            EntityFactory::global()
+            self.factory
                 .keys()
                 .iter()
                 .map(|k| {

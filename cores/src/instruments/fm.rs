@@ -222,7 +222,7 @@ pub struct FmSynth {
 
     #[control]
     #[params]
-    dca: Dca,
+    pub dca: Dca,
 
     pub inner_synth: Synthesizer<FmVoice>,
 }

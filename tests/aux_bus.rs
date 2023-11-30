@@ -5,16 +5,16 @@ use ensnare::{
         controllers::PatternSequencer,
         effects::{Gain, Reverb},
         toys::ToySynth,
-        BuiltInEntities,
     },
     prelude::*,
 };
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 
 // Demonstrates use of aux buses.
 #[test]
 fn aux_bus() {
-    let factory = BuiltInEntities::register(EntityFactory::default());
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     //        .register_toy_entities();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();

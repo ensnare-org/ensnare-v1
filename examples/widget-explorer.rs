@@ -30,6 +30,7 @@ use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
 };
+use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_orchestration::egui::{make_title_bar_galley, title_bar};
@@ -137,29 +138,29 @@ mod obsolete {
     }
 }
 /// Wraps a PretendDevicePalette as a [Widget](eframe::egui::Widget).
-fn pretend_device_palette<E: EntityBounds>(
-    entity_factory: &EntityFactory<E>,
-) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| PretendDevicePalette::<E>::new(entity_factory).ui(ui)
+fn pretend_device_palette(keys: &[EntityKey]) -> impl eframe::egui::Widget + '_ {
+    move |ui: &mut eframe::egui::Ui| PretendDevicePalette::new(keys).ui(ui)
 }
 
 #[derive(Debug)]
-struct PretendDevicePalette<'a, E: EntityBounds> {
-    entity_factory: &'a EntityFactory<E>,
+struct PretendDevicePalette {
+    keys: Vec<EntityKey>,
 }
-impl<'a, E: EntityBounds> PretendDevicePalette<'a, E> {
-    fn new(entity_factory: &'a EntityFactory<E>) -> Self {
-        Self { entity_factory }
+impl PretendDevicePalette {
+    fn new(keys: &[EntityKey]) -> Self {
+        Self {
+            keys: Vec::from(keys),
+        }
     }
 }
-impl<'a, E: EntityBounds> Widget for PretendDevicePalette<'a, E> {
+impl Widget for PretendDevicePalette {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 32.0);
         ui.allocate_ui(desired_size, |ui| {
             ScrollArea::horizontal()
                 .show(ui, |ui| {
                     ui.horizontal_centered(|ui| {
-                        for key in self.entity_factory.sorted_keys() {
+                        for key in self.keys.iter() {
                             DragDropManager::drag_source(
                                 ui,
                                 Id::new(key),
@@ -176,16 +177,24 @@ impl<'a, E: EntityBounds> Widget for PretendDevicePalette<'a, E> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct DevicePaletteSettings {
     hide: bool,
+    keys: Vec<EntityKey>,
 }
 impl DevicePaletteSettings {
     const NAME: &'static str = "Device Palette";
 
+    fn new(factory: EntityFactory<dyn EntityBounds>) -> Self {
+        Self {
+            hide: Default::default(),
+            keys: factory.sorted_keys().to_vec(),
+        }
+    }
+
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            // TODO            ui.add(pretend_device_palette(EntityFactory::global()));
+            ui.add(pretend_device_palette(&self.keys));
         }
     }
 }
@@ -681,7 +690,7 @@ impl Default for SampleClip {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct WidgetExplorer {
     legend: LegendSettings,
     grid: GridSettings,
@@ -704,9 +713,23 @@ struct WidgetExplorer {
 impl WidgetExplorer {
     pub const NAME: &'static str = "Widget Explorer";
 
-    pub fn new(_cc: &CreationContext) -> Self {
+    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         Self {
-            ..Default::default()
+            legend: Default::default(),
+            grid: Default::default(),
+            device_palette: DevicePaletteSettings::new(factory),
+            live_pattern_sequencer: Default::default(),
+            note_sequencer: Default::default(),
+            pattern_icon: Default::default(),
+            title_bar: Default::default(),
+            piano_roll: Default::default(),
+            wiggler: Default::default(),
+            time_domain: Default::default(),
+            frequency_domain: Default::default(),
+            toy_synth: Default::default(),
+            toy_controller: Default::default(),
+            toy_effect: Default::default(),
+            toy_instrument: Default::default(),
         }
     }
 
@@ -877,11 +900,7 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions::default();
 
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    if EntityFactory::initialize(factory).is_err() {
-        return Err(anyhow!("Couldn't initialize EntityFactory"));
-    }
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         return Err(anyhow!("Couldn't set DragDropManager once_cell"));
     }
@@ -889,7 +908,7 @@ fn main() -> anyhow::Result<()> {
     if let Err(e) = eframe::run_native(
         WidgetExplorer::NAME,
         options,
-        Box::new(|cc| Box::new(WidgetExplorer::new(cc))),
+        Box::new(|cc| Box::new(WidgetExplorer::new(cc, factory))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {

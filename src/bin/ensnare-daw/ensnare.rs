@@ -3,7 +3,6 @@
 //! Main struct for Ensnare DAW application.
 
 use crate::{
-    factory::EnsnareEntityFactory,
     menu::{MenuBar, MenuBarAction},
     project::DawProject,
     settings::{Settings, SettingsPanel},
@@ -20,7 +19,6 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{all_entities::EntityWrapper, app_version, prelude::*, project::ProjectTitle};
-use ensnare_entity::traits::EntityBounds;
 use std::{ops::DerefMut, path::PathBuf, sync::Arc};
 
 // TODO: clean these up. An app should need to use only the top ensnare crate,
@@ -103,15 +101,13 @@ impl Ensnare {
             .clone();
         let control_bar = ControlBar::default();
         let sample_buffer_sender = control_bar.sample_channel.sender.clone();
-        let f_0: &EntityFactory<dyn EntityBounds> = &factory;
-        let factory_1: Arc<EntityFactory<dyn EntityWrapper>> = Arc::new(factory);
-        let factory_2: Arc<EntityFactory<dyn EntityBounds>> = Arc::new(factory);
+        let factory: Arc<EntityFactory<dyn EntityWrapper>> = Arc::new(factory);
 
         let mut r = Self {
             factory: Arc::clone(&factory),
             event_channel: Default::default(),
             project,
-            menu_bar: Default::default(),
+            menu_bar: MenuBar::new_with(&factory),
             control_bar,
             orchestrator_service: OrchestratorService::<dyn EntityWrapper>::new_with(
                 &orchestrator,
@@ -492,7 +488,7 @@ impl Ensnare {
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
         ScrollArea::vertical().show(ui, |ui| {
-            ui.add(entity_palette(EntityFactory::global().sorted_keys()))
+            ui.add(entity_palette(self.factory.sorted_keys()))
         });
     }
 

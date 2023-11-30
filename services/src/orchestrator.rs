@@ -94,14 +94,14 @@ pub struct OrchestratorService<E: EntityBounds + ?Sized> {
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
     input_channel_pair: ChannelPair<OrchestratorInput>,
     event_channel_pair: ChannelPair<OrchestratorEvent>,
-    factory: Arc<EntityFactory<dyn EntityBounds>>,
+    factory: Arc<EntityFactory<E>>,
 
     is_control_only_down: bool,
 }
 impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
     pub fn new_with(
         orchestrator: &Arc<Mutex<Orchestrator<E>>>,
-        factory: &Arc<EntityFactory<dyn EntityBounds>>,
+        factory: &Arc<EntityFactory<E>>,
     ) -> Self {
         let mut r = Self {
             orchestrator: Arc::clone(orchestrator),

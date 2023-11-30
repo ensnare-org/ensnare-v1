@@ -10,7 +10,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::EntityUidFactory, prelude::*};
-use ensnare_entities::BuiltInEntityFactory;
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -24,6 +24,7 @@ enum DisplayMode {
 }
 #[derive(Debug, Default)]
 struct EntityGuiExplorer {
+    factory: EntityFactory<dyn EntityBounds>,
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
     uid_factory: EntityUidFactory,
@@ -33,18 +34,20 @@ struct EntityGuiExplorer {
 impl EntityGuiExplorer {
     pub const NAME: &'static str = "Entity GUI Explorer";
 
-    pub fn new(_cc: &CreationContext) -> Self {
+    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
+        let sorted_keys = Self::generate_entity_key_list(&factory);
         Self {
-            sorted_keys: Self::generate_entity_key_list(),
+            factory,
+            sorted_keys,
             ..Default::default()
         }
     }
 
-    fn generate_entity_key_list() -> Vec<EntityKey> {
+    fn generate_entity_key_list(factory: &EntityFactory<dyn EntityBounds>) -> Vec<EntityKey> {
         // let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
         let skips = [];
 
-        let mut keys: Vec<String> = EntityFactory::global()
+        let mut keys: Vec<String> = factory
             .keys()
             .iter()
             .filter(|k| !skips.contains(k))
@@ -72,7 +75,7 @@ impl EntityGuiExplorer {
             if ui.button(key.to_string()).clicked() && self.selected_key != Some(key.clone()) {
                 if !self.entities.contains_key(key) {
                     let uid = self.uid_factory.mint_next();
-                    if let Some(entity) = EntityFactory::global().new_entity(key, uid) {
+                    if let Some(entity) = self.factory.new_entity(key, uid) {
                         self.entities.insert(key.clone(), entity);
                     } else {
                         panic!("Couldn't create new entity {key}")
@@ -184,12 +187,12 @@ fn main() -> anyhow::Result<()> {
 
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
-    let mut factory = BuiltInEntityFactory::default();
+    let mut factory = EntityFactory::<dyn EntityBounds>::default();
     factory
         .register_entity_with_str_key(ensnare_entities::piano_roll::PianoRoll::ENTITY_KEY, |uid| {
             Box::new(ensnare_entities::piano_roll::PianoRoll::new(uid))
         });
-    factory.register_known_entities();
+    let factory = BuiltInEntities::register(factory).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         return Err(anyhow!("Couldn't set DragDropManager once_cell"));
     }
@@ -197,7 +200,7 @@ fn main() -> anyhow::Result<()> {
     if let Err(e) = eframe::run_native(
         EntityGuiExplorer::NAME,
         options,
-        Box::new(|cc| Box::new(EntityGuiExplorer::new(cc))),
+        Box::new(|cc| Box::new(EntityGuiExplorer::new(cc, factory))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {

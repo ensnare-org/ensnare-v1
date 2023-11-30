@@ -1,18 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 
 #[test]
 fn entity_validator_production_entities() {
-    let factory = BuiltInEntities::register(EntityFactory::default());
-    validate_factory_entities();
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
+    validate_factory_entities(&factory);
 }
 
-fn validate_factory_entities() {
-    for (uid, key) in EntityFactory::global().keys().iter().enumerate() {
+fn validate_factory_entities(factory: &EntityFactory<dyn EntityBounds>) {
+    for (uid, key) in factory.keys().iter().enumerate() {
         let uid = Uid(1000 + uid);
-        if let Some(mut entity) = EntityFactory::global().new_entity(key, uid) {
+        if let Some(mut entity) = factory.new_entity(key, uid) {
             validate_entity(key, &mut entity);
         } else {
             panic!("Couldn't create entity with {key}, but EntityFactory said it existed!");

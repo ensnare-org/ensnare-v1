@@ -1,8 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::controllers::ControlTripParams;
-use ensnare_cores::{ArpeggiatorParams, LivePatternSequencerParams};
-use ensnare_entities::controllers::{Arpeggiator, ControlTrip, LivePatternSequencer};
+use ensnare_cores::{ArpeggiatorParams, FmSynthParams, LivePatternSequencerParams};
+use ensnare_entities::{
+    controllers::{Arpeggiator, ControlTrip, LivePatternSequencer},
+    instruments::FmSynth,
+};
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +20,7 @@ pub enum EntityParams {
     Arpeggiator(ArpeggiatorParams),
     LivePatternSequencer(LivePatternSequencerParams),
     ControlTrip(ControlTripParams),
+    FmSynth(FmSynthParams),
 }
 
 impl TryFrom<&Box<dyn EntityWrapper>> for Box<EntityParams> {
@@ -33,6 +37,12 @@ impl MakesParams for Arpeggiator {
         anyhow::Ok(Box::new(EntityParams::Arpeggiator(
             self.try_into().unwrap(),
         )))
+    }
+}
+impl EntityWrapper for FmSynth {}
+impl MakesParams for FmSynth {
+    fn make_params(&self) -> anyhow::Result<Box<EntityParams>> {
+        anyhow::Ok(Box::new(EntityParams::FmSynth(self.try_into().unwrap())))
     }
 }
 

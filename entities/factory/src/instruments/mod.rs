@@ -67,6 +67,27 @@ impl FmSynth {
         }
     }
 }
+impl TryFrom<(Uid, &FmSynthParams)> for FmSynth {
+    type Error = anyhow::Error;
+
+    fn try_from(value: (Uid, &FmSynthParams)) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value.0, value.1))
+    }
+}
+impl TryFrom<&FmSynth> for FmSynthParams {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &FmSynth) -> Result<Self, Self::Error> {
+        Ok(Self {
+            depth: value.inner.depth(),
+            ratio: value.inner.ratio(),
+            beta: value.inner.beta(),
+            carrier_envelope: (&value.inner.carrier_envelope).try_into().unwrap(),
+            modulator_envelope: (&value.inner.modulator_envelope).try_into().unwrap(),
+            dca: (&value.inner.dca).try_into().unwrap(),
+        })
+    }
+}
 
 #[derive(
     Debug,

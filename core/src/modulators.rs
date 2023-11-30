@@ -57,6 +57,23 @@ impl Dca {
         self.set_pan(params.pan());
     }
 }
+impl TryFrom<&DcaParams> for Dca {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &DcaParams) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value))
+    }
+}
+impl TryFrom<&Dca> for DcaParams {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Dca) -> Result<Self, Self::Error> {
+        Ok(Self {
+            gain: value.gain,
+            pan: value.pan,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {

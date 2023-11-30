@@ -2,7 +2,7 @@
 
 use crate::{
     prelude::IsInstrument,
-    traits::{Entity, IsEffect, EntityBounds},
+    traits::{Entity, EntityBounds, IsEffect},
 };
 use anyhow::anyhow;
 use derive_more::Display;
@@ -98,12 +98,12 @@ impl<E: EntityBounds + ?Sized> EntityFactory<E> {
     }
 
     /// Tells the factory that we won't be registering any more entities,
-    /// allowing it to do some final housekeeping. This is private because it
-    /// should be called only by Self::initialize().
-    fn complete_registration(&mut self) {
+    /// allowing it to do some final housekeeping.
+    pub fn finalize(mut self) -> Self {
         self.is_registration_complete = true;
         self.sorted_keys = self.keys().iter().cloned().collect();
         self.sorted_keys.sort();
+        self
     }
 
     /// Creates a new entity of the type corresponding to the given [EntityKey]

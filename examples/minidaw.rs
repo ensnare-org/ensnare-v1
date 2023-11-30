@@ -24,7 +24,7 @@ use ensnare::{
     ui::widgets::{audio_settings, midi_settings},
 };
 use ensnare_core::{types::TrackTitle, uid::TrackUid};
-use ensnare_entities::BuiltInEntityFactory;
+use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_orchestration::{egui::entity_palette, DescribesProject};
 use ensnare_services::{control_bar_widget, ControlBarAction};
@@ -280,9 +280,16 @@ impl MenuBarItem {
     }
 }
 
-#[derive(Debug, Default)]
-struct MenuBar {}
+#[derive(Debug)]
+struct MenuBar {
+    factory: Arc<EntityFactory<dyn EntityBounds>>,
+}
 impl MenuBar {
+    fn new(factory: &Arc<EntityFactory<dyn EntityBounds>>) -> Self {
+        Self {
+            factory: Arc::clone(&factory),
+        }
+    }
     fn show_with_action(
         &mut self,
         ui: &mut eframe::egui::Ui,
@@ -354,7 +361,7 @@ impl MenuBar {
     fn new_entity_menu(&self) -> Vec<MenuBarItem> {
         vec![MenuBarItem::node(
             "Entities",
-            EntityFactory::global()
+            self.factory
                 .keys()
                 .iter()
                 .map(|k| {
@@ -370,6 +377,7 @@ impl MenuBar {
 }
 
 struct MiniDaw {
+    factory: Arc<EntityFactory<dyn EntityBounds>>,
     orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
@@ -392,20 +400,23 @@ impl MiniDaw {
     pub const FONT_MONO: &'static str = "font-mono";
     pub const APP_NAME: &'static str = "MiniDAW";
 
-    pub fn new(cc: &CreationContext) -> Self {
+    pub fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         Self::initialize_fonts(cc);
         Self::initialize_style(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
         let orchestrator = Arc::new(Mutex::new(Orchestrator::<dyn EntityBounds>::new()));
-        let orchestrator_panel = OrchestratorService::<dyn EntityBounds>::new_with(&orchestrator);
+        let factory = Arc::new(factory);
+        let orchestrator_panel =
+            OrchestratorService::<dyn EntityBounds>::new_with(&orchestrator, &factory);
         let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
         let mut r = Self {
+            factory: Arc::clone(&factory),
             orchestrator,
             track_titles: Default::default(),
             title: Default::default(),
             track_frontmost_uids: Default::default(),
-            menu_bar: Default::default(),
+            menu_bar: MenuBar::new(&factory),
             control_bar: Default::default(),
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
@@ -722,9 +733,7 @@ impl MiniDaw {
     }
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::horizontal().show(ui, |ui| {
-            ui.add(entity_palette(EntityFactory::global().sorted_keys()))
-        });
+        ScrollArea::horizontal().show(ui, |ui| ui.add(entity_palette(self.factory.sorted_keys())));
     }
 
     fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
@@ -863,11 +872,7 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions::default();
 
-    let mut factory = EntityFactory::default();
-    register_factory_entities(&mut factory);
-    if EntityFactory::initialize(factory).is_err() {
-        return Err(anyhow!("Couldn't set EntityFactory once_cell"));
-    }
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         return Err(anyhow!("Couldn't set DragDropManager once_cell"));
     }
@@ -875,7 +880,7 @@ fn main() -> anyhow::Result<()> {
     if let Err(e) = eframe::run_native(
         MiniDaw::APP_NAME,
         options,
-        Box::new(|cc| Box::new(MiniDaw::new(cc))),
+        Box::new(|cc| Box::new(MiniDaw::new(cc, factory))),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {
