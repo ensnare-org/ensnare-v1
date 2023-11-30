@@ -1744,14 +1744,14 @@ mod tests {
 
     #[test]
     fn orchestrator_orchestrates() {
-        let mut orchestrator = Orchestrator::<dyn TestEntity>::new();
-        //TODO    validate_orchestrates_trait(&mut orchestrator);
+        let mut orchestrator = Orchestrator::new();
+        validate_orchestrates_trait(&mut orchestrator);
     }
 
     #[test]
     fn new_orchestrator_orchestrates() {
-        let mut orchestrator = Orchestrator::<dyn TestEntity>::new();
-        //TODO     validate_orchestrates_trait(&mut orchestrator);
+        let mut orchestrator = Orchestrator::new();
+        validate_orchestrates_trait(&mut orchestrator);
     }
 
     /// An [IsEntity] that sends one Control event each time work() is called.
