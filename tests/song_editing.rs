@@ -14,7 +14,7 @@ use ensnare_entity::traits::EntityBounds;
 #[test]
 fn edit_song() {
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-//    register_toy_entities(&mut factory);
+    //    register_toy_entities(&mut factory);
     // let _ = EntityFactory::initialize(factory);
     // let factory = EntityFactory::global();
 

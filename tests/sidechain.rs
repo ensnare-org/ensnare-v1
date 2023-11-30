@@ -13,7 +13,7 @@ use ensnare_entity::traits::EntityBounds;
 #[test]
 fn demo_sidechaining() {
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-//    register_toy_entities(&mut factory);
+    //    register_toy_entities(&mut factory);
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 

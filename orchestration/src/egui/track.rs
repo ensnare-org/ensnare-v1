@@ -64,7 +64,7 @@ struct NewTrackWidget<'a, E: Entity + ?Sized> {
 
     action: &'a mut Option<TrackWidgetAction>,
 }
-impl<'a, E: Entity + ?Sized> NewTrackWidget<'a,E> {
+impl<'a, E: Entity + ?Sized> NewTrackWidget<'a, E> {
     const TIMELINE_HEIGHT: f32 = 64.0;
     const TRACK_HEIGHT: f32 = 96.0;
 
@@ -97,7 +97,7 @@ impl<'a, E: Entity + ?Sized> NewTrackWidget<'a,E> {
         false
     }
 }
-impl<'a, E: Entity + ?Sized> Widget for NewTrackWidget<'a,E> {
+impl<'a, E: Entity + ?Sized> Widget for NewTrackWidget<'a, E> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let track_uid = self.track_info.track_uid;
 

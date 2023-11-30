@@ -6,7 +6,17 @@ use derive_more::{Add, Display, From, Into};
 use std::collections::HashMap;
 
 /// Newtype for the number of voices in a multi-voice instrument.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, From, Into, Add, Display,    serde::Deserialize,
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    From,
+    Into,
+    Add,
+    Display,
+    serde::Deserialize,
     serde::Serialize,
 )]
 pub struct VoiceCount(usize);

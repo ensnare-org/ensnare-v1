@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn identity_starting_with_in_memory_nondefault() {
         let factory =
-        EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
+            EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::test_random();
         let dst: Project = <&DawProject>::into(&src);
         let src_copy: DawProject =
@@ -433,7 +433,7 @@ mod tests {
     #[test]
     fn identity_starting_with_serialized() {
         let factory =
-        EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
+            EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = Project::default();
         let dst: DawProject =
             <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&src, &factory));

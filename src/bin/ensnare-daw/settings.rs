@@ -5,12 +5,13 @@
 
 use crossbeam_channel::Sender;
 use ensnare::{
+    all_entities::EntityWrapper,
     arrangement::{Orchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
     traits::{Displays, HasSettings, WorkEvent},
     types::Sample,
-    ui::widgets::{audio_settings, midi_settings}, all_entities::EntityWrapper,
+    ui::widgets::{audio_settings, midi_settings},
 };
 use serde::{Deserialize, Serialize};
 use std::{

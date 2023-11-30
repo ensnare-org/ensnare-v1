@@ -13,7 +13,15 @@ use ensnare_core::{
 use ensnare_proc_macros::{Control, Params};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
-#[derive(Clone, Copy, Debug, Default, EnumCountMacro, FromRepr, PartialEq,    serde::Deserialize,
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    EnumCountMacro,
+    FromRepr,
+    PartialEq,
+    serde::Deserialize,
     serde::Serialize,
 )]
 pub enum LfoRouting {

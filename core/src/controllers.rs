@@ -269,7 +269,7 @@ impl ControlTrip {
             e: Default::default(),
         }
     }
-    
+
     fn update_interval(&mut self) {
         self.e.reset_current_path_if_needed();
 

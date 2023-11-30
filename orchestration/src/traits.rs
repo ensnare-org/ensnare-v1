@@ -10,7 +10,9 @@ use ensnare_core::{
 use ensnare_entity::traits::Entity;
 
 /// Manages relationships among [Entities](Entity) to produce a song.
-pub trait Orchestrates<E: Entity + ?Sized>: Configurable + Controls + Generates<StereoSample> {
+pub trait Orchestrates<E: Entity + ?Sized>:
+    Configurable + Controls + Generates<StereoSample>
+{
     /// Creates a new track, returning its [TrackUid] if successful. A track is
     /// a group of musical instruments that together produce a single sample for
     /// every frame of audio. Each track's frame sample is then merged into a
@@ -166,7 +168,9 @@ pub(crate) mod tests {
     use more_asserts::assert_gt;
     use std::collections::HashSet;
 
-    pub(crate) fn validate_orchestrates_trait(orchestrates: &mut dyn Orchestrates<dyn EntityBounds>) {
+    pub(crate) fn validate_orchestrates_trait(
+        orchestrates: &mut dyn Orchestrates<dyn EntityBounds>,
+    ) {
         assert!(
             orchestrates.track_uids().is_empty(),
             "Initial impl should have no tracks"
