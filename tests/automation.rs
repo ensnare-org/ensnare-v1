@@ -12,7 +12,7 @@ use ensnare::{
 };
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 // Demonstrates the control (automation) system.
 #[test]
@@ -122,7 +122,7 @@ fn demo_control_trips() {
     // let factory = EntityFactory::global();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
-    let control_router_clone = orchestrator.control_router.clone();
+    let control_router_clone = Arc::clone(&orchestrator.control_router);
 
     // Per my epiphany from a few days ago, Orchestrates (the trait) defines
     // arrangement of Entities, and doesn't get into the actual information that
@@ -216,7 +216,7 @@ fn demo_control_trips() {
         let outer_trip = Box::new(ControlTrip::new_with(
             Uid::default(),
             &trip_params,
-            control_router_clone,
+            &control_router_clone,
         ));
         let trip_uid = orchestrator
             .assign_uid_and_add_entity(&track_uid, outer_trip)

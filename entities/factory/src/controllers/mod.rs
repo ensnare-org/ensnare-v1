@@ -138,12 +138,12 @@ impl Displays for LivePatternSequencer {
 impl LivePatternSequencer {
     pub fn new_with(
         uid: Uid,
-        _params: &LivePatternSequencerParams,
-        piano_roll: Arc<RwLock<PianoRoll>>,
+        params: &LivePatternSequencerParams,
+        piano_roll: &Arc<RwLock<PianoRoll>>,
     ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::LivePatternSequencer::new_with(piano_roll),
+            inner: ensnare_cores::LivePatternSequencer::new_with(params, piano_roll),
             view_range: Default::default(),
             channel: Default::default(),
         }
@@ -197,7 +197,7 @@ impl TryFrom<(Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>)> for Li
     fn try_from(
         value: (Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>),
     ) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1, Arc::clone(value.2)))
+        Ok(Self::new_with(value.0, value.1, value.2))
     }
 }
 impl TryFrom<&LivePatternSequencer> for LivePatternSequencerParams {
@@ -397,12 +397,12 @@ impl ControlTrip {
     pub fn new_with(
         uid: Uid,
         params: &ControlTripParams,
-        control_router: Arc<RwLock<ControlRouter>>,
+        control_router: &Arc<RwLock<ControlRouter>>,
     ) -> Self {
         Self {
             uid,
             inner: ensnare_core::controllers::ControlTrip::new_with(params),
-            control_router,
+            control_router: Arc::clone(control_router),
             view_range: Default::default(),
         }
     }
@@ -413,7 +413,7 @@ impl TryFrom<(Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>)> for Control
     fn try_from(
         value: (Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>),
     ) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1, Arc::clone(value.2)))
+        Ok(Self::new_with(value.0, value.1, value.2))
     }
 }
 impl TryFrom<&ControlTrip> for ControlTripParams {

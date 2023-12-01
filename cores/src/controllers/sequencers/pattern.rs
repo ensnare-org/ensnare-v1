@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::midi::MidiSequencer;
 use anyhow::anyhow;
 use derive_builder::Builder;
 use ensnare_core::{
@@ -12,8 +13,6 @@ use std::{
     ops::Range,
     sync::{Arc, RwLock},
 };
-
-use super::midi::MidiSequencer;
 
 impl PatternSequencerBuilder {
     /// Builds the [PatternSequencer].
@@ -223,9 +222,13 @@ impl Serializable for LivePatternSequencer {
 impl Configurable for LivePatternSequencer {}
 impl HandlesMidi for LivePatternSequencer {}
 impl LivePatternSequencer {
-    pub fn new_with(piano_roll: Arc<RwLock<PianoRoll>>) -> Self {
+    #[allow(unused_variables)]
+    pub fn new_with(
+        params: &LivePatternSequencerParams,
+        piano_roll: &Arc<RwLock<PianoRoll>>,
+    ) -> Self {
         Self {
-            piano_roll,
+            piano_roll: Arc::clone(&piano_roll),
             ..Default::default()
         }
     }
@@ -292,7 +295,8 @@ mod tests {
                 .unwrap(),
         );
 
-        let mut s = LivePatternSequencer::new_with(Arc::clone(&piano_roll));
+        let mut s =
+            LivePatternSequencer::new_with(&LivePatternSequencerParams::default(), &piano_roll);
         let _ = s.record(
             MidiChannel::default(),
             &pattern_uid,
