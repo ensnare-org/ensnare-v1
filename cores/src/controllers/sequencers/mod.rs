@@ -16,6 +16,7 @@ pub mod tests {
         midi::MidiSequencer,
         pattern::{LivePatternSequencer, PatternSequencer},
     };
+    use crate::LivePatternSequencerParams;
     use ensnare_core::{
         piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
         prelude::*,
@@ -269,7 +270,8 @@ pub mod tests {
         let piano_roll = std::sync::Arc::new(std::sync::RwLock::new(
             ensnare_core::piano_roll::PianoRoll::default(),
         ));
-        let mut s = LivePatternSequencer::new_with(std::sync::Arc::clone(&piano_roll));
+        let mut s =
+            LivePatternSequencer::new_with(&LivePatternSequencerParams::default(), &piano_roll);
 
         validate_sequences_live_patterns_trait(piano_roll, &mut s);
     }

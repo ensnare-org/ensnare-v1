@@ -16,28 +16,15 @@ pub(crate) fn impl_inner_configurable_derive(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Configurable for #struct_name #ty_generics {
-                fn sample_rate(&self) -> #core_crate::time::SampleRate {
-                    self.inner.sample_rate()
-                }
-
-                fn update_sample_rate(&mut self, sample_rate: #core_crate::time::SampleRate) {
-                    self.inner.update_sample_rate(sample_rate)
-                }
-
-                fn tempo(&self) -> #core_crate::time::Tempo {
-                    self.inner.tempo()
-                }
-
-                fn update_tempo(&mut self, tempo: #core_crate::time::Tempo) {
-                    self.inner.update_tempo(tempo)
-                }
-
-                fn time_signature(&self) -> #core_crate::time::TimeSignature {
-                    self.inner.time_signature()
-                }
-
-                fn update_time_signature(&mut self, time_signature: #core_crate::time::TimeSignature) {
-                    self.inner.update_time_signature(time_signature)
+                delegate::delegate! {
+                    to self.inner {
+                        fn sample_rate(&self) -> #core_crate::time::SampleRate;
+                        fn update_sample_rate(&mut self, sample_rate: #core_crate::time::SampleRate);
+                        fn tempo(&self) -> #core_crate::time::Tempo;
+                        fn update_tempo(&mut self, tempo: #core_crate::time::Tempo);
+                        fn time_signature(&self) -> #core_crate::time::TimeSignature;
+                        fn update_time_signature(&mut self, time_signature: #core_crate::time::TimeSignature);
+                    }
                 }
             }
         };
@@ -56,24 +43,14 @@ pub(crate) fn impl_derive_inner_controllable(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Controllable for #struct_name #ty_generics {
-                fn control_index_count(&self) -> usize {
-                    self.inner.control_index_count()
-                }
-
-                fn control_index_for_name(&self, name: &'static str) -> Option<#core_crate::control::ControlIndex> {
-                    self.inner.control_index_for_name(name)
-                }
-
-                fn control_name_for_index(&self, index: ControlIndex) -> Option<String> {
-                    self.inner.control_name_for_index(index)
-                }
-
-                fn control_set_param_by_name(&mut self, name: &'static str, value: #core_crate::control::ControlValue) {
-                    self.inner.control_set_param_by_name(name, value)
-                }
-
-                fn control_set_param_by_index(&mut self, index: #core_crate::control::ControlIndex, value: #core_crate::control::ControlValue) {
-                    self.inner.control_set_param_by_index(index, value)
+                delegate::delegate! {
+                    to self.inner {
+                        fn control_index_count(&self) -> usize;
+                        fn control_index_for_name(&self, name: &'static str) -> Option<#core_crate::control::ControlIndex>;
+                        fn control_name_for_index(&self, index: ControlIndex) -> Option<String>;
+                        fn control_set_param_by_name(&mut self, name: &'static str, value: #core_crate::control::ControlValue);
+                        fn control_set_param_by_index(&mut self, index: #core_crate::control::ControlIndex, value: #core_crate::control::ControlValue);
+                    }
                 }
             }
         };
@@ -92,36 +69,17 @@ pub(crate) fn impl_derive_inner_controls(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Controls for #struct_name #ty_generics {
-                fn time_range(&self) -> Option<TimeRange> {
-                    self.inner.time_range()
-                }
-
-                fn update_time_range(&mut self, time_range: &TimeRange) {
-                    self.inner.update_time_range(time_range)
-                }
-
-                fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-                    self.inner.work(control_events_fn)
-                }
-
-                fn is_finished(&self) -> bool {
-                    self.inner.is_finished()
-                }
-
-                fn play(&mut self) {
-                    self.inner.play()
-                }
-
-                fn stop(&mut self) {
-                    self.inner.stop()
-                }
-
-                fn skip_to_start(&mut self) {
-                    self.inner.skip_to_start()
-                }
-
-                fn is_performing(&self) -> bool {
-                    self.inner.is_performing()
+                delegate::delegate! {
+                    to self.inner {
+                        fn time_range(&self) -> Option<TimeRange>;
+                        fn update_time_range(&mut self, time_range: &TimeRange);
+                        fn work(&mut self, control_events_fn: &mut ControlEventsFn);
+                        fn is_finished(&self) -> bool;
+                        fn play(&mut self);
+                        fn stop(&mut self);
+                        fn skip_to_start(&mut self);
+                        fn is_performing(&self) -> bool;
+                    }
                 }
             }
         };
@@ -140,8 +98,10 @@ pub(crate) fn impl_derive_inner_effect(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::TransformsAudio for #struct_name #ty_generics {
-                fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
-                    self.inner.transform_channel(channel, input_sample)
+                delegate::delegate! {
+                    to self.inner {
+                        fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample;
+                    }
                 }
             }
         };
@@ -160,13 +120,15 @@ pub(crate) fn impl_derive_inner_handles_midi(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::HandlesMidi for #struct_name #ty_generics {
-                fn handle_midi_message(
-                    &mut self,
-                    channel: MidiChannel,
-                    message: MidiMessage,
-                    midi_messages_fn: &mut MidiMessagesFn,
-                ) {
-                    self.inner.handle_midi_message(channel, message, midi_messages_fn)
+                delegate::delegate! {
+                    to self.inner {
+                        fn handle_midi_message(
+                            &mut self,
+                            channel: MidiChannel,
+                            message: MidiMessage,
+                            midi_messages_fn: &mut MidiMessagesFn,
+                        );
+                    }
                 }
             }
         };
@@ -185,19 +147,20 @@ pub(crate) fn impl_derive_inner_instrument(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Generates<StereoSample> for #struct_name #ty_generics {
-                fn value(&self) -> StereoSample {
-                    self.inner.value()
-                }
-
-                fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-                    self.inner.generate_batch_values(values)
+                delegate::delegate! {
+                    to self.inner {
+                        fn value(&self) -> StereoSample;
+                        fn generate_batch_values(&mut self, values: &mut [StereoSample]);
+                    }
                 }
             }
 
             #[automatically_derived]
             impl #generics #core_crate::traits::Ticks for #struct_name #ty_generics {
-                fn tick(&mut self, tick_count: usize) {
-                    self.inner.tick(tick_count)
+                delegate::delegate! {
+                    to self.inner {
+                        fn tick(&mut self, tick_count: usize);
+                    }
                 }
             }
         };
@@ -216,12 +179,11 @@ pub(crate) fn impl_inner_serializable_derive(input: TokenStream) -> TokenStream 
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::Serializable for #struct_name #ty_generics {
-                fn before_ser(&mut self) {
-                    self.inner.before_ser()
-                }
-
-                fn after_deser(&mut self) {
-                    self.inner.after_deser()
+                delegate::delegate! {
+                    to self.inner {
+                        fn before_ser(&mut self);
+                        fn after_deser(&mut self);
+                    }
                 }
             }
         };
@@ -240,16 +202,12 @@ pub(crate) fn impl_inner_transforms_audio_derive(input: TokenStream) -> TokenStr
         let quote = quote! {
             #[automatically_derived]
             impl #generics #core_crate::traits::TransformsAudio for #struct_name #ty_generics {
-                fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
-                    self.inner.transform_audio(input_sample)
-                }
-
-                fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
-                    self.inner.transform_channel(channel, input_sample)
-                }
-
-                fn transform_batch(&mut self, samples: &mut [StereoSample]) {
-                    self.inner.transform_batch(samples)
+                delegate::delegate! {
+                    to self.inner {
+                        fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample;
+                        fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample;
+                        fn transform_batch(&mut self, samples: &mut [StereoSample]);
+                    }
                 }
             }
         };

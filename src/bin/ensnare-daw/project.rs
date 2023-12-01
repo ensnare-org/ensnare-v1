@@ -288,6 +288,25 @@ impl DawProject {
         std::fs::write(&save_path, json)?;
         Ok(save_path)
     }
+
+    fn reconstitute_entity(&self, params: &EntityParams, uid: Uid, track_uid: &TrackUid) {
+        if let Ok(mut orchestrator) = self.orchestrator.lock() {
+            let entity: Box<dyn EntityWrapper> = match params {
+                EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, &params)),
+                EntityParams::LivePatternSequencer(params) => Box::new(
+                    LivePatternSequencer::new_with(uid, &params, &self.piano_roll),
+                ),
+                EntityParams::ControlTrip(params) => Box::new(ControlTrip::new_with(
+                    uid,
+                    &params,
+                    &orchestrator.control_router,
+                )),
+                EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, &params)),
+            };
+            let _ = orchestrator.add_entity(track_uid, entity);
+            let _ = orchestrator.connect_midi_receiver(uid, MidiChannel::default());
+        }
+    }
 }
 
 impl From<&DawProject> for Project {
@@ -340,42 +359,16 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
-            src.entities.keys().for_each(|track_uid| {
-                src.entities
-                    .get(track_uid)
-                    .unwrap()
-                    .iter()
-                    .for_each(|(uid, params)| match params.as_ref() {
-                        EntityParams::Arpeggiator(params) => {
-                            let entity = Box::new(Arpeggiator::new_with(*uid, params));
-                            let _ = dst_orchestrator.add_entity(track_uid, entity);
-                        }
-                        EntityParams::LivePatternSequencer(params) => {
-                            let entity = Box::new(LivePatternSequencer::new_with(
-                                *uid,
-                                params,
-                                &dst.piano_roll,
-                            ));
-                            let _ = dst_orchestrator.add_entity(track_uid, entity);
-                        }
-                        EntityParams::ControlTrip(params) => {
-                            let entity = Box::new(ControlTrip::new_with(
-                                *uid,
-                                params,
-                                &dst_orchestrator.control_router,
-                            ));
-                            let _ = dst_orchestrator.add_entity(track_uid, entity);
-                        }
-                        EntityParams::FmSynth(params) => {
-                            let entity = Box::new(FmSynth::new_with(*uid, params));
-                            let _ = dst_orchestrator.add_entity(track_uid, entity);
-                            let _ = dst_orchestrator
-                                .connect_midi_receiver(*uid, MidiChannel::default());
-                        }
-                        _ => {}
-                    })
-            });
         }
+        src.entities.keys().for_each(|track_uid| {
+            src.entities
+                .get(track_uid)
+                .unwrap()
+                .iter()
+                .for_each(|(uid, params)| {
+                    dst.reconstitute_entity(params.as_ref(), *uid, track_uid);
+                })
+        });
 
         dst
     }
