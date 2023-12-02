@@ -1,9 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 pub use midi::MidiSequencer;
-pub use note::{NoteSequencer, NoteSequencerBuilder};
+pub use note::{NoteSequencer, NoteSequencerBuilder, NoteSequencerParams};
 pub use pattern::{
     LivePatternSequencer, LivePatternSequencerParams, PatternSequencer, PatternSequencerBuilder,
+    PatternSequencerParams,
 };
 
 mod midi;

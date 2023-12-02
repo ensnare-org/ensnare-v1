@@ -6,8 +6,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use std::collections::HashSet;
 use syn::{
-    parse_macro_input, Attribute, Data, DataStruct, DeriveInput, Fields, Ident, Lit, Meta,
-    NestedMeta,
+    parse_macro_input, Attribute, Data, DataEnum, DataStruct, DeriveInput, Fields, Ident, Lit,
+    Meta, NestedMeta,
 };
 
 pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>) -> TokenStream {
@@ -55,6 +55,7 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         let mut getter_methods = Vec::default();
         let mut setter_methods = Vec::default();
         let mut to_params_exprs = Vec::default();
+        let mut from_exprs = Vec::default();
         let _core_crate = format_ident!("{}", core_crate_name());
         for (field_name, field_type, is_leaf) in attr_fields {
             let field_name_pascal_case =
@@ -92,6 +93,15 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
             } else {
                 quote! { self.#field_name.to_params() }
             });
+            from_exprs.push(if is_leaf_or_primitive {
+                if field_type == "String" {
+                    quote! { #field_name.to_string() }
+                } else {
+                    quote! { #field_name() }
+                }
+            } else {
+                quote! { #field_name.to_params() }
+            });
             field_types.push(field_params_type.clone());
             let setter_method_name = format_ident!("set_{}", field_name.to_string());
             if field_type == "String" {
@@ -125,8 +135,8 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
         };
 
         let to_params_block = quote! {
+            #[allow(missing_docs)]
             impl #generics #struct_name #ty_generics {
-                #[allow(missing_docs)]
                 pub fn to_params(&self) -> #params_name {
                     #params_name {
                         #( #field_names: #to_params_exprs, )*
@@ -135,9 +145,22 @@ pub(crate) fn impl_params_derive(input: TokenStream, primitives: &HashSet<Ident>
             }
         };
 
+        let from_block = quote! {
+            #[allow(missing_docs)]
+            impl From<&#generics #struct_name #ty_generics> for #params_name {
+                fn from(value: &#generics #struct_name #ty_generics) -> Self {
+                    Self {
+                        #( #field_names: value.#from_exprs, )*
+                    }
+                }
+            }
+        };
+
         quote! {
             #[automatically_derived]
             #params_struct_block
+            #[automatically_derived]
+            #from_block
             #[automatically_derived]
             #getter_setter_block
             #[automatically_derived]
@@ -183,4 +206,39 @@ fn get_bool_from_lit(name_value: &syn::MetaNameValue) -> bool {
         return bool_val.value();
     }
     false
+}
+
+pub(crate) fn impl_derive_bindings(input: TokenStream) -> TokenStream {
+    TokenStream::from({
+        let input = parse_macro_input!(input as DeriveInput);
+        let generics = &input.generics;
+        let data = &input.data;
+
+        let (_impl_generics, _ty_generics, _where_clause) = generics.split_for_impl();
+        // Code adapted from https://blog.turbo.fish/proc-macro-error-handling/
+        // Thank you!
+        let variants = match data {
+            Data::Enum(DataEnum { variants, .. }) => variants,
+            _ => panic!("this derive macro only works on enums"),
+        };
+        let mut trait_impls = Vec::default();
+        for variant in variants.iter() {
+            let variant_name = variant.ident.clone();
+            //            let params_name = format_ident!("{}Params", variant_name);
+            let body = quote! {
+                #[automatically_derived]
+                impl EntityWrapper for #variant_name {}
+                impl MakesParams for #variant_name {
+                    fn make_params(&self) -> anyhow::Result<Box<EntityParams>> {
+                        anyhow::Ok(Box::new(EntityParams::#variant_name(self.try_into().unwrap())))
+                    }
+                }
+            };
+            trait_impls.push(body);
+        }
+
+        quote! {
+            #( #trait_impls )*
+        }
+    })
 }

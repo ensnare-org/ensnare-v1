@@ -1,24 +1,24 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    midi::{MidiChannel, MidiMessage},
-    time::SampleRate,
-    traits::{
-        Configurable, Controllable, Generates, HandlesMidi, MidiMessagesFn, Serializable, Ticks,
-    },
-    types::StereoSample,
-    uid::Uid,
-};
+use ensnare_core::prelude::*;
 use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEntity, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata, Params};
 use std::sync::{Arc, Mutex};
 
 /// The smallest possible [IsEntity].
-#[derive(Debug, Default, IsEntity, Metadata)]
-#[entity("instrument")]
+#[derive(Debug, Default, IsEntity, Metadata, Params)]
+#[entity("instrument", "skip_inner")]
 pub struct TestInstrument {
     pub uid: Uid,
     pub sample_rate: SampleRate,
+}
+impl TestInstrument {
+    pub fn new_with(uid: Uid, _: &TestInstrumentParams) -> Self {
+        Self {
+            uid,
+            ..Default::default()
+        }
+    }
 }
 impl Displays for TestInstrument {}
 impl HandlesMidi for TestInstrument {}
@@ -46,8 +46,8 @@ impl Ticks for TestInstrument {}
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
-#[derive(Debug, Default, IsEntity, Metadata)]
-#[entity("instrument")]
+#[derive(Debug, Default, IsEntity, Metadata, Params)]
+#[entity("instrument", "skip_inner")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
     pub received_midi_message_count: Arc<Mutex<usize>>,

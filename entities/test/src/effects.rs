@@ -5,14 +5,19 @@ use ensnare_core::{
     uid::Uid,
 };
 use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEntity, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata, Params};
 
 /// The smallest possible [IsEntity].
-#[derive(Debug, Default, IsEntity, Metadata)]
-#[entity("effect")]
+#[derive(Debug, Default, IsEntity, Metadata, Params)]
+#[entity("effect", "skip_inner")]
 
 pub struct TestEffect {
     uid: Uid,
+}
+impl TestEffect {
+    pub fn new_with(uid: Uid, _params: &TestEffectParams) -> Self {
+        Self { uid }
+    }
 }
 impl Displays for TestEffect {}
 impl Configurable for TestEffect {}

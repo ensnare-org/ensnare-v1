@@ -9,6 +9,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use derive_builder::Builder;
+use ensnare_proc_macros::Params;
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 
 /// Identifies a [Pattern].
@@ -356,7 +357,7 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Params, PartialEq)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
     pub uids_to_patterns: HashMap<PatternUid, Pattern>,

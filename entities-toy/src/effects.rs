@@ -21,7 +21,6 @@ use ensnare_proc_macros::{
 #[entity("effect")]
 pub struct ToyEffect {
     uid: Uid,
-
     inner: ensnare_cores::toys::ToyEffect,
 }
 impl Displays for ToyEffect {

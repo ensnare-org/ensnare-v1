@@ -16,6 +16,7 @@ enum Attributes {
     Effect,
     Instrument,
     Timeline,
+    SkipInner,
 }
 
 // TODO: see
@@ -36,12 +37,14 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         let mut is_controller = false;
         let mut is_effect = false;
         let mut is_instrument = false;
+        let mut skip_inner = false;
         let parsed_attrs = parse_attrs(&input.attrs);
         parsed_attrs.iter().for_each(|attr| match attr {
             Attributes::Controller => is_controller = true,
             Attributes::Effect => is_effect = true,
             Attributes::Instrument => is_instrument = true,
             Attributes::Timeline => displays_in_timeline = true,
+            Attributes::SkipInner => skip_inner = true,
         });
 
         let mut top_level_trait_names = Vec::default();
@@ -126,6 +129,21 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
             quote! {}
         };
 
+        let try_converters = if skip_inner {
+            quote! {}
+        } else {
+            let params_struct_name = format_ident!("{}Params", struct_name);
+            quote! {
+                #[automatically_derived]
+                impl TryFrom<&#struct_name> for #params_struct_name {
+                    type Error = anyhow::Error;
+
+                    fn try_from(value: &#struct_name) -> Result<Self, Self::Error> {
+                        Ok((&value.inner).into())
+                    }
+                }
+            }
+        };
         let quote = quote! {
             #[automatically_derived]
             #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
@@ -141,6 +159,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
             }
             #[automatically_derived]
             impl #generics #entity_crate::traits::EntityBounds for #struct_name #ty_generics {}
+            #try_converters
         };
         quote
     })

@@ -6,6 +6,7 @@ use crate::{all_entities::EntityParams, prelude::*, types::TrackTitle};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// The most commonly used imports.
 pub mod prelude {
     pub use super::{Project, ProjectTitle, TrackInfo};
 }

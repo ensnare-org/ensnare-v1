@@ -18,7 +18,19 @@ use ensnare::{
 };
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_egui_widgets::ViewRange;
-use ensnare_entities::{controllers::Arpeggiator, instruments::FmSynth};
+use ensnare_entities::{
+    controllers::{Arpeggiator, LfoController, SignalPassthroughController},
+    effects::{
+        filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Mixer,
+        Reverb,
+    },
+    instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
+};
+use ensnare_entities_toy::{
+    controllers::{ToyController, ToyControllerAlwaysSendsMidiMessage},
+    effects::ToyEffect,
+    instruments::{ToyInstrument, ToySynth},
+};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -292,16 +304,50 @@ impl DawProject {
     fn reconstitute_entity(&self, params: &EntityParams, uid: Uid, track_uid: &TrackUid) {
         if let Ok(mut orchestrator) = self.orchestrator.lock() {
             let entity: Box<dyn EntityWrapper> = match params {
-                EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, &params)),
-                EntityParams::LivePatternSequencer(params) => Box::new(
-                    LivePatternSequencer::new_with(uid, &params, &self.piano_roll),
-                ),
+                EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, params)),
+                EntityParams::BiQuadFilterLowPass24db(params) => {
+                    Box::new(BiQuadFilterLowPass24db::new_with(uid, params))
+                }
                 EntityParams::ControlTrip(params) => Box::new(ControlTrip::new_with(
                     uid,
-                    &params,
+                    params,
                     &orchestrator.control_router,
                 )),
-                EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, &params)),
+                EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, params)),
+                EntityParams::LivePatternSequencer(params) => Box::new(
+                    LivePatternSequencer::new_with(uid, params, &self.piano_roll),
+                ),
+                EntityParams::ToyController(params) => {
+                    Box::new(ToyController::new_with(uid, params))
+                }
+                EntityParams::ToyControllerAlwaysSendsMidiMessage(params) => {
+                    Box::new(ToyControllerAlwaysSendsMidiMessage::new_with(uid, params))
+                }
+                EntityParams::ToyEffect(params) => Box::new(ToyEffect::new_with(uid, params)),
+                EntityParams::ToyInstrument(params) => {
+                    Box::new(ToyInstrument::new_with(uid, params))
+                }
+                EntityParams::ToySynth(params) => Box::new(ToySynth::new_with(uid, params)),
+                EntityParams::WelshSynth(params) => Box::new(WelshSynth::new_with(uid, params)),
+                EntityParams::LfoController(params) => {
+                    Box::new(LfoController::new_with(uid, params))
+                }
+                EntityParams::SignalPassthroughController(params) => {
+                    Box::new(SignalPassthroughController::new_with(uid, params))
+                }
+                EntityParams::Sampler(params) => Box::new(Sampler::new_with(uid, params)),
+                EntityParams::Trigger(params) => Box::new(Trigger::new_with(uid, params)),
+                EntityParams::Timer(params) => Box::new(Timer::new_with(uid, params)),
+                EntityParams::Bitcrusher(params) => Box::new(Bitcrusher::new_with(uid, params)),
+                EntityParams::Drumkit(params) => {
+                    Box::new(Drumkit::new_with(uid, params, &Paths::default()))
+                }
+                EntityParams::Chorus(params) => Box::new(Chorus::new_with(uid, params)),
+                EntityParams::Compressor(params) => Box::new(Compressor::new_with(uid, params)),
+                EntityParams::Gain(params) => Box::new(Gain::new_with(uid, params)),
+                EntityParams::Limiter(params) => Box::new(Limiter::new_with(uid, params)),
+                EntityParams::Mixer(params) => Box::new(Mixer::new_with(uid, params)),
+                EntityParams::Reverb(params) => Box::new(Reverb::new_with(uid, params)),
             };
             let _ = orchestrator.add_entity(track_uid, entity);
             let _ = orchestrator.connect_midi_receiver(uid, MidiChannel::default());
@@ -344,7 +390,7 @@ impl From<&DawProject> for Project {
 }
 impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
     fn from(value: (&Project, &EntityFactory<dyn EntityWrapper>)) -> Self {
-        let (src, factory) = value;
+        let (src, _factory) = value;
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
             dst.title = src.title.clone();
@@ -376,9 +422,8 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
 
 #[cfg(test)]
 mod tests {
-    use crate::factory::EnsnareEntities;
-
     use super::*;
+    use ensnare::all_entities::EnsnareEntities;
     use ensnare_core::rng::Rng;
     use std::sync::Arc;
 

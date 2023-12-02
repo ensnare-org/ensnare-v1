@@ -1756,7 +1756,7 @@ mod tests {
 
     /// An [IsEntity] that sends one Control event each time work() is called.
     #[derive(Debug, Default, IsEntity, Metadata)]
-    #[entity("controller")]
+    #[entity("controller", "skip_inner")]
     pub struct TestControllerSendsOneEvent {
         uid: Uid,
     }

@@ -389,27 +389,46 @@ impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
+    use crate::factory::tests::cores::ExampleEntityParams;
     use crate::{prelude::*, traits::EntityBounds};
     use ensnare_core::prelude::*;
-    use ensnare_proc_macros::{IsEntity, Metadata, Params};
+    use ensnare_proc_macros::{IsEntity, Metadata};
 
-    #[derive(Debug, Default, IsEntity, Metadata, Params, PartialEq)]
+    mod cores {
+        use ensnare_core::{time::SampleRate, traits::Configurable};
+        use ensnare_proc_macros::Params;
+
+        #[derive(Debug, Default, Params, PartialEq)]
+        pub(super) struct ExampleEntity {
+            pub sample_rate: SampleRate,
+        }
+        impl Configurable for ExampleEntity {
+            fn sample_rate(&self) -> SampleRate {
+                self.sample_rate
+            }
+
+            fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+                self.sample_rate = sample_rate;
+            }
+        }
+    }
+
+    #[derive(Debug, Default, IsEntity, Metadata, PartialEq)]
     #[entity("instrument")]
     struct ExampleEntity {
         pub uid: Uid,
-        #[params]
-        pub sample_rate: SampleRate,
+        inner: cores::ExampleEntity,
     }
     impl Displays for ExampleEntity {}
     impl HandlesMidi for ExampleEntity {}
     impl Controllable for ExampleEntity {}
     impl Configurable for ExampleEntity {
         fn sample_rate(&self) -> SampleRate {
-            self.sample_rate
+            self.inner.sample_rate()
         }
 
         fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-            self.sample_rate = sample_rate;
+            self.inner.update_sample_rate(sample_rate);
         }
     }
     impl Serializable for ExampleEntity {}
@@ -423,21 +442,6 @@ mod tests {
         }
     }
     impl Ticks for ExampleEntity {}
-    impl From<ExampleEntityParams> for ExampleEntity {
-        fn from(value: ExampleEntityParams) -> Self {
-            Self {
-                sample_rate: value.sample_rate,
-                ..Default::default()
-            }
-        }
-    }
-    impl From<ExampleEntity> for ExampleEntityParams {
-        fn from(value: ExampleEntity) -> Self {
-            Self {
-                sample_rate: value.sample_rate,
-            }
-        }
-    }
 
     #[test]
     fn store_is_responsible_for_sample_rate() {

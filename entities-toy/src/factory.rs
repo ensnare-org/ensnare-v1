@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare_core::prelude::*;
 use ensnare_cores::toys::{
     ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams,
 };
@@ -25,7 +24,6 @@ pub fn register_toy_entities(factory: &mut EntityFactory<dyn EntityBounds>) {
         Box::new(ToyController::new_with(
             uid,
             &ToyControllerParams::default(),
-            MidiChannel::default(),
         ))
     });
     factory.register_entity(EntityKey::from(ToyEffect::ENTITY_KEY), |uid| {

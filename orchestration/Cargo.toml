@@ -28,3 +28,4 @@ strum_macros = "0.25"
 more-asserts = "0.3.1"
 ensnare-entities-toy = { path = "../entities-toy" }
 ensnare-entities = { path = "../entities", features = ["test"] }
+serde = { version = "1.0.193", features = ["derive"] }

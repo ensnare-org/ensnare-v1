@@ -68,6 +68,7 @@ pub mod control {
 
 pub mod cores {
     //! The core business logic that powers musical instruments.
+    pub use ensnare_core::controllers::{TimerParams, TriggerParams};
     pub use ensnare_cores::controllers::*;
     pub use ensnare_cores::effects::*;
     pub use ensnare_cores::instruments::*;
@@ -137,8 +138,8 @@ pub mod entities {
 
     /// The most commonly used imports.
     pub mod prelude {
+        pub use super::controllers::{Timer, Trigger};
         pub use super::{EntityFactory, EntityKey, EntityStore};
-        // pub use ensnare_entities::register_factory_entities;
         pub use ensnare_entities_toy::register_toy_entities;
     }
 }
@@ -149,6 +150,11 @@ pub mod generators {
     pub use ensnare_core::generators::{
         Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform,
     };
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use ensnare_core::generators::{Envelope, Oscillator, Waveform};
+    }
 }
 
 pub mod midi {
@@ -217,10 +223,10 @@ pub mod traits {
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, Generates,
-            GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings, IsController,
-            IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences, Serializable, Ticks,
-            WorkEvent,
+            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityBounds,
+            Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
+            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences,
+            Serializable, Ticks, WorkEvent,
         };
     }
 }
@@ -266,6 +272,11 @@ pub mod ui {
 pub mod utils {
     //! Various helpers.
     pub use ensnare_core::utils::Paths;
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::*;
+    }
 }
 
 pub use project::Project;
@@ -283,12 +294,14 @@ pub mod prelude {
     pub use super::composition::prelude::*;
     pub use super::control::prelude::*;
     pub use super::entities::prelude::*;
+    pub use super::generators::prelude::*;
     pub use super::midi::prelude::*;
     pub use super::project::prelude::*;
     pub use super::services::prelude::*;
     pub use super::traits::prelude::*;
     pub use super::types::prelude::*;
     pub use super::ui::prelude::*;
+    pub use super::utils::prelude::*;
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;
 }

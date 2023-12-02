@@ -436,11 +436,7 @@ impl Default for ToyControllerSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyController::new_with(
-                Uid::default(),
-                &ToyControllerParams::default(),
-                MidiChannel::default(),
-            ),
+            toy: ToyController::new_with(Uid::default(), &ToyControllerParams::default()),
         }
     }
 }

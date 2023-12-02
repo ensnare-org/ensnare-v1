@@ -37,7 +37,7 @@ impl PatternSequencerBuilder {
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default, Builder)]
+#[derive(Debug, Default, Builder, Params)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
     #[builder(setter(skip))]

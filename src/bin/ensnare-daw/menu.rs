@@ -1,9 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::sync::{Arc, RwLock};
-
-use ensnare::{all_entities::EntityWrapper, prelude::*};
-use ensnare_entity::traits::Displays;
+use ensnare::{all_entities::EntityWrapper, prelude::*, traits::Displays};
+use std::sync::Arc;
 use strum_macros::Display;
 
 #[derive(Clone, Debug, Display)]

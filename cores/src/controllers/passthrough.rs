@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{prelude::*, traits::TimeRange};
+use ensnare_proc_macros::Params;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum SignalPassthroughType {
@@ -21,7 +22,7 @@ pub enum SignalPassthroughType {
 /// Uses an input signal as a control source. Transformation depends on
 /// configuration. Uses the standard Sample::from(StereoSample) methodology of
 /// averaging the two channels to create a single signal.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Params)]
 pub struct SignalPassthroughController {
     passthrough_type: SignalPassthroughType,
 

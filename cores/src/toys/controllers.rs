@@ -14,8 +14,8 @@ enum TestControllerAction {
     NoteOff,
 }
 
-/// An [IsController](ensnare_core::traits::IsController) that emits a MIDI
-/// note-on event on each beat, and a note-off event on each half-beat.
+/// An [IsEntity] that emits a MIDI note-on event on each beat, and a note-off
+/// event on each half-beat.
 #[derive(Debug, Default, Control, Params)]
 pub struct ToyController {
     pub midi_channel_out: MidiChannel,
@@ -116,7 +116,7 @@ impl ToyController {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Params)]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     midi_note: u8,
     is_performing: bool,

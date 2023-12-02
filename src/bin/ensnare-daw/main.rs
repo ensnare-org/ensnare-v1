@@ -2,16 +2,14 @@
 
 //! A digital audio workstation.
 
-use ::ensnare::all_entities::EntityWrapper;
+use ::ensnare::all_entities::{EnsnareEntities, EntityWrapper};
 use anyhow::anyhow;
 use ensnare::Ensnare;
 use ensnare_drag_drop::DragDropManager;
 use ensnare_entity::factory::EntityFactory;
 use env_logger;
-use factory::EnsnareEntities;
 
 mod ensnare;
-mod factory;
 mod menu;
 mod project;
 mod settings;

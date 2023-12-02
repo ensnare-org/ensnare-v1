@@ -869,25 +869,6 @@ impl Envelope {
         matches!(self.debug_state(), State::Shutdown)
     }
 }
-impl TryFrom<&EnvelopeParams> for Envelope {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &EnvelopeParams) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value))
-    }
-}
-impl TryFrom<&Envelope> for EnvelopeParams {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Envelope) -> Result<Self, Self::Error> {
-        Ok(Self {
-            attack: value.attack,
-            decay: value.decay,
-            sustain: value.sustain,
-            release: value.release,
-        })
-    }
-}
 
 #[derive(Clone, Debug, Default)]
 pub enum SteppedEnvelopeFunction {

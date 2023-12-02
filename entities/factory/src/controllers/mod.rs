@@ -9,7 +9,10 @@ use ensnare_core::{
     traits::{Configurable, Controls, Sequences, Serializable},
     uid::Uid,
 };
-use ensnare_cores::{ArpeggiatorParams, LfoControllerParams, LivePatternSequencerParams};
+use ensnare_cores::{
+    ArpeggiatorParams, LfoControllerParams, LivePatternSequencerParams, NoteSequencerParams,
+    PatternSequencerParams, SignalPassthroughControllerParams,
+};
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
     pattern_sequencer_widget, trip,
@@ -48,23 +51,6 @@ impl Arpeggiator {
             uid,
             inner: ensnare_cores::Arpeggiator::new_with(&params, MidiChannel::default()),
         }
-    }
-}
-impl TryFrom<(Uid, &ArpeggiatorParams)> for Arpeggiator {
-    type Error = anyhow::Error;
-
-    fn try_from(value: (Uid, &ArpeggiatorParams)) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1))
-    }
-}
-impl TryFrom<&Arpeggiator> for ArpeggiatorParams {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Arpeggiator) -> Result<Self, Self::Error> {
-        Ok(Self {
-            bpm: value.inner.bpm,
-            mode: value.inner.mode,
-        })
     }
 }
 
@@ -200,14 +186,6 @@ impl TryFrom<(Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>)> for Li
         Ok(Self::new_with(value.0, value.1, value.2))
     }
 }
-impl TryFrom<&LivePatternSequencer> for LivePatternSequencerParams {
-    type Error = anyhow::Error;
-
-    #[allow(unused_variables)]
-    fn try_from(value: &LivePatternSequencer) -> Result<Self, Self::Error> {
-        Ok(Self::default())
-    }
-}
 
 #[derive(Debug, Default, InnerControls, IsEntity, Metadata)]
 #[entity("controller")]
@@ -289,7 +267,8 @@ pub struct SignalPassthroughController {
 }
 impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
-    pub fn new(uid: Uid) -> Self {
+    #[allow(unused_variables)]
+    pub fn new_with(uid: Uid, params: &SignalPassthroughControllerParams) -> Self {
         Self {
             uid,
             inner: ensnare_cores::controllers::SignalPassthroughController::new(),
@@ -414,13 +393,5 @@ impl TryFrom<(Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>)> for Control
         value: (Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>),
     ) -> Result<Self, Self::Error> {
         Ok(Self::new_with(value.0, value.1, value.2))
-    }
-}
-impl TryFrom<&ControlTrip> for ControlTripParams {
-    type Error = anyhow::Error;
-
-    #[allow(unused_variables)]
-    fn try_from(value: &ControlTrip) -> Result<Self, Self::Error> {
-        Ok(Self::default())
     }
 }

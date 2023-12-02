@@ -2,7 +2,7 @@
 
 use eframe::egui::Slider;
 use ensnare_core::prelude::*;
-use ensnare_cores::toys::ToyControllerParams;
+use ensnare_cores::toys::{ToyControllerAlwaysSendsMidiMessageParams, ToyControllerParams};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
@@ -37,10 +37,10 @@ impl Displays for ToyController {
     }
 }
 impl ToyController {
-    pub fn new_with(uid: Uid, params: &ToyControllerParams, midi_channel_out: MidiChannel) -> Self {
+    pub fn new_with(uid: Uid, params: &ToyControllerParams) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyController::new_with(&params, midi_channel_out),
+            inner: ensnare_cores::toys::ToyController::new_with(&params, MidiChannel::default()),
         }
     }
 }
@@ -58,12 +58,11 @@ impl ToyController {
 #[entity("controller")]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     uid: Uid,
-
     inner: ensnare_cores::toys::ToyControllerAlwaysSendsMidiMessage,
 }
 impl Displays for ToyControllerAlwaysSendsMidiMessage {}
 impl ToyControllerAlwaysSendsMidiMessage {
-    pub fn new_with(uid: Uid) -> Self {
+    pub fn new_with(uid: Uid, _params: &ToyControllerAlwaysSendsMidiMessageParams) -> Self {
         Self {
             uid,
             inner: ensnare_cores::toys::ToyControllerAlwaysSendsMidiMessage::default(),

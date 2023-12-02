@@ -100,6 +100,13 @@ pub fn derive_control(input: TokenStream) -> TokenStream {
     control::impl_derive_control(input, &make_primitives())
 }
 
+/// The [ParamBindings] macro derives the code that associates an implementer of
+/// [MakesParams] (specific to the ensnare-daw project) with its parameters.
+#[proc_macro_derive(ParamBindings)]
+pub fn derive_param_bindings(input: TokenStream) -> TokenStream {
+    params::impl_derive_bindings(input)
+}
+
 /// Derives code that delegates the implementation of the [Configurable] trait
 /// to an inner struct.
 #[proc_macro_derive(InnerConfigurable)]

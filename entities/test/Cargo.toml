@@ -9,6 +9,7 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
+anyhow = "1.0.75"
 eframe = "0.24"
 ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
