@@ -14,8 +14,8 @@ use ensnare_entity::traits::EntityBounds;
 // Demonstrates use of aux buses.
 #[test]
 fn aux_bus() {
-    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    //        .register_toy_entities();
+    let factory =
+        ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 

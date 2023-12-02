@@ -301,57 +301,56 @@ impl DawProject {
         Ok(save_path)
     }
 
-    fn reconstitute_entity(&self, params: &EntityParams, uid: Uid, track_uid: &TrackUid) {
-        if let Ok(mut orchestrator) = self.orchestrator.lock() {
-            let entity: Box<dyn EntityWrapper> = match params {
-                EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, params)),
-                EntityParams::BiQuadFilterLowPass24db(params) => {
-                    Box::new(BiQuadFilterLowPass24db::new_with(uid, params))
-                }
-                EntityParams::ControlTrip(params) => Box::new(ControlTrip::new_with(
-                    uid,
-                    params,
-                    &orchestrator.control_router,
-                )),
-                EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, params)),
-                EntityParams::LivePatternSequencer(params) => Box::new(
-                    LivePatternSequencer::new_with(uid, params, &self.piano_roll),
-                ),
-                EntityParams::ToyController(params) => {
-                    Box::new(ToyController::new_with(uid, params))
-                }
-                EntityParams::ToyControllerAlwaysSendsMidiMessage(params) => {
-                    Box::new(ToyControllerAlwaysSendsMidiMessage::new_with(uid, params))
-                }
-                EntityParams::ToyEffect(params) => Box::new(ToyEffect::new_with(uid, params)),
-                EntityParams::ToyInstrument(params) => {
-                    Box::new(ToyInstrument::new_with(uid, params))
-                }
-                EntityParams::ToySynth(params) => Box::new(ToySynth::new_with(uid, params)),
-                EntityParams::WelshSynth(params) => Box::new(WelshSynth::new_with(uid, params)),
-                EntityParams::LfoController(params) => {
-                    Box::new(LfoController::new_with(uid, params))
-                }
-                EntityParams::SignalPassthroughController(params) => {
-                    Box::new(SignalPassthroughController::new_with(uid, params))
-                }
-                EntityParams::Sampler(params) => Box::new(Sampler::new_with(uid, params)),
-                EntityParams::Trigger(params) => Box::new(Trigger::new_with(uid, params)),
-                EntityParams::Timer(params) => Box::new(Timer::new_with(uid, params)),
-                EntityParams::Bitcrusher(params) => Box::new(Bitcrusher::new_with(uid, params)),
-                EntityParams::Drumkit(params) => {
-                    Box::new(Drumkit::new_with(uid, params, &Paths::default()))
-                }
-                EntityParams::Chorus(params) => Box::new(Chorus::new_with(uid, params)),
-                EntityParams::Compressor(params) => Box::new(Compressor::new_with(uid, params)),
-                EntityParams::Gain(params) => Box::new(Gain::new_with(uid, params)),
-                EntityParams::Limiter(params) => Box::new(Limiter::new_with(uid, params)),
-                EntityParams::Mixer(params) => Box::new(Mixer::new_with(uid, params)),
-                EntityParams::Reverb(params) => Box::new(Reverb::new_with(uid, params)),
-            };
-            let _ = orchestrator.add_entity(track_uid, entity);
-            let _ = orchestrator.connect_midi_receiver(uid, MidiChannel::default());
-        }
+    fn reconstitute_entity(
+        &self,
+        params: &EntityParams,
+        uid: Uid,
+        track_uid: &TrackUid,
+    ) -> anyhow::Result<Uid> {
+        let mut orchestrator = self.orchestrator.lock().unwrap();
+        let entity: Box<dyn EntityWrapper> = match params {
+            EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, params)),
+            EntityParams::BiQuadFilterLowPass24db(params) => {
+                Box::new(BiQuadFilterLowPass24db::new_with(uid, params))
+            }
+            EntityParams::ControlTrip(params) => Box::new(ControlTrip::new_with(
+                uid,
+                params,
+                &orchestrator.control_router,
+            )),
+            EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, params)),
+            EntityParams::LivePatternSequencer(params) => Box::new(LivePatternSequencer::new_with(
+                uid,
+                params,
+                &self.piano_roll,
+            )),
+            EntityParams::ToyController(params) => Box::new(ToyController::new_with(uid, params)),
+            EntityParams::ToyControllerAlwaysSendsMidiMessage(params) => {
+                Box::new(ToyControllerAlwaysSendsMidiMessage::new_with(uid, params))
+            }
+            EntityParams::ToyEffect(params) => Box::new(ToyEffect::new_with(uid, params)),
+            EntityParams::ToyInstrument(params) => Box::new(ToyInstrument::new_with(uid, params)),
+            EntityParams::ToySynth(params) => Box::new(ToySynth::new_with(uid, params)),
+            EntityParams::WelshSynth(params) => Box::new(WelshSynth::new_with(uid, params)),
+            EntityParams::LfoController(params) => Box::new(LfoController::new_with(uid, params)),
+            EntityParams::SignalPassthroughController(params) => {
+                Box::new(SignalPassthroughController::new_with(uid, params))
+            }
+            EntityParams::Sampler(params) => Box::new(Sampler::new_with(uid, params)),
+            EntityParams::Trigger(params) => Box::new(Trigger::new_with(uid, params)),
+            EntityParams::Timer(params) => Box::new(Timer::new_with(uid, params)),
+            EntityParams::Bitcrusher(params) => Box::new(Bitcrusher::new_with(uid, params)),
+            EntityParams::Drumkit(params) => {
+                Box::new(Drumkit::new_with(uid, params, &Paths::default()))
+            }
+            EntityParams::Chorus(params) => Box::new(Chorus::new_with(uid, params)),
+            EntityParams::Compressor(params) => Box::new(Compressor::new_with(uid, params)),
+            EntityParams::Gain(params) => Box::new(Gain::new_with(uid, params)),
+            EntityParams::Limiter(params) => Box::new(Limiter::new_with(uid, params)),
+            EntityParams::Mixer(params) => Box::new(Mixer::new_with(uid, params)),
+            EntityParams::Reverb(params) => Box::new(Reverb::new_with(uid, params)),
+        };
+        orchestrator.add_entity(track_uid, entity)
     }
 }
 
@@ -384,6 +383,8 @@ impl From<&DawProject> for Project {
                 });
                 v
             });
+
+            dst.midi_router = src_orchestrator.midi_router.clone();
         }
         dst
     }
@@ -405,6 +406,7 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
+            dst_orchestrator.midi_router = src.midi_router.clone();
         }
         src.entities.keys().for_each(|track_uid| {
             src.entities
@@ -412,7 +414,9 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 .unwrap()
                 .iter()
                 .for_each(|(uid, params)| {
-                    dst.reconstitute_entity(params.as_ref(), *uid, track_uid);
+                    if let Err(e) = dst.reconstitute_entity(params.as_ref(), *uid, track_uid) {
+                        eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
+                    }
                 })
         });
 
@@ -441,12 +445,11 @@ mod tests {
 
     impl DawProject {
         fn debug_eq(&self, other: &Self) -> bool {
-            if self.title != other.title {
-                return false;
-            }
-            if *self.orchestrator.lock().unwrap() != *other.orchestrator.lock().unwrap() {
-                return false;
-            }
+            debug_assert_eq!(self.title, other.title);
+            debug_assert_eq!(
+                *self.orchestrator.lock().unwrap(),
+                *other.orchestrator.lock().unwrap()
+            );
             return true;
         }
 

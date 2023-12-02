@@ -2,6 +2,7 @@
 
 use crate::time::MusicalTime;
 use derive_more::Display as DeriveDisplay;
+use serde::{Deserialize, Serialize};
 use strum_macros::FromRepr;
 
 pub use midly::live::LiveEvent;
@@ -17,7 +18,9 @@ pub mod prelude {
 }
 
 /// Newtype for MIDI channel.
-#[derive(Clone, Copy, Debug, Default, DeriveDisplay, PartialEq, Eq, Hash)]
+#[derive(
+    Clone, Copy, Debug, Default, DeriveDisplay, PartialEq, Eq, Hash, Serialize, Deserialize,
+)]
 pub struct MidiChannel(pub u8);
 #[allow(missing_docs)]
 impl MidiChannel {

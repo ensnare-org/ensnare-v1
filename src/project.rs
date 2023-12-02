@@ -3,6 +3,7 @@
 //! Representation of a whole music project, including support for serialization.
 
 use crate::{all_entities::EntityParams, prelude::*, types::TrackTitle};
+use ensnare_orchestration::midi_router::MidiRouter;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -63,4 +64,8 @@ pub struct Project {
 
     /// The entities in each track.
     pub entities: HashMap<TrackUid, Vec<(Uid, Box<EntityParams>)>>,
+
+    /// The MIDI connections for this project.
+    /// TODO: this is not simple enough. Maybe it's just a naming thing.
+    pub midi_router: MidiRouter,
 }

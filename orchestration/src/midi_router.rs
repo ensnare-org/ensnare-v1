@@ -3,12 +3,18 @@
 use anyhow::anyhow;
 use ensnare_core::prelude::*;
 use ensnare_entity::factory::ReturnsHandlesMidi;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MidiRouter {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,
+}
+impl PartialEq for MidiRouter {
+    fn eq(&self, other: &Self) -> bool {
+        self.midi_channel_to_receiver_uid == other.midi_channel_to_receiver_uid
+    }
 }
 impl Default for MidiRouter {
     fn default() -> Self {

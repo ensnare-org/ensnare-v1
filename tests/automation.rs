@@ -10,15 +10,14 @@ use ensnare::{
     generators::Waveform,
     prelude::*,
 };
-use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 use std::{path::PathBuf, sync::Arc};
 
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
-    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    //    register_toy_entities(&mut factory);
+    let factory =
+        ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 
@@ -116,10 +115,8 @@ fn demo_automation() {
 
 #[test]
 fn demo_control_trips() {
-    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    //    register_toy_entities(&mut factory);
-    // let _ = EntityFactory::initialize(factory);
-    // let factory = EntityFactory::global();
+    let factory =
+        ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
     let control_router_clone = Arc::clone(&orchestrator.control_router);

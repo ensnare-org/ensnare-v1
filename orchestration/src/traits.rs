@@ -50,7 +50,7 @@ pub trait Orchestrates<E: Entity + ?Sized>:
 
     /// Adds the given [Entity] to the end of the specified track. The [Entity]
     /// must have a valid [Uid].
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<E>) -> anyhow::Result<()>;
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<E>) -> anyhow::Result<Uid>;
 
     /// Assigns a new [Uid] to the given [Entity] and adds it to the end of the
     /// specified track.

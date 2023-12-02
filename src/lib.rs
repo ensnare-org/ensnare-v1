@@ -69,10 +69,7 @@ pub mod control {
 pub mod cores {
     //! The core business logic that powers musical instruments.
     pub use ensnare_core::controllers::{TimerParams, TriggerParams};
-    pub use ensnare_cores::controllers::*;
-    pub use ensnare_cores::effects::*;
-    pub use ensnare_cores::instruments::*;
-    pub use ensnare_cores::toys::*;
+    pub use ensnare_cores::{controllers::*, effects::*, instruments::*, toys::*};
 }
 
 pub mod entities {
@@ -131,16 +128,17 @@ pub mod entities {
 
     pub mod toys {
         //! Extremely simple implementations of various types of entities.
-        pub use ensnare_entities_toy::controllers::*;
-        pub use ensnare_entities_toy::effects::*;
-        pub use ensnare_entities_toy::instruments::*;
+        pub use ensnare_entities_toy::{controllers::*, effects::*, instruments::*};
     }
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::controllers::{Timer, Trigger};
-        pub use super::{EntityFactory, EntityKey, EntityStore};
-        pub use ensnare_entities_toy::register_toy_entities;
+        pub use super::{
+            controllers::{Timer, Trigger},
+            EntityFactory, EntityKey, EntityStore,
+        };
+        pub use ensnare_entities::BuiltInEntities;
+        pub use ensnare_entities_toy::ToyEntities;
     }
 }
 
@@ -258,8 +256,9 @@ pub mod ui {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::widgets::{audio, pattern, placeholder, timeline};
         pub use ensnare_orchestration::egui::entity_palette;
-        pub use ensnare_services::{audio_settings, midi_settings};
-        pub use ensnare_services::{control_bar_widget, ControlBarAction};
+        pub use ensnare_services::{
+            audio_settings, control_bar_widget, midi_settings, ControlBarAction,
+        };
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 
@@ -290,18 +289,12 @@ pub mod project;
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
-    pub use super::arrangement::prelude::*;
-    pub use super::composition::prelude::*;
-    pub use super::control::prelude::*;
-    pub use super::entities::prelude::*;
-    pub use super::generators::prelude::*;
-    pub use super::midi::prelude::*;
-    pub use super::project::prelude::*;
-    pub use super::services::prelude::*;
-    pub use super::traits::prelude::*;
-    pub use super::types::prelude::*;
-    pub use super::ui::prelude::*;
-    pub use super::utils::prelude::*;
+    pub use super::{
+        arrangement::prelude::*, composition::prelude::*, control::prelude::*,
+        entities::prelude::*, generators::prelude::*, midi::prelude::*, project::prelude::*,
+        services::prelude::*, traits::prelude::*, types::prelude::*, ui::prelude::*,
+        utils::prelude::*,
+    };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;
 }

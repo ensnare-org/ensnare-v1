@@ -10,23 +10,31 @@ use ensnare_entity::{prelude::*, traits::EntityBounds};
 /// simple but working instruments. They're helpful when you think you're going
 /// nuts because nothing is working, so you want something that doesn't have
 /// lots of settings.
-pub fn register_toy_entities(factory: &mut EntityFactory<dyn EntityBounds>) {
-    factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
-        Box::new(ToySynth::new_with(uid, &ToySynthParams::default()))
-    });
-    factory.register_entity(EntityKey::from(ToyInstrument::ENTITY_KEY), |uid| {
-        Box::new(ToyInstrument::new_with(
-            uid,
-            &ToyInstrumentParams::default(),
-        ))
-    });
-    factory.register_entity(EntityKey::from(ToyController::ENTITY_KEY), |uid| {
-        Box::new(ToyController::new_with(
-            uid,
-            &ToyControllerParams::default(),
-        ))
-    });
-    factory.register_entity(EntityKey::from(ToyEffect::ENTITY_KEY), |uid| {
-        Box::new(ToyEffect::new_with(uid, &ToyEffectParams::default()))
-    });
+pub struct ToyEntities {}
+impl ToyEntities {
+    /// Registers all the entities in this collection.
+    pub fn register(
+        mut factory: EntityFactory<dyn EntityBounds>,
+    ) -> EntityFactory<dyn EntityBounds> {
+        factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
+            Box::new(ToySynth::new_with(uid, &ToySynthParams::default()))
+        });
+        factory.register_entity(EntityKey::from(ToyInstrument::ENTITY_KEY), |uid| {
+            Box::new(ToyInstrument::new_with(
+                uid,
+                &ToyInstrumentParams::default(),
+            ))
+        });
+        factory.register_entity(EntityKey::from(ToyController::ENTITY_KEY), |uid| {
+            Box::new(ToyController::new_with(
+                uid,
+                &ToyControllerParams::default(),
+            ))
+        });
+        factory.register_entity(EntityKey::from(ToyEffect::ENTITY_KEY), |uid| {
+            Box::new(ToyEffect::new_with(uid, &ToyEffectParams::default()))
+        });
+
+        factory
+    }
 }

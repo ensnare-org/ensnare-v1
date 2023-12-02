@@ -146,8 +146,8 @@ fn set_up_lead_track(
 // removing them, as you'd expect a GUI DAW to do.
 #[test]
 fn program_song() {
-    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    // register_toy_entities(&mut factory);
+    let factory =
+        ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
 

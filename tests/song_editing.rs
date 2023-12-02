@@ -13,10 +13,8 @@ use ensnare_entity::traits::EntityBounds;
 
 #[test]
 fn edit_song() {
-    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    //    register_toy_entities(&mut factory);
-    // let _ = EntityFactory::initialize(factory);
-    // let factory = EntityFactory::global();
+    let factory =
+        ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut orchestrator = Orchestrator::<dyn EntityBounds>::new();
     let mut piano_roll = PianoRoll::default();

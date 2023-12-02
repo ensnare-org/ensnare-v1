@@ -371,7 +371,7 @@ impl<E: Entity + ?Sized> Serializable for EntityStore<E> {
 }
 impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.time_range == other.time_range && {
+        self.time_range == other.time_range && self.tempo == other.tempo && {
             self.entities.len() == other.entities.len() && {
                 self.entities.iter().all(|(self_uid, _self_entity)| {
                     if let Some(_other_entity) = other.entities.get(self_uid) {

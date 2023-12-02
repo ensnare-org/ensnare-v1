@@ -752,7 +752,7 @@ pub struct Orchestrator<E: EntityBounds + ?Sized> {
     effect_uids: HashMap<TrackUid, Vec<Uid>>,
 
     pub control_router: Arc<RwLock<ControlRouter>>,
-    midi_router: MidiRouter,
+    pub midi_router: MidiRouter,
     humidifier: Humidifier,
     bus_station: BusStation,
     main_mixer: MainMixer,
@@ -846,6 +846,30 @@ impl<E: EntityBounds + ?Sized> Orchestrator<E> {
 }
 impl<E: EntityBounds + ?Sized> PartialEq for Orchestrator<E> {
     fn eq(&self, other: &Self) -> bool {
+        debug_assert_eq!(self.entity_uid_factory, other.entity_uid_factory);
+        debug_assert_eq!(self.track_uid_factory, other.track_uid_factory);
+        debug_assert_eq!(self.transport, other.transport);
+        debug_assert_eq!(self.track_uids, other.track_uids);
+        debug_assert_eq!(self.track_for_entity, other.track_for_entity);
+        debug_assert_eq!(self.entities_for_track, other.entities_for_track);
+        debug_assert_eq!(
+            self.timeline_entities_for_track,
+            other.timeline_entities_for_track
+        );
+        debug_assert_eq!(self.entity_store, other.entity_store);
+        debug_assert_eq!(self.controller_uids, other.controller_uids);
+        debug_assert_eq!(self.instrument_uids, other.instrument_uids);
+        debug_assert_eq!(self.effect_uids, other.effect_uids);
+        debug_assert_eq!(
+            *self.control_router.read().unwrap(),
+            *other.control_router.read().unwrap()
+        );
+        debug_assert_eq!(self.midi_router, other.midi_router);
+        debug_assert_eq!(self.humidifier, other.humidifier);
+        debug_assert_eq!(self.bus_station, other.bus_station);
+        debug_assert_eq!(self.main_mixer, other.main_mixer);
+        debug_assert_eq!(self.keyboard_controller, other.keyboard_controller);
+
         self.entity_uid_factory == other.entity_uid_factory
             && self.track_uid_factory == other.track_uid_factory
             && self.transport == other.transport
@@ -919,7 +943,7 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
             .for_each(|track_uid| self.delete_track(track_uid));
     }
 
-    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<E>) -> anyhow::Result<()> {
+    fn add_entity(&mut self, track_uid: &TrackUid, entity: Box<E>) -> anyhow::Result<Uid> {
         let uid = entity.uid();
         if uid == Uid::default() {
             return Err(anyhow!("Entity has invalid Uid {}", uid));
@@ -947,7 +971,8 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
                 .push(uid);
         }
         self.rebuild_entities_for_track(track_uid);
-        self.entity_store.add(entity, uid)
+        self.entity_store.add(entity, uid)?;
+        Ok(uid)
     }
 
     fn assign_uid_and_add_entity(
