@@ -386,6 +386,7 @@ impl DawProject {
     }
 }
 
+// From memory to disk
 impl From<&DawProject> for Project {
     fn from(src: &DawProject) -> Self {
         let mut dst = Project::default();
@@ -396,6 +397,8 @@ impl From<&DawProject> for Project {
             dst.entity_uid_factory_next_uid = src_orchestrator.entity_uid_factory.peek_next();
             dst.track_uid_factory_next_uid = src_orchestrator.track_uid_factory.peek_next();
             let track_uids = src_orchestrator.track_uids.clone();
+
+            dst.midi_router = src_orchestrator.midi_router.clone();
 
             track_uids.iter().for_each(|track_uid| {
                 let dst_entities = dst.entities.entry(*track_uid).or_default();
@@ -411,7 +414,11 @@ impl From<&DawProject> for Project {
             dst.tracks = track_uids.iter().fold(Vec::default(), |mut v, track_uid| {
                 v.push(TrackInfo {
                     uid: *track_uid,
-                    title: src.track_titles.get(track_uid).unwrap().clone(),
+                    title: src
+                        .track_titles
+                        .get(track_uid)
+                        .unwrap_or(&TrackTitle::default())
+                        .clone(),
                 });
                 v
             });
@@ -419,6 +426,8 @@ impl From<&DawProject> for Project {
         dst
     }
 }
+
+// From disk to memory
 impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
     fn from(value: (&Project, &EntityFactory<dyn EntityWrapper>)) -> Self {
         let (src, _factory) = value;
@@ -463,7 +472,7 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
 mod tests {
     use super::*;
     use ensnare::all_entities::EnsnareEntities;
-    use ensnare_core::rng::Rng;
+    use ensnare_core::{controllers::TriggerParams, rng::Rng};
     use std::sync::Arc;
 
     #[derive(Debug, PartialEq)]
@@ -473,6 +482,25 @@ mod tests {
             let mut rng = Rng::default();
             let mut o = Orchestrator::<dyn EntityWrapper>::new();
             o.update_sample_rate(SampleRate(rng.rand_range(11000..30000) as usize));
+
+            for _ in 0..10 {
+                let _ = o.connect_midi_receiver(
+                    Uid(rng.rand_u64() as usize),
+                    MidiChannel(rng.rand_range(0..MidiChannel::MAX_VALUE as u64 + 1) as u8),
+                );
+            }
+
+            for _ in 0..4 {
+                if let Ok(track_uid) = o.create_track() {
+                    let _ = o.add_entity(
+                        &track_uid,
+                        Box::new(Trigger::new_with(
+                            Uid(rng.rand_u64() as usize + 10000),
+                            &TriggerParams::default(),
+                        )),
+                    );
+                }
+            }
 
             Self(o)
         }
