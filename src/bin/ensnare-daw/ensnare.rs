@@ -117,8 +117,8 @@ impl Ensnare {
                 .sender()
                 .clone(),
             toasts: Toasts::new()
-                .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
-                .direction(Direction::BottomUp),
+                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
+                .direction(eframe::egui::Direction::BottomUp),
             event_channel: Default::default(),
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
