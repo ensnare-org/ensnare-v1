@@ -93,37 +93,35 @@ impl Ensnare {
         let project = DawProject::new_project();
         let orchestrator = Arc::clone(&project.orchestrator);
         let settings = Settings::load().unwrap_or_default();
-        let keyboard_events_sender = orchestrator
-            .lock()
-            .unwrap()
-            .keyboard_controller
-            .sender()
-            .clone();
         let control_bar = ControlBar::default();
-        let sample_buffer_sender = control_bar.sample_channel.sender.clone();
-        let factory: Arc<EntityFactory<dyn EntityWrapper>> = Arc::new(factory);
+        let factory = Arc::new(factory);
 
         let mut r = Self {
-            factory: Arc::clone(&factory),
-            event_channel: Default::default(),
-            project,
             menu_bar: MenuBar::new_with(&factory),
-            control_bar,
             orchestrator_service: OrchestratorService::<dyn EntityWrapper>::new_with(
                 &orchestrator,
                 &factory,
             ),
+            factory,
+            project,
             settings_panel: SettingsPanel::new_with(
                 settings,
                 &orchestrator,
-                Some(sample_buffer_sender),
+                Some(control_bar.sample_channel.sender.clone()),
             ),
+            control_bar,
+            keyboard_events_sender: orchestrator
+                .lock()
+                .unwrap()
+                .keyboard_controller
+                .sender()
+                .clone(),
             toasts: Toasts::new()
-                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
-                .direction(eframe::egui::Direction::BottomUp),
+                .anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0))
+                .direction(Direction::BottomUp),
+            event_channel: Default::default(),
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
-            keyboard_events_sender,
             is_settings_panel_open: Default::default(),
             modifiers: Modifiers::default(),
         };
