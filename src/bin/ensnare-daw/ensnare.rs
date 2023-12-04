@@ -130,6 +130,27 @@ impl Ensnare {
         r
     }
 
+    fn set_project(&mut self, project: DawProject) {
+        self.orchestrator_service
+            .send_to_service(OrchestratorInput::SetOrchestrator(Arc::clone(
+                &project.orchestrator,
+            )));
+        self.settings_panel.exit();
+        self.settings_panel = SettingsPanel::new_with(
+            Settings::default(), // TODO
+            &project.orchestrator,
+            Some(self.control_bar.sample_channel.sender.clone()),
+        );
+        self.keyboard_events_sender = project
+            .orchestrator
+            .lock()
+            .unwrap()
+            .keyboard_controller
+            .sender()
+            .clone();
+        self.project = project;
+    }
+
     fn initialize_fonts(ctx: &Context) {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
@@ -366,7 +387,7 @@ impl Ensnare {
                     },
                     EnsnareMessage::ProjectLoaded(result) => match result {
                         Ok(project) => {
-                            self.project = project;
+                            self.set_project(project);
                             self.toasts.add(Toast {
                                 kind: egui_toast::ToastKind::Success,
                                 text: format!(
@@ -620,7 +641,7 @@ impl Ensnare {
     }
 
     fn handle_project_new(&mut self) {
-        self.project = DawProject::new_project();
+        self.set_project(DawProject::new_project());
     }
 
     fn handle_project_save(&mut self, path: Option<PathBuf>) {

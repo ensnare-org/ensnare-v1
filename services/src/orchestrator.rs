@@ -24,7 +24,7 @@ use std::{
 ///   was a contender for the notion of a project, but it was too big a
 ///   responsibility.
 #[derive(Clone, Debug)]
-pub enum OrchestratorInput {
+pub enum OrchestratorInput<E: EntityBounds + ?Sized> {
     /// An external MIDI message arrived.
     Midi(MidiChannel, MidiMessage),
     /// Open the project file at the given path, load it, and replace the
@@ -59,6 +59,9 @@ pub enum OrchestratorInput {
 
     /// Quit the thread.
     Quit,
+
+    /// Replace the Orchestrator that this service uses.
+    SetOrchestrator(Arc<Mutex<Orchestrator<E>>>),
 }
 
 /// Events that [Orchestrator] generates.
@@ -92,7 +95,7 @@ pub enum OrchestratorEvent {
 pub struct OrchestratorService<E: EntityBounds + ?Sized> {
     pub orchestrator: Arc<Mutex<Orchestrator<E>>>,
     track_selection_set: Arc<Mutex<SelectionSet<TrackUid>>>,
-    input_channel_pair: ChannelPair<OrchestratorInput>,
+    input_channel_pair: ChannelPair<OrchestratorInput<E>>,
     event_channel_pair: ChannelPair<OrchestratorEvent>,
     factory: Arc<EntityFactory<E>>,
 
@@ -120,7 +123,7 @@ impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
     }
 
     /// The sending side of the [OrchestratorInput] channel.
-    pub fn sender(&self) -> &Sender<OrchestratorInput> {
+    pub fn sender(&self) -> &Sender<OrchestratorInput<E>> {
         &self.input_channel_pair.sender
     }
 
@@ -130,7 +133,7 @@ impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
     }
 
     /// Sends the given [OrchestratorInput] to the [Orchestrator].
-    pub fn send_to_service(&self, input: OrchestratorInput) {
+    pub fn send_to_service(&self, input: OrchestratorInput<E>) {
         match self.sender().send(input) {
             Ok(_) => {}
             Err(err) => eprintln!("sending OrchestratorInput failed with {:?}", err),
@@ -150,96 +153,112 @@ impl<E: EntityBounds + ?Sized + 'static> OrchestratorService<E> {
         let orchestrator = Arc::clone(&self.orchestrator);
         let track_selection_set = Arc::clone(&self.track_selection_set);
         let factory = Arc::clone(&self.factory);
-        std::thread::spawn(move || loop {
-            let recv = receiver.recv();
-            if let Ok(mut o) = orchestrator.lock() {
-                // TODO: when you have time, arrange for this thread to get a
-                // copy of egui::Context so that it can request a repaint after
-                // receiving a message. I think that's why drag and drop
-                // sometimes needs a wiggle for its results to appear.
+        std::thread::spawn(move || {
+            let mut orchestrator = Arc::clone(&orchestrator);
+            loop {
+                let mut new_orchestrator = None;
+                let recv = receiver.recv();
+                if let Ok(mut o) = orchestrator.lock() {
+                    // TODO: when you have time, arrange for this thread to get a
+                    // copy of egui::Context so that it can request a repaint after
+                    // receiving a message. I think that's why drag and drop
+                    // sometimes needs a wiggle for its results to appear.
 
-                match recv {
-                    Ok(input) => match input {
-                        OrchestratorInput::Midi(channel, message) => {
-                            Self::handle_input_midi(&mut o, channel, message);
-                        }
-                        OrchestratorInput::ProjectPlay => o.play(),
-                        OrchestratorInput::ProjectStop => o.stop(),
-                        OrchestratorInput::ProjectNew => {
-                            let mo = Orchestrator::<E>::new();
-                            // o.prepare_successor(&mut mo);
-                            // let _ = mo.create_starter_tracks(); // TODO: DRY this
-                            *o = mo;
-                            let _ = sender.send(OrchestratorEvent::New);
-                        }
-                        OrchestratorInput::ProjectOpen(path) => {
-                            match Self::handle_input_load(&path) {
-                                Ok(mo) => {
-                                    // o.prepare_successor(&mut mo);
-                                    *o = mo;
-                                    // let _ = sender
-                                    //     .send(OrchestratorEvent::Loaded(path, o.title.clone()));
+                    match recv {
+                        Ok(input) => match input {
+                            OrchestratorInput::Midi(channel, message) => {
+                                Self::handle_input_midi(&mut o, channel, message);
+                            }
+                            OrchestratorInput::ProjectPlay => o.play(),
+                            OrchestratorInput::ProjectStop => o.stop(),
+                            OrchestratorInput::ProjectNew => {
+                                let mo = Orchestrator::<E>::new();
+                                // o.prepare_successor(&mut mo);
+                                // let _ = mo.create_starter_tracks(); // TODO: DRY this
+                                *o = mo;
+                                let _ = sender.send(OrchestratorEvent::New);
+                            }
+                            OrchestratorInput::ProjectOpen(path) => {
+                                match Self::handle_input_load(&path) {
+                                    Ok(mo) => {
+                                        // o.prepare_successor(&mut mo);
+                                        *o = mo;
+                                        // let _ = sender
+                                        //     .send(OrchestratorEvent::Loaded(path, o.title.clone()));
+                                    }
+                                    Err(err) => {
+                                        let _ =
+                                            sender.send(OrchestratorEvent::LoadError(path, err));
+                                    }
                                 }
-                                Err(err) => {
-                                    let _ = sender.send(OrchestratorEvent::LoadError(path, err));
+                                {}
+                            }
+                            OrchestratorInput::ProjectSave(path) => {
+                                match Self::handle_input_save(&o, &path) {
+                                    Ok(_) => {
+                                        let _ = sender.send(OrchestratorEvent::Saved(path));
+                                    }
+                                    Err(err) => {
+                                        let _ =
+                                            sender.send(OrchestratorEvent::SaveError(path, err));
+                                    }
                                 }
                             }
-                            {}
-                        }
-                        OrchestratorInput::ProjectSave(path) => {
-                            match Self::handle_input_save(&o, &path) {
-                                Ok(_) => {
-                                    let _ = sender.send(OrchestratorEvent::Saved(path));
-                                }
-                                Err(err) => {
-                                    let _ = sender.send(OrchestratorEvent::SaveError(path, err));
+                            OrchestratorInput::Quit => {
+                                let _ = sender.send(OrchestratorEvent::Quit);
+                                break;
+                            }
+                            OrchestratorInput::TrackNewMidi => {
+                                // let _ = o.new_midi_track();
+                            }
+                            OrchestratorInput::TrackNewAudio => {
+                                // let _ = o.new_audio_track();
+                            }
+                            OrchestratorInput::TrackNewAux => {
+                                // let _ = o.new_aux_track();
+                            }
+                            OrchestratorInput::TrackDeleteSelected => {
+                                if let Ok(track_selection_set) = track_selection_set.lock() {
+                                    let uids = Vec::from_iter(track_selection_set.iter().copied());
+                                    o.delete_tracks(&uids);
                                 }
                             }
-                        }
-                        OrchestratorInput::Quit => {
-                            let _ = sender.send(OrchestratorEvent::Quit);
+                            OrchestratorInput::TrackDuplicateSelected => {
+                                todo!("duplicate selected tracks");
+                            }
+                            OrchestratorInput::TrackPatternRemoveSelected => {
+                                unimplemented!()
+                            }
+                            OrchestratorInput::Tempo(tempo) => {
+                                o.update_tempo(tempo);
+                                let _ = sender.send(OrchestratorEvent::Tempo(tempo));
+                            }
+                            OrchestratorInput::LinkControl(
+                                source_uid,
+                                target_uid,
+                                control_index,
+                            ) => {
+                                let _ = o.link_control(source_uid, target_uid, control_index);
+                            }
+                            OrchestratorInput::TrackAddEntity(track_uid, key) => {
+                                let uid = o.mint_entity_uid();
+                                if let Some(entity) = factory.new_entity(&key, uid) {
+                                    let _ = o.add_entity(&track_uid, entity);
+                                    let _ = o.connect_midi_receiver(uid, MidiChannel::default());
+                                }
+                            }
+                            OrchestratorInput::SetOrchestrator(incoming_orchestrator) => {
+                                new_orchestrator = Some(incoming_orchestrator);
+                            }
+                        },
+                        Err(err) => {
+                            eprintln!("unexpected failure of OrchestratorInput channel: {:?}", err);
                             break;
                         }
-                        OrchestratorInput::TrackNewMidi => {
-                            // let _ = o.new_midi_track();
-                        }
-                        OrchestratorInput::TrackNewAudio => {
-                            // let _ = o.new_audio_track();
-                        }
-                        OrchestratorInput::TrackNewAux => {
-                            // let _ = o.new_aux_track();
-                        }
-                        OrchestratorInput::TrackDeleteSelected => {
-                            if let Ok(track_selection_set) = track_selection_set.lock() {
-                                let uids = Vec::from_iter(track_selection_set.iter().copied());
-                                o.delete_tracks(&uids);
-                            }
-                        }
-                        OrchestratorInput::TrackDuplicateSelected => {
-                            todo!("duplicate selected tracks");
-                        }
-                        OrchestratorInput::TrackPatternRemoveSelected => {
-                            unimplemented!()
-                        }
-                        OrchestratorInput::Tempo(tempo) => {
-                            o.update_tempo(tempo);
-                            let _ = sender.send(OrchestratorEvent::Tempo(tempo));
-                        }
-                        OrchestratorInput::LinkControl(source_uid, target_uid, control_index) => {
-                            let _ = o.link_control(source_uid, target_uid, control_index);
-                        }
-                        OrchestratorInput::TrackAddEntity(track_uid, key) => {
-                            let uid = o.mint_entity_uid();
-                            if let Some(entity) = factory.new_entity(&key, uid) {
-                                let _ = o.add_entity(&track_uid, entity);
-                                let _ = o.connect_midi_receiver(uid, MidiChannel::default());
-                            }
-                        }
-                    },
-                    Err(err) => {
-                        eprintln!("unexpected failure of OrchestratorInput channel: {:?}", err);
-                        break;
                     }
+                }
+                if let Some(new_orchestrator) = new_orchestrator {
+                    orchestrator = Arc::clone(&new_orchestrator);
                 }
             }
         });
