@@ -77,8 +77,13 @@ impl eframe::App for CalculatorApp {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions::default();
-    //        initial_window_size: Some(eframe::egui::vec2(348.0, 576.0)),
+    let options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_title("Pocket Calculator")
+            .with_inner_size(eframe::epaint::vec2(348.0, 576.0))
+            .to_owned(),
+        ..Default::default()
+    };
 
     if let Err(e) = eframe::run_native(
         CalculatorApp::APP_NAME,

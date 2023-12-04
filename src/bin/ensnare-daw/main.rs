@@ -4,6 +4,7 @@
 
 use ::ensnare::all_entities::{EnsnareEntities, EntityWrapper};
 use anyhow::anyhow;
+use eframe::egui::ViewportBuilder;
 use ensnare::Ensnare;
 use ensnare_drag_drop::DragDropManager;
 use ensnare_entity::factory::EntityFactory;
@@ -16,7 +17,13 @@ mod settings;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport: ViewportBuilder::default()
+            .with_title(Ensnare::NAME)
+            .with_inner_size(eframe::epaint::vec2(1280.0, 720.0))
+            .to_owned(),
+        ..Default::default()
+    };
 
     let factory =
         EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();

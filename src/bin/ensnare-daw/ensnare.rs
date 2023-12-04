@@ -714,8 +714,9 @@ impl App for Ensnare {
             .set_control_only_down(self.modifiers.command_only());
 
         // TODO - too much work
-        let project_title_str: String = self.project.title.clone().into();
-        //        frame.set_window_title(project_title_str.as_str());
+        ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(
+            self.project.title.to_string().clone(),
+        ));
 
         let top = TopBottomPanel::top("top-panel")
             .resizable(false)
@@ -754,7 +755,7 @@ impl App for Ensnare {
         self.check_drag_and_drop();
 
         if self.exit_requested {
-            //   frame.close();
+            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Close);
         }
     }
 

@@ -403,6 +403,7 @@ impl MiniDaw {
     pub fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         Self::initialize_fonts(cc);
         Self::initialize_style(&cc.egui_ctx);
+        egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
         let orchestrator = Arc::new(Mutex::new(Orchestrator::<dyn EntityBounds>::new()));
@@ -421,7 +422,7 @@ impl MiniDaw {
             orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
 
-            view_range: Default::default(),
+            view_range: ViewRange(MusicalTime::START..(MusicalTime::DURATION_WHOLE * 4)),
 
             exit_requested: Default::default(),
 
@@ -870,7 +871,13 @@ impl eframe::App for MiniDaw {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_title("MiniDAW")
+            .with_inner_size(eframe::epaint::vec2(1024.0, 768.0))
+            .to_owned(),
+        ..Default::default()
+    };
 
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
