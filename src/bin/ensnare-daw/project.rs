@@ -33,6 +33,7 @@ use ensnare_entities_toy::{
 };
 use std::{
     collections::HashMap,
+    ops::DerefMut,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
@@ -301,6 +302,21 @@ impl DawProject {
         Ok(save_path)
     }
 
+    fn reconstitute_track_entities(
+        &mut self,
+        track_uid: &TrackUid,
+        entities: Option<&Vec<(Uid, Box<EntityParams>)>>,
+    ) -> anyhow::Result<()> {
+        if let Some(entities) = entities {
+            entities.iter().for_each(|(uid, params)| {
+                if let Err(e) = self.reconstitute_entity(params.as_ref(), *uid, &track_uid) {
+                    eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
+                }
+            })
+        }
+        Ok(())
+    }
+
     fn reconstitute_entity(
         &self,
         params: &EntityParams,
@@ -352,6 +368,22 @@ impl DawProject {
         };
         orchestrator.add_entity(track_uid, entity)
     }
+
+    fn reconstitute_midi_routes(
+        &mut self,
+        midi_router: &ensnare_orchestration::midi_router::MidiRouter,
+    ) -> anyhow::Result<()> {
+        let mut orchestrator = self.orchestrator.lock().unwrap();
+        for channel in MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE {
+            let channel = MidiChannel(channel);
+            if let Some(receivers) = midi_router.receivers(&channel) {
+                receivers.iter().for_each(|uid| {
+                    let _ = orchestrator.connect_midi_receiver(*uid, channel);
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 impl From<&DawProject> for Project {
@@ -383,8 +415,6 @@ impl From<&DawProject> for Project {
                 });
                 v
             });
-
-            dst.midi_router = src_orchestrator.midi_router.clone();
         }
         dst
     }
@@ -394,30 +424,35 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
         let (src, _factory) = value;
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
-            dst.title = src.title.clone();
-            dst_orchestrator.update_tempo(src.tempo);
-            dst_orchestrator.update_time_signature(src.time_signature);
+            // First deal with the functionality that requires a concrete Orchestrator.
             dst_orchestrator.entity_uid_factory =
                 EntityUidFactory::new(src.entity_uid_factory_next_uid);
             dst_orchestrator.track_uid_factory =
                 TrackUidFactory::new(src.track_uid_factory_next_uid);
+
+            // Next, cast to the Orchestrates trait so we can work more generically.
+            let dst_orchestrator: &mut dyn Orchestrates<dyn EntityWrapper> =
+                dst_orchestrator.deref_mut();
+            dst.title = src.title.clone();
+            dst_orchestrator.update_tempo(src.tempo);
+            dst_orchestrator.update_time_signature(src.time_signature);
             src.tracks.iter().for_each(|track_info| {
                 let _ = dst_orchestrator.create_track_with_uid(track_info.uid);
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
-            dst_orchestrator.midi_router = src.midi_router.clone();
+        }
+        if let Err(e) = dst.reconstitute_midi_routes(&src.midi_router) {
+            eprintln!("Error while reconstituting MIDI routes: {}", e);
         }
         src.entities.keys().for_each(|track_uid| {
-            src.entities
-                .get(track_uid)
-                .unwrap()
-                .iter()
-                .for_each(|(uid, params)| {
-                    if let Err(e) = dst.reconstitute_entity(params.as_ref(), *uid, track_uid) {
-                        eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
-                    }
-                })
+            if let Err(e) = dst.reconstitute_track_entities(track_uid, src.entities.get(track_uid))
+            {
+                eprintln!(
+                    "Error while reconstituting entities for track {track_uid}: {}",
+                    e
+                );
+            }
         });
 
         dst

@@ -24,7 +24,8 @@ pub mod prelude {
 pub struct MidiChannel(pub u8);
 #[allow(missing_docs)]
 impl MidiChannel {
-    pub const MAX: u8 = 16;
+    pub const MIN_VALUE: u8 = 0;
+    pub const MAX_VALUE: u8 = 15; // inclusive
 
     pub const fn new(value: u8) -> Self {
         Self(value)

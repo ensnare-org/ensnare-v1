@@ -6,7 +6,7 @@ use ensnare_entity::factory::ReturnsHandlesMidi;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct MidiRouter {
     /// MIDI connections
     midi_channel_to_receiver_uid: HashMap<MidiChannel, Vec<Uid>>,
@@ -16,19 +16,10 @@ impl PartialEq for MidiRouter {
         self.midi_channel_to_receiver_uid == other.midi_channel_to_receiver_uid
     }
 }
-impl Default for MidiRouter {
-    fn default() -> Self {
-        Self {
-            midi_channel_to_receiver_uid: Default::default(),
-        }
-    }
-}
 impl MidiRouter {
     /// The entities receiving on the given MIDI channel.
-    pub fn receivers(&mut self, channel: &MidiChannel) -> &Vec<Uid> {
-        self.midi_channel_to_receiver_uid
-            .entry(*channel)
-            .or_default()
+    pub fn receivers(&self, channel: &MidiChannel) -> Option<&Vec<Uid>> {
+        self.midi_channel_to_receiver_uid.get(channel)
     }
 
     /// Connect an entity to the given MIDI channel.
@@ -65,8 +56,8 @@ impl MidiRouter {
         let mut v = Vec::default();
         v.push((channel, message));
         while let Some((channel, message)) = v.pop() {
-            let receiver_uids = self.receivers(&channel);
-            receiver_uids.iter().for_each(|uid| {
+            if let Some(receiver_uids) = self.receivers(&channel) {
+                receiver_uids.iter().for_each(|uid| {
                 if let Some(e) = entity_store.get_handles_midi_mut(uid) {
                         e.handle_midi_message(channel, message, &mut | response_channel, response_message| {
                             if channel != response_channel {
@@ -80,6 +71,7 @@ impl MidiRouter {
                     eprintln!("Warning: a receiver list refers to nonexistent entity id {uid}");
                 }
             });
+            }
         }
         if loop_detected {
             Err(anyhow!("Device attempted to send MIDI message to itself"))
