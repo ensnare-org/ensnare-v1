@@ -80,6 +80,11 @@ impl MidiRouter {
         }
     }
 }
+impl From<&MidiRouter> for HashMap<MidiChannel, Vec<Uid>> {
+    fn from(value: &MidiRouter) -> Self {
+        value.midi_channel_to_receiver_uid.clone()
+    }
+}
 
 #[cfg(test)]
 mod tests {

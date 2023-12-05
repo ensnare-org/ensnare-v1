@@ -10,10 +10,13 @@ use crate::{
 use anyhow::anyhow;
 use derive_builder::Builder;
 use ensnare_proc_macros::Params;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 
 /// Identifies a [Pattern].
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(
+    Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+)]
 pub struct PatternUid(pub usize);
 impl IsUid for PatternUid {}
 impl From<usize> for PatternUid {
@@ -42,7 +45,7 @@ impl Default for UidFactory<PatternUid> {
 /// A [Note] is a single played note. It knows which key it's playing (which
 /// is more or less assumed to be a MIDI key value), and when (start/end) it's
 /// supposed to play, relative to time zero.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,

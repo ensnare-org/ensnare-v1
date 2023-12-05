@@ -368,22 +368,6 @@ impl DawProject {
         };
         orchestrator.add_entity(track_uid, entity)
     }
-
-    fn reconstitute_midi_routes(
-        &mut self,
-        midi_router: &ensnare_orchestration::midi_router::MidiRouter,
-    ) -> anyhow::Result<()> {
-        let mut orchestrator = self.orchestrator.lock().unwrap();
-        for channel in MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE {
-            let channel = MidiChannel(channel);
-            if let Some(receivers) = midi_router.receivers(&channel) {
-                receivers.iter().for_each(|uid| {
-                    let _ = orchestrator.connect_midi_receiver(*uid, channel);
-                });
-            }
-        }
-        Ok(())
-    }
 }
 
 // From memory to disk
@@ -398,7 +382,7 @@ impl From<&DawProject> for Project {
             dst.track_uid_factory_next_uid = src_orchestrator.track_uid_factory.peek_next();
             let track_uids = src_orchestrator.track_uids.clone();
 
-            dst.midi_router = src_orchestrator.midi_router.clone();
+            dst.midi_connections = (&src_orchestrator.midi_router).into();
 
             track_uids.iter().for_each(|track_uid| {
                 let dst_entities = dst.entities.entry(*track_uid).or_default();
@@ -450,9 +434,13 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
-        }
-        if let Err(e) = dst.reconstitute_midi_routes(&src.midi_router) {
-            eprintln!("Error while reconstituting MIDI routes: {}", e);
+            src.midi_connections.keys().for_each(|&channel| {
+                if let Some(connections) = src.midi_connections.get(&channel) {
+                    connections.iter().for_each(|&uid| {
+                        let _ = dst_orchestrator.connect_midi_receiver(uid, channel);
+                    });
+                }
+            })
         }
         src.entities.keys().for_each(|track_uid| {
             if let Err(e) = dst.reconstitute_track_entities(track_uid, src.entities.get(track_uid))

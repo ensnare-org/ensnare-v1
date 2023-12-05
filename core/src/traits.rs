@@ -12,6 +12,7 @@ use crate::{
     prelude::*,
     time::{MusicalTime, SampleRate, TimeSignature},
 };
+use serde::{Deserialize, Serialize};
 
 /// Quick import of all important traits.
 pub mod prelude {
@@ -176,7 +177,7 @@ impl MessageBounds for WorkEvent {}
 
 pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeRange(pub std::ops::Range<MusicalTime>);
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
