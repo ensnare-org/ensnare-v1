@@ -62,7 +62,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/stop.png"
+                        "../../../res/images/md-symbols/play_arrow.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
