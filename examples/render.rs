@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! The `render` example generates a WAV file from a serialized [Project].
+//! The `render` example generates a WAV file from a serialized [DiskProject].
 
 use clap::Parser;
 use ensnare::prelude::*;
