@@ -33,17 +33,20 @@ fn demo_automation() {
 
         // Add the lead pattern to the PianoRoll.
         let scale_pattern_uid = {
-            piano_roll.insert(
-                PatternBuilder::default()
-                    .note_sequence(
-                        vec![
-                            60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-                        ],
-                        None,
-                    )
-                    .build()
-                    .unwrap(),
-            )
+            piano_roll
+                .insert(
+                    PatternBuilder::default()
+                        .note_sequence(
+                            vec![
+                                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72,
+                                255,
+                            ],
+                            None,
+                        )
+                        .build()
+                        .unwrap(),
+                )
+                .unwrap()
         };
 
         // Arrange the lead pattern in the sequencer.

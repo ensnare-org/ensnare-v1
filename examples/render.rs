@@ -29,8 +29,8 @@ struct RenderProject {
     title: ProjectTitle,
     orchestrator: Orchestrator<dyn EntityBounds>,
 }
-impl From<Project> for RenderProject {
-    fn from(project: Project) -> Self {
+impl From<DiskProject> for RenderProject {
+    fn from(project: DiskProject) -> Self {
         Self {
             title: project.title,
             orchestrator: Orchestrator::new(), // TODO
@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
 
     for input_filename in args.input {
         match std::fs::File::open(input_filename.clone()) {
-            Ok(f) => match serde_json::from_reader::<_, Project>(std::io::BufReader::new(f)) {
+            Ok(f) => match serde_json::from_reader::<_, DiskProject>(std::io::BufReader::new(f)) {
                 Ok(project) => {
                     let mut render_project: RenderProject = project.into();
                     eprintln!(

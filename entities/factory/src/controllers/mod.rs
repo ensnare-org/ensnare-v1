@@ -1,17 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::Sender;
+use delegate::delegate;
 use ensnare_core::{
     controllers::{ControlTripParams, TimerParams, TriggerParams},
     piano_roll::{Pattern, PatternUid, PianoRoll},
     prelude::*,
+    sequence_repository::SequenceRepository,
     time::MusicalTime,
     traits::{Configurable, Controls, Sequences, Serializable},
     uid::Uid,
 };
 use ensnare_cores::{
     ArpeggiatorParams, LfoControllerParams, LivePatternSequencerParams, NoteSequencerParams,
-    PatternSequencerParams, SignalPassthroughControllerParams,
+    PatternSequencerParams, SignalPassthroughControllerParams, ThinSequencerParams,
 };
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
@@ -121,6 +123,17 @@ impl Displays for LivePatternSequencer {
         self.view_range = view_range.clone();
     }
 }
+impl Sequences for LivePatternSequencer {
+    type MU = PatternUid;
+
+    delegate! {
+        to self.inner {
+            fn record(&mut self, channel: MidiChannel, unit: &Self::MU, position: MusicalTime) -> anyhow::Result<()>;
+            fn remove(&mut self, channel: MidiChannel, unit: &Self::MU, position: MusicalTime,) -> anyhow::Result<()>;
+            fn clear(&mut self);
+        }
+    }
+}
 impl LivePatternSequencer {
     pub fn new_with(
         uid: Uid,
@@ -209,6 +222,86 @@ impl NoteSequencer {
             inner,
             view_range: Default::default(),
         }
+    }
+}
+
+#[derive(
+    Debug,
+    Default,
+    InnerConfigurable,
+    InnerControls,
+    InnerHandlesMidi,
+    InnerSerializable,
+    IsEntity,
+    Metadata,
+)]
+#[entity("controller", "timeline")]
+pub struct ThinSequencer {
+    uid: Uid,
+    inner: ensnare_cores::ThinSequencer,
+    view_range: ViewRange,
+}
+impl Displays for ThinSequencer {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.add(live_pattern_sequencer_widget(
+            &mut self.inner.inner,
+            &self.view_range,
+        ))
+    }
+
+    fn set_view_range(&mut self, view_range: &ViewRange) {
+        self.view_range = view_range.clone();
+    }
+}
+impl Sequences for ThinSequencer {
+    type MU = PatternUid;
+
+    delegate! {
+        to self.inner {
+            fn record(&mut self, channel: MidiChannel, unit: &Self::MU, position: MusicalTime) -> anyhow::Result<()>;
+            fn remove(&mut self, channel: MidiChannel, unit: &Self::MU, position: MusicalTime,) -> anyhow::Result<()>;
+            fn clear(&mut self);
+        }
+    }
+}
+impl ThinSequencer {
+    pub fn new_with(
+        uid: Uid,
+        params: &ThinSequencerParams,
+        track_uid: TrackUid,
+        repository: &Arc<RwLock<SequenceRepository>>,
+        piano_roll: &Arc<RwLock<PianoRoll>>,
+    ) -> Self {
+        Self {
+            uid,
+            inner: ensnare_cores::ThinSequencer::new_with(
+                params, track_uid, repository, piano_roll,
+            ),
+            view_range: Default::default(),
+        }
+    }
+}
+impl
+    TryFrom<(
+        Uid,
+        &ThinSequencerParams,
+        TrackUid,
+        &Arc<RwLock<SequenceRepository>>,
+        &Arc<RwLock<PianoRoll>>,
+    )> for ThinSequencer
+{
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: (
+            Uid,
+            &ThinSequencerParams,
+            TrackUid,
+            &Arc<RwLock<SequenceRepository>>,
+            &Arc<RwLock<PianoRoll>>,
+        ),
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new_with(value.0, value.1, value.2, value.3, value.4))
     }
 }
 

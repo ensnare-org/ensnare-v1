@@ -80,9 +80,15 @@ impl MidiRouter {
         }
     }
 }
-impl From<&MidiRouter> for HashMap<MidiChannel, Vec<Uid>> {
+impl From<&MidiRouter> for Vec<(MidiChannel, Vec<Uid>)> {
     fn from(value: &MidiRouter) -> Self {
-        value.midi_channel_to_receiver_uid.clone()
+        (MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE).fold(Vec::default(), |mut v, channel| {
+            let channel = MidiChannel(channel);
+            if let Some(connections) = value.midi_channel_to_receiver_uid.get(&channel) {
+                v.push((channel, connections.clone()));
+            }
+            v
+        })
     }
 }
 

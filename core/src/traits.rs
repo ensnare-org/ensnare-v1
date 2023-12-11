@@ -179,6 +179,14 @@ pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeRange(pub std::ops::Range<MusicalTime>);
+impl TimeRange {
+    pub fn new_with_start_and_end(start: MusicalTime, end: MusicalTime) -> Self {
+        Self(start..end)
+    }
+    pub fn new_with_start_and_duration(start: MusicalTime, duration: MusicalTime) -> Self {
+        Self(start..(start + duration))
+    }
+}
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
 /// It also has a concept of a performance that has a beginning and an end. It

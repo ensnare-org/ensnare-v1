@@ -51,14 +51,14 @@ impl<'a> PianoRollWidget<'a> {
 impl<'a> eframe::egui::Widget for PianoRollWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
-            ui.add(pattern::carousel(
+            let response = ui.add(pattern::carousel(
                 &self.entity.ordered_pattern_uids,
                 &self.entity.uids_to_patterns,
                 &mut self.entity.pattern_selection_set,
-            ));
-            self.ui_pattern_edit(ui);
+            )) | self.ui_pattern_edit(ui);
+            response
         })
-        .response
+        .inner
     }
 }
 
@@ -129,7 +129,7 @@ impl<'a> PatternWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for PatternWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let (response, painter) =
+        let (mut response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
@@ -160,6 +160,7 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             } else {
                 self.inner.notes.push(new_note);
             }
+            response.mark_changed();
         }
 
         let fill = ui.ctx().style().visuals.widgets.active.bg_fill;

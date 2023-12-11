@@ -3,12 +3,12 @@
 //! Representation of a whole music project, including support for serialization.
 
 use crate::{all_entities::EntityParams, prelude::*, types::TrackTitle};
+use ensnare_core::piano_roll::Pattern;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{Project, ProjectTitle, TrackInfo};
+    pub use super::{DiskProject, ProjectTitle, TrackInfo};
 }
 
 /// A user-visible project title.
@@ -39,10 +39,17 @@ pub struct TrackInfo {
 }
 
 /// A serializable representation of a project. Most applications that use
-/// [Project] will need to create `From` implementations to/from their own
+/// [DiskProject] will need to create `From` implementations to/from their own
 /// custom representation of the data contained within it.
+///
+/// Note that we use Vec<(key, value)> when it seems like HashMap<key, value>
+/// would be a more natural choice. That's because DiskProject is not intended
+/// to function as a live database, but rather as a static, ordered list of
+/// things that are read and written sequentially. We certainly could have made
+/// it a HashMap, but we'd lose the implicit ordering of Vecs, and we might
+/// someday write code that expects the struct to be smarter than it should be.
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
-pub struct Project {
+pub struct DiskProject {
     /// The user-visible title of this project. Used only for display.
     pub title: ProjectTitle,
 
@@ -52,21 +59,18 @@ pub struct Project {
     /// The project's global [TimeSignature].
     pub time_signature: TimeSignature,
 
-    /// The next Uid that EntityUidFactory should assign.
-    pub entity_uid_factory_next_uid: usize,
-
-    /// The next Uid that TrackUidFactory should assign.
-    pub track_uid_factory_next_uid: usize,
-
     /// An ordered list of tracks in the order they appear in the UI.
     pub tracks: Vec<TrackInfo>,
 
     /// The entities in each track.
-    pub entities: HashMap<TrackUid, Vec<(Uid, Box<EntityParams>)>>,
+    pub entities: Vec<(TrackUid, Vec<(Uid, Box<EntityParams>)>)>,
 
     /// The MIDI connections for this project.
-    pub midi_connections: HashMap<MidiChannel, Vec<Uid>>,
+    pub midi_connections: Vec<(MidiChannel, Vec<Uid>)>,
 
     /// Sequences of notes that can be reused elsewhere in the project.
-    pub patterns: HashMap<PatternUid, Vec<(MusicalTime, Note)>>,
+    pub patterns: Vec<(PatternUid, Pattern)>,
+
+    /// Patterns that have been arranged in tracks.
+    pub arrangements: Vec<(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)>,
 }

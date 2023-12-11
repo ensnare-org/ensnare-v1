@@ -10,7 +10,9 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 /// An optional Uid trait.
-pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
+pub trait IsUid: Eq + Hash + Clone + From<usize> {
+    fn as_usize(&self) -> usize;
+}
 
 /// A [Uid] is an [Entity](crate::traits::Entity) identifier that is unique
 /// within the current project.
@@ -29,7 +31,11 @@ pub trait IsUid: Eq + Hash + Clone + Copy + From<usize> {}
     derive_more::Display,
 )]
 pub struct Uid(pub usize);
-impl IsUid for Uid {}
+impl IsUid for Uid {
+    fn as_usize(&self) -> usize {
+        self.0
+    }
+}
 impl From<usize> for Uid {
     fn from(value: usize) -> Self {
         Self(value)
@@ -37,7 +43,7 @@ impl From<usize> for Uid {
 }
 
 /// Generates unique [Uid]s.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UidFactory<U: IsUid> {
     pub(crate) next_uid_value: AtomicUsize,
     pub(crate) _phantom: PhantomData<U>,
@@ -51,16 +57,21 @@ impl<U: IsUid> UidFactory<U> {
         }
     }
 
-    /// Get the value of the next [Uid] without incrementing the internal
-    /// counter. Used for serialization.
-    pub fn peek_next(&self) -> usize {
-        self.next_uid_value.load(Ordering::Relaxed)
-    }
-
     /// Generates the next unique [Uid].
     pub fn mint_next(&self) -> U {
         let uid_value = self.next_uid_value.fetch_add(1, Ordering::Relaxed);
         U::from(uid_value)
+    }
+
+    /// Notifies the factory that a [Uid] exists that might have been created
+    /// elsewhere (for example, during deserialization of a project). This gives
+    /// the factory an opportunity to adjust `next_uid_value` to stay consistent
+    /// with all known [Uid]s.
+    pub fn notify_externally_minted_uid(&self, uid: U) {
+        if uid.as_usize() >= self.next_uid_value.load(Ordering::Relaxed) {
+            self.next_uid_value
+                .store(uid.as_usize() + 1, Ordering::Relaxed);
+        }
     }
 }
 impl<U: IsUid> PartialEq for UidFactory<U> {
@@ -90,7 +101,11 @@ impl Default for TrackUid {
         Self(1)
     }
 }
-impl IsUid for TrackUid {}
+impl IsUid for TrackUid {
+    fn as_usize(&self) -> usize {
+        self.0
+    }
+}
 impl From<usize> for TrackUid {
     fn from(value: usize) -> Self {
         Self(value)
@@ -112,5 +127,51 @@ impl Default for UidFactory<TrackUid> {
             next_uid_value: Self::FIRST_UID,
             _phantom: Default::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uid_factory() {
+        let f = UidFactory::<Uid>::default();
+
+        let uid_1 = f.mint_next();
+        let uid_2 = f.mint_next();
+        assert_ne!(uid_1, uid_2, "Minted Uids should not repeat");
+
+        let uid_3 = Uid(uid_2.0 + 1);
+        let uid_3_expected_duplicate = f.mint_next();
+        assert_eq!(
+            uid_3, uid_3_expected_duplicate,
+            "Minted Uids will repeat if factory doesn't know about them all"
+        );
+    }
+
+    #[test]
+    fn uid_factory_with_notify_works() {
+        let f = UidFactory::<Uid>::default();
+
+        let uid_1 = f.mint_next();
+        let uid_2 = f.mint_next();
+        assert_ne!(uid_1, uid_2, "Minted Uids should not repeat");
+
+        let uid_3 = Uid(uid_2.0 + 1);
+        f.notify_externally_minted_uid(uid_3);
+        let uid_4 = f.mint_next();
+        assert_ne!(
+            uid_3, uid_4,
+            "Notifying factory should cause it to skip past."
+        );
+
+        f.notify_externally_minted_uid(uid_3);
+        let uid_5 = f.mint_next();
+        assert_eq!(
+            uid_5.0,
+            uid_4.0 + 1,
+            "Notifying factory about value below next should be no-op."
+        );
     }
 }

@@ -269,31 +269,35 @@ mod tests {
     #[test]
     fn live_sequencer_can_find_patterns() {
         let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
-        let pattern_uid = piano_roll.write().unwrap().insert(
-            PatternBuilder::default()
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(0),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(1),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(2),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(3),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .build()
-                .unwrap(),
-        );
+        let pattern_uid = piano_roll
+            .write()
+            .unwrap()
+            .insert(
+                PatternBuilder::default()
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(0),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(1),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(2),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(3),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
 
         let mut s =
             LivePatternSequencer::new_with(&LivePatternSequencerParams::default(), &piano_roll);

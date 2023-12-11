@@ -1,25 +1,21 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use anyhow::anyhow;
-use crossbeam_channel::Sender;
 use eframe::egui::Id;
 use ensnare::{
     all_entities::{EntityParams, EntityWrapper},
     arrangement::{DescribesProject, Orchestrates, Orchestrator},
+    composition::{Sequence, SequenceRepository},
     control::ControlTripParams,
-    cores::LivePatternSequencerParams,
-    entities::{
-        controllers::{ControlTrip, LivePatternSequencer, SequencerInput},
-        EntityUidFactory,
-    },
+    cores::ThinSequencerParams,
+    entities::controllers::{ControlTrip, LivePatternSequencer},
     prelude::*,
     project::{ProjectTitle, TrackInfo},
-    Project,
+    ui::widgets::piano_roll,
+    DiskProject,
 };
-use ensnare_cores_egui::piano_roll::piano_roll;
-use ensnare_egui_widgets::ViewRange;
 use ensnare_entities::{
-    controllers::{Arpeggiator, LfoController, SignalPassthroughController},
+    controllers::{Arpeggiator, LfoController, SignalPassthroughController, ThinSequencer},
     effects::{
         filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Mixer,
         Reverb,
@@ -33,7 +29,7 @@ use ensnare_entities_toy::{
 };
 use std::{
     collections::HashMap,
-    ops::DerefMut,
+    ops::{Deref, DerefMut},
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
@@ -55,12 +51,11 @@ pub(super) struct DawProject {
     pub(super) load_path: Option<PathBuf>,
     pub(super) orchestrator: Arc<Mutex<Orchestrator<dyn EntityWrapper>>>,
     pub(super) piano_roll: Arc<RwLock<PianoRoll>>,
+    pub(super) sequence_repository: Arc<RwLock<SequenceRepository>>,
 
     pub(super) view_range: ViewRange,
     pub(super) track_titles: HashMap<TrackUid, TrackTitle>,
     pub(super) track_frontmost_uids: HashMap<TrackUid, Uid>,
-
-    pub(super) track_to_sequencer_sender: HashMap<TrackUid, Sender<SequencerInput>>,
 
     pub(super) is_piano_roll_visible: bool,
     pub(super) detail_is_visible: bool,
@@ -74,10 +69,10 @@ impl Default for DawProject {
             load_path: Default::default(),
             orchestrator: Arc::new(Mutex::new(Orchestrator::new())),
             piano_roll: Default::default(),
+            sequence_repository: Default::default(),
             view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(4 * 4)),
             track_titles: Default::default(),
             track_frontmost_uids: Default::default(),
-            track_to_sequencer_sender: Default::default(),
             is_piano_roll_visible: Default::default(),
             detail_is_visible: Default::default(),
             detail_title: Default::default(),
@@ -100,10 +95,12 @@ impl DescribesProject for DawProject {
 }
 impl PartialEq for DawProject {
     fn eq(&self, other: &Self) -> bool {
-        self.title == other.title
+        if self.title == other.title
             && self.load_path == other.load_path
             && *self.orchestrator.lock().unwrap() == *other.orchestrator.lock().unwrap()
             && *self.piano_roll.read().unwrap() == *other.piano_roll.read().unwrap()
+            && *self.sequence_repository.read().unwrap()
+                == *other.sequence_repository.read().unwrap()
             && self.view_range == other.view_range
             && self.track_titles == other.track_titles
             && self.track_frontmost_uids == other.track_frontmost_uids
@@ -111,6 +108,36 @@ impl PartialEq for DawProject {
             && self.detail_is_visible == other.detail_is_visible
             && self.detail_title == other.detail_title
             && self.detail_uid == other.detail_uid
+        {
+            true
+        } else {
+            // This makes it easier to debug which part of the test failed
+            //
+            // TODO remove when stable
+            assert_eq!(self.title, other.title);
+            assert_eq!(self.load_path, other.load_path);
+            assert_eq!(
+                *self.orchestrator.lock().unwrap(),
+                *other.orchestrator.lock().unwrap()
+            );
+            assert_eq!(
+                *self.piano_roll.read().unwrap(),
+                *other.piano_roll.read().unwrap()
+            );
+            assert_eq!(
+                *self.sequence_repository.read().unwrap(),
+                *other.sequence_repository.read().unwrap()
+            );
+            assert_eq!(self.view_range, other.view_range);
+            assert_eq!(self.track_titles, other.track_titles);
+            assert_eq!(self.track_frontmost_uids, other.track_frontmost_uids);
+            assert_eq!(self.is_piano_roll_visible, other.is_piano_roll_visible);
+            assert_eq!(self.detail_is_visible, other.detail_is_visible);
+            assert_eq!(self.detail_title, other.detail_title);
+            assert_eq!(self.detail_uid, other.detail_uid);
+
+            false
+        }
     }
 }
 impl DawProject {
@@ -145,13 +172,15 @@ impl DawProject {
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
 
-        let sequencer = LivePatternSequencer::new_with(
+        let sequencer = ThinSequencer::new_with(
             o.mint_entity_uid(),
-            &LivePatternSequencerParams::default(),
+            &ThinSequencerParams::default(),
+            track_uid,
+            &self.sequence_repository,
             &self.piano_roll,
         );
-        self.track_to_sequencer_sender
-            .insert(track_uid, sequencer.sender().clone());
+        // self.track_to_sequencer_sender
+        //     .insert(track_uid, sequencer.sender().clone());
         let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
 
         // TODO: if you want this back again, figure out how to do it with ControlTripParams
@@ -202,11 +231,13 @@ impl DawProject {
                 eframe::epaint::vec2(5.0, 5.0),
             )
             .show(ui.ctx(), |ui| {
-                // let mut inner = self.piano_roll.write().unwrap();
-                // let inner_piano_roll: &mut PianoRoll = &mut inner;
-                // ui.add(piano_roll(inner_piano_roll))
                 let mut inner = self.piano_roll.write().unwrap();
-                ui.add(piano_roll(&mut inner))
+                let response = ui.add(piano_roll(&mut inner));
+                if response.changed() {
+                    eprintln!("yasss");
+                    self.sequence_repository.write().unwrap().notify_change();
+                }
+                response
             });
     }
 
@@ -216,8 +247,12 @@ impl DawProject {
         pattern_uid: PatternUid,
         position: MusicalTime,
     ) {
-        if let Some(channel) = self.track_to_sequencer_sender.get(&track_uid) {
-            let _ = channel.send(SequencerInput::AddPattern(pattern_uid, position));
+        // if let Some(channel) = self.track_to_sequencer_sender.get(&track_uid) {
+        //     let _ = channel.send(SequencerInput::AddPattern(pattern_uid, position));
+        // }
+        if let Ok(mut repo) = self.sequence_repository.write() {
+            let _ = repo.add(Sequence::Pattern(pattern_uid), position, track_uid);
+            eprintln!("did it");
         }
     }
 
@@ -279,7 +314,7 @@ impl DawProject {
         factory: &EntityFactory<dyn EntityWrapper>,
     ) -> anyhow::Result<Self> {
         let json = std::fs::read_to_string(&path)?;
-        let project = serde_json::from_str::<Project>(&json)?;
+        let project = serde_json::from_str::<DiskProject>(&json)?;
         let mut daw_project: DawProject = (&project, factory).into();
         daw_project.load_path = Some(path);
         Ok(daw_project)
@@ -296,7 +331,7 @@ impl DawProject {
             }
         };
 
-        let project: Project = self.into();
+        let project: DiskProject = self.into();
         let json = serde_json::to_string_pretty(&project)?;
         std::fs::write(&save_path, json)?;
         Ok(save_path)
@@ -305,15 +340,14 @@ impl DawProject {
     fn reconstitute_track_entities(
         &mut self,
         track_uid: &TrackUid,
-        entities: Option<&Vec<(Uid, Box<EntityParams>)>>,
+        entities: &[(Uid, Box<EntityParams>)],
+        project: &DiskProject,
     ) -> anyhow::Result<()> {
-        if let Some(entities) = entities {
-            entities.iter().for_each(|(uid, params)| {
-                if let Err(e) = self.reconstitute_entity(params.as_ref(), *uid, &track_uid) {
-                    eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
-                }
-            })
-        }
+        entities.iter().for_each(|(uid, params)| {
+            if let Err(e) = self.reconstitute_entity(params.as_ref(), *uid, &track_uid, project) {
+                eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
+            }
+        });
         Ok(())
     }
 
@@ -322,6 +356,7 @@ impl DawProject {
         params: &EntityParams,
         uid: Uid,
         track_uid: &TrackUid,
+        project: &DiskProject,
     ) -> anyhow::Result<Uid> {
         let mut orchestrator = self.orchestrator.lock().unwrap();
         let entity: Box<dyn EntityWrapper> = match params {
@@ -335,11 +370,17 @@ impl DawProject {
                 &orchestrator.control_router,
             )),
             EntityParams::FmSynth(params) => Box::new(FmSynth::new_with(uid, params)),
-            EntityParams::LivePatternSequencer(params) => Box::new(LivePatternSequencer::new_with(
-                uid,
-                params,
-                &self.piano_roll,
-            )),
+            EntityParams::LivePatternSequencer(params) => {
+                let mut sequencer = LivePatternSequencer::new_with(uid, params, &self.piano_roll);
+                self.reconstitute_sequencer_arrangements(
+                    track_uid,
+                    &project.arrangements,
+                    &mut sequencer,
+                );
+                // self.track_to_sequencer_sender
+                //     .insert(*track_uid, sequencer.sender().clone());
+                Box::new(sequencer)
+            }
             EntityParams::ToyController(params) => Box::new(ToyController::new_with(uid, params)),
             EntityParams::ToyControllerAlwaysSendsMidiMessage(params) => {
                 Box::new(ToyControllerAlwaysSendsMidiMessage::new_with(uid, params))
@@ -365,36 +406,75 @@ impl DawProject {
             EntityParams::Limiter(params) => Box::new(Limiter::new_with(uid, params)),
             EntityParams::Mixer(params) => Box::new(Mixer::new_with(uid, params)),
             EntityParams::Reverb(params) => Box::new(Reverb::new_with(uid, params)),
+            EntityParams::ThinSequencer(params) => {
+                let sequencer = ThinSequencer::new_with(
+                    uid,
+                    params,
+                    *track_uid,
+                    &self.sequence_repository,
+                    &self.piano_roll,
+                );
+                // self.reconstitute_sequencer_arrangements(
+                //     track_uid,
+                //     &project.arrangements,
+                //     &mut sequencer,
+                // );
+                // self.track_to_sequencer_sender
+                //     .insert(*track_uid, sequencer.sender().clone());
+                Box::new(sequencer)
+            }
         };
         orchestrator.add_entity(track_uid, entity)
+    }
+
+    fn reconstitute_sequencer_arrangements(
+        &self,
+        track_uid: &TrackUid,
+        arrangements: &[(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)],
+        sequencer: &mut LivePatternSequencer,
+    ) {
+        arrangements
+            .iter()
+            .filter(|(tuid, _)| *track_uid == *tuid)
+            .for_each(|(_, track_arrangements)| {
+                track_arrangements
+                    .iter()
+                    .for_each(|(channel, time, pattern_uid)| {
+                        if let Err(e) = sequencer.record(*channel, pattern_uid, *time) {
+                            eprintln!("While arranging: {e:?}");
+                        }
+                    });
+            });
     }
 }
 
 // From memory to disk
-impl From<&DawProject> for Project {
+impl From<&DawProject> for DiskProject {
     fn from(src: &DawProject) -> Self {
-        let mut dst = Project::default();
+        let mut dst = DiskProject::default();
         if let Ok(src_orchestrator) = src.orchestrator.lock() {
             dst.title = src.title.clone();
             dst.tempo = src_orchestrator.transport.tempo;
             dst.time_signature = src_orchestrator.transport.time_signature();
-            dst.entity_uid_factory_next_uid = src_orchestrator.entity_uid_factory.peek_next();
-            dst.track_uid_factory_next_uid = src_orchestrator.track_uid_factory.peek_next();
             let track_uids = src_orchestrator.track_uids.clone();
 
             dst.midi_connections = (&src_orchestrator.midi_router).into();
 
+            // Serialize each track's entities.
             track_uids.iter().for_each(|track_uid| {
-                let dst_entities = dst.entities.entry(*track_uid).or_default();
+                let mut dst_entities = Vec::default();
                 if let Some(entities) = src_orchestrator.entities_for_track.get(track_uid) {
                     entities.iter().for_each(|uid| {
                         if let Some(entity) = src_orchestrator.get_entity(uid) {
                             let params: Box<EntityParams> = entity.try_into().unwrap();
                             dst_entities.push((*uid, params));
                         }
-                    })
+                    });
+                    dst.entities.push((*track_uid, dst_entities));
                 }
             });
+
+            // Save each track's metadata.
             dst.tracks = track_uids.iter().fold(Vec::default(), |mut v, track_uid| {
                 v.push(TrackInfo {
                     uid: *track_uid,
@@ -406,22 +486,46 @@ impl From<&DawProject> for Project {
                 });
                 v
             });
+
+            // Copy [PianoRoll]'s contents into the list of patterns.
+            if let Ok(piano_roll) = src.piano_roll.read() {
+                dst.patterns = piano_roll.ordered_pattern_uids.iter().fold(
+                    Vec::default(),
+                    |mut v, pattern_uid| {
+                        if let Some(pattern) = piano_roll.get_pattern(pattern_uid) {
+                            v.push((*pattern_uid, pattern.clone()));
+                        }
+                        v
+                    },
+                );
+            }
+
+            // Copy the sequencer's arrangements into the list of arrangements.
+            if let Ok(repo) = src.sequence_repository.read() {
+                let repo: &SequenceRepository = repo.deref();
+                dst.arrangements = repo.into();
+            }
         }
         dst
     }
 }
 
 // From disk to memory
-impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
-    fn from(value: (&Project, &EntityFactory<dyn EntityWrapper>)) -> Self {
+impl From<(&DiskProject, &EntityFactory<dyn EntityWrapper>)> for DawProject {
+    fn from(value: (&DiskProject, &EntityFactory<dyn EntityWrapper>)) -> Self {
         let (src, _factory) = value;
         let mut dst = DawProject::default();
         if let Ok(mut dst_orchestrator) = dst.orchestrator.lock() {
-            // First deal with the functionality that requires a concrete Orchestrator.
-            dst_orchestrator.entity_uid_factory =
-                EntityUidFactory::new(src.entity_uid_factory_next_uid);
-            dst_orchestrator.track_uid_factory =
-                TrackUidFactory::new(src.track_uid_factory_next_uid);
+            // First deal with the functionality that requires a concrete
+            // Orchestrator.
+            //
+            // (none at present)
+            //
+            // UidFactories do not need to have their next_uid counters
+            // explicitly reset because we've wired the create_x_with_uid()
+            // methods to notify the factory about externally created Uids,
+            // which gives the factory an opportunity to bump the counter past
+            // that value.
 
             // Next, cast to the Orchestrates trait so we can work more generically.
             let dst_orchestrator: &mut dyn Orchestrates<dyn EntityWrapper> =
@@ -434,23 +538,39 @@ impl From<(&Project, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
-            src.midi_connections.keys().for_each(|&channel| {
-                if let Some(connections) = src.midi_connections.get(&channel) {
-                    connections.iter().for_each(|&uid| {
-                        let _ = dst_orchestrator.connect_midi_receiver(uid, channel);
-                    });
-                }
-            })
+            src.midi_connections.iter().for_each(|(channel, uids)| {
+                uids.iter().for_each(|&uid| {
+                    let _ = dst_orchestrator.connect_midi_receiver(uid, *channel);
+                });
+            });
         }
-        src.entities.keys().for_each(|track_uid| {
-            if let Err(e) = dst.reconstitute_track_entities(track_uid, src.entities.get(track_uid))
-            {
-                eprintln!(
-                    "Error while reconstituting entities for track {track_uid}: {}",
-                    e
-                );
+        src.entities.iter().for_each(|(track_uid, track_entities)| {
+            if let Err(e) = dst.reconstitute_track_entities(track_uid, track_entities, src) {
+                eprintln!("Error while reconstituting entities for track {track_uid}: {e}");
             }
         });
+        if let Ok(mut piano_roll) = dst.piano_roll.write() {
+            src.patterns.iter().for_each(|(pattern_uid, pattern)| {
+                if let Err(e) = piano_roll.insert_with_uid(pattern.clone(), *pattern_uid) {
+                    eprintln!("Error while inserting pattern: {e}");
+                }
+            });
+        }
+        if let Ok(mut repository) = dst.sequence_repository.write() {
+            src.arrangements
+                .iter()
+                .for_each(|(track_uid, arrangements)| {
+                    arrangements
+                        .iter()
+                        .for_each(|(channel, time, pattern_uid)| {
+                            if let Ok(sequence_uid) =
+                                repository.add(Sequence::Pattern(*pattern_uid), *time, *track_uid)
+                            {
+                                // is it done at this point? Concern that ThinSequencer doesn't know the sequence IDs, so how can it allow the user to edit one?
+                            }
+                        });
+                });
+        }
 
         dst
     }
@@ -527,9 +647,9 @@ mod tests {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::new_project();
-        let dst: Project = <&DawProject>::into(&src);
+        let dst: DiskProject = <&DawProject>::into(&src);
         let src_copy: DawProject =
-            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
+            <(&DiskProject, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
@@ -538,9 +658,9 @@ mod tests {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::test_random();
-        let dst: Project = <&DawProject>::into(&src);
+        let dst: DiskProject = <&DawProject>::into(&src);
         let src_copy: DawProject =
-            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
+            <(&DiskProject, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
         assert!(src.debug_eq(&src_copy));
     }
 
@@ -548,10 +668,10 @@ mod tests {
     fn identity_starting_with_serialized() {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
-        let src = Project::default();
+        let src = DiskProject::default();
         let dst: DawProject =
-            <(&Project, &EntityFactory<dyn EntityWrapper>)>::into((&src, &factory));
-        let src_copy: Project = <&DawProject>::into(&dst);
+            <(&DiskProject, &EntityFactory<dyn EntityWrapper>)>::into((&src, &factory));
+        let src_copy: DiskProject = <&DawProject>::into(&dst);
         assert_eq!(src, src_copy);
     }
 }

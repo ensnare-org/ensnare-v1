@@ -246,6 +246,10 @@ impl<E: Entity + ?Sized> EntityStore<E> {
             None
         }
     }
+
+    pub fn contains(&self, uid: &Uid) -> bool {
+        self.entities.contains_key(uid)
+    }
 }
 impl<E: Entity + ?Sized> Ticks for EntityStore<E> {
     fn tick(&mut self, tick_count: usize) {

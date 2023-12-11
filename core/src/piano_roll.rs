@@ -18,7 +18,11 @@ use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsiz
     Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
 )]
 pub struct PatternUid(pub usize);
-impl IsUid for PatternUid {}
+impl IsUid for PatternUid {
+    fn as_usize(&self) -> usize {
+        self.0
+    }
+}
 impl From<usize> for PatternUid {
     fn from(value: usize) -> Self {
         Self(value)
@@ -109,7 +113,7 @@ impl Into<Vec<MidiEvent>> for Note {
 /// [TimeSignature]. All the notes should fit into the pattern's duration, and
 /// the duration should be a round multiple of the length implied by the time
 /// signature.
-#[derive(Clone, Debug, Builder, PartialEq)]
+#[derive(Clone, Debug, Builder, PartialEq, Serialize, Deserialize)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct Pattern {
     /// The pattern's [TimeSignature].
@@ -360,34 +364,41 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Params, PartialEq)]
+#[derive(Debug, Default, Params, PartialEq)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
     pub uids_to_patterns: HashMap<PatternUid, Pattern>,
     pub ordered_pattern_uids: Vec<PatternUid>,
     pub pattern_selection_set: SelectionSet<PatternUid>,
 }
-impl Default for PianoRoll {
-    fn default() -> Self {
-        let mut r = Self {
-            uid_factory: Default::default(),
-            uids_to_patterns: Default::default(),
-            ordered_pattern_uids: Default::default(),
-            pattern_selection_set: Default::default(),
-        };
-        for _ in 0..16 {
-            let _ = r.insert(PatternBuilder::default().random().build().unwrap());
-        }
-        r
-    }
-}
 impl PianoRoll {
-    /// Adds a [Pattern]. Returns its [PatternUid].
-    pub fn insert(&mut self, pattern: Pattern) -> PatternUid {
-        let uid = self.uid_factory.mint_next();
+    // For development. TODO remove
+    pub fn insert_16_random_patterns(&mut self) {
+        (0..16).for_each(|_| {
+            let _ = self.insert(PatternBuilder::default().random().build().unwrap());
+        });
+    }
+
+    /// Adds a [Pattern] using a factory-generated [PatternUid]. Returns the new
+    /// [PatternUid].
+    pub fn insert(&mut self, pattern: Pattern) -> anyhow::Result<PatternUid> {
+        self.insert_with_uid(pattern, self.uid_factory.mint_next())
+    }
+
+    /// Adds a [Pattern] using the supplied [PatternUid]. Returns the
+    /// [PatternUid].
+    pub fn insert_with_uid(
+        &mut self,
+        pattern: Pattern,
+        uid: PatternUid,
+    ) -> anyhow::Result<PatternUid> {
+        if self.uids_to_patterns.contains_key(&uid) {
+            return Err(anyhow!("Conflicting pattern Uid {uid} {pattern:?}"));
+        }
+        self.uid_factory.notify_externally_minted_uid(uid);
         self.uids_to_patterns.insert(uid, pattern);
         self.ordered_pattern_uids.push(uid);
-        uid
+        Ok(uid)
     }
 
     /// Removes the [Pattern] having the given [PatternUid], if any.
@@ -457,7 +468,7 @@ impl PianoRoll {
         // Optimize this. I dare you.
         let len = pattern.notes().len();
         let duration = pattern.duration();
-        (self.insert(pattern), len, duration)
+        (self.insert(pattern).unwrap(), len, duration)
     }
 }
 

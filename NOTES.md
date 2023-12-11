@@ -365,7 +365,8 @@ reiterate:
 - `Orchestrator` orchestrates.
 - `OrchestratorHelper` renders.
 - `Project` serializes.
-- `InMemoryProject` constructs Entities and coordinates communication among them.
+- `InMemoryProject` constructs Entities and coordinates communication among
+  them.
 
 It's possible that `InMemoryProject` will become `Orchestrator` v2 in the sense
 that it becomes the dumping ground for all new responsibilities. The "and" in
@@ -406,3 +407,85 @@ Continuing to think about #3, what would that channel look like?
   case.
 - I just changed something that the system might need to know about.
 - (assuming bidirectional) Something in the system just changed; here it is.
+
+# 2023-12-05: Followup to prior Serde topic
+
+The current approach is to design the serialization format in a way that
+facilitiates reconstitution via `Orchestrates` methods. It ends up working
+because we have access to the destination `DawProject`/`Orchestrator`, which
+have access to all the one-off needs of various entities, and if we unite all
+the entity parameter types in a single enum, then we know each concrete type
+when we want to instantiate them, so we know how to provide the one-offs to
+them.
+
+I don't know how to handle very large "one-offs" like all the sequenced patterns
+that `PianoRoll` and `LivePatternSequencer` care about. It is easy on the
+deserialization side because we can populate the sequencer when we create the
+sequencer. For `PianoRoll`, serialization is also easy because we keep the
+concrete instance around, and can ask it to produce the `DiskProject` list. But
+for `LivePatternSequencer`, it's not easy because the current design constructs
+it and then erases its type, so we can't easily talk to it when saving.
+
+Options:
+
+1. Add `Entity::as_sequences()` and add the serialization there. This adds extra
+   vtable cost, but that's not a big deal when we'll likely have fewer than
+   1,000 entities in a large project. **Problem**: the `Sequences` trait has an
+   associated type, `MU`. Either we bite the bullet and let `MU` infect Entity,
+   or we create a separate trait altogether for serialization of sequencing
+   stuff (which might itself need `MU` all over again).
+2. Extend the current `SequencerInput` channel concept to add a
+   `SequencerEvent`, and then add a request and response for serialized data.
+   **Problem**: At first glance this seems tricky; I'm really trying to do an
+   RPC, and sending on a channel, spinning the `work()` event loop, and hoping
+   for a response feels like a really flaky way to do it, especially at a
+   degenerate time like saving (when we really shouldn't be spinning the event
+   loop).
+3. Move sequencer storage out of `LivePatternSequencer` and let the sequencer
+   subscribe to it. But if we're going to do that, is there benefit to
+   `LivePatternSequencer` being an Entity at all?
+4. Give up on `DiskProject` owning the arrangement data, and just make it into
+   `LivePatternSequencer`'s serialization data. This fits the best with the
+   current design, but it makes me sad that the actual notes of the arrangement
+   won't be first-class citizens in `DiskProject`. **Problem**: the `Params`
+   concept (derived mini-struct that represents the serializable subset of any
+   Entity) is having some growing pains. It's not as smart as Serde, and its
+   only advantage over Serde is a little more control over struct construction
+   (providing more context-sensitive defaults for things like `PianoRoll`, for
+   example).
+
+This seems to boil down to how smart we want `DawProject` to be. Is it just a
+container of generic things? Or is it super-smart? If it's dumb, then #4 is the
+right choice. If it's smart, then #3 is better. #1 is in-between (it's smart
+enough to know to ask for help from a vaguely generic entity), and #2 is a poor
+implementation of #1.
+
+I'm drawn toward #3 because it doesn't rule out #4. I can make a basic sequencer
+data structure in `DawProject`, and then either let entities operate on it, or
+build smarter entities in the future that don't need it at all. I'll try that.
+
+# 2023-12-11: Followup again
+
+Experiment results from a prototype of Option #3: `SequenceRepository` lives in
+`DawProject` and contains all the project's sequences. It tries to efficiently
+answer queries about sequences. Like `PianoRoll`, multiple things have `RwLock`s
+on it.
+
+`ThinSequencer` is `SequenceRepository`'s partner. It doesn't maintain any
+persistent state of its own, but it knows what to do with `SequenceRepository`'s
+data during playback.
+
+`ThinSequencer` needs to know when the data in `SequenceRepository` changes. I
+tried a low-tech solution: `SequenceRepository` keeps a counter, and every time
+its data changes, it increments the counter. Others (i.e., `ThinSequencer`) keep
+their own copies of that counter, and when it no longer equals the main counter,
+they know something has changed. `PianoRoll` introduces the same requirement --
+it owns data whose changes `SequenceRepository` cares about -- but since I wrote
+that part of the code on a different day, I needed to invent yet another way of
+handling change detection: the Ensnare app notices that a GUI change operation
+happened when drawing `PianoRoll`, so it notifies `SequenceRepository` that it
+should touch its counter, and this causes `ThinSequencer` to do the right thing.
+TODO: if refactoring to simplify makes sense, do it.
+
+Next - implement `From<&Vec<(...)>)>> for SequenceRepository` and get
+persistence working.

@@ -28,6 +28,8 @@ pub mod piano_roll;
 pub mod rng;
 /// A set of things that the user can select.
 pub mod selection_set;
+/// The data backing all project sequences.
+pub mod sequence_repository;
 /// Handles digital-audio, wall-clock, and musical time.
 pub mod time;
 /// Describes major system interfaces.

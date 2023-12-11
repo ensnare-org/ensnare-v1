@@ -895,6 +895,11 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
     }
 
     fn create_track_with_uid(&mut self, track_uid: TrackUid) -> anyhow::Result<TrackUid> {
+        if self.track_uids.contains(&track_uid) {
+            return Err(anyhow!("Track Uid {track_uid} already exists"));
+        }
+        self.track_uid_factory
+            .notify_externally_minted_uid(track_uid);
         self.track_uids.push(track_uid);
 
         // We always want a track's lists of entities to exist.
@@ -948,6 +953,13 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
         if uid == Uid::default() {
             return Err(anyhow!("Entity has invalid Uid {}", uid));
         }
+        if self.entity_store.contains(&uid) {
+            return Err(anyhow!(
+                "Uid of new entity {entity:?} conflicts with existing entity {:?}",
+                self.entity_store.get(&uid)
+            ));
+        }
+        self.entity_uid_factory.notify_externally_minted_uid(uid);
         self.track_for_entity.insert(uid, *track_uid);
         if entity.as_controller().is_some() {
             self.controller_uids

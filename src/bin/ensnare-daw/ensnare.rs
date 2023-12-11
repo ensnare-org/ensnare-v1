@@ -20,6 +20,7 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{all_entities::EntityWrapper, app_version, prelude::*, project::ProjectTitle};
 use std::{ops::DerefMut, path::PathBuf, sync::Arc};
+use thiserror::Error;
 
 // TODO: clean these up. An app should need to use only the top ensnare crate,
 // and ideally it can get by with just importing prelude::*.
@@ -29,8 +30,9 @@ use ensnare_orchestration::{egui::entity_palette, ProjectAction};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 
 #[allow(dead_code)]
-#[derive(Debug, derive_more::Display)]
+#[derive(Debug, Error)]
 enum LoadError {
+    #[error("see https://crates.io/crates/thiserror to write better error messages")]
     Todo,
 }
 
@@ -125,6 +127,13 @@ impl Ensnare {
             is_settings_panel_open: Default::default(),
             modifiers: Modifiers::default(),
         };
+        // TODO TEMP to make initial project more interesting
+        r.project
+            .piano_roll
+            .write()
+            .unwrap()
+            .insert_16_random_patterns();
+
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r.spawn_channel_aggregator();
         r
@@ -707,7 +716,7 @@ impl Ensnare {
     }
 }
 impl App for Ensnare {
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
         self.handle_app_event_channel();
         self.handle_input_events(ctx);
         self.orchestrator_service

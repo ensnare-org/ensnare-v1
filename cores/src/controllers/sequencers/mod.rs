@@ -6,10 +6,12 @@ pub use pattern::{
     LivePatternSequencer, LivePatternSequencerParams, PatternSequencer, PatternSequencerBuilder,
     PatternSequencerParams,
 };
+pub use thin::{ThinSequencer, ThinSequencerParams};
 
 mod midi;
 mod note;
 mod pattern;
+mod thin;
 
 #[cfg(test)]
 pub mod tests {
@@ -171,32 +173,37 @@ pub mod tests {
         let empty_pattern_uid = piano_roll
             .write()
             .unwrap()
-            .insert(PatternBuilder::default().build().unwrap());
-        let ordinary_pattern_uid = piano_roll.write().unwrap().insert(
-            PatternBuilder::default()
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(0),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(1),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(2),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .note(Note::new_with_midi_note(
-                    MidiNote::C0,
-                    MusicalTime::new_with_beats(3),
-                    MusicalTime::DURATION_WHOLE,
-                ))
-                .build()
-                .unwrap(),
-        );
+            .insert(PatternBuilder::default().build().unwrap())
+            .unwrap();
+        let ordinary_pattern_uid = piano_roll
+            .write()
+            .unwrap()
+            .insert(
+                PatternBuilder::default()
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(0),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(1),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(2),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .note(Note::new_with_midi_note(
+                        MidiNote::C0,
+                        MusicalTime::new_with_beats(3),
+                        MusicalTime::DURATION_WHOLE,
+                    ))
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
 
         s.clear();
 

@@ -16,7 +16,7 @@ use crate::{
     entities::{
         controllers::{
             Arpeggiator, ControlTrip, LfoController, LivePatternSequencer,
-            SignalPassthroughController,
+            SignalPassthroughController, ThinSequencer,
         },
         effects::{
             filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Mixer,
@@ -32,6 +32,7 @@ use crate::{
     modulators::DcaParams,
     prelude::*,
 };
+use ensnare_cores::ThinSequencerParams;
 use ensnare_proc_macros::ParamBindings;
 use serde::{Deserialize, Serialize};
 
@@ -51,28 +52,29 @@ pub trait MakesParams {
 pub enum EntityParams {
     Arpeggiator(ArpeggiatorParams),
     BiQuadFilterLowPass24db(BiQuadFilterLowPass24dbParams),
+    Bitcrusher(BitcrusherParams),
+    Chorus(ChorusParams),
+    Compressor(CompressorParams),
     ControlTrip(ControlTripParams),
+    Drumkit(DrumkitParams),
     FmSynth(FmSynthParams),
+    Gain(GainParams),
+    LfoController(LfoControllerParams),
+    Limiter(LimiterParams),
     LivePatternSequencer(LivePatternSequencerParams),
+    Mixer(MixerParams),
+    Reverb(ReverbParams),
+    Sampler(SamplerParams),
+    SignalPassthroughController(SignalPassthroughControllerParams),
+    ThinSequencer(ThinSequencerParams),
+    Timer(TimerParams),
     ToyController(ToyControllerParams),
     ToyControllerAlwaysSendsMidiMessage(ToyControllerAlwaysSendsMidiMessageParams),
     ToyEffect(ToyEffectParams),
     ToyInstrument(ToyInstrumentParams),
     ToySynth(ToySynthParams),
-    LfoController(LfoControllerParams),
-    SignalPassthroughController(SignalPassthroughControllerParams),
-    Sampler(SamplerParams),
-    WelshSynth(WelshSynthParams),
     Trigger(TriggerParams),
-    Timer(TimerParams),
-    Bitcrusher(BitcrusherParams),
-    Drumkit(DrumkitParams),
-    Chorus(ChorusParams),
-    Compressor(CompressorParams),
-    Gain(GainParams),
-    Limiter(LimiterParams),
-    Mixer(MixerParams),
-    Reverb(ReverbParams),
+    WelshSynth(WelshSynthParams),
 }
 impl TryFrom<&Box<dyn EntityWrapper>> for Box<EntityParams> {
     type Error = anyhow::Error;

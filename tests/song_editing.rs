@@ -35,7 +35,7 @@ fn edit_song() {
         // manipulation, so we're modeling that flow. This requires a bit of scoping
         // to satisfy the borrow checker.
         let drum_pattern = PatternBuilder::default().build().unwrap();
-        let drum_pattern_uid = piano_roll.insert(drum_pattern);
+        let drum_pattern_uid = piano_roll.insert(drum_pattern).unwrap();
         let drum_pattern = {
             let drum_pattern = piano_roll.get_pattern_mut(&drum_pattern_uid).unwrap();
 

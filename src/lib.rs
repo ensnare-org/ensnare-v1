@@ -22,7 +22,11 @@ pub mod arrangement {
 
 pub mod composition {
     //! Creation of musical elements.
-    pub use ensnare_core::piano_roll::{Note, PatternBuilder, PatternUid, PianoRoll};
+
+    pub use ensnare_core::{
+        piano_roll::{Note, PatternBuilder, PatternUid, PianoRoll},
+        sequence_repository::{Sequence, SequenceRepository},
+    };
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -254,7 +258,10 @@ pub mod ui {
     pub use ensnare_cores_egui::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_cores_egui::widgets::{audio, pattern, placeholder, timeline};
+        pub use ensnare_cores_egui::{
+            piano_roll::piano_roll,
+            widgets::{audio, pattern, placeholder, timeline},
+        };
         pub use ensnare_orchestration::egui::entity_palette;
         pub use ensnare_services::{
             audio_settings, control_bar_widget, midi_settings, ControlBarAction,
@@ -278,7 +285,7 @@ pub mod utils {
     }
 }
 
-pub use project::Project;
+pub use project::DiskProject;
 pub use version::app_version;
 
 mod version;
