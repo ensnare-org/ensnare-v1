@@ -234,7 +234,6 @@ impl DawProject {
                 let mut inner = self.piano_roll.write().unwrap();
                 let response = ui.add(piano_roll(&mut inner));
                 if response.changed() {
-                    eprintln!("yasss");
                     self.sequence_repository.write().unwrap().notify_change();
                 }
                 response
@@ -247,12 +246,8 @@ impl DawProject {
         pattern_uid: PatternUid,
         position: MusicalTime,
     ) {
-        // if let Some(channel) = self.track_to_sequencer_sender.get(&track_uid) {
-        //     let _ = channel.send(SequencerInput::AddPattern(pattern_uid, position));
-        // }
         if let Ok(mut repo) = self.sequence_repository.write() {
             let _ = repo.add(Sequence::Pattern(pattern_uid), position, track_uid);
-            eprintln!("did it");
         }
     }
 
