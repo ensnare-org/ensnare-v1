@@ -35,13 +35,14 @@ use std::{
 };
 
 /// An in-memory representation of the project. Explicitly meant *not* to be
-/// #[derive(Serialize, Deserialize)]. Complemented by [Project], which *is*
+/// #[derive(Serialize, Deserialize)]. Complemented by [DiskProject], which *is*
 /// #[derive(Serialize, Deserialize)] and hopefully moves more slowly.
 ///
 /// [DawProject] is located within the `ensnare-daw` app module, whereas
-/// [Project] is in the top-level crate. This difference is meant to indicate
-/// that [Project] should be the serialization format for multiple applications
-/// (such as the `render` example), while [DawProject] is just for the DAW app.
+/// [DiskProject] is in the top-level crate. This difference is meant to
+/// indicate that [DiskProject] should be the serialization format for multiple
+/// applications (such as the `render` example), while [DawProject] is just for
+/// the DAW app.
 #[derive(Debug)]
 pub(super) struct DawProject {
     pub(super) title: ProjectTitle,
