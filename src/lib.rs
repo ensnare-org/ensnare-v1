@@ -24,8 +24,8 @@ pub mod composition {
     //! Creation of musical elements.
 
     pub use ensnare_core::{
-        piano_roll::{Note, PatternBuilder, PatternUid, PianoRoll},
-        sequence_repository::{Sequence, SequenceRepository},
+        piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
+        sequence_repository::{Sequence, SequenceRepository, SequenceUid},
     };
 
     /// The most commonly used imports.

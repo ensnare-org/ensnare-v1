@@ -96,6 +96,7 @@ impl SequenceRepository {
             .or_default()
             .push(uid.clone());
         self.notify_change();
+        self.uid_factory.notify_externally_minted_uid(uid.clone());
         Ok(uid)
     }
 
@@ -133,21 +134,60 @@ impl SequenceRepository {
         has_changed
     }
 }
-impl From<&Vec<(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)>> for SequenceRepository {
-    fn from(value: &Vec<(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)>) -> Self {
-        todo!()
+impl
+    From<
+        &Vec<(
+            TrackUid,
+            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
+        )>,
+    > for SequenceRepository
+{
+    fn from(
+        value: &Vec<(
+            TrackUid,
+            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
+        )>,
+    ) -> Self {
+        let mut r = Self::default();
+        value.iter().for_each(|(track_uid, arrangements)| {
+            arrangements
+                .iter()
+                .for_each(|(sequence_uid, _channel, time, pattern_uid)| {
+                    if let Ok(_) = r.add_with_uid(
+                        sequence_uid.clone(),
+                        Sequence::Pattern(*pattern_uid),
+                        *time,
+                        *track_uid,
+                    ) {
+                        // is it done at this point? Concern that ThinSequencer
+                        // doesn't know the sequence IDs, so how can it allow
+                        // the user to edit one?
+                    }
+                });
+        });
+        r
     }
 }
-impl From<&SequenceRepository> for Vec<(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)> {
+impl From<&SequenceRepository>
+    for Vec<(
+        TrackUid,
+        Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
+    )>
+{
     fn from(value: &SequenceRepository) -> Self {
         let mut v_tracks = Vec::default();
         value.track_to_sequence_uids.keys().for_each(|track_uid| {
             if let Some(sequences) = value.track_to_sequence_uids.get(track_uid) {
                 let mut v_sequences = Vec::default();
-                sequences.iter().for_each(|sequence_id| {
-                    if let Some((_, time, sequence)) = value.sequences.get(sequence_id) {
+                sequences.iter().for_each(|sequence_uid| {
+                    if let Some((_, time, sequence)) = value.sequences.get(sequence_uid) {
                         if let Sequence::Pattern(pattern_uid) = sequence.deref() {
-                            v_sequences.push((MidiChannel::default(), *time, *pattern_uid));
+                            v_sequences.push((
+                                sequence_uid.clone(),
+                                MidiChannel::default(),
+                                *time,
+                                *pattern_uid,
+                            ));
                         }
                     };
                 });

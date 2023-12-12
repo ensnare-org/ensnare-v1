@@ -2,8 +2,12 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::{all_entities::EntityParams, prelude::*, types::TrackTitle};
-use ensnare_core::piano_roll::Pattern;
+use crate::{
+    all_entities::EntityParams,
+    composition::{Pattern, SequenceUid},
+    prelude::*,
+    types::TrackTitle,
+};
 use serde::{Deserialize, Serialize};
 
 /// The most commonly used imports.
@@ -72,5 +76,8 @@ pub struct DiskProject {
     pub patterns: Vec<(PatternUid, Pattern)>,
 
     /// Patterns that have been arranged in tracks.
-    pub arrangements: Vec<(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)>,
+    pub arrangements: Vec<(
+        TrackUid,
+        Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
+    )>,
 }

@@ -5,7 +5,7 @@ use eframe::egui::Id;
 use ensnare::{
     all_entities::{EntityParams, EntityWrapper},
     arrangement::{DescribesProject, Orchestrates, Orchestrator},
-    composition::{Sequence, SequenceRepository},
+    composition::{Sequence, SequenceRepository, SequenceUid},
     control::ControlTripParams,
     cores::ThinSequencerParams,
     entities::controllers::{ControlTrip, LivePatternSequencer},
@@ -55,6 +55,9 @@ pub(super) struct DawProject {
 
     pub(super) view_range: ViewRange,
     pub(super) track_titles: HashMap<TrackUid, TrackTitle>,
+
+    // Which of the timeline-displaying Entities is currently frontmost for a
+    // track.
     pub(super) track_frontmost_uids: HashMap<TrackUid, Uid>,
 
     pub(super) is_piano_roll_visible: bool,
@@ -90,53 +93,6 @@ impl DescribesProject for DawProject {
             Some(*uid)
         } else {
             None
-        }
-    }
-}
-impl PartialEq for DawProject {
-    fn eq(&self, other: &Self) -> bool {
-        if self.title == other.title
-            && self.load_path == other.load_path
-            && *self.orchestrator.lock().unwrap() == *other.orchestrator.lock().unwrap()
-            && *self.piano_roll.read().unwrap() == *other.piano_roll.read().unwrap()
-            && *self.sequence_repository.read().unwrap()
-                == *other.sequence_repository.read().unwrap()
-            && self.view_range == other.view_range
-            && self.track_titles == other.track_titles
-            && self.track_frontmost_uids == other.track_frontmost_uids
-            && self.is_piano_roll_visible == other.is_piano_roll_visible
-            && self.detail_is_visible == other.detail_is_visible
-            && self.detail_title == other.detail_title
-            && self.detail_uid == other.detail_uid
-        {
-            true
-        } else {
-            // This makes it easier to debug which part of the test failed
-            //
-            // TODO remove when stable
-            assert_eq!(self.title, other.title);
-            assert_eq!(self.load_path, other.load_path);
-            assert_eq!(
-                *self.orchestrator.lock().unwrap(),
-                *other.orchestrator.lock().unwrap()
-            );
-            assert_eq!(
-                *self.piano_roll.read().unwrap(),
-                *other.piano_roll.read().unwrap()
-            );
-            assert_eq!(
-                *self.sequence_repository.read().unwrap(),
-                *other.sequence_repository.read().unwrap()
-            );
-            assert_eq!(self.view_range, other.view_range);
-            assert_eq!(self.track_titles, other.track_titles);
-            assert_eq!(self.track_frontmost_uids, other.track_frontmost_uids);
-            assert_eq!(self.is_piano_roll_visible, other.is_piano_roll_visible);
-            assert_eq!(self.detail_is_visible, other.detail_is_visible);
-            assert_eq!(self.detail_title, other.detail_title);
-            assert_eq!(self.detail_uid, other.detail_uid);
-
-            false
         }
     }
 }
@@ -179,17 +135,13 @@ impl DawProject {
             &self.sequence_repository,
             &self.piano_roll,
         );
-        // self.track_to_sequencer_sender
-        //     .insert(track_uid, sequencer.sender().clone());
+        // self.track_to_sequencer_sender .insert(track_uid,
+        //     sequencer.sender().clone());
         let _sequencer_uid = o.add_entity(&track_uid, Box::new(sequencer))?;
 
-        // TODO: if you want this back again, figure out how to do it with ControlTripParams
-        // ControlTripBuilder::default()
-        // .random(MusicalTime::START)
-        // .build()
-        // .unwrap()
-        // .try_into()
-        // .unwrap(),
+        // TODO: if you want this back again, figure out how to do it with
+        // ControlTripParams ControlTripBuilder::default()
+        // .random(MusicalTime::START) .build() .unwrap() .try_into() .unwrap(),
 
         let control_trip = ControlTrip::new_with(
             o.mint_entity_uid(),
@@ -267,12 +219,14 @@ impl DawProject {
                             .iter()
                             .position(|uid| Some(*uid) == frontmost_uid);
                         if let Some(position) = position {
-                            // Pick the one after the current one, wrapping back if needed.
+                            // Pick the one after the current one, wrapping back
+                            // if needed.
                             let position = (position + 1) % entity_uids.len();
                             self.track_frontmost_uids
                                 .insert(*track_uid, entity_uids[position]);
                         } else {
-                            // We couldn't find the current one. Go back to the first one.
+                            // We couldn't find the current one. Go back to the
+                            // first one.
                             self.track_frontmost_uids.insert(*track_uid, entity_uids[0]);
                         }
                     }
@@ -372,8 +326,8 @@ impl DawProject {
                     &project.arrangements,
                     &mut sequencer,
                 );
-                // self.track_to_sequencer_sender
-                //     .insert(*track_uid, sequencer.sender().clone());
+                // self.track_to_sequencer_sender .insert(*track_uid,
+                //     sequencer.sender().clone());
                 Box::new(sequencer)
             }
             EntityParams::ToyController(params) => Box::new(ToyController::new_with(uid, params)),
@@ -409,13 +363,10 @@ impl DawProject {
                     &self.sequence_repository,
                     &self.piano_roll,
                 );
-                // self.reconstitute_sequencer_arrangements(
-                //     track_uid,
-                //     &project.arrangements,
-                //     &mut sequencer,
-                // );
-                // self.track_to_sequencer_sender
-                //     .insert(*track_uid, sequencer.sender().clone());
+                // self.reconstitute_sequencer_arrangements( track_uid,
+                //     &project.arrangements, &mut sequencer, );
+                //     self.track_to_sequencer_sender .insert(*track_uid,
+                //     sequencer.sender().clone());
                 Box::new(sequencer)
             }
         };
@@ -425,20 +376,26 @@ impl DawProject {
     fn reconstitute_sequencer_arrangements(
         &self,
         track_uid: &TrackUid,
-        arrangements: &[(TrackUid, Vec<(MidiChannel, MusicalTime, PatternUid)>)],
+        arrangements: &[(
+            TrackUid,
+            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
+        )],
         sequencer: &mut LivePatternSequencer,
     ) {
         arrangements
             .iter()
             .filter(|(tuid, _)| *track_uid == *tuid)
             .for_each(|(_, track_arrangements)| {
-                track_arrangements
-                    .iter()
-                    .for_each(|(channel, time, pattern_uid)| {
+                track_arrangements.iter().for_each(
+                    |(_sequence_uid, channel, time, pattern_uid)| {
+                        // TODO: note that sequence_uid is dropped on the floor.
+                        // This means that LivePatternSequencer doesn't track
+                        // where it came from.
                         if let Err(e) = sequencer.record(*channel, pattern_uid, *time) {
                             eprintln!("While arranging: {e:?}");
                         }
-                    });
+                    },
+                );
             });
     }
 }
@@ -497,8 +454,7 @@ impl From<&DawProject> for DiskProject {
 
             // Copy the sequencer's arrangements into the list of arrangements.
             if let Ok(repo) = src.sequence_repository.read() {
-                let repo: &SequenceRepository = repo.deref();
-                dst.arrangements = repo.into();
+                dst.arrangements = repo.deref().into();
             }
         }
         dst
@@ -522,7 +478,8 @@ impl From<(&DiskProject, &EntityFactory<dyn EntityWrapper>)> for DawProject {
             // which gives the factory an opportunity to bump the counter past
             // that value.
 
-            // Next, cast to the Orchestrates trait so we can work more generically.
+            // Next, cast to the Orchestrates trait so we can work more
+            // generically.
             let dst_orchestrator: &mut dyn Orchestrates<dyn EntityWrapper> =
                 dst_orchestrator.deref_mut();
             dst.title = src.title.clone();
@@ -551,20 +508,8 @@ impl From<(&DiskProject, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 }
             });
         }
-        if let Ok(mut repository) = dst.sequence_repository.write() {
-            src.arrangements
-                .iter()
-                .for_each(|(track_uid, arrangements)| {
-                    arrangements
-                        .iter()
-                        .for_each(|(channel, time, pattern_uid)| {
-                            if let Ok(sequence_uid) =
-                                repository.add(Sequence::Pattern(*pattern_uid), *time, *track_uid)
-                            {
-                                // is it done at this point? Concern that ThinSequencer doesn't know the sequence IDs, so how can it allow the user to edit one?
-                            }
-                        });
-                });
+        if let Ok(mut repo) = dst.sequence_repository.write() {
+            *repo.deref_mut() = (&src.arrangements).into();
         }
 
         dst
@@ -578,10 +523,8 @@ mod tests {
     use ensnare_core::{controllers::TriggerParams, rng::Rng};
     use std::sync::Arc;
 
-    #[derive(Debug, PartialEq)]
-    struct OrchestratorWrapper(pub Orchestrator<dyn EntityWrapper>);
-    impl OrchestratorWrapper {
-        fn test_random() -> Self {
+    impl DawProject {
+        fn debug_random_orchestrator() -> Orchestrator<dyn EntityWrapper> {
             let mut rng = Rng::default();
             let mut o = Orchestrator::<dyn EntityWrapper>::new();
             o.update_sample_rate(SampleRate(rng.rand_range(11000..30000) as usize));
@@ -605,62 +548,126 @@ mod tests {
                 }
             }
 
-            Self(o)
-        }
-    }
-
-    impl DawProject {
-        fn debug_eq(&self, other: &Self) -> bool {
-            debug_assert_eq!(self.title, other.title);
-            debug_assert_eq!(
-                *self.orchestrator.lock().unwrap(),
-                *other.orchestrator.lock().unwrap()
-            );
-            return true;
+            o
         }
 
-        fn test_random() -> Self {
+        fn debug_random_track_titles(track_uids: &[TrackUid]) -> HashMap<TrackUid, TrackTitle> {
             let mut rng = Rng::default();
 
+            track_uids.iter().fold(
+                HashMap::default(),
+                |mut h: HashMap<TrackUid, TrackTitle>, uid| {
+                    h.insert(*uid, TrackTitle(format!("track name {:?}", rng.rand_u64())));
+                    h
+                },
+            )
+        }
+
+        fn debug_random_piano_roll() -> PianoRoll {
+            let mut piano_roll = PianoRoll::default();
+            piano_roll.insert_16_random_patterns();
+            piano_roll
+        }
+
+        fn debug_random_sequence_repository(track_uids: &[TrackUid]) -> SequenceRepository {
+            let mut sequence_repository = SequenceRepository::default();
+            track_uids.iter().for_each(|track_uid| {
+                let _ = sequence_repository.add(
+                    Sequence::Pattern(PatternUid(track_uid.0 * 1000 + 1)),
+                    MusicalTime::START,
+                    *track_uid,
+                );
+
+                // We don't support this right now -- only Sequence::Pattern let
+                // _ = sequence_repository.add( Sequence::Note(vec![Note { key:
+                //     45, range: TimeRange::new_with_start_and_duration(
+                //         MusicalTime::DURATION_EIGHTH,
+                //         MusicalTime::DURATION_SIXTEENTH, ), }]),
+                //             MusicalTime::DURATION_EIGHTH, *track_uid, );
+            });
+            sequence_repository
+        }
+
+        fn debug_random() -> Self {
+            let mut rng = Rng::default();
+
+            let orchestrator = Self::debug_random_orchestrator();
             Self {
                 title: ProjectTitle::from(format!("Title {}", rng.rand_u64()).as_str()),
                 load_path: Some(PathBuf::from(
                     format!("/dev/proc/ouch/{}", rng.rand_u64()).to_string(),
                 )),
-                orchestrator: Arc::new(Mutex::new(OrchestratorWrapper::test_random().0)),
+                piano_roll: Arc::new(RwLock::new(Self::debug_random_piano_roll())),
+                sequence_repository: Arc::new(RwLock::new(Self::debug_random_sequence_repository(
+                    &orchestrator.track_uids,
+                ))),
                 view_range: ViewRange(
                     MusicalTime::new_with_units(rng.rand_range(0..10000) as usize)
                         ..MusicalTime::new_with_units(rng.rand_range(20000..30000) as usize),
                 ),
+                track_titles: Self::debug_random_track_titles(&orchestrator.track_uids),
+                orchestrator: Arc::new(Mutex::new(orchestrator)),
                 ..Default::default()
             }
+        }
+
+        /// This is modeled after PartialEq except...
+        ///
+        /// (1) it asserts rather than comparing; (2) it leaves out some fields
+        /// that are inconsequential for testing serializing.
+        fn debug_compare(&self, other: &Self) {
+            assert_eq!(self.title, other.title);
+            // skip load_path because we don't care if two otherwise identical
+            // projects were loaded from different places.
+
+            assert_eq!(
+                *self.orchestrator.lock().unwrap(),
+                *other.orchestrator.lock().unwrap()
+            );
+            assert_eq!(
+                *self.piano_roll.read().unwrap(),
+                *other.piano_roll.read().unwrap()
+            );
+            assert_eq!(
+                *self.sequence_repository.read().unwrap(),
+                *other.sequence_repository.read().unwrap()
+            );
+            assert_eq!(self.track_titles, other.track_titles);
+
+            // The following fields are for ephemeral UI and are OK to not
+            // match:
+            //
+            // - view_range
+            // - track_frontmost_uids
+            // - is_piano_roll_visible
+            // - all detail_ fields
         }
     }
 
     #[test]
-    fn identity_starting_with_in_memory() {
+    fn identity_memory_default_to_disk_to_memory() {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DawProject::new_project();
         let dst: DiskProject = <&DawProject>::into(&src);
         let src_copy: DawProject =
             <(&DiskProject, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
-        assert!(src.debug_eq(&src_copy));
+        src.debug_compare(&src_copy);
     }
 
     #[test]
-    fn identity_starting_with_in_memory_nondefault() {
+    fn identity_random_memory_to_disk_to_memory() {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
-        let src = DawProject::test_random();
+        let src = DawProject::debug_random();
         let dst: DiskProject = <&DawProject>::into(&src);
         let src_copy: DawProject =
             <(&DiskProject, &EntityFactory<dyn EntityWrapper>)>::into((&dst, &factory));
-        assert!(src.debug_eq(&src_copy));
+        src.debug_compare(&src_copy);
     }
 
     #[test]
-    fn identity_starting_with_serialized() {
+    fn identity_disk_to_memory_to_disk() {
         let factory =
             EnsnareEntities::register(EntityFactory::<dyn EntityWrapper>::default()).finalize();
         let src = DiskProject::default();
