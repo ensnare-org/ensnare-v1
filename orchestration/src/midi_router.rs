@@ -80,12 +80,24 @@ impl MidiRouter {
         }
     }
 }
-impl From<&MidiRouter> for Vec<(MidiChannel, Vec<Uid>)> {
+
+/// A serializable representation of a MIDI connection.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct MidiConnectionInfo {
+    pub channel: MidiChannel,
+    pub receiver_uids: Vec<Uid>,
+}
+
+impl From<&MidiRouter> for Vec<MidiConnectionInfo> {
     fn from(value: &MidiRouter) -> Self {
         (MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE).fold(Vec::default(), |mut v, channel| {
             let channel = MidiChannel(channel);
             if let Some(connections) = value.midi_channel_to_receiver_uid.get(&channel) {
-                v.push((channel, connections.clone()));
+                v.push(MidiConnectionInfo {
+                    channel,
+                    receiver_uids: connections.clone(),
+                });
             }
             v
         })

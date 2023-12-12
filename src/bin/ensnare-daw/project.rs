@@ -5,15 +5,16 @@ use eframe::egui::Id;
 use ensnare::{
     all_entities::{EntityParams, EntityWrapper},
     arrangement::{DescribesProject, Orchestrates, Orchestrator},
-    composition::{Sequence, SequenceRepository, SequenceUid},
+    composition::{Sequence, SequenceRepository},
     control::ControlTripParams,
     cores::ThinSequencerParams,
     entities::controllers::{ControlTrip, LivePatternSequencer},
     prelude::*,
-    project::{ProjectTitle, TrackInfo},
+    project::{EntityInfo, PatternInfo, ProjectTitle, TrackEntities, TrackInfo},
     ui::widgets::piano_roll,
     DiskProject,
 };
+use ensnare_core::sequence_repository::ArrangementInfo;
 use ensnare_entities::{
     controllers::{Arpeggiator, LfoController, SignalPassthroughController, ThinSequencer},
     effects::{
@@ -289,13 +290,12 @@ impl DawProject {
 
     fn reconstitute_track_entities(
         &mut self,
-        track_uid: &TrackUid,
-        entities: &[(Uid, Box<EntityParams>)],
+        track_entities: &TrackEntities,
         project: &DiskProject,
     ) -> anyhow::Result<()> {
-        entities.iter().for_each(|(uid, params)| {
-            if let Err(e) = self.reconstitute_entity(params.as_ref(), *uid, &track_uid, project) {
-                eprintln!("Error while reconstituting Uid {}: {}", *uid, e);
+        track_entities.entities.iter().for_each(|entity| {
+            if let Err(e) = self.reconstitute_entity(&entity, &track_entities.track_uid, project) {
+                eprintln!("Error while reconstituting Uid {}: {}", entity.uid, e);
             }
         });
         Ok(())
@@ -303,13 +303,13 @@ impl DawProject {
 
     fn reconstitute_entity(
         &self,
-        params: &EntityParams,
-        uid: Uid,
+        entity_info: &EntityInfo,
         track_uid: &TrackUid,
         project: &DiskProject,
     ) -> anyhow::Result<Uid> {
         let mut orchestrator = self.orchestrator.lock().unwrap();
-        let entity: Box<dyn EntityWrapper> = match params {
+        let uid = entity_info.uid;
+        let entity: Box<dyn EntityWrapper> = match entity_info.params.as_ref() {
             EntityParams::Arpeggiator(params) => Box::new(Arpeggiator::new_with(uid, params)),
             EntityParams::BiQuadFilterLowPass24db(params) => {
                 Box::new(BiQuadFilterLowPass24db::new_with(uid, params))
@@ -377,26 +377,28 @@ impl DawProject {
     fn reconstitute_sequencer_arrangements(
         &self,
         track_uid: &TrackUid,
-        arrangements: &[(
-            TrackUid,
-            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
-        )],
+        arrangements: &[ArrangementInfo],
         sequencer: &mut LivePatternSequencer,
     ) {
         arrangements
             .iter()
-            .filter(|(tuid, _)| *track_uid == *tuid)
-            .for_each(|(_, track_arrangements)| {
-                track_arrangements.iter().for_each(
-                    |(_sequence_uid, channel, time, pattern_uid)| {
+            .filter(|arrangement| *track_uid == arrangement.track_uid)
+            .for_each(|arrangement| {
+                arrangement
+                    .arranged_sequences
+                    .iter()
+                    .for_each(|arranged_sequence| {
                         // TODO: note that sequence_uid is dropped on the floor.
                         // This means that LivePatternSequencer doesn't track
                         // where it came from.
-                        if let Err(e) = sequencer.record(*channel, pattern_uid, *time) {
+                        if let Err(e) = sequencer.record(
+                            arranged_sequence.channel,
+                            &arranged_sequence.pattern_uid,
+                            arranged_sequence.position,
+                        ) {
                             eprintln!("While arranging: {e:?}");
                         }
-                    },
-                );
+                    });
             });
     }
 }
@@ -420,10 +422,13 @@ impl From<&DawProject> for DiskProject {
                     entities.iter().for_each(|uid| {
                         if let Some(entity) = src_orchestrator.get_entity(uid) {
                             let params: Box<EntityParams> = entity.try_into().unwrap();
-                            dst_entities.push((*uid, params));
+                            dst_entities.push(EntityInfo { uid: *uid, params });
                         }
                     });
-                    dst.entities.push((*track_uid, dst_entities));
+                    dst.entities.push(TrackEntities {
+                        track_uid: *track_uid,
+                        entities: dst_entities,
+                    });
                 }
             });
 
@@ -446,7 +451,10 @@ impl From<&DawProject> for DiskProject {
                     Vec::default(),
                     |mut v, pattern_uid| {
                         if let Some(pattern) = piano_roll.get_pattern(pattern_uid) {
-                            v.push((*pattern_uid, pattern.clone()));
+                            v.push(PatternInfo {
+                                pattern_uid: *pattern_uid,
+                                pattern: pattern.clone(),
+                            });
                         }
                         v
                     },
@@ -491,20 +499,25 @@ impl From<(&DiskProject, &EntityFactory<dyn EntityWrapper>)> for DawProject {
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
-            src.midi_connections.iter().for_each(|(channel, uids)| {
-                uids.iter().for_each(|&uid| {
-                    let _ = dst_orchestrator.connect_midi_receiver(uid, *channel);
+            src.midi_connections.iter().for_each(|connection| {
+                connection.receiver_uids.iter().for_each(|&uid| {
+                    let _ = dst_orchestrator.connect_midi_receiver(uid, connection.channel);
                 });
             });
         }
-        src.entities.iter().for_each(|(track_uid, track_entities)| {
-            if let Err(e) = dst.reconstitute_track_entities(track_uid, track_entities, src) {
-                eprintln!("Error while reconstituting entities for track {track_uid}: {e}");
+        src.entities.iter().for_each(|track_entities| {
+            if let Err(e) = dst.reconstitute_track_entities(track_entities, src) {
+                eprintln!(
+                    "Error while reconstituting entities for track {}: {e}",
+                    track_entities.track_uid
+                );
             }
         });
         if let Ok(mut piano_roll) = dst.piano_roll.write() {
-            src.patterns.iter().for_each(|(pattern_uid, pattern)| {
-                if let Err(e) = piano_roll.insert_with_uid(pattern.clone(), *pattern_uid) {
+            src.patterns.iter().for_each(|pattern_info| {
+                if let Err(e) = piano_roll
+                    .insert_with_uid(pattern_info.pattern.clone(), pattern_info.pattern_uid)
+                {
                     eprintln!("Error while inserting pattern: {e}");
                 }
             });

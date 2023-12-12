@@ -134,64 +134,67 @@ impl SequenceRepository {
         has_changed
     }
 }
-impl
-    From<
-        &Vec<(
-            TrackUid,
-            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
-        )>,
-    > for SequenceRepository
-{
-    fn from(
-        value: &Vec<(
-            TrackUid,
-            Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
-        )>,
-    ) -> Self {
+
+/// A serializable representation of a track's arrangements.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct ArrangementInfo {
+    pub track_uid: TrackUid,
+    pub arranged_sequences: Vec<ArrangedSequenceInfo>,
+}
+
+/// A serializable representation of an arrangement.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct ArrangedSequenceInfo {
+    pub sequence_uid: SequenceUid,
+    pub channel: MidiChannel,
+    pub position: MusicalTime,
+    pub pattern_uid: PatternUid,
+}
+
+impl From<&Vec<ArrangementInfo>> for SequenceRepository {
+    fn from(value: &Vec<ArrangementInfo>) -> Self {
         let mut r = Self::default();
-        value.iter().for_each(|(track_uid, arrangements)| {
-            arrangements
-                .iter()
-                .for_each(|(sequence_uid, _channel, time, pattern_uid)| {
-                    if let Ok(_) = r.add_with_uid(
-                        sequence_uid.clone(),
-                        Sequence::Pattern(*pattern_uid),
-                        *time,
-                        *track_uid,
-                    ) {
-                        // is it done at this point? Concern that ThinSequencer
-                        // doesn't know the sequence IDs, so how can it allow
-                        // the user to edit one?
-                    }
-                });
+        value.iter().for_each(|arrangement| {
+            arrangement.arranged_sequences.iter().for_each(|sequence| {
+                if let Ok(_) = r.add_with_uid(
+                    sequence.sequence_uid.clone(),
+                    Sequence::Pattern(sequence.pattern_uid),
+                    sequence.position,
+                    arrangement.track_uid,
+                ) {
+                    // is it done at this point? Concern that ThinSequencer
+                    // doesn't know the sequence IDs, so how can it allow
+                    // the user to edit one?
+                }
+            });
         });
         r
     }
 }
-impl From<&SequenceRepository>
-    for Vec<(
-        TrackUid,
-        Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
-    )>
-{
+impl From<&SequenceRepository> for Vec<ArrangementInfo> {
     fn from(value: &SequenceRepository) -> Self {
         let mut v_tracks = Vec::default();
         value.track_to_sequence_uids.keys().for_each(|track_uid| {
             if let Some(sequences) = value.track_to_sequence_uids.get(track_uid) {
                 let mut v_sequences = Vec::default();
                 sequences.iter().for_each(|sequence_uid| {
-                    if let Some((_, time, sequence)) = value.sequences.get(sequence_uid) {
+                    if let Some((_, position, sequence)) = value.sequences.get(sequence_uid) {
                         if let Sequence::Pattern(pattern_uid) = sequence.deref() {
-                            v_sequences.push((
-                                sequence_uid.clone(),
-                                MidiChannel::default(),
-                                *time,
-                                *pattern_uid,
-                            ));
+                            v_sequences.push(ArrangedSequenceInfo {
+                                sequence_uid: sequence_uid.clone(),
+                                channel: MidiChannel::default(),
+                                position: *position,
+                                pattern_uid: *pattern_uid,
+                            });
                         }
                     };
                 });
-                v_tracks.push((*track_uid, v_sequences));
+                v_tracks.push(ArrangementInfo {
+                    track_uid: *track_uid,
+                    arranged_sequences: v_sequences,
+                });
             }
         });
         v_tracks

@@ -2,12 +2,9 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::{
-    all_entities::EntityParams,
-    composition::{Pattern, SequenceUid},
-    prelude::*,
-    types::TrackTitle,
-};
+use crate::{all_entities::EntityParams, composition::Pattern, prelude::*, types::TrackTitle};
+use ensnare_core::sequence_repository::ArrangementInfo;
+use ensnare_orchestration::midi_router::MidiConnectionInfo;
 use serde::{Deserialize, Serialize};
 
 /// The most commonly used imports.
@@ -42,6 +39,30 @@ pub struct TrackInfo {
     pub title: TrackTitle,
 }
 
+/// A serializable representation of an entity's metadata.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct EntityInfo {
+    pub uid: Uid,
+    pub params: Box<EntityParams>,
+}
+
+/// A serializable representation of an collection of a track's entities.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct TrackEntities {
+    pub track_uid: TrackUid,
+    pub entities: Vec<EntityInfo>,
+}
+
+/// A serializable representation of a pattern.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(missing_docs)]
+pub struct PatternInfo {
+    pub pattern_uid: PatternUid,
+    pub pattern: Pattern,
+}
+
 /// A serializable representation of a project. Most applications that use
 /// [DiskProject] will need to create `From` implementations to/from their own
 /// custom representation of the data contained within it.
@@ -52,6 +73,9 @@ pub struct TrackInfo {
 /// things that are read and written sequentially. We certainly could have made
 /// it a HashMap, but we'd lose the implicit ordering of Vecs, and we might
 /// someday write code that expects the struct to be smarter than it should be.
+///
+/// We use the ...Info structs rather than tuples so that the serialized JSON
+/// will have named fields, which increases readability.
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct DiskProject {
     /// The user-visible title of this project. Used only for display.
@@ -67,17 +91,14 @@ pub struct DiskProject {
     pub tracks: Vec<TrackInfo>,
 
     /// The entities in each track.
-    pub entities: Vec<(TrackUid, Vec<(Uid, Box<EntityParams>)>)>,
+    pub entities: Vec<TrackEntities>,
 
     /// The MIDI connections for this project.
-    pub midi_connections: Vec<(MidiChannel, Vec<Uid>)>,
+    pub midi_connections: Vec<MidiConnectionInfo>,
 
     /// Sequences of notes that can be reused elsewhere in the project.
-    pub patterns: Vec<(PatternUid, Pattern)>,
+    pub patterns: Vec<PatternInfo>,
 
     /// Patterns that have been arranged in tracks.
-    pub arrangements: Vec<(
-        TrackUid,
-        Vec<(SequenceUid, MidiChannel, MusicalTime, PatternUid)>,
-    )>,
+    pub arrangements: Vec<ArrangementInfo>,
 }
