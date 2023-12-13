@@ -14,7 +14,7 @@ fn set_up_drum_track(
     factory: &EntityFactory<dyn EntityBounds>,
 ) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
-    let track_uid = o.create_track().unwrap();
+    let track_uid = o.create_track(None).unwrap();
     o.set_track_output(track_uid, Normal::from(0.5));
 
     // Rest
@@ -87,7 +87,7 @@ fn set_up_lead_track(
     factory: &EntityFactory<dyn EntityBounds>,
 ) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
-    let track_uid = o.create_track().unwrap();
+    let track_uid = o.create_track(None).unwrap();
     o.set_track_output(track_uid, Normal::from(0.5));
 
     // Rest

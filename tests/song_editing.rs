@@ -24,8 +24,8 @@ fn edit_song() {
         let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
 
         // Create two MIDI tracks.
-        let rhythm_track_uid = orchestrator.create_track().unwrap();
-        let lead_track_uid = orchestrator.create_track().unwrap();
+        let rhythm_track_uid = orchestrator.create_track(None).unwrap();
+        let lead_track_uid = orchestrator.create_track(None).unwrap();
 
         // Prepare the rhythm track first. Create a rhythm pattern, add it to the
         // PianoRoll, and then manipulate it. If we were really doing this in Rust

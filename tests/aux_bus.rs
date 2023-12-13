@@ -21,9 +21,9 @@ fn aux_bus() {
 
     {
         let orchestrator: &mut dyn Orchestrates<dyn EntityBounds> = &mut orchestrator;
-        let track_uid_1 = orchestrator.create_track().unwrap();
-        let track_uid_2 = orchestrator.create_track().unwrap();
-        let aux_track_uid = orchestrator.create_track().unwrap();
+        let track_uid_1 = orchestrator.create_track(None).unwrap();
+        let track_uid_2 = orchestrator.create_track(None).unwrap();
+        let aux_track_uid = orchestrator.create_track(None).unwrap();
 
         let synth_pattern_1 = PatternBuilder::default()
             .note_sequence(

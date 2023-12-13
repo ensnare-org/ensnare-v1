@@ -18,12 +18,11 @@ pub trait Orchestrates<E: Entity + ?Sized>:
     /// every frame of audio. Each track's frame sample is then merged into a
     /// single sample for the audio frame.
     ///
+    /// If `track_uid` is supplied, it must be unique. If it is not supplied,
+    /// then a unique one will be generated.
+    ///
     /// The [TrackUid] should be appended to the internal list of [TrackUid]s.
-    fn create_track(&mut self) -> anyhow::Result<TrackUid>;
-
-    /// Similar to `create_track()`, but uses the given [TrackUid] rather than
-    /// generating a new one. Fails if the given [TrackUid] already exists.
-    fn create_track_with_uid(&mut self, track_uid: TrackUid) -> anyhow::Result<TrackUid>;
+    fn create_track(&mut self, track_uid: Option<TrackUid>) -> anyhow::Result<TrackUid>;
 
     /// Returns an ordered list of [TrackUid]s. The ordering of tracks
     /// determines how tracks are presented in a visual rendering of the
@@ -175,7 +174,7 @@ pub(crate) mod tests {
             orchestrates.track_uids().is_empty(),
             "Initial impl should have no tracks"
         );
-        let track_1_uid = orchestrates.create_track().unwrap();
+        let track_1_uid = orchestrates.create_track(None).unwrap();
         assert_gt!(track_1_uid.0, 0, "new track's uid should be nonzero");
         assert_eq!(
             orchestrates.track_uids().len(),
@@ -183,7 +182,7 @@ pub(crate) mod tests {
             "should be one track after creating one"
         );
 
-        let track_2_uid = orchestrates.create_track().unwrap();
+        let track_2_uid = orchestrates.create_track(None).unwrap();
         assert_eq!(
             orchestrates.track_uids().len(),
             2,

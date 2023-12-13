@@ -50,7 +50,7 @@ fn demo_automation() {
         };
 
         // Arrange the lead pattern in the sequencer.
-        let track_uid = orchestrator.create_track().unwrap();
+        let track_uid = orchestrator.create_track(None).unwrap();
         let mut sequencer = PatternSequencer::default();
         let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
         assert!(sequencer
@@ -158,7 +158,7 @@ fn demo_control_trips() {
         // Arrange the lead pattern in a sequencer.
 
         // Add the sequencer to a new track.
-        let track_uid = orchestrator.create_track().unwrap();
+        let track_uid = orchestrator.create_track(None).unwrap();
         let mut sequencer = PatternSequencer::default();
         assert!(sequencer
             .record(

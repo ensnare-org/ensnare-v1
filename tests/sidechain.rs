@@ -29,7 +29,7 @@ fn demo_sidechaining() {
             )
             .build()
             .unwrap();
-        let sidechain_track_uid = orchestrator.create_track().unwrap();
+        let sidechain_track_uid = orchestrator.create_track(None).unwrap();
         let mut sequencer = PatternSequencer::default();
         assert!(sequencer
             .record(
@@ -83,7 +83,7 @@ fn demo_sidechaining() {
             })
             .build()
             .unwrap();
-        let lead_track_uid = orchestrator.create_track().unwrap();
+        let lead_track_uid = orchestrator.create_track(None).unwrap();
         let mut sequencer = PatternSequencer::default();
         assert!(sequencer
             .record(MidiChannel(1), &lead_pattern, MusicalTime::START)

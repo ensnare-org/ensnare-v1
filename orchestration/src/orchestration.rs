@@ -890,11 +890,9 @@ impl<E: EntityBounds + ?Sized> PartialEq for Orchestrator<E> {
     }
 }
 impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
-    fn create_track(&mut self) -> anyhow::Result<TrackUid> {
-        self.create_track_with_uid(self.mint_track_uid())
-    }
+    fn create_track(&mut self, track_uid: Option<TrackUid>) -> anyhow::Result<TrackUid> {
+        let track_uid = track_uid.unwrap_or(self.mint_track_uid());
 
-    fn create_track_with_uid(&mut self, track_uid: TrackUid) -> anyhow::Result<TrackUid> {
         if self.track_uids.contains(&track_uid) {
             return Err(anyhow!("Track Uid {track_uid} already exists"));
         }
@@ -1811,7 +1809,7 @@ mod tests {
     #[test]
     fn orchestrator_handles_transport_control() {
         let mut orchestrator = Orchestrator::<dyn TestEntity>::new();
-        let track_uid = orchestrator.create_track().unwrap();
+        let track_uid = orchestrator.create_track(None).unwrap();
         let uid = orchestrator
             .assign_uid_and_add_entity(&track_uid, Box::new(TestControllerSendsOneEvent::default()))
             .unwrap();

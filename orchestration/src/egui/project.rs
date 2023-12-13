@@ -164,7 +164,7 @@ impl<'a, E: EntityBounds> eframe::egui::Widget for OrchestratorWidget<'a, E> {
         ));
         let add_track_button_response = ui.button("Add Track");
         if add_track_button_response.clicked() {
-            let _ = self.orchestrator.create_track();
+            let _ = self.orchestrator.create_track(None);
         }
         add_track_button_response
     }

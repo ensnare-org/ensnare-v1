@@ -125,7 +125,7 @@ impl DawProject {
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
         let mut o = self.orchestrator.lock().unwrap();
-        let track_uid = o.create_track()?;
+        let track_uid = o.create_track(None)?;
 
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
@@ -159,7 +159,7 @@ impl DawProject {
     /// Returns the new track's [TrackUid] if successful.
     pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
         let mut o = self.orchestrator.lock().unwrap();
-        let track_uid = o.create_track()?;
+        let track_uid = o.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Audio {}", track_uid)));
         Ok(track_uid)
@@ -170,7 +170,7 @@ impl DawProject {
     /// if successful.
     pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
         let mut o = self.orchestrator.lock().unwrap();
-        let track_uid = o.create_track()?;
+        let track_uid = o.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Aux {}", track_uid)));
         Ok(track_uid)
@@ -495,7 +495,7 @@ impl From<(&DiskProject, &EntityFactory<dyn EntityWrapper>)> for DawProject {
             dst_orchestrator.update_tempo(src.tempo);
             dst_orchestrator.update_time_signature(src.time_signature);
             src.tracks.iter().for_each(|track_info| {
-                let _ = dst_orchestrator.create_track_with_uid(track_info.uid);
+                let _ = dst_orchestrator.create_track(Some(track_info.uid));
                 dst.track_titles
                     .insert(track_info.uid, track_info.title.clone());
             });
@@ -551,7 +551,7 @@ mod tests {
             }
 
             for _ in 0..4 {
-                if let Ok(track_uid) = o.create_track() {
+                if let Ok(track_uid) = o.create_track(None) {
                     let _ = o.add_entity(
                         &track_uid,
                         Box::new(Trigger::new_with(
