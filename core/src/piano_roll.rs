@@ -153,7 +153,7 @@ impl PatternBuilder {
         }
     }
 
-    fn random(&mut self) -> &mut Self {
+    pub fn random(&mut self) -> &mut Self {
         let mut rng = Rng::default();
 
         for _ in 0..rng.rand_range(8..16) {

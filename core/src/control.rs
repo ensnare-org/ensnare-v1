@@ -11,7 +11,9 @@ pub struct ControlName(pub String);
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Display, serde::Serialize, serde::Deserialize,
+)]
 pub struct ControlIndex(pub usize);
 impl Add<usize> for ControlIndex {
     type Output = Self;
@@ -132,6 +134,17 @@ impl From<Tempo> for ControlValue {
 impl From<ControlValue> for Tempo {
     fn from(value: ControlValue) -> Self {
         Self(value.0 * Tempo::MAX_VALUE)
+    }
+}
+impl From<StereoSample> for ControlValue {
+    fn from(value: StereoSample) -> Self {
+        let sample: Sample = value.into();
+        sample.into()
+    }
+}
+impl From<Sample> for ControlValue {
+    fn from(value: Sample) -> Self {
+        Self(value.0)
     }
 }
 

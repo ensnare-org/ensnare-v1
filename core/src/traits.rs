@@ -102,7 +102,7 @@ pub trait Configurable {
     fn sample_rate(&self) -> SampleRate {
         // I was too lazy to add this everywhere when I added this to the trait,
         // but I didn't want unexpected usage to go undetected.
-        panic!("Someone asked for a SampleRate but we provided default");
+        unimplemented!("Someone asked for a SampleRate but we provided default");
     }
 
     /// The sample rate changed.

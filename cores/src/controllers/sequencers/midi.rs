@@ -65,6 +65,7 @@ impl Controls for MidiSequencer {
 
     //    #[deprecated = "FIX THE CHANNEL!"]
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+        // OMG this is O(n^2)
         self.events.iter().for_each(|(channel, event)| {
             if self.time_range.0.contains(&event.time) {
                 control_events_fn(WorkEvent::Midi(*channel, event.message))

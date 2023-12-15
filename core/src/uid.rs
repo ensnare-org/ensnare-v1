@@ -1,13 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
     hash::Hash,
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
-
-use serde::{Deserialize, Serialize};
 
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + From<usize> {

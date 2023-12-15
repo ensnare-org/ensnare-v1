@@ -489,3 +489,74 @@ TODO: if refactoring to simplify makes sense, do it.
 
 Next - implement `From<&Vec<(...)>)>> for SequenceRepository` and get
 persistence working.
+
+# 2023-12-12: Content vs. performance
+
+Insight: the arrangements keep wanting to come back to the project file
+because... they're the project!
+
+The project file contains the musical content -- the MIDI notes (or a suitably
+abstract representation of them like patterns and pattern uids), the tempo, the
+time signature, the automation lanes, etc. It also contains the entity
+parameters. **The entities don't contain the music. They perform the music**.
+
+A sequencer is something that uses the music data (it translates them from
+project data to MIDI data). Same as instruments and effects (instruments respond
+to MIDI events, and effects respond to instrument output).
+
+A sequencer doesn't need to be a user-choosable component. It's an inherent part
+of the DAW.
+
+A `Project` could contain composition, orchestration, and automation sections.
+The composition is the music. The orchestration is a specification of how to
+assign the music to real instruments. Automation is how the knobs and dials turn
+during the performance. As a trial balloon, I'll say that `Project` implements
+three traits that allow manipulation of the three areas, and `Composer`,
+`Orchestrator`, and `Automator` do the work, but generally the data lives inside
+`Project`. There might also be a fourth section called `Visualizer` that handles
+the GUI stuff, but I think I'm getting ahead of myself. (Where does Entity Store
+belong? Is it properly part of Orchestrator?)
+
+Many of these have Uids. It's cumbersome to mention them here, so I don't.
+
+## Composition elements
+
+Composition owns the musical content -- the song as an abstract thing that could
+be played with any instruments.
+
+- **Globals**: Time signature, tempo.
+- **Track**: A grouping mechanism.
+- **MIDI sequence**: A vector of timed notes.
+- **Arrangement**: A vector of timed MIDI sequences that are associated with a
+  track. *Might also have a MIDI channel.*
+
+## Orchestration elements
+
+Orchestration decides which instruments/effects are in charge of playing the
+composition.
+
+- **Entity**: a set of parameters that reconstitute a configured instrument or
+  effect.
+- **Entities**: a vector of (`Entity`, track).
+
+## Automation elements
+
+Automation changes knobs and dials as the song progresses.
+
+- **Lane**, **Controller**, etc.: Something that occasionally emits Control
+  events.
+- **ControlTrip**: A kind of Controller; a vector of timed magnitudes with path
+  specifications. For example: at time 0.0, mode is (snap, 0.0). At time 1.0,
+  value is (linear, 0.5). At time 2.0, value is (logarithmic, 0.75).
+- **Controllables**: things that accept Controller output.
+- **Control Links**: A vector (uid, index) indicating that Entity #Uid's
+  Parameter #Index should follow the specified Controller.
+
+# 2023-12-12: controller/instrument/effect
+
+The division of entity into controller/instrument/effect might be illusory.
+Everyone *might* want to do work on the MusicalTime scale. Everyone *might*
+respond to MIDI events. Everyone *might* process another component's audio
+output. Everyone *might* produce audio. I've known this for a while; it actually
+isn't all that important because we already let anyone declare that they're any
+combination of the three.
