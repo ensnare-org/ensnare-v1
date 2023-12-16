@@ -7,5 +7,6 @@
 /projects/**/*.wav
 /settings.json
 /target
+/vendor
 Cargo.lock
 git-scratch.md
