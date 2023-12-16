@@ -1,8 +1,8 @@
 #!/bin/bash
 
-for f in $(find . -name \*.rs -not -path "./target/*")
+for f in $(find . -name \*.rs -not -path "./target/*" -not -path "./vendor/*")
 do
-    if ! grep -q -E '^\/\/ Copy' "$f"
+    if ! grep -q -E '^\/\/ Copyright' "$f"
     then
         echo "$f missing header"
         exit 1

@@ -9,7 +9,7 @@ use ensnare_core::{
     traits::Sequences,
 };
 use ensnare_proc_macros::Params;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
     sync::{Arc, RwLock},

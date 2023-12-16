@@ -8,7 +8,7 @@ use ensnare_core::{
         TimeRange, WorkEvent,
     },
 };
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MidiSequencer {
