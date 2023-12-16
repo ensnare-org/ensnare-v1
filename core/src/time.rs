@@ -552,7 +552,7 @@ pub struct TransportEphemerals {
 
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
-#[derive(Clone, Control, Debug, Default, Builder)]
+#[derive(Clone, Control, Debug, Default, Builder, Serialize, Deserialize)]
 pub struct Transport {
     /// The current global time signature.
     #[builder(default)]
@@ -564,6 +564,7 @@ pub struct Transport {
     pub tempo: Tempo,
 
     #[builder(setter(skip))]
+    #[serde(skip)]
     e: TransportEphemerals,
 }
 impl PartialEq for Transport {

@@ -18,3 +18,4 @@ ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-proc-macros = { path = "../proc-macros" }
 once_cell = "1.18.0"
 serde = { version = "1.0.193", features = ["derive"] }
+typetag = "0.2.14"

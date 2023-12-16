@@ -9,6 +9,7 @@ use ensnare_core::{
     traits::Sequences,
 };
 use ensnare_proc_macros::Params;
+use serde::{Serialize, Deserialize};
 use std::{
     ops::Range,
     sync::{Arc, RwLock},
@@ -37,7 +38,7 @@ impl PatternSequencerBuilder {
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default, Builder, Params)]
+#[derive(Debug, Default, Builder, Params, Serialize, Deserialize)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
     #[builder(setter(skip))]

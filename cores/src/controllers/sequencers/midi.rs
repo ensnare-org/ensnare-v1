@@ -8,9 +8,11 @@ use ensnare_core::{
         TimeRange, WorkEvent,
     },
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MidiSequencer {
+    #[serde(skip)]
     events: Vec<(MidiChannel, MidiEvent)>,
     pub time_range: TimeRange,
     is_recording: bool,
