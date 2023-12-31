@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{
+    traits::TransformsAudio,
     types::{Normal, Sample, StereoSample},
     uid::Uid,
 };
-use ensnare_entity::traits::IsEffect;
 use std::collections::HashMap;
 
 /// Controls the wet/dry mix of arranged effects.
@@ -25,12 +25,10 @@ impl Humidifier {
         self.uid_to_humidity.insert(uid, humidity);
     }
 
-    // TODO: the better trait to pass in here is TransformsAudio, but as of
-    // today we don't have an as_ method to get that narrow trait.
     pub fn transform_batch(
         &mut self,
         humidity: Normal,
-        effect: &mut dyn IsEffect,
+        effect: &mut dyn TransformsAudio,
         samples: &mut [StereoSample],
     ) {
         for sample in samples {

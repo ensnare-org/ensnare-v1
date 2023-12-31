@@ -109,14 +109,23 @@ mod tests {
     use super::MidiRouter;
     use ensnare_core::prelude::*;
     use ensnare_entity::prelude::*;
-    use ensnare_proc_macros::{Control, IsEntity, Metadata, Params};
+    use ensnare_proc_macros::{Control, IsEntity2, Metadata, Params};
+    use serde::{Deserialize, Serialize};
     use std::sync::{Arc, RwLock};
 
-    #[derive(Debug, Control, Default, IsEntity, Metadata, Params)]
-    #[entity("instrument", "skip_inner")]
+    #[derive(Debug, Control, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+    #[entity2(
+        Configurable,
+        Controls,
+        Displays,
+        Serializable,
+        SkipInner,
+        TransformsAudio
+    )]
     struct TestHandlesMidi {
         uid: Uid,
         rebroadcast_to: Option<MidiChannel>,
+        #[serde(skip)]
         tracker: Arc<RwLock<Vec<(Uid, MidiChannel, MidiMessage)>>>,
     }
     impl TestHandlesMidi {
@@ -147,8 +156,6 @@ mod tests {
             }
         }
     }
-    impl Serializable for TestHandlesMidi {}
-    impl Configurable for TestHandlesMidi {}
     impl Generates<StereoSample> for TestHandlesMidi {
         fn value(&self) -> StereoSample {
             todo!()
@@ -165,7 +172,6 @@ mod tests {
             todo!()
         }
     }
-    impl Displays for TestHandlesMidi {}
 
     #[test]
     fn routes_to_correct_channels() {

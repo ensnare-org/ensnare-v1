@@ -1,15 +1,23 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    traits::{Configurable, Controls, HandlesMidi, Serializable},
-    uid::Uid,
-};
-use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEntity, Metadata, Params};
+use ensnare_core::prelude::*;
+use ensnare_proc_macros::{IsEntity2, Metadata, Params};
+use serde::{Deserialize, Serialize};
 
-/// The smallest possible [IsEntity].
-#[derive(Debug, Default, IsEntity, Metadata, Params)]
-#[entity("controller", "skip_inner")]
+/// The smallest possible [IsEntity2].
+#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[entity2(
+    Configurable,
+    Controllable,
+    Controls,
+    Displays,
+    GeneratesStereoSample,
+    HandlesMidi,
+    Serializable,
+    SkipInner,
+    Ticks,
+    TransformsAudio
+)]
 pub struct TestController {
     uid: Uid,
 }
@@ -18,8 +26,3 @@ impl TestController {
         Self { uid }
     }
 }
-impl Displays for TestController {}
-impl HandlesMidi for TestController {}
-impl Controls for TestController {}
-impl Configurable for TestController {}
-impl Serializable for TestController {}

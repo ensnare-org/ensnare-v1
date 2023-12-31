@@ -959,21 +959,21 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
         }
         self.entity_uid_factory.notify_externally_minted_uid(uid);
         self.track_for_entity.insert(uid, *track_uid);
-        if entity.as_controller().is_some() {
-            self.controller_uids
-                .entry(*track_uid)
-                .or_default()
-                .push(uid);
-        }
-        if entity.as_instrument().is_some() {
-            self.instrument_uids
-                .entry(*track_uid)
-                .or_default()
-                .push(uid);
-        }
-        if entity.as_effect().is_some() {
-            self.effect_uids.entry(*track_uid).or_default().push(uid);
-        }
+        // if entity.as_controller().is_some() {
+        self.controller_uids
+            .entry(*track_uid)
+            .or_default()
+            .push(uid);
+        // }
+        // if entity.as_instrument().is_some() {
+        self.instrument_uids
+            .entry(*track_uid)
+            .or_default()
+            .push(uid);
+        // }
+        // if entity.as_effect().is_some() {
+        self.effect_uids.entry(*track_uid).or_default().push(uid);
+        // }
         if entity.displays_in_timeline() {
             self.timeline_entities_for_track
                 .entry(*track_uid)
@@ -1078,12 +1078,12 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
 
     fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
         if let Some(entity) = self.entity_store.get(&uid) {
-            if entity.as_effect().is_some() {
-                self.humidifier.set_humidity_by_uid(uid, humidity);
-                Ok(())
-            } else {
-                Err(anyhow!("Entity Uid {uid} does not implement as_effect()"))
-            }
+            // if entity.as_effect().is_some() {
+            self.humidifier.set_humidity_by_uid(uid, humidity);
+            Ok(())
+            // } else {
+            // Err(anyhow!("Entity Uid {uid} does not implement as_effect()"))
+            // }
         } else {
             Err(anyhow!("Entity Uid {uid} not found"))
         }
@@ -1224,9 +1224,7 @@ impl<E: EntityBounds + ?Sized> Controls for Orchestrator<E> {
                             if target_uid == &Self::TRANSPORT_UID {
                                 self.transport.control_set_param_by_index(index, value);
                             } else {
-                                if let Some(entity) =
-                                    self.entity_store.as_controllable_mut(&target_uid)
-                                {
+                                if let Some(entity) = self.entity_store.get_mut(&target_uid) {
                                     entity.control_set_param_by_index(index, value);
                                 }
                             }
@@ -1310,7 +1308,7 @@ impl<E: EntityBounds + ?Sized> Generates<StereoSample> for Orchestrator<E> {
             // have to worry about mixing.
             if let Some(uids) = self.instrument_uids.get(track_uid) {
                 for uid in uids {
-                    if let Some(entity) = self.entity_store.as_instrument_mut(uid) {
+                    if let Some(entity) = self.entity_store.get_mut(uid) {
                         entity.generate_batch_values(&mut buffer);
                     }
                 }
@@ -1323,9 +1321,11 @@ impl<E: EntityBounds + ?Sized> Generates<StereoSample> for Orchestrator<E> {
                     if humidity == Normal::zero() {
                         continue;
                     }
-                    if let Some(entity) = self.entity_store.as_effect_mut(uid) {
-                        self.humidifier
-                            .transform_batch(humidity, entity, &mut buffer);
+                    if let Some(entity) = self.entity_store.get_mut(uid) {
+                        if let Some(entity) = entity.as_transforms_audio_mut() {
+                            self.humidifier
+                                .transform_batch(humidity, entity, &mut buffer);
+                        }
                     }
                 }
             }
@@ -1507,8 +1507,9 @@ impl<'a, E: EntityBounds + ?Sized> OrchestratorHelper<'a, E> {
 mod tests {
     use super::*;
     use crate::traits::tests::validate_orchestrates_trait;
-    use ensnare_core::{control::ControlValue, time::TransportBuilder, traits::Serializable};
-    use ensnare_proc_macros::{IsEntity, Metadata};
+    use ensnare_core::{control::ControlValue, time::TransportBuilder};
+    use ensnare_proc_macros::{IsEntity2, Metadata};
+    use serde::{Deserialize, Serialize};
 
     trait TestEntity: EntityBounds {}
 
@@ -1790,20 +1791,26 @@ mod tests {
     }
 
     /// An [IsEntity] that sends one Control event each time work() is called.
-    #[derive(Debug, Default, IsEntity, Metadata)]
-    #[entity("controller", "skip_inner")]
+    #[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
+    #[entity2(
+        Configurable,
+        Controllable,
+        Displays,
+        GeneratesStereoSample,
+        HandlesMidi,
+        Serializable,
+        SkipInner,
+        Ticks,
+        TransformsAudio
+    )]
     pub struct TestControllerSendsOneEvent {
         uid: Uid,
     }
-    impl Displays for TestControllerSendsOneEvent {}
-    impl HandlesMidi for TestControllerSendsOneEvent {}
     impl Controls for TestControllerSendsOneEvent {
         fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
             control_events_fn(WorkEvent::Control(ControlValue::MAX));
         }
     }
-    impl Configurable for TestControllerSendsOneEvent {}
-    impl Serializable for TestControllerSendsOneEvent {}
     impl TestEntity for TestControllerSendsOneEvent {}
 
     #[test]

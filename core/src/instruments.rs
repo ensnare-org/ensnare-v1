@@ -11,10 +11,11 @@ use crate::prelude::*;
 ///
 /// [Synthesizer] exists so that this crate's synthesizer voices can be used in
 /// other projects without needing all the other crates.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Synthesizer<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
 
+    #[serde(skip)]
     voice_store: Option<Box<dyn StoresVoices<Voice = V>>>,
 
     /// Ranges from -1.0..=1.0. Applies to all notes.

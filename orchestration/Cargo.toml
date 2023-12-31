@@ -24,6 +24,7 @@ hound = "3.5.0"
 rayon = "1.8.0"
 serde = { version = "1.0.193", features = ["derive"] }
 strum_macros = "0.25"
+typetag = "0.2.14"
 
 [dev-dependencies]
 more-asserts = "0.3.1"

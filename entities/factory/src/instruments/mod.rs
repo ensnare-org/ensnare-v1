@@ -6,23 +6,25 @@ use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
-    InnerSerializable, IsEntity, Metadata,
+    InnerSerializable, IsEntity2, Metadata,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(
-    Debug,
-    InnerControllable,
-    InnerConfigurable,
-    InnerHandlesMidi,
-    InnerInstrument,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
+    Debug, InnerControllable, InnerConfigurable, IsEntity2, Metadata, Serialize, Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(
+    Controls,
+    GeneratesStereoSample,
+    HandlesMidi,
+    Serializable,
+    Ticks,
+    TransformsAudio
+)]
 
 pub struct Drumkit {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::Drumkit,
 }
 impl Displays for Drumkit {
@@ -46,12 +48,15 @@ impl Drumkit {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::FmSynth,
 }
 impl Displays for FmSynth {
@@ -73,14 +78,16 @@ impl FmSynth {
     InnerControllable,
     InnerConfigurable,
     InnerHandlesMidi,
-    InnerInstrument,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::Sampler,
 }
 impl Displays for Sampler {
@@ -106,14 +113,16 @@ impl Sampler {
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
-    InnerInstrument,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::WelshSynth,
 }
 impl Displays for WelshSynth {

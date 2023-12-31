@@ -198,7 +198,7 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Default, Control, Params)]
 pub struct FmSynth {
     #[control]
     #[params]

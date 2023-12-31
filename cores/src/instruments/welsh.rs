@@ -312,7 +312,7 @@ impl WelshVoice {
 
 /// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Default, Control, Params)]
 pub struct WelshSynth {
     #[control]
     #[params]

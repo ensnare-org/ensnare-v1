@@ -1,27 +1,28 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_cores::toys::{ToyInstrumentParams, ToySynthParams};
+use ensnare_cores::toys::ToyInstrumentParams;
 use ensnare_cores_egui::modulators::dca;
 use ensnare_egui_widgets::{envelope, oscillator, waveform};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
-    IsEntity, Metadata,
+    InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerSerializable, IsEntity2, Metadata,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(
     Debug,
     Default,
     InnerConfigurable,
     InnerControllable,
-    InnerInstrument,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    serde::Serialize,
+    serde::Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct ToyInstrument {
     uid: Uid,
     inner: ensnare_cores::toys::ToyInstrument,
@@ -32,10 +33,10 @@ impl Displays for ToyInstrument {
     }
 }
 impl ToyInstrument {
-    pub fn new_with(uid: Uid, params: &ToyInstrumentParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyInstrument::new_with(&params),
+            inner: ensnare_cores::toys::ToyInstrument::new_with(&ToyInstrumentParams::default()),
         }
     }
 }
@@ -46,12 +47,13 @@ impl ToyInstrument {
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
-    InnerInstrument,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("instrument")]
+#[entity2(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct ToySynth {
     uid: Uid,
     inner: ensnare_cores::toys::ToySynth,
@@ -85,6 +87,12 @@ impl ToySynth {
         }
         response
     }
+    pub fn new_with(uid: Uid) -> Self {
+        Self {
+            uid,
+            ..Default::default()
+        }
+    }
 }
 impl Displays for ToySynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -94,13 +102,5 @@ impl Displays for ToySynth {
             waveform_response | envelope_response
         })
         .inner
-    }
-}
-impl ToySynth {
-    pub fn new_with(uid: Uid, params: &ToySynthParams) -> Self {
-        Self {
-            uid,
-            inner: ensnare_cores::toys::ToySynth::new_with(params),
-        }
     }
 }

@@ -7,7 +7,7 @@ use ensnare_core::{
 use ensnare_proc_macros::{Control, Params};
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Default, Control, Params)]
 pub struct LfoController {
     #[control]
     #[params]

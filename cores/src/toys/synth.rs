@@ -9,9 +9,10 @@ use ensnare_core::{
     voices::{VoiceCount, VoiceStore},
 };
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 
 /// Implements a very small, but complete, synthesizer.
-#[derive(Control, Debug, Default, Params)]
+#[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
 pub struct ToySynth {
     #[params]
     voice_count: VoiceCount,
@@ -28,6 +29,7 @@ pub struct ToySynth {
     #[params]
     dca: Dca,
 
+    #[serde(skip)]
     pub inner: Synthesizer<ToyVoice>,
 
     max_signal: Normal,

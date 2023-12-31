@@ -83,7 +83,7 @@ impl OscillatorParams {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control, Params, serde::Serialize, serde::Deserialize)]
 pub struct Oscillator {
     #[control]
     #[params]
@@ -135,6 +135,7 @@ pub struct Oscillator {
     // pops, transients, and suckage.
     //
     // Needs Kahan summation algorithm to avoid accumulation of FP errors.
+    #[serde(skip)]
     cycle_position: KahanSum<f64>,
 
     delta: f64,
@@ -415,7 +416,7 @@ impl Oscillator {
 }
 
 // TODO: see https://corrode.dev/blog/enums/ and mull over it
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 enum State {
     #[default]
     Idle,
@@ -445,7 +446,7 @@ impl EnvelopeParams {
     }
 }
 
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
 pub struct Envelope {
     #[control]
     #[params]
@@ -467,6 +468,7 @@ pub struct Envelope {
     ticks: usize,
     time: Seconds,
 
+    #[serde(skip)]
     uncorrected_amplitude: KahanSum<f64>,
     corrected_amplitude: f64,
     delta: f64,

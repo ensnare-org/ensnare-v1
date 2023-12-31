@@ -225,7 +225,7 @@ pub mod traits {
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            Configurable, ControlEventsFn, Controllable, Controls, Displays, Entity, EntityBounds,
+            Configurable, ControlEventsFn, Controllable, Controls, Displays, EntityBounds,
             Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
             IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences,
             Serializable, Ticks, WorkEvent,

@@ -9,7 +9,7 @@ use ensnare_egui_widgets::ViewRange;
 /// [IsEntity](ensnare_proc_macros::IsEntity) proc macro.
 #[allow(missing_docs)]
 // #[typetag::serde(tag = "type")]
-pub trait Entity:
+pub trait EntityX:
     HasMetadata + Displays + Configurable + Serializable + std::fmt::Debug + Send + Sync
 {
     fn as_controller(&self) -> Option<&dyn IsController> {
@@ -46,7 +46,7 @@ pub trait Entity:
         false
     }
 }
-pub trait EntityBounds: Entity {}
+pub trait EntityOldBounds: EntityX {}
 
 #[allow(missing_docs)]
 #[typetag::serde(tag = "type")]
@@ -54,16 +54,26 @@ pub trait Entity2:
     HasMetadata
     + Controls
     + Controllable
+    + Displays
     + Generates<StereoSample>
     + HandlesMidi
+    + Serializable
+    + TransformsAudio
     + std::fmt::Debug
     + Send
     + Sync
 {
+    fn as_handles_midi_mut(&mut self) -> Option<&mut dyn HandlesMidi> {
+        None
+    }
+    fn as_transforms_audio_mut(&mut self) -> Option<&mut dyn TransformsAudio> {
+        None
+    }
     fn displays_in_timeline(&self) -> bool {
         false
     }
 }
+pub trait EntityBounds: Entity2 {}
 
 /// A [HasMetadata] has basic information about an [Entity]. Some methods apply
 /// to the "class" of [Entity] (for example, all `ToyInstrument`s share the name

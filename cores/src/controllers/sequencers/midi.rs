@@ -10,7 +10,7 @@ use ensnare_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct MidiSequencer {
     #[serde(skip)]
     events: Vec<(MidiChannel, MidiEvent)>,

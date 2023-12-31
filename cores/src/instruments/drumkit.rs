@@ -12,7 +12,7 @@ use ensnare_core::{
 use ensnare_proc_macros::{Control, Params};
 use std::{path::Path, sync::Arc};
 
-#[derive(Control, Params)]
+#[derive(Control, Default, Params)]
 pub struct Drumkit {
     #[params]
     name: String,

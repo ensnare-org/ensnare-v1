@@ -4,7 +4,7 @@
 //!
 //! PRO TIP: use `cargo expand --lib entities` to see what's being generated
 
-use entity::parse_and_generate_entity;
+use entity::{parse_and_generate_entity, parse_and_generate_entity2};
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
@@ -51,6 +51,19 @@ pub fn params_derive(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(IsEntity, attributes(entity))]
 pub fn entity_derive(input: TokenStream) -> TokenStream {
     parse_and_generate_entity(input)
+}
+
+/// Derives helper methods to access Entity2 traits.
+///
+/// Available struct-level attributes:
+///
+/// - `"skip_inner"`: Do not delegate trait methods to a field named "inner".
+/// - `(various)`: implements an empty trait having the same name as the
+///   snake-case attribute. For example, `"handles_midi"` implements an empty
+///   [HandlesMidi] trait.
+#[proc_macro_derive(IsEntity2, attributes(entity2))]
+pub fn entity2_derive(input: TokenStream) -> TokenStream {
+    parse_and_generate_entity2(input)
 }
 
 /// field types that don't recurse further for #[derive(Control)] and

@@ -7,10 +7,10 @@ use ensnare_core::{
     types::{Normal, StereoSample},
     uid::{TrackUid, Uid},
 };
-use ensnare_entity::traits::Entity;
+use ensnare_entity::traits::Entity2;
 
 /// Manages relationships among [Entities](Entity) to produce a song.
-pub trait Orchestrates<E: Entity + ?Sized>:
+pub trait Orchestrates<E: Entity2 + ?Sized>:
     Configurable + Controls + Generates<StereoSample>
 {
     /// Creates a new track, returning its [TrackUid] if successful. A track is

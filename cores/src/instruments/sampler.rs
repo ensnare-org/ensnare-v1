@@ -103,7 +103,7 @@ impl SamplerVoice {
     }
 }
 
-#[derive(Control, Params)]
+#[derive(Control, Default, Params)]
 pub struct Sampler {
     #[params]
     filename: String,

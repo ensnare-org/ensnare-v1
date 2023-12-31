@@ -72,7 +72,7 @@ impl Controls for Timer {
 
 // TODO: needs tests!
 /// [Trigger] issues a control signal after a specified amount of time.
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Default, Control, Params)]
 pub struct Trigger {
     #[params]
     timer: Timer,

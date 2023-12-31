@@ -560,3 +560,10 @@ respond to MIDI events. Everyone *might* process another component's audio
 output. Everyone *might* produce audio. I've known this for a while; it actually
 isn't all that important because we already let anyone declare that they're any
 combination of the three.
+
+# 2023-12-29: Entity2
+
+This has been a big task punctuated by holidays. Rather than the Entity trait
+being a gateway to individual traits like IsEffect's TransformAudio, Entity2
+requires that everyone implement everything. Default null implementations reduce
+the boilerplate.

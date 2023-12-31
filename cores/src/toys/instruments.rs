@@ -25,7 +25,7 @@ pub struct ToyInstrumentEphemerals {
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
 /// [Oscillator] to produce sound. Its "envelope" is just a boolean that
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
 pub struct ToyInstrument {
     pub oscillator: Oscillator,
 
@@ -33,6 +33,7 @@ pub struct ToyInstrument {
     #[params]
     pub dca: Dca,
 
+    #[serde(skip)]
     e: ToyInstrumentEphemerals,
 }
 impl Generates<StereoSample> for ToyInstrument {

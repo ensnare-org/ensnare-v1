@@ -5,5 +5,5 @@ pub mod traits;
 
 pub mod prelude {
     pub use super::factory::{EntityFactory, EntityKey, EntityStore};
-    pub use super::traits::{Displays, Entity, IsController, IsEffect, IsInstrument};
+    pub use super::traits::{Displays, Entity2, IsController, IsEffect, IsInstrument};
 }

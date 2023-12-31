@@ -37,13 +37,6 @@ pub mod tests {
                     uid,
                     "Entity should remember the Uid given at creation"
                 );
-                assert!(
-                    e.as_controller().is_some()
-                        || e.as_instrument().is_some()
-                        || e.as_effect().is_some(),
-                    "Entity '{}' is missing its entity type",
-                    key
-                );
             } else {
                 panic!("new_entity({key}) failed");
             }

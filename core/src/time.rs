@@ -454,7 +454,9 @@ impl Sub<Self> for MusicalTime {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct Seconds(pub f64);
 impl Seconds {
     pub fn zero() -> Seconds {

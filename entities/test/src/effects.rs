@@ -1,16 +1,23 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    traits::{Configurable, Controllable, Serializable, TransformsAudio},
-    uid::Uid,
-};
-use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEntity, Metadata, Params};
+use ensnare_core::prelude::*;
+use ensnare_proc_macros::{IsEntity2, Metadata, Params};
+use serde::{Deserialize, Serialize};
 
-/// The smallest possible [IsEntity].
-#[derive(Debug, Default, IsEntity, Metadata, Params)]
-#[entity("effect", "skip_inner")]
-
+/// The smallest possible [IsEntity2].
+#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[entity2(
+    Configurable,
+    Controllable,
+    Controls,
+    Displays,
+    GeneratesStereoSample,
+    HandlesMidi,
+    Serializable,
+    SkipInner,
+    Ticks,
+    TransformsAudio
+)]
 pub struct TestEffect {
     uid: Uid,
 }
@@ -19,8 +26,3 @@ impl TestEffect {
         Self { uid }
     }
 }
-impl Displays for TestEffect {}
-impl Configurable for TestEffect {}
-impl Controllable for TestEffect {}
-impl Serializable for TestEffect {}
-impl TransformsAudio for TestEffect {}

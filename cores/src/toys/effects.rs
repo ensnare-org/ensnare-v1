@@ -62,3 +62,4 @@ impl Configurable for ToyEffect {
     }
 }
 impl Serializable for ToyEffect {}
+impl HandlesMidi for ToyEffect {}

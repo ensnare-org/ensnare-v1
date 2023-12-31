@@ -1,13 +1,24 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_entity::traits::Displays;
-use ensnare_proc_macros::{IsEntity, Metadata, Params};
+use ensnare_proc_macros::{IsEntity2, Metadata, Params};
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-/// The smallest possible [IsEntity].
-#[derive(Debug, Default, IsEntity, Metadata, Params)]
-#[entity("instrument", "skip_inner")]
+/// The smallest possible [IsEntity2].
+#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[entity2(SkipInner)]
+#[entity2(
+    Controllable,
+    Controls,
+    Displays,
+    HandlesMidi,
+    Serializable,
+    SkipInner,
+    Ticks,
+    TransformsAudio
+)]
+
 pub struct TestInstrument {
     pub uid: Uid,
     pub sample_rate: SampleRate,
@@ -20,9 +31,6 @@ impl TestInstrument {
         }
     }
 }
-impl Displays for TestInstrument {}
-impl HandlesMidi for TestInstrument {}
-impl Controllable for TestInstrument {}
 impl Configurable for TestInstrument {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
@@ -32,7 +40,6 @@ impl Configurable for TestInstrument {
         self.sample_rate = sample_rate;
     }
 }
-impl Serializable for TestInstrument {}
 impl Generates<StereoSample> for TestInstrument {
     fn value(&self) -> StereoSample {
         StereoSample::default()
@@ -42,12 +49,21 @@ impl Generates<StereoSample> for TestInstrument {
         values.fill(StereoSample::default())
     }
 }
-impl Ticks for TestInstrument {}
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
-#[derive(Debug, Default, IsEntity, Metadata, Params)]
-#[entity("instrument", "skip_inner")]
+#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[entity2(
+    Configurable,
+    Controllable,
+    Controls,
+    Displays,
+    Serializable,
+    SkipInner,
+    Ticks,
+    TransformsAudio
+)]
+#[entity2("skip_inner", "controls")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
     pub received_midi_message_count: Arc<Mutex<usize>>,
@@ -61,9 +77,6 @@ impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
         values.fill(StereoSample::default())
     }
 }
-impl Configurable for TestInstrumentCountsMidiMessages {}
-impl Controllable for TestInstrumentCountsMidiMessages {}
-impl Ticks for TestInstrumentCountsMidiMessages {}
 impl HandlesMidi for TestInstrumentCountsMidiMessages {
     fn handle_midi_message(
         &mut self,
@@ -76,10 +89,8 @@ impl HandlesMidi for TestInstrumentCountsMidiMessages {
         }
     }
 }
-impl Serializable for TestInstrumentCountsMidiMessages {}
 impl TestInstrumentCountsMidiMessages {
     pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
         &self.received_midi_message_count
     }
 }
-impl Displays for TestInstrumentCountsMidiMessages {}

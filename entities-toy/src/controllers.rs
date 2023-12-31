@@ -6,8 +6,9 @@ use ensnare_cores::toys::{ToyControllerAlwaysSendsMidiMessageParams, ToyControll
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
-    IsEntity, Metadata,
+    IsEntity2, Metadata,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(
     Debug,
@@ -17,14 +18,19 @@ use ensnare_proc_macros::{
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("controller")]
 pub struct ToyController {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::toys::ToyController,
 }
+impl Generates<StereoSample> for ToyController {}
+impl Ticks for ToyController {}
+impl TransformsAudio for ToyController {}
 impl Displays for ToyController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut channel = self.inner.midi_channel_out.0;
@@ -52,15 +58,24 @@ impl ToyController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("controller")]
+#[entity2(
+    Controllable,
+    Displays,
+    GeneratesStereoSample,
+    SkipInner,
+    Ticks,
+    TransformsAudio
+)]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::toys::ToyControllerAlwaysSendsMidiMessage,
 }
-impl Displays for ToyControllerAlwaysSendsMidiMessage {}
 impl ToyControllerAlwaysSendsMidiMessage {
     pub fn new_with(uid: Uid, _params: &ToyControllerAlwaysSendsMidiMessageParams) -> Self {
         Self {

@@ -1,9 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    prelude::IsInstrument,
-    traits::{Entity, EntityBounds, IsEffect},
-};
+use crate::traits::{Entity2, EntityBounds};
 use anyhow::anyhow;
 use derive_more::Display;
 use ensnare_core::{
@@ -150,7 +147,7 @@ pub trait ReturnsHandlesMidi {
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
 /// all its entities as a single [Entity].
 #[derive(Debug)]
-pub struct EntityStore<E: Entity + ?Sized> {
+pub struct EntityStore<E: Entity2 + ?Sized> {
     sample_rate: SampleRate,
     tempo: Tempo,
     entities: HashMap<Uid, Box<E>>,
@@ -159,7 +156,7 @@ pub struct EntityStore<E: Entity + ?Sized> {
     // to implement.
     time_range: TimeRange,
 }
-impl<E: Entity + ?Sized> Default for EntityStore<E> {
+impl<E: Entity2 + ?Sized> Default for EntityStore<E> {
     fn default() -> Self {
         Self {
             sample_rate: Default::default(),
@@ -169,7 +166,7 @@ impl<E: Entity + ?Sized> Default for EntityStore<E> {
         }
     }
 }
-impl<E: Entity + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
+impl<E: Entity2 + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
     fn get_handles_midi_mut(&mut self, uid: &Uid) -> Option<&mut dyn HandlesMidi> {
         if let Some(e) = self.entities.get_mut(uid) {
             e.as_handles_midi_mut()
@@ -178,7 +175,7 @@ impl<E: Entity + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
         }
     }
 }
-impl<E: Entity + ?Sized> EntityStore<E> {
+impl<E: Entity2 + ?Sized> EntityStore<E> {
     /// Adds an [Entity] to the store.
     pub fn add(&mut self, mut entity: Box<E>, uid: Uid) -> anyhow::Result<()> {
         if uid.0 == 0 {
@@ -223,44 +220,44 @@ impl<E: Entity + ?Sized> EntityStore<E> {
         self.entities.is_empty()
     }
 
-    pub fn as_controllable_mut(&mut self, uid: &Uid) -> Option<&mut dyn Controllable> {
-        if let Some(e) = self.get_mut(uid) {
-            e.as_controllable_mut()
-        } else {
-            None
-        }
-    }
+    // pub fn as_controllable_mut(&mut self, uid: &Uid) -> Option<&mut dyn Controllable> {
+    //     if let Some(e) = self.get_mut(uid) {
+    //         e.as_controllable_mut()
+    //     } else {
+    //         None
+    //     }
+    // }
 
-    pub fn as_instrument_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsInstrument> {
-        if let Some(e) = self.get_mut(uid) {
-            e.as_instrument_mut()
-        } else {
-            None
-        }
-    }
+    // pub fn as_instrument_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsInstrument> {
+    //     if let Some(e) = self.get_mut(uid) {
+    //         e.as_instrument_mut()
+    //     } else {
+    //         None
+    //     }
+    // }
 
-    pub fn as_effect_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsEffect> {
-        if let Some(e) = self.get_mut(uid) {
-            e.as_effect_mut()
-        } else {
-            None
-        }
-    }
+    // pub fn as_effect_mut(&mut self, uid: &Uid) -> Option<&mut dyn IsEffect> {
+    //     if let Some(e) = self.get_mut(uid) {
+    //         e.as_effect_mut()
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn contains(&self, uid: &Uid) -> bool {
         self.entities.contains_key(uid)
     }
 }
-impl<E: Entity + ?Sized> Ticks for EntityStore<E> {
+impl<E: Entity2 + ?Sized> Ticks for EntityStore<E> {
     fn tick(&mut self, tick_count: usize) {
         self.iter_mut().for_each(|t| {
-            if let Some(t) = t.as_instrument_mut() {
-                t.tick(tick_count)
-            }
+            // if let Some(t) = t.as_instrument_mut() {
+            t.tick(tick_count)
+            // }
         });
     }
 }
-impl<E: Entity + ?Sized> Configurable for EntityStore<E> {
+impl<E: Entity2 + ?Sized> Configurable for EntityStore<E> {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -289,7 +286,7 @@ impl<E: Entity + ?Sized> Configurable for EntityStore<E> {
         });
     }
 }
-impl<E: Entity + ?Sized> Controls for EntityStore<E> {
+impl<E: Entity2 + ?Sized> Controls for EntityStore<E> {
     fn time_range(&self) -> Option<TimeRange> {
         if self.is_performing() {
             Some(self.time_range.clone())
@@ -301,9 +298,9 @@ impl<E: Entity + ?Sized> Controls for EntityStore<E> {
     fn update_time_range(&mut self, time_range: &TimeRange) {
         self.time_range = time_range.clone();
         self.iter_mut().for_each(|t| {
-            if let Some(t) = t.as_controller_mut() {
-                t.update_time_range(time_range);
-            }
+            // if let Some(t) = t.as_controller_mut() {
+            t.update_time_range(time_range);
+            // }
         });
     }
 
@@ -313,11 +310,11 @@ impl<E: Entity + ?Sized> Controls for EntityStore<E> {
 
     fn is_finished(&self) -> bool {
         self.iter().all(|t| {
-            if let Some(t) = t.as_controller() {
-                t.is_finished()
-            } else {
-                true
-            }
+            // if let Some(t) = t.as_controller() {
+            t.is_finished()
+            // } else {
+            //     true
+            // }
         })
     }
 
@@ -325,55 +322,55 @@ impl<E: Entity + ?Sized> Controls for EntityStore<E> {
         // TODO: measure whether it's faster to speed through everything and
         // check type than to look up each UID in self.controllers
         self.iter_mut().for_each(|t| {
-            if let Some(t) = t.as_controller_mut() {
-                t.play();
-            }
+            // if let Some(t) = t.as_controller_mut() {
+            t.play();
+            // }
         });
     }
 
     fn stop(&mut self) {
         self.iter_mut().for_each(|t| {
-            if let Some(t) = t.as_controller_mut() {
-                t.stop();
-            }
+            // if let Some(t) = t.as_controller_mut() {
+            t.stop();
+            // }
         });
     }
 
     fn skip_to_start(&mut self) {
         self.iter_mut().for_each(|t| {
-            if let Some(t) = t.as_controller_mut() {
-                t.skip_to_start();
-            }
+            // if let Some(t) = t.as_controller_mut() {
+            t.skip_to_start();
+            // }
         });
     }
 
     fn is_performing(&self) -> bool {
         self.iter().any(|t| {
-            if let Some(t) = t.as_controller() {
-                t.is_performing()
-            } else {
-                true
-            }
+            // if let Some(t) = t.as_controller() {
+            t.is_performing()
+            // } else {
+            //     true
+            // }
         })
     }
 }
-impl<E: Entity + ?Sized> ControlsAsProxy for EntityStore<E> {
+impl<E: Entity2 + ?Sized> ControlsAsProxy for EntityStore<E> {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
         self.entities.iter_mut().for_each(|(uid, entity)| {
-            if let Some(e) = entity.as_controller_mut() {
-                e.work(&mut |message| {
-                    control_events_fn(*uid, message);
-                });
-            }
+            // if let Some(entity) = entity.as_controller_mut() {
+            entity.work(&mut |message| {
+                control_events_fn(*uid, message);
+            });
+            // }
         });
     }
 }
-impl<E: Entity + ?Sized> Serializable for EntityStore<E> {
+impl<E: Entity2 + ?Sized> Serializable for EntityStore<E> {
     fn after_deser(&mut self) {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
-impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
+impl<E: Entity2 + ?Sized> PartialEq for EntityStore<E> {
     fn eq(&self, other: &Self) -> bool {
         self.time_range == other.time_range && self.tempo == other.tempo && {
             self.entities.len() == other.entities.len() && {
@@ -393,16 +390,17 @@ impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
-    use crate::factory::tests::cores::ExampleEntityParams;
-    use crate::{prelude::*, traits::EntityBounds};
+    use crate::traits::EntityBounds;
     use ensnare_core::prelude::*;
-    use ensnare_proc_macros::{IsEntity, Metadata};
+    use ensnare_proc_macros::{Control, IsEntity2, Metadata};
+    use serde::{Deserialize, Serialize};
 
     mod cores {
         use ensnare_core::{time::SampleRate, traits::Configurable};
         use ensnare_proc_macros::Params;
+        use serde::{Deserialize, Serialize};
 
-        #[derive(Debug, Default, Params, PartialEq)]
+        #[derive(Debug, Default, Params, PartialEq, Serialize, Deserialize)]
         pub(super) struct ExampleEntity {
             pub sample_rate: SampleRate,
         }
@@ -417,15 +415,20 @@ mod tests {
         }
     }
 
-    #[derive(Debug, Default, IsEntity, Metadata, PartialEq)]
-    #[entity("instrument")]
+    #[derive(Control, Debug, Default, Metadata, PartialEq, Serialize, Deserialize, IsEntity2)]
+    #[entity2(
+        Controls,
+        Displays,
+        HandlesMidi,
+        Serializable,
+        SkipInner,
+        Ticks,
+        TransformsAudio
+    )]
     struct ExampleEntity {
         pub uid: Uid,
         inner: cores::ExampleEntity,
     }
-    impl Displays for ExampleEntity {}
-    impl HandlesMidi for ExampleEntity {}
-    impl Controllable for ExampleEntity {}
     impl Configurable for ExampleEntity {
         fn sample_rate(&self) -> SampleRate {
             self.inner.sample_rate()
@@ -435,7 +438,6 @@ mod tests {
             self.inner.update_sample_rate(sample_rate);
         }
     }
-    impl Serializable for ExampleEntity {}
     impl Generates<StereoSample> for ExampleEntity {
         fn value(&self) -> StereoSample {
             StereoSample::default()
@@ -445,7 +447,6 @@ mod tests {
             values.fill(StereoSample::default())
         }
     }
-    impl Ticks for ExampleEntity {}
 
     #[test]
     fn store_is_responsible_for_sample_rate() {

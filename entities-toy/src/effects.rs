@@ -5,8 +5,9 @@ use ensnare_cores::toys::ToyEffectParams;
 use ensnare_egui_widgets::drag_normal;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
+    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity2, Metadata,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(
     Debug,
@@ -15,12 +16,15 @@ use ensnare_proc_macros::{
     InnerControllable,
     InnerEffect,
     InnerSerializable,
-    IsEntity,
+    IsEntity2,
     Metadata,
+    Serialize,
+    Deserialize,
 )]
-#[entity("effect")]
+#[entity2(HandlesMidi, GeneratesStereoSample, Ticks, Controls)]
 pub struct ToyEffect {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_cores::toys::ToyEffect,
 }
 impl Displays for ToyEffect {
@@ -29,10 +33,10 @@ impl Displays for ToyEffect {
     }
 }
 impl ToyEffect {
-    pub fn new_with(uid: Uid, params: &ToyEffectParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyEffect::new_with(params),
+            inner: ensnare_cores::toys::ToyEffect::new_with(&ToyEffectParams::default()),
         }
     }
 }

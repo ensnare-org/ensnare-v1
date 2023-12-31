@@ -20,3 +20,5 @@ test = ["ensnare-entities-test"]
 ensnare-core = { path = "../core" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
+serde = { version = "1.0.193", features = ["derive"] }
+typetag = "0.2.14"

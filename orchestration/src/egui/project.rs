@@ -82,7 +82,7 @@ impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E>
                                         v.push((
                                             *uid,
                                             entity.name().to_string(),
-                                            entity.as_controller().is_some(),
+                                            true, // TODO: this is redundant since Entity2
                                         ));
                                     }
                                 }

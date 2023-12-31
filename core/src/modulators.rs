@@ -7,7 +7,7 @@ use ensnare_proc_macros::{Control, Params};
 /// of synths.
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
 pub struct Dca {
     #[control]
     #[params]
