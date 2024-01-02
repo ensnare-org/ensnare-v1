@@ -2,8 +2,9 @@
 
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
 pub struct Gain {
     #[control]
     #[params]

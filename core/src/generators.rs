@@ -8,6 +8,7 @@ use crate::{
 use ensnare_proc_macros::{Control, Params};
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
+use serde::{Deserialize, Serialize};
 use std::{f64::consts::PI, fmt::Debug};
 use strum::EnumCount;
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
@@ -83,7 +84,7 @@ impl OscillatorParams {
     }
 }
 
-#[derive(Debug, Control, Params, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Control, Params, Serialize, Deserialize)]
 pub struct Oscillator {
     #[control]
     #[params]

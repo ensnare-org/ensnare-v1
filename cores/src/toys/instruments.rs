@@ -6,6 +6,7 @@ use ensnare_core::{
     prelude::*,
 };
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 // #[derive(Debug, Display)]
@@ -25,7 +26,7 @@ pub struct ToyInstrumentEphemerals {
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
 /// [Oscillator] to produce sound. Its "envelope" is just a boolean that
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
-#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
 pub struct ToyInstrument {
     pub oscillator: Oscillator,
 
