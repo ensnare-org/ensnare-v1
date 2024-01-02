@@ -45,6 +45,7 @@ impl From<usize> for Uid {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UidFactory<U: IsUid> {
     pub(crate) next_uid_value: AtomicUsize,
+    #[serde(skip)]
     pub(crate) _phantom: PhantomData<U>,
 }
 impl<U: IsUid> UidFactory<U> {
