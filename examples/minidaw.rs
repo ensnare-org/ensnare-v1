@@ -380,7 +380,7 @@ impl MenuBar {
 struct MiniDaw {
     factory: Arc<EntityFactory<dyn EntityBounds>>,
     project_service: ProjectService,
-    project: Arc<RwLock<Project>>,
+    project: Option<Arc<RwLock<Project>>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
     track_frontmost_uids: HashMap<TrackUid, Uid>,
@@ -412,7 +412,7 @@ impl MiniDaw {
         let mut r = Self {
             factory: Arc::clone(&factory),
             project_service,
-            project: Arc::clone(project_service.project()),
+            project: Default::default(),
             track_titles: Default::default(),
             title: Default::default(),
             track_frontmost_uids: Default::default(),
@@ -515,6 +515,7 @@ impl MiniDaw {
         if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
             match m {
                 MidiPanelEvent::Midi(channel, message) => {
+                    self.
                     self.orchestrator_panel
                         .send_to_service(OrchestratorInput::Midi(channel, message));
                 }

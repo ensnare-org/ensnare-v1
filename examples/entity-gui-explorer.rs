@@ -10,7 +10,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::EntityUidFactory, prelude::*};
-use ensnare_entities::BuiltInEntities;
+use ensnare_entities::{piano_roll::PianoRoll, BuiltInEntities};
 use ensnare_entity::traits::EntityBounds; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -75,7 +75,7 @@ impl EntityGuiExplorer {
             if ui.button(key.to_string()).clicked() && self.selected_key != Some(key.clone()) {
                 if !self.entities.contains_key(key) {
                     let uid = self.uid_factory.mint_next();
-                    if let Some(entity) = self.factory.new_entity(key, uid) {
+                    if let Some(entity) = self.factory.new_entity(key.clone(), uid) {
                         self.entities.insert(key.clone(), entity);
                     } else {
                         panic!("Couldn't create new entity {key}")
@@ -189,9 +189,7 @@ fn main() -> anyhow::Result<()> {
     // result to register_factory_entities().
     let mut factory = EntityFactory::<dyn EntityBounds>::default();
     factory
-        .register_entity_with_str_key(ensnare_entities::piano_roll::PianoRoll::ENTITY_KEY, |uid| {
-            Box::new(ensnare_entities::piano_roll::PianoRoll::new(uid))
-        });
+        .register_entity_with_str_key(PianoRoll::ENTITY_KEY, |uid| Box::new(PianoRoll::new(uid)));
     let factory = BuiltInEntities::register(factory).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         return Err(anyhow!("Couldn't set DragDropManager once_cell"));

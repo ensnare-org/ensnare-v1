@@ -1,14 +1,23 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{piano_roll::PianoRollParams, prelude::*};
+use ensnare_core::prelude::*;
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_entity::prelude::*;
-use ensnare_proc_macros::{IsEntity, Metadata};
+use ensnare_proc_macros::{IsEntity, IsEntity2, Metadata};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, IsEntity, Metadata)]
-#[entity("controller")]
+#[derive(Debug, IsEntity, Metadata, IsEntity2, Serialize, Deserialize)]
+#[entity2(
+    TransformsAudio,
+    GeneratesStereoSample,
+    Ticks,
+    Controllable,
+    HandlesMidi,
+    SkipInner
+)]
 pub struct PianoRoll {
     uid: Uid,
+    #[serde(skip)]
     inner: ensnare_core::piano_roll::PianoRoll,
 }
 impl Displays for PianoRoll {
@@ -29,5 +38,4 @@ impl PianoRoll {
 }
 impl Configurable for PianoRoll {}
 impl Controls for PianoRoll {}
-impl HandlesMidi for PianoRoll {}
 impl Serializable for PianoRoll {}
