@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use anyhow::Error;
+use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{piano_roll::PatternUid, prelude::*};
 use ensnare_entity::prelude::*;
@@ -25,6 +26,8 @@ pub enum ProjectServiceInput {
     LinkControl(Uid, Uid, ControlIndex),
     KeyEvent(eframe::egui::Key, bool),
     NextTimelineDisplayer,
+    AudioQueue(Arc<ArrayQueue<StereoSample>>),
+    NeedsAudio(usize),
 }
 
 #[derive(Debug)]
@@ -138,6 +141,12 @@ impl ProjectService {
                         }
                         ProjectServiceInput::Init => {
                             Self::notify_new_project(&event_sender, &project);
+                        }
+                        ProjectServiceInput::AudioQueue(queue) => {
+                            project.write().unwrap().audio_queue = Some(queue);
+                        }
+                        ProjectServiceInput::NeedsAudio(count) => {
+                            project.write().unwrap().fill_audio_queue(count);
                         }
                     }
                 } else {

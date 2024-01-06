@@ -4,6 +4,7 @@
 
 use crate::parts::{Automator, MidiRouter, Orchestrator};
 use anyhow::{anyhow, Result};
+use crossbeam::queue::ArrayQueue;
 use delegate::delegate;
 use eframe::egui::Id;
 use ensnare_core::{
@@ -16,7 +17,7 @@ use ensnare_core::{
 use ensnare_cores::Composer;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 /// The most commonly used imports.
 pub mod prelude {
@@ -62,6 +63,9 @@ pub struct Project {
     // disk.
     #[serde(skip)]
     pub load_path: Option<PathBuf>,
+
+    #[serde(skip)]
+    pub audio_queue: Option<Arc<ArrayQueue<StereoSample>>>,
 }
 impl Project {
     /// Starts with a default project and configures for easy first use.
@@ -206,6 +210,28 @@ impl Project {
             }
         }
         Ok(())
+    }
+
+    pub fn fill_audio_queue(&mut self, count: usize) {
+        let mut buffer = [StereoSample::SILENCE; 64];
+        let buffer_len = buffer.len();
+        let mut remaining = count;
+
+        while remaining != 0 {
+            let to_generate = if remaining >= buffer_len {
+                buffer_len
+            } else {
+                remaining
+            };
+            let buffer_slice = &mut buffer[0..to_generate];
+            self.generate_frames(buffer_slice);
+            if let Some(audio_queue) = self.audio_queue.as_ref() {
+                buffer_slice.iter().for_each(|s| {
+                    let _ = audio_queue.push(*s);
+                });
+            }
+            remaining -= to_generate;
+        }
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {

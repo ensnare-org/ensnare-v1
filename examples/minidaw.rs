@@ -515,8 +515,8 @@ impl MiniDaw {
         if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
             match m {
                 MidiPanelEvent::Midi(channel, message) => {
-                    self.
-                    self.orchestrator_panel
+                    self.self
+                        .orchestrator_panel
                         .send_to_service(OrchestratorInput::Midi(channel, message));
                 }
                 MidiPanelEvent::MidiOut => {

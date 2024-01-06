@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+crossbeam = "0.8.3"
 crossbeam-channel = "0.5.8"
 delegate = "0.10.0"
 derive_more = "0.99.17"

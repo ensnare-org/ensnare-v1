@@ -88,24 +88,7 @@ impl Ensnare {
         let factory = Arc::new(factory);
 
         let settings = Settings::load().unwrap_or_default();
-        let needs_audio_fn: NeedsAudioFn = {
-            Box::new(move |audio_queue, samples_requested| {
-                // if let Ok(mut o) = orchestrator.lock() {
-                //     let o: &mut Orchestrator<dyn EntityBounds> = &mut o;
-                //     let mut helper = OrchestratorHelper::new_with_sample_buffer_sender(
-                //         o,
-                //         sample_buffer_sender.clone(),
-                //     );
-                //     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
-                //         if let WorkEvent::Midi(channel, message) = event {
-                //             let _ = midi_service_sender
-                //                 .send(MidiInterfaceInput::Midi(channel, message));
-                //         }
-                //     });
-                // }
-            })
-        };
-        let audio_service = AudioService::new_with(needs_audio_fn);
+        let audio_service = AudioService::new_with();
         let midi_service = MidiService::new_with(&settings.midi_settings);
         let project_service = ProjectService::new_with(&factory);
 
@@ -219,8 +202,12 @@ impl Ensnare {
                         }
                     }
                     EnsnareEvent::AudioServiceEvent(event) => match event {
-                        AudioServiceEvent::Changed => {
+                        AudioServiceEvent::Changed(queue) => {
                             self.update_orchestrator_audio_interface_config();
+                            self.send_to_project(ProjectServiceInput::AudioQueue(queue));
+                        }
+                        AudioServiceEvent::NeedsAudio(count) => {
+                            self.send_to_project(ProjectServiceInput::NeedsAudio(count));
                         }
                     },
                     EnsnareEvent::ProjectServiceEvent(event) => match event {
@@ -599,7 +586,7 @@ impl Ensnare {
     }
 
     fn handle_project_save(&mut self, path: Option<PathBuf>) {
-        self.send_to_project(ProjectServiceInput::Save(None));
+        self.send_to_project(ProjectServiceInput::Save(path));
     }
 
     fn handle_project_load(&mut self, path: PathBuf) {

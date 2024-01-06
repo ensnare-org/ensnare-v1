@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{
     audio::{AudioStreamService, AudioStreamServiceEvent},
@@ -81,10 +82,11 @@ pub enum AudioServiceInput {
     Quit, // TODO
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum AudioServiceEvent {
-    /// The audio interface changed, and sample rate etc. might have changed.
-    Changed,
+    /// The audio interface changed. Sample rate etc. might have changed.
+    Changed(Arc<ArrayQueue<StereoSample>>),
+    NeedsAudio(usize),
 }
 
 /// [AudioService] manages the audio interface.
@@ -97,46 +99,33 @@ pub struct AudioService {
 }
 impl AudioService {
     /// Construct a new [AudioService].
-    pub fn new_with(needs_audio_fn: NeedsAudioFn) -> Self {
+    pub fn new_with() -> Self {
         let r = Self::default();
-        r.spawn_thread(
-            needs_audio_fn,
-            AudioStreamService::default().receiver().clone(),
-        );
+        r.spawn_thread(AudioStreamService::default().receiver().clone());
 
         r
     }
 
-    fn spawn_thread(
-        &self,
-        mut needs_audio_fn: NeedsAudioFn,
-        receiver: Receiver<AudioStreamServiceEvent>,
-    ) {
+    fn spawn_thread(&self, receiver: Receiver<AudioStreamServiceEvent>) {
         let config = Arc::clone(&self.config);
         let sender = self.event_channels.sender.clone();
-        std::thread::spawn(move || {
-            let mut queue_opt = None;
-            loop {
-                if let Ok(event) = receiver.recv() {
-                    match event {
-                        AudioStreamServiceEvent::Reset(sample_rate, channel_count, queue) => {
-                            if let Ok(mut config) = config.lock() {
-                                *config = Some(AudioSettings::new_with(sample_rate, channel_count));
-                            }
-                            let _ = sender.send(AudioServiceEvent::Changed);
-                            queue_opt = Some(queue);
+        std::thread::spawn(move || loop {
+            if let Ok(event) = receiver.recv() {
+                match event {
+                    AudioStreamServiceEvent::Reset(sample_rate, channel_count, queue) => {
+                        if let Ok(mut config) = config.lock() {
+                            *config = Some(AudioSettings::new_with(sample_rate, channel_count));
                         }
-                        AudioStreamServiceEvent::NeedsAudio(_when, count) => {
-                            if let Some(queue) = queue_opt.as_ref() {
-                                (*needs_audio_fn)(queue, count);
-                            }
-                        }
-                        AudioStreamServiceEvent::Quit => todo!(),
+                        let _ = sender.send(AudioServiceEvent::Changed(queue));
                     }
-                } else {
-                    eprintln!("Unexpected failure of AudioInterfaceEvent channel");
-                    break;
+                    AudioStreamServiceEvent::NeedsAudio(_when, count) => {
+                        let _ = sender.send(AudioServiceEvent::NeedsAudio(count));
+                    }
+                    AudioStreamServiceEvent::Quit => todo!(),
                 }
+            } else {
+                eprintln!("Unexpected failure of AudioInterfaceEvent channel");
+                break;
             }
         });
     }
