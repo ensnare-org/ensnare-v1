@@ -12,7 +12,8 @@ use eframe::{
     egui::{
         CentralPanel, Context, Event, Layout, Modifiers, ScrollArea, SidePanel, TopBottomPanel,
     },
-    emath::Align,
+    emath::{Align, Align2},
+    epaint::Vec2,
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
@@ -500,6 +501,8 @@ impl Ensnare {
     fn show_settings_panel(&mut self, ctx: &Context) {
         eframe::egui::Window::new("Settings")
             .open(&mut self.rendering_state.is_settings_panel_open)
+            .auto_sized()
+            .anchor(Align2::CENTER_CENTER, Vec2::default())
             .show(ctx, |ui| self.settings.ui(ui));
     }
 
