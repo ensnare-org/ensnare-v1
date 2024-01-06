@@ -51,8 +51,8 @@ pub mod prelude {
         midi::prelude::*,
         time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
         types::{
-            BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio, Sample,
-            SampleType, SignalType, StereoSample,
+            Arrangement, BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio,
+            Sample, SampleType, SignalType, StereoSample,
         },
         uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
     };

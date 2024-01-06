@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike and Makeda Tsao. All rights reserved.
 
-use crate::{track::TrackWidgetAction, traits::Orchestrates};
+use crate::track::TrackWidgetAction;
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -16,7 +16,7 @@ use ensnare_core::{
 use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use ensnare_egui_widgets::ViewRange;
-use ensnare_entity::traits::Entity2;
+use ensnare_new_stuff::parts::Orchestrator;
 use std::{f32::consts::PI, sync::Arc};
 
 use super::{
@@ -32,9 +32,9 @@ pub struct TrackInfo<'a> {
 }
 
 /// Wraps an [NewTrackWidget] as a [Widget](eframe::egui::Widget).
-pub fn new_track_widget<'a, E: Entity2 + ?Sized>(
+pub fn new_track_widget<'a>(
     track_info: &'a TrackInfo<'a>,
-    orchestrates: &'a mut dyn Orchestrates<E>,
+    orchestrator: &'a mut Orchestrator,
     view_range: ViewRange,
     frontmost_uid: Option<Uid>,
     cursor: Option<MusicalTime>,
@@ -43,7 +43,7 @@ pub fn new_track_widget<'a, E: Entity2 + ?Sized>(
     move |ui: &mut eframe::egui::Ui| {
         NewTrackWidget::new(
             track_info,
-            orchestrates,
+            orchestrator,
             view_range,
             frontmost_uid,
             cursor,
@@ -55,22 +55,22 @@ pub fn new_track_widget<'a, E: Entity2 + ?Sized>(
 
 /// An egui component that draws a track.
 #[derive(Debug)]
-struct NewTrackWidget<'a, E: Entity2 + ?Sized> {
+struct NewTrackWidget<'a> {
     track_info: &'a TrackInfo<'a>,
-    orchestrates: &'a mut dyn Orchestrates<E>,
+    orchestrator: &'a mut Orchestrator,
     frontmost_uid: Option<Uid>,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
 
     action: &'a mut Option<TrackWidgetAction>,
 }
-impl<'a, E: Entity2 + ?Sized> NewTrackWidget<'a, E> {
+impl<'a> NewTrackWidget<'a> {
     const TIMELINE_HEIGHT: f32 = 64.0;
     const TRACK_HEIGHT: f32 = 96.0;
 
     pub fn new(
         track_info: &'a TrackInfo<'a>,
-        orchestrates: &'a mut dyn Orchestrates<E>,
+        orchestrator: &'a mut Orchestrator,
         view_range: ViewRange,
         frontmost_uid: Option<Uid>,
         cursor: Option<MusicalTime>,
@@ -78,7 +78,7 @@ impl<'a, E: Entity2 + ?Sized> NewTrackWidget<'a, E> {
     ) -> Self {
         Self {
             track_info,
-            orchestrates,
+            orchestrator,
             view_range,
             frontmost_uid,
             cursor,
@@ -97,7 +97,7 @@ impl<'a, E: Entity2 + ?Sized> NewTrackWidget<'a, E> {
         false
     }
 }
-impl<'a, E: Entity2 + ?Sized> Widget for NewTrackWidget<'a, E> {
+impl<'a> Widget for NewTrackWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let track_uid = self.track_info.track_uid;
 
@@ -165,8 +165,8 @@ impl<'a, E: Entity2 + ?Sized> Widget for NewTrackWidget<'a, E> {
                                 .inner;
 
                             // Get all the entities for this track.
-                            let entity_uids = if let Ok(entity_uids) =
-                                self.orchestrates.get_track_entities(&track_uid)
+                            let entity_uids = if let Some(entity_uids) =
+                                self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
                             {
                                 entity_uids.to_vec()
                             } else {
@@ -178,7 +178,9 @@ impl<'a, E: Entity2 + ?Sized> Widget for NewTrackWidget<'a, E> {
                                 .iter()
                                 .filter(|uid| Some(**uid) != self.frontmost_uid)
                                 .for_each(|uid| {
-                                    if let Some(entity) = self.orchestrates.get_entity_mut(uid) {
+                                    if let Some(entity) =
+                                        self.orchestrator.entity_repo.entity_mut(*uid)
+                                    {
                                         if entity.displays_in_timeline() {
                                             ui.add_enabled_ui(false, |ui| {
                                                 ui.allocate_ui_at_rect(rect, |ui| {
@@ -193,7 +195,7 @@ impl<'a, E: Entity2 + ?Sized> Widget for NewTrackWidget<'a, E> {
                             // Render the foreground timeline displayer, if there is one.
                             if let Some(frontmost_uid) = self.frontmost_uid {
                                 if let Some(entity) =
-                                    self.orchestrates.get_entity_mut(&frontmost_uid)
+                                    self.orchestrator.entity_repo.entity_mut(frontmost_uid)
                                 {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {

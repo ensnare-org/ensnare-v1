@@ -44,7 +44,7 @@ pub enum MidiInterfaceInput {
     Midi(MidiChannel, MidiMessage),
 
     /// The app is ready to quit, so the service should end.
-    QuitRequested,
+    Quit,
 
     /// Attempt to set the selected MIDI input by matching a text description.
     RestoreMidiInput(String),
@@ -124,7 +124,7 @@ impl MidiInterfaceService {
                         MidiInterfaceInput::SelectMidiOutput(which) => {
                             midi_interface.select_output(which)
                         }
-                        MidiInterfaceInput::QuitRequested => {
+                        MidiInterfaceInput::Quit => {
                             midi_interface.stop();
                             break;
                         }

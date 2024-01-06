@@ -19,6 +19,7 @@ ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
+ensnare-new-stuff = { path = "../new-stuff" }
 ensnare-proc-macros = { path = "../proc-macros" }
 hound = "3.5.0"
 rayon = "1.8.0"

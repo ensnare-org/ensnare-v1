@@ -9,7 +9,7 @@ use ensnare_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
     time::Instant,
 };
 
@@ -130,11 +130,14 @@ pub enum MidiPanelEvent {
     /// Outputs are sent by the interfaace to the PC.
     SelectOutput(MidiPortDescriptor),
 
-    /// The requested port refresh is complete.
-    PortsRefreshed,
+    /// Available input ports have been refreshed.
+    InputPortsRefreshed(Vec<MidiPortDescriptor>),
+
+    /// Available output ports have been refreshed.
+    OutputPortsRefreshed(Vec<MidiPortDescriptor>),
 }
 
-/// [MidiPanel] manages external MIDI hardware interfaces.
+/// [MidiService] manages external MIDI hardware interfaces.
 #[derive(Debug)]
 pub struct MidiService {
     sender: Sender<MidiInterfaceInput>, // for us to send to the interface
@@ -143,11 +146,11 @@ pub struct MidiService {
     inputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
     outputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
 
-    settings: Arc<Mutex<MidiSettings>>,
+    settings: Arc<RwLock<MidiSettings>>,
 }
 impl MidiService {
-    /// Creates a new [MidiPanel].
-    pub fn new_with(settings: Arc<Mutex<MidiSettings>>) -> Self {
+    /// Creates a new [MidiService].
+    pub fn new_with(settings: &Arc<RwLock<MidiSettings>>) -> Self {
         let midi_interface_service = MidiInterfaceService::default();
         let sender = midi_interface_service.sender().clone();
 
@@ -158,7 +161,7 @@ impl MidiService {
             inputs: Default::default(),
             outputs: Default::default(),
 
-            settings,
+            settings: Arc::clone(settings),
         };
         r.start_midi_interface(midi_interface_service.receiver().clone());
         r.conform_selections_to_settings();
@@ -168,7 +171,7 @@ impl MidiService {
     /// Sends a [MidiInterfaceInput] message to the service.
     pub fn send(&mut self, input: MidiInterfaceInput) {
         if let MidiInterfaceInput::Midi(..) = input {
-            if let Ok(mut settings) = self.settings.lock() {
+            if let Ok(mut settings) = self.settings.write() {
                 settings.last_output_instant = Instant::now();
             }
         }
@@ -183,56 +186,46 @@ impl MidiService {
         let outputs = Arc::clone(&self.outputs);
         let settings = Arc::clone(&self.settings);
         let app_sender = self.app_channel.sender.clone();
-        std::thread::spawn(move || {
-            let mut inputs_refreshed = false;
-            let mut outputs_refreshed = false;
-            let mut refresh_sent = false;
-            loop {
-                if let Ok(event) = receiver.recv() {
-                    match event {
-                        MidiInterfaceEvent::Ready => {}
-                        MidiInterfaceEvent::InputPorts(ports) => {
-                            if let Ok(mut inputs) = inputs.lock() {
-                                *inputs = ports.clone();
-                                inputs_refreshed = true;
-                            }
+        std::thread::spawn(move || loop {
+            if let Ok(event) = receiver.recv() {
+                match event {
+                    MidiInterfaceEvent::Ready => {}
+                    MidiInterfaceEvent::InputPorts(ports) => {
+                        if let Ok(mut inputs) = inputs.lock() {
+                            *inputs = ports.clone();
+                            let _ = app_sender.send(MidiPanelEvent::InputPortsRefreshed(ports));
                         }
-                        MidiInterfaceEvent::InputPortSelected(port) => {
-                            if let Ok(mut settings) = settings.lock() {
-                                settings.set_input(port);
-                            }
-                        }
-                        MidiInterfaceEvent::OutputPorts(ports) => {
-                            if let Ok(mut outputs) = outputs.lock() {
-                                *outputs = ports.clone();
-                                outputs_refreshed = true;
-                            }
-                        }
-                        MidiInterfaceEvent::OutputPortSelected(port) => {
-                            if let Ok(mut settings) = settings.lock() {
-                                settings.set_output(port);
-                            }
-                        }
-                        MidiInterfaceEvent::Midi(channel, message) => {
-                            if let Ok(mut settings) = settings.lock() {
-                                settings.last_input_instant =
-                                    MidiSettings::create_last_input_instant();
-                            }
-                            let _ = app_sender.send(MidiPanelEvent::Midi(channel, message));
-                        }
-                        MidiInterfaceEvent::MidiOut => {
-                            let _ = app_sender.send(MidiPanelEvent::MidiOut);
-                        }
-                        MidiInterfaceEvent::Quit => break,
                     }
-                } else {
-                    eprintln!("unexpected failure of MidiInterfaceEvent channel");
-                    break;
+                    MidiInterfaceEvent::InputPortSelected(port) => {
+                        if let Ok(mut settings) = settings.write() {
+                            settings.set_input(port);
+                        }
+                    }
+                    MidiInterfaceEvent::OutputPorts(ports) => {
+                        if let Ok(mut outputs) = outputs.lock() {
+                            *outputs = ports.clone();
+                            let _ = app_sender.send(MidiPanelEvent::OutputPortsRefreshed(ports));
+                        }
+                    }
+                    MidiInterfaceEvent::OutputPortSelected(port) => {
+                        if let Ok(mut settings) = settings.write() {
+                            settings.set_output(port);
+                        }
+                    }
+                    MidiInterfaceEvent::Midi(channel, message) => {
+                        if let Ok(mut settings) = settings.write() {
+                            settings.last_input_instant = MidiSettings::create_last_input_instant();
+                        }
+                        let _ = app_sender.send(MidiPanelEvent::Midi(channel, message));
+                    }
+                    MidiInterfaceEvent::MidiOut => {
+                        let _ = app_sender.send(MidiPanelEvent::MidiOut);
+                    }
+                    MidiInterfaceEvent::Quit => break,
                 }
-                if !refresh_sent && inputs_refreshed && outputs_refreshed {
-                    refresh_sent = true;
-                    let _ = app_sender.send(MidiPanelEvent::PortsRefreshed);
-                }
+            } else {
+                eprintln!("unexpected failure of MidiInterfaceEvent channel");
+                break;
             }
         });
     }
@@ -293,7 +286,7 @@ impl MidiService {
     /// When settings are loaded, we have to look at them and update the actual
     /// state to match.
     fn conform_selections_to_settings(&mut self) {
-        let (input, output) = if let Ok(settings) = self.settings.lock() {
+        let (input, output) = if let Ok(settings) = self.settings.read() {
             (
                 settings.selected_input.clone(),
                 settings.selected_output.clone(),

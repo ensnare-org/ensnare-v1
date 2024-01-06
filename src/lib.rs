@@ -202,18 +202,19 @@ pub mod services {
     //! manage the subsystem, which means that they implement
     //! [Displays](crate::traits::Displays).
 
+    pub use ensnare_services::{
+        AudioService, AudioServiceEvent, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
+        MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+    };
+
     /// `use ensnare::systems::prelude::*;` when working with services.
     pub mod prelude {
         pub use super::{
-            AudioPanelEvent, AudioService, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
-            MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
+            AudioService, AudioServiceEvent, AudioSettings, ControlBar, MidiPanelEvent,
+            MidiService, MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent,
+            ProjectServiceInput,
         };
     }
-
-    pub use ensnare_services::{
-        AudioPanelEvent, AudioService, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
-        MidiSettings, NeedsAudioFn, OrchestratorEvent, OrchestratorInput, OrchestratorService,
-    };
 }
 
 pub mod traits {
@@ -285,22 +286,27 @@ pub mod utils {
     }
 }
 
-pub use project::DiskProject;
+#[cfg(obsolete)]
+pub use old_project::DiskProject;
 pub use version::app_version;
 
 mod version;
 
 pub mod all_entities;
-pub mod project;
+
+#[cfg(obsolete)]
+pub mod old_project;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
+    #[cfg(obsolete)]
+    pub use super::old_project::prelude::*;
+
     pub use super::{
         arrangement::prelude::*, composition::prelude::*, control::prelude::*,
-        entities::prelude::*, generators::prelude::*, midi::prelude::*, project::prelude::*,
-        services::prelude::*, traits::prelude::*, types::prelude::*, ui::prelude::*,
-        utils::prelude::*,
+        entities::prelude::*, generators::prelude::*, midi::prelude::*, services::prelude::*,
+        traits::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
     };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_orchestration::prelude::*;

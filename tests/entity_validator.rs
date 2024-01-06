@@ -55,31 +55,33 @@ fn validate_configurable(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
 }
 
 fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
-    let mut is_something = false;
-    if let Some(e) = entity.as_controller_mut() {
-        is_something = true;
-        validate_controller(e);
-        validate_extreme_tempo_and_time_signature(key, e);
-    }
-    if let Some(e) = entity.as_instrument_mut() {
-        is_something = true;
-        validate_instrument(e);
-        validate_extreme_sample_rates(key, entity);
-    }
-    if let Some(e) = entity.as_effect_mut() {
-        is_something = true;
-        validate_effect(e);
-        validate_extreme_sample_rates(key, entity);
-    }
-    assert!(
-        is_something,
-        "Entity {key} is neither a controller, nor an instrument, nor an effect!"
-    );
+    // TODO: this is obsolete at the moment because we've decided that there
+    // aren't any entity types -- everyone implements everything, even if they
+    // don't actually do anything for a particular trait method.
+
+    // let mut is_something = false;
+    // if let Some(e) = entity.as_controller_mut() {
+    //     is_something = true;
+    //     validate_controller(e);
+    //     validate_extreme_tempo_and_time_signature(key, e);
+    // }
+    // if let Some(e) = entity.as_instrument_mut() {
+    //     is_something = true;
+    //     validate_instrument(e);
+    //     validate_extreme_sample_rates(key, entity);
+    // }
+    // if let Some(e) = entity.as_effect_mut() {
+    //     is_something = true;
+    //     validate_effect(e);
+    //     validate_extreme_sample_rates(key, entity);
+    // }
+    // assert!(
+    //     is_something,
+    //     "Entity {key} is neither a controller, nor an instrument, nor an effect!"
+    // );
 }
 
 fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
-    assert!(entity.as_instrument().is_some() || entity.as_effect().is_some());
-
     entity.update_sample_rate(SampleRate(1));
     exercise_instrument_or_effect(key, entity);
     entity.update_sample_rate(SampleRate(7));
@@ -96,16 +98,14 @@ fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn EntityBou
 // blow up with weird sample rates.
 fn exercise_instrument_or_effect(_key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     let mut buffer = [StereoSample::SILENCE; 64];
-    if let Some(e) = entity.as_instrument_mut() {
-        e.generate_batch_values(&mut buffer);
-        buffer.iter_mut().for_each(|s| {
-            e.tick(1);
-            *s = e.value();
-        });
-    }
-    if let Some(e) = entity.as_effect_mut() {
-        buffer.iter_mut().for_each(|s| *s = e.transform_audio(*s));
-    }
+    entity.generate_batch_values(&mut buffer);
+    buffer.iter_mut().for_each(|s| {
+        entity.tick(1);
+        *s = entity.value();
+    });
+    buffer
+        .iter_mut()
+        .for_each(|s| *s = entity.transform_audio(*s));
 }
 
 fn validate_extreme_tempo_and_time_signature(_key: &EntityKey, _e: &mut dyn IsController) {}

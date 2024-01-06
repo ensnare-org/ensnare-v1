@@ -97,8 +97,6 @@ fn demo_automation() {
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap()
-                .as_controllable()
-                .unwrap()
                 .control_index_for_name("dca-pan")
                 .unwrap()
         };
@@ -176,11 +174,7 @@ fn demo_control_trips() {
         let entity = factory
             .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
             .unwrap();
-        let pan_param_index = entity
-            .as_controllable()
-            .unwrap()
-            .control_index_for_name("dca-pan")
-            .unwrap();
+        let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
         let synth_uid = orchestrator
             .assign_uid_and_add_entity(&track_uid, entity)
             .unwrap();

@@ -106,11 +106,7 @@ fn demo_sidechaining() {
         let entity = factory
             .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
             .unwrap();
-        let gain_ceiling_param_index = entity
-            .as_controllable()
-            .unwrap()
-            .control_index_for_name("ceiling")
-            .unwrap();
+        let gain_ceiling_param_index = entity.control_index_for_name("ceiling").unwrap();
         let gain_uid = orchestrator
             .assign_uid_and_add_entity(&lead_track_uid, entity)
             .unwrap();

@@ -23,12 +23,12 @@ pub mod tests {
     // TODO: this is copied from ensnare_core::entities::factory
     pub fn check_entity_factory(factory: EntityFactory<dyn EntityBounds>) {
         assert!(factory
-            .new_entity(&EntityKey::from(".9-#$%)@#)"), Uid::default())
+            .new_entity(EntityKey::from(".9-#$%)@#)"), Uid::default())
             .is_none());
 
         for (uid, key) in factory.keys().iter().enumerate() {
             let uid = Uid(uid + 1000);
-            let e = factory.new_entity(key, uid);
+            let e = factory.new_entity(key.clone(), uid);
             assert!(e.is_some());
             if let Some(e) = e {
                 assert!(!e.name().is_empty());

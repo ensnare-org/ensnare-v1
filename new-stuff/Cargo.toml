@@ -1,0 +1,32 @@
+[package]
+name = "ensnare-new-stuff"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+crossbeam-channel = "0.5.8"
+delegate = "0.10.0"
+derive_more = "0.99.17"
+eframe = "0.24"
+egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
+egui_extras = { version = "0.24", features = ["all_loaders"] }
+ensnare-core = { path = "../core" }
+ensnare-cores = { path = "../cores" }
+# ensnare-drag-drop = { path = "drag-drop" }
+# ensnare-cores-egui = { path = "cores-egui" }
+# ensnare-egui-widgets = { path = "egui-widgets" }
+ensnare-entity = { path = "../entity" }
+# ensnare-entities = { path = "entities", features = ["factory"] }
+# ensnare-entities-toy = { path = "entities-toy" }
+# ensnare-orchestration = { path = "orchestration" }
+# ensnare-proc-macros = { path = "proc-macros" }
+# ensnare-services = { path = "services" }
+env_logger = "0.10"
+hound = "3.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+strum_macros = "0.25.2"
+thiserror = "1.0.50"

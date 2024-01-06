@@ -1,60 +1,41 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{LivePatternSequencer, LivePatternSequencerParams};
+use crate::{Composer, LivePatternSequencer};
 use delegate::delegate;
-use ensnare_core::{
-    piano_roll::{PatternUid, PianoRoll},
-    prelude::*,
-    sequence_repository::{Sequence, SequenceRepository},
-    traits::Sequences,
-};
+use ensnare_core::{piano_roll::PatternUid, prelude::*, traits::Sequences};
 use ensnare_proc_macros::{InnerConfigurable, InnerHandlesMidi, InnerSerializable, Params};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Default, Params, InnerConfigurable, InnerHandlesMidi, InnerSerializable)]
 pub struct ThinSequencer {
-    repository: Arc<RwLock<SequenceRepository>>,
+    composer: Arc<RwLock<Composer>>,
     repo_serial: usize,
     pub inner: LivePatternSequencer,
     track_uid: TrackUid,
     is_refreshed: bool,
 }
 impl ThinSequencer {
-    pub fn new_with(
-        _params: &ThinSequencerParams,
-        track_uid: TrackUid,
-        repository: &Arc<RwLock<SequenceRepository>>,
-        piano_roll: &Arc<RwLock<PianoRoll>>,
-    ) -> Self {
+    pub fn new_with(track_uid: TrackUid, composer: &Arc<RwLock<Composer>>) -> Self {
         Self {
-            repository: Arc::clone(repository),
-            inner: LivePatternSequencer::new_with(
-                &LivePatternSequencerParams::default(),
-                piano_roll,
-            ),
+            composer: Arc::clone(composer),
+            inner: LivePatternSequencer::new_with(composer),
             track_uid,
             ..Default::default()
         }
     }
 
     fn rebuild_sequencer(&mut self) {
-        let repository = self.repository.read().unwrap();
+        let composer = self.composer.read().unwrap();
         self.inner.clear();
 
-        if let Some(sequence_uids) = repository.track_to_sequence_uids.get(&self.track_uid) {
-            sequence_uids.iter().for_each(|sequence_uid| {
-                if let Some((_, position, sequence)) = repository.sequences.get(sequence_uid) {
-                    match sequence.as_ref() {
-                        Sequence::Pattern(pattern_uid) => {
-                            let _ =
-                                self.inner
-                                    .record(MidiChannel::default(), pattern_uid, *position);
-                        }
-                        Sequence::Note(_notes) => {
-                            todo!("Design issue: must every sequencer handle all Sequence types?")
-                        }
-                    }
-                }
+        // Run through all the arrangements for this track.
+        if let Some(arrangements) = composer.arrangements.get(&self.track_uid) {
+            arrangements.iter().for_each(|arrangement| {
+                let _ = self.inner.record(
+                    MidiChannel::default(),
+                    &arrangement.pattern_uid,
+                    arrangement.position,
+                );
             });
         }
     }
@@ -62,7 +43,7 @@ impl ThinSequencer {
     // TODO: for Displays as well
     fn check_repo_for_changes(&mut self) {
         if self
-            .repository
+            .composer
             .read()
             .unwrap()
             .has_changed(&mut self.repo_serial)

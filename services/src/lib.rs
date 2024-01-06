@@ -2,18 +2,19 @@
 
 //! Ensnare services
 
-pub use audio::{AudioPanelEvent, AudioService, AudioSettings, NeedsAudioFn};
+pub use audio::{AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, NeedsAudioFn};
 pub use control_bar::ControlBar;
 pub use egui::*;
 pub use midi::{MidiPanelEvent, MidiService, MidiSettings};
-pub use orchestrator::{OrchestratorEvent, OrchestratorInput, OrchestratorService};
+pub use project::{ProjectService, ProjectServiceEvent, ProjectServiceInput};
 
 mod audio;
 mod control_bar;
 mod egui;
 mod midi;
 mod orchestrator;
+mod project;
 
 pub mod prelude {
-    pub use crate::orchestrator::{OrchestratorEvent, OrchestratorInput, OrchestratorService};
+    pub use super::{ProjectService, ProjectServiceEvent, ProjectServiceInput};
 }

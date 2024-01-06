@@ -1,6 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::midi::{u7, MidiNote};
+use crate::{
+    midi::{u7, MidiNote},
+    piano_roll::PatternUid,
+    time::MusicalTime,
+};
 use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
@@ -760,6 +764,12 @@ impl From<&str> for TrackTitle {
     fn from(value: &str) -> Self {
         Self(value.to_string())
     }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Arrangement {
+    pub pattern_uid: PatternUid,
+    pub position: MusicalTime,
 }
 
 #[cfg(test)]

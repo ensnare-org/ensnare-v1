@@ -3,16 +3,13 @@
 use anyhow::anyhow;
 use eframe::egui::Id;
 use ensnare::{
-    all_entities::{EntityParams, EntityWrapper},
     arrangement::{DescribesProject, Orchestrates, Orchestrator},
     composition::{Sequence, SequenceRepository},
     control::ControlTripParams,
     cores::ThinSequencerParams,
     entities::controllers::{ControlTrip, LivePatternSequencer},
     prelude::*,
-    project::{EntityInfo, PatternInfo, ProjectTitle, TrackEntities, TrackInfo},
     ui::widgets::piano_roll,
-    DiskProject,
 };
 use ensnare_core::sequence_repository::ArrangementInfo;
 use ensnare_entities::{

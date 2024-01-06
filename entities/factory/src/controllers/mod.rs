@@ -4,16 +4,14 @@ use crossbeam_channel::Sender;
 use delegate::delegate;
 use ensnare_core::{
     controllers::{ControlTripParams, TimerParams, TriggerParams},
-    piano_roll::{Pattern, PatternUid, PianoRoll},
+    piano_roll::{Pattern, PatternUid},
     prelude::*,
-    sequence_repository::SequenceRepository,
     time::MusicalTime,
     traits::{Controls, Sequences},
     uid::Uid,
 };
 use ensnare_cores::{
-    ArpeggiatorParams, LfoControllerParams, LivePatternSequencerParams,
-    SignalPassthroughControllerParams, ThinSequencerParams,
+    ArpeggiatorParams, Composer, LfoControllerParams, SignalPassthroughControllerParams,
 };
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
@@ -161,14 +159,10 @@ impl Sequences for LivePatternSequencer {
     }
 }
 impl LivePatternSequencer {
-    pub fn new_with(
-        uid: Uid,
-        params: &LivePatternSequencerParams,
-        piano_roll: &Arc<RwLock<PianoRoll>>,
-    ) -> Self {
+    pub fn new_with(uid: Uid, composer: &Arc<RwLock<Composer>>) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::LivePatternSequencer::new_with(params, piano_roll),
+            inner: ensnare_cores::LivePatternSequencer::new_with(composer),
             view_range: Default::default(),
             channel: Default::default(),
         }
@@ -214,15 +208,6 @@ impl Controls for LivePatternSequencer {
 
     fn is_performing(&self) -> bool {
         self.inner.is_performing()
-    }
-}
-impl TryFrom<(Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>)> for LivePatternSequencer {
-    type Error = anyhow::Error;
-
-    fn try_from(
-        value: (Uid, &LivePatternSequencerParams, &Arc<RwLock<PianoRoll>>),
-    ) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1, value.2))
     }
 }
 
@@ -303,43 +288,12 @@ impl Sequences for ThinSequencer {
     }
 }
 impl ThinSequencer {
-    pub fn new_with(
-        uid: Uid,
-        params: &ThinSequencerParams,
-        track_uid: TrackUid,
-        repository: &Arc<RwLock<SequenceRepository>>,
-        piano_roll: &Arc<RwLock<PianoRoll>>,
-    ) -> Self {
+    pub fn new_with(uid: Uid, track_uid: TrackUid, composer: &Arc<RwLock<Composer>>) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::ThinSequencer::new_with(
-                params, track_uid, repository, piano_roll,
-            ),
+            inner: ensnare_cores::ThinSequencer::new_with(track_uid, composer),
             view_range: Default::default(),
         }
-    }
-}
-impl
-    TryFrom<(
-        Uid,
-        &ThinSequencerParams,
-        TrackUid,
-        &Arc<RwLock<SequenceRepository>>,
-        &Arc<RwLock<PianoRoll>>,
-    )> for ThinSequencer
-{
-    type Error = anyhow::Error;
-
-    fn try_from(
-        value: (
-            Uid,
-            &ThinSequencerParams,
-            TrackUid,
-            &Arc<RwLock<SequenceRepository>>,
-            &Arc<RwLock<PianoRoll>>,
-        ),
-    ) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1, value.2, value.3, value.4))
     }
 }
 

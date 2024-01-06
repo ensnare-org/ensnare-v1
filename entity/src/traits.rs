@@ -73,6 +73,7 @@ pub trait Entity2:
         false
     }
 }
+#[typetag::serde(tag = "type")]
 pub trait EntityBounds: Entity2 {}
 
 /// A [HasMetadata] has basic information about an [Entity]. Some methods apply

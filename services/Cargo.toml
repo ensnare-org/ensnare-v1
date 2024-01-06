@@ -17,6 +17,7 @@ ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
+ensnare-new-stuff = { path = "../new-stuff" }
 ensnare-orchestration = { path = "../orchestration" }
 serde = { version = "1.0", features = ["derive", "rc"] }
 strum_macros = "0.25.2"

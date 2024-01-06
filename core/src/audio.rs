@@ -4,15 +4,17 @@
 //! crossbeam channel.
 
 use super::{time::SampleRate, types::AudioQueue};
+use crate::types::ChannelPair;
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, Sample, SizedSample, Stream, SupportedStreamConfig,
 };
 use crossbeam::queue::ArrayQueue;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use std::{fmt::Debug, result::Result::Ok, sync::Arc, thread::JoinHandle, time::Instant};
+use crossbeam_channel::{Receiver, Sender};
+use std::{fmt::Debug, result::Result::Ok, sync::Arc, time::Instant};
 
-pub enum AudioInterfaceInput {
+#[derive(Debug)]
+pub enum AudioStreamServiceInput {
     SetBufferSize(usize),
     Play,
     Pause,
@@ -22,7 +24,7 @@ pub enum AudioInterfaceInput {
 }
 
 #[derive(Clone, Debug)]
-pub enum AudioInterfaceEvent {
+pub enum AudioStreamServiceEvent {
     /// Sample rate, channel count, queue for pushing audio samples
     Reset(SampleRate, u16, AudioQueue),
 
@@ -37,11 +39,8 @@ pub enum AudioInterfaceEvent {
 
 #[derive(Debug)]
 pub struct AudioStreamService {
-    input_sender: Sender<AudioInterfaceInput>,
-    event_receiver: Receiver<AudioInterfaceEvent>,
-
-    #[allow(dead_code)]
-    handler: JoinHandle<()>,
+    input_channels: ChannelPair<AudioStreamServiceInput>,
+    event_channels: ChannelPair<AudioStreamServiceEvent>,
 }
 impl Default for AudioStreamService {
     fn default() -> Self {
@@ -50,24 +49,37 @@ impl Default for AudioStreamService {
 }
 impl AudioStreamService {
     pub fn new() -> Self {
-        // Sends input from the app to the service.
-        let (input_sender, input_receiver) = unbounded();
+        let r = Self {
+            input_channels: Default::default(),
+            event_channels: Default::default(),
+        };
+        r.spawn_thread();
+        r
+    }
 
-        // Sends events from the service to the app.
-        let (event_sender, event_receiver) = unbounded();
+    pub fn sender(&self) -> &Sender<AudioStreamServiceInput> {
+        &self.input_channels.sender
+    }
 
-        let handler = std::thread::spawn(move || {
-            if let Ok(mut audio_stream) = AudioStream::create_default_stream(
-                AudioStream::REASONABLE_BUFFER_SIZE,
-                event_sender.clone(),
-            ) {
+    pub fn receiver(&self) -> &Receiver<AudioStreamServiceEvent> {
+        &self.event_channels.receiver
+    }
+
+    fn spawn_thread(&self) {
+        let receiver = self.input_channels.receiver.clone();
+        let sender = self.event_channels.sender.clone();
+
+        let _ = std::thread::spawn(move || {
+            if let Ok(mut audio_stream) =
+                AudioStream::create_default_stream(AudioStream::REASONABLE_BUFFER_SIZE, &sender)
+            {
                 loop {
-                    if let Ok(input) = input_receiver.recv() {
+                    if let Ok(input) = receiver.recv() {
                         match input {
-                            AudioInterfaceInput::SetBufferSize(_) => todo!(),
-                            AudioInterfaceInput::Play => audio_stream.play(),
-                            AudioInterfaceInput::Pause => audio_stream.pause(),
-                            AudioInterfaceInput::Quit => {
+                            AudioStreamServiceInput::SetBufferSize(_) => todo!(),
+                            AudioStreamServiceInput::Play => audio_stream.play(),
+                            AudioStreamServiceInput::Pause => audio_stream.pause(),
+                            AudioStreamServiceInput::Quit => {
                                 audio_stream.quit();
                                 break;
                             }
@@ -76,19 +88,6 @@ impl AudioStreamService {
                 }
             }
         });
-        Self {
-            input_sender,
-            event_receiver,
-            handler,
-        }
-    }
-
-    pub fn sender(&self) -> &Sender<AudioInterfaceInput> {
-        &self.input_sender
-    }
-
-    pub fn receiver(&self) -> &Receiver<AudioInterfaceEvent> {
-        &self.event_receiver
     }
 }
 
@@ -105,7 +104,7 @@ pub struct AudioStream {
 
     // The sending half of the channel that the audio stream uses to send
     // updates to the subscription.
-    sender: Sender<AudioInterfaceEvent>,
+    sender: Sender<AudioStreamServiceEvent>,
 }
 impl Debug for AudioStream {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -131,7 +130,7 @@ impl AudioStream {
 
     pub fn create_default_stream(
         buffer_size: usize,
-        audio_stream_event_sender: Sender<AudioInterfaceEvent>,
+        audio_stream_event_sender: &Sender<AudioStreamServiceEvent>,
     ) -> Result<Self, ()> {
         if let Ok((_host, device, config)) = Self::host_device_setup() {
             let queue = Arc::new(ArrayQueue::new(buffer_size));
@@ -145,7 +144,7 @@ impl AudioStream {
                     config,
                     stream,
                     queue,
-                    sender: audio_stream_event_sender,
+                    sender: audio_stream_event_sender.clone(),
                 };
                 r.send_reset();
                 Ok(r)
@@ -183,7 +182,7 @@ impl AudioStream {
 
     /// Gives the audio stream a chance to clean up before the thread exits.
     pub fn quit(&mut self) {
-        let _ = self.sender.send(AudioInterfaceEvent::Quit);
+        let _ = self.sender.send(AudioStreamServiceEvent::Quit);
     }
 
     /// Returns the default host, device, and stream config (all of which are
@@ -206,7 +205,7 @@ impl AudioStream {
         device: &cpal::Device,
         config: &SupportedStreamConfig,
         queue: &AudioQueue,
-        audio_stream_event_sender: Sender<AudioInterfaceEvent>,
+        audio_stream_event_sender: Sender<AudioStreamServiceEvent>,
     ) -> anyhow::Result<Stream, anyhow::Error> {
         let config = config.clone();
 
@@ -232,7 +231,7 @@ impl AudioStream {
         config: &cpal::StreamConfig,
         device: &cpal::Device,
         queue: &AudioQueue,
-        audio_stream_event_sender: Sender<AudioInterfaceEvent>,
+        audio_stream_event_sender: Sender<AudioStreamServiceEvent>,
     ) -> Result<Stream, anyhow::Error>
     where
         T: SizedSample + FromSample<f32>,
@@ -263,7 +262,7 @@ impl AudioStream {
         output: &mut [T],
         channel_count: usize,
         queue: &AudioQueue,
-        audio_stream_event_sender: Sender<AudioInterfaceEvent>,
+        audio_stream_event_sender: Sender<AudioStreamServiceEvent>,
     ) where
         T: Sample + FromSample<f32>,
     {
@@ -279,7 +278,7 @@ impl AudioStream {
         let capacity = queue.capacity();
         let len = queue.len();
         if len < capacity {
-            let _ = audio_stream_event_sender.send(AudioInterfaceEvent::NeedsAudio(
+            let _ = audio_stream_event_sender.send(AudioStreamServiceEvent::NeedsAudio(
                 Instant::now(),
                 capacity - len,
             ));
@@ -287,7 +286,7 @@ impl AudioStream {
     }
 
     fn send_reset(&self) {
-        let _ = self.sender.send(AudioInterfaceEvent::Reset(
+        let _ = self.sender.send(AudioStreamServiceEvent::Reset(
             self.sample_rate(),
             self.channel_count(),
             Arc::clone(&self.queue),

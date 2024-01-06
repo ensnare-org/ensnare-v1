@@ -18,6 +18,7 @@ use ensnare_core::{
 use ensnare_cores_egui::widgets::timeline::legend;
 use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::traits::EntityBounds;
+use ensnare_new_stuff::project::Project;
 use std::sync::Arc;
 
 pub trait DescribesProject: core::fmt::Debug {
@@ -26,26 +27,22 @@ pub trait DescribesProject: core::fmt::Debug {
 }
 
 /// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
-pub fn project_widget<'a, E: EntityBounds + ?Sized>(
-    project_metadata: &'a impl DescribesProject,
-    orchestrates: &'a mut impl Orchestrates<E>,
+pub fn project_widget<'a>(
+    project: &'a mut Project,
     view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        ProjectWidget::new(orchestrates, view_range, project_metadata, action).ui(ui)
-    }
+    move |ui: &mut eframe::egui::Ui| ProjectWidget::new(project, view_range, action).ui(ui)
 }
 
 /// An egui component that draws the main view of a project.
 #[derive(Debug)]
-struct ProjectWidget<'a, E: EntityBounds + ?Sized> {
-    orchestrates: &'a mut dyn Orchestrates<E>,
-    project_metadata: &'a dyn DescribesProject,
+struct ProjectWidget<'a> {
+    project: &'a mut Project,
     view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 }
-impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E> {
+impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         // The timeline needs to be aligned with the track content, so
         // we create an empty track title bar to match with the real
@@ -61,12 +58,13 @@ impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E>
         eframe::egui::ScrollArea::vertical()
             .id_source("orchestrator-scroller")
             .show(ui, |ui| {
-                let track_uids = self.orchestrates.track_uids().to_vec();
+                let track_uids = self.project.orchestrator.track_uids().to_vec();
                 for track_uid in track_uids {
-                    let track_title = self.project_metadata.track_title(&track_uid);
+                    let track_title = self.project.track_titles.get(&track_uid);
                     let frontmost_uid = self
-                        .project_metadata
-                        .track_frontmost_timeline_displayer(&track_uid);
+                        .project
+                        .track_to_frontmost_timeline_displayer
+                        .get(&track_uid).cloned();
                     let font_galley: Option<Arc<Galley>> = if let Some(track_title) = track_title {
                         Some(make_title_bar_galley(ui, track_title))
                     } else {
@@ -75,9 +73,17 @@ impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E>
 
                     // TODO: this feels cacheable.
                     let signal_items: Vec<SignalChainItem> = {
-                        if let Ok(entity_uids) = self.orchestrates.get_track_entities(&track_uid) {
+                        if let Some(entity_uids) = self
+                            .project
+                            .orchestrator
+                            .entity_repo
+                            .uids_for_track
+                            .get(&track_uid)
+                        {
                             entity_uids.iter().fold(Vec::default(), |mut v, uid| {
-                                if let Some(entity) = self.orchestrates.get_entity(uid) {
+                                if let Some(entity) =
+                                    self.project.orchestrator.entity_repo.entity(*uid)
+                                {
                                     if !entity.displays_in_timeline() {
                                         v.push((
                                             *uid,
@@ -100,14 +106,10 @@ impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E>
                         signal_items: &signal_items,
                         title_font_galley: font_galley,
                     };
-                    let cursor = if let Some(time_range) = self.orchestrates.time_range() {
-                        Some(time_range.0.start)
-                    } else {
-                        None
-                    };
+                    let cursor = Some(self.project.transport.current_time());
                     ui.add(new_track_widget(
                         &track_info,
-                        self.orchestrates,
+                        &mut self.project.orchestrator,
                         self.view_range.clone(),
                         frontmost_uid,
                         cursor,
@@ -128,17 +130,15 @@ impl<'a, E: EntityBounds + ?Sized> eframe::egui::Widget for ProjectWidget<'a, E>
         response
     }
 }
-impl<'a, E: EntityBounds + ?Sized> ProjectWidget<'a, E> {
+impl<'a> ProjectWidget<'a> {
     fn new(
-        orchestrates: &'a mut impl Orchestrates<E>,
+        project: &'a mut Project,
         view_range: &'a mut ViewRange,
-        project_metadata: &'a impl DescribesProject,
         action: &'a mut Option<ProjectAction>,
     ) -> Self {
         Self {
-            orchestrates,
+            project,
             view_range,
-            project_metadata,
             action,
         }
     }

@@ -567,3 +567,31 @@ This has been a big task punctuated by holidays. Rather than the Entity trait
 being a gateway to individual traits like IsEffect's TransformAudio, Entity2
 requires that everyone implement everything. Default null implementations reduce
 the boilerplate.
+
+Core things now need to know how to serde themselves. Once I figured out that
+the musical content should be serialized separately from the entity using it,
+that uncorked a bunch of blockage. Now entities can be free to serialize
+themselves, which mostly makes the Params concept obsolete, which removes the
+need for EntityParams tying Params to Entities and satisfying the EntityWrapper
+trait bound.
+
+Composition is still bedeviling me. It's most likely a YAGNI situation. The
+problem is that I want both of the following:
+
+1. An app using the ensnare crate can implement more entities, either by adding
+   them to the app, or by including more crates that implement entities.
+2. An entity doesn't have to implement functionality that is associated with
+   specific apps or frameworks such as egui.
+
+The approach for #1 is to define all the traits in the core crate, and then a
+factory that allows entity registration. This is pretty simple; it's what I have
+today.
+
+The approach for #2 depends on the exact problem definition.
+
+1. Entities know about all traits. Default implementations are provided. This
+   would probably mean that every crate needs to depend on every dependency
+   (egui for example).
+2. Entities know only about the core traits, and somewhere in between the entity
+   and the app, a new trait is defined and perhaps implemented. This means
+   entities depend only on the basics.

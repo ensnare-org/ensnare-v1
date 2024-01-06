@@ -234,7 +234,6 @@ pub(crate) fn parse_and_generate_entity2(input: TokenStream) -> TokenStream {
             }
             v
         });
-        top_level_trait_names.push(quote! {#entity_crate::traits::EntityBounds});
         let as_handles_midi_mut_impl = if skip_inner {
             quote! { self }
         } else {
@@ -249,6 +248,8 @@ pub(crate) fn parse_and_generate_entity2(input: TokenStream) -> TokenStream {
                     Some(#as_handles_midi_mut_impl)
                 }
             }
+            #[typetag::serde]
+            impl #generics #entity_crate::traits::EntityBounds for #struct_name #ty_generics {}
             #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
         };
         quote

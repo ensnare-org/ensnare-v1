@@ -1,10 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::Composer;
+
 use super::midi::MidiSequencer;
 use anyhow::anyhow;
 use derive_builder::Builder;
 use ensnare_core::{
-    piano_roll::{Pattern, PatternUid, PianoRoll},
+    piano_roll::{Pattern, PatternUid},
     prelude::*,
     traits::Sequences,
 };
@@ -137,7 +139,7 @@ pub struct LivePatternSequencer {
     arrangements: Vec<LivePatternArrangement>,
 
     pub inner: PatternSequencer,
-    piano_roll: Arc<RwLock<PianoRoll>>,
+    composer: Arc<RwLock<Composer>>,
 }
 impl Sequences for LivePatternSequencer {
     type MU = PatternUid;
@@ -148,8 +150,8 @@ impl Sequences for LivePatternSequencer {
         pattern_uid: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        let piano_roll = self.piano_roll.read().unwrap();
-        if let Some(pattern) = piano_roll.get_pattern(pattern_uid) {
+        let composer = self.composer.read().unwrap();
+        if let Some(pattern) = composer.pattern(pattern_uid) {
             let _ = self.inner.record(channel, &pattern, position);
             self.arrangements.push(LivePatternArrangement {
                 pattern_uid: *pattern_uid,
@@ -224,20 +226,17 @@ impl Configurable for LivePatternSequencer {}
 impl HandlesMidi for LivePatternSequencer {}
 impl LivePatternSequencer {
     #[allow(unused_variables)]
-    pub fn new_with(
-        params: &LivePatternSequencerParams,
-        piano_roll: &Arc<RwLock<PianoRoll>>,
-    ) -> Self {
+    pub fn new_with(composer: &Arc<RwLock<Composer>>) -> Self {
         Self {
-            piano_roll: Arc::clone(&piano_roll),
+            composer: Arc::clone(composer),
             ..Default::default()
         }
     }
 
     fn replay(&mut self) {
-        let piano_roll = self.piano_roll.read().unwrap();
+        let composer = self.composer.read().unwrap();
         self.arrangements.iter().for_each(|arrangement| {
-            if let Some(pattern) = piano_roll.get_pattern(&arrangement.pattern_uid) {
+            if let Some(pattern) = composer.pattern(&arrangement.pattern_uid) {
                 let _ = self
                     .inner
                     .record(MidiChannel::default(), pattern, arrangement.range.start);
@@ -269,11 +268,11 @@ mod tests {
 
     #[test]
     fn live_sequencer_can_find_patterns() {
-        let piano_roll = Arc::new(RwLock::new(PianoRoll::default()));
-        let pattern_uid = piano_roll
+        let composer = Arc::new(RwLock::new(Composer::default()));
+        let pattern_uid = composer
             .write()
             .unwrap()
-            .insert(
+            .add_pattern(
                 PatternBuilder::default()
                     .note(Note::new_with_midi_note(
                         MidiNote::C0,
@@ -297,11 +296,11 @@ mod tests {
                     ))
                     .build()
                     .unwrap(),
+                None,
             )
             .unwrap();
 
-        let mut s =
-            LivePatternSequencer::new_with(&LivePatternSequencerParams::default(), &piano_roll);
+        let mut s = LivePatternSequencer::new_with(&composer);
         let _ = s.record(
             MidiChannel::default(),
             &pattern_uid,

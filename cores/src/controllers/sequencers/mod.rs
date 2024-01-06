@@ -19,9 +19,9 @@ pub mod tests {
         midi::MidiSequencer,
         pattern::{LivePatternSequencer, PatternSequencer},
     };
-    use crate::LivePatternSequencerParams;
+    use crate::Composer;
     use ensnare_core::{
-        piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
+        piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
         prelude::*,
         traits::{Sequences, WorkEvent},
     };
@@ -165,20 +165,20 @@ pub mod tests {
 
     /// Validates the provided implementation of [Sequences] for a [Pattern].
     pub(crate) fn validate_sequences_live_patterns_trait(
-        piano_roll: Arc<RwLock<PianoRoll>>,
+        composer: Arc<RwLock<Composer>>,
         s: &mut dyn Sequences<MU = PatternUid>,
     ) {
         const SAMPLE_MIDI_CHANNEL: MidiChannel = MidiChannel(7);
 
-        let empty_pattern_uid = piano_roll
+        let empty_pattern_uid = composer
             .write()
             .unwrap()
-            .insert(PatternBuilder::default().build().unwrap())
+            .add_pattern(PatternBuilder::default().build().unwrap(), None)
             .unwrap();
-        let ordinary_pattern_uid = piano_roll
+        let ordinary_pattern_uid = composer
             .write()
             .unwrap()
-            .insert(
+            .add_pattern(
                 PatternBuilder::default()
                     .note(Note::new_with_midi_note(
                         MidiNote::C0,
@@ -202,6 +202,7 @@ pub mod tests {
                     ))
                     .build()
                     .unwrap(),
+                None,
             )
             .unwrap();
 
@@ -275,13 +276,10 @@ pub mod tests {
 
     #[test]
     fn live_pattern_sequencer_passes_trait_validation() {
-        let piano_roll = std::sync::Arc::new(std::sync::RwLock::new(
-            ensnare_core::piano_roll::PianoRoll::default(),
-        ));
-        let mut s =
-            LivePatternSequencer::new_with(&LivePatternSequencerParams::default(), &piano_roll);
+        let composer = std::sync::Arc::new(std::sync::RwLock::new(Composer::default()));
+        let mut s = LivePatternSequencer::new_with(&composer);
 
-        validate_sequences_live_patterns_trait(piano_roll, &mut s);
+        validate_sequences_live_patterns_trait(composer, &mut s);
     }
 
     fn replay_messages(

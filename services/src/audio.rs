@@ -2,7 +2,7 @@
 
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{
-    audio::{AudioInterfaceEvent, AudioInterfaceInput, AudioStreamService},
+    audio::{AudioStreamService, AudioStreamServiceEvent},
     prelude::*,
     types::AudioQueue,
 };
@@ -14,13 +14,6 @@ use std::{
 
 // TODO: when we get rid of legacy/, look through here and remove unneeded
 // pub(crate).
-
-/// The panel provides updates to the app through [AudioPanelEvent] messages.
-#[derive(Clone, Debug)]
-pub enum AudioPanelEvent {
-    /// The audio interface changed, and sample rate etc. might have changed.
-    InterfaceChanged,
-}
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "SampleRate")]
@@ -67,11 +60,11 @@ impl AudioSettings {
         }
     }
 
-    pub(crate) fn sample_rate(&self) -> SampleRate {
+    pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
 
-    pub(crate) fn channel_count(&self) -> u16 {
+    pub fn channel_count(&self) -> u16 {
         self.channel_count
     }
 }
@@ -83,60 +76,62 @@ impl<F> NeedsAudioFnT for F where F: FnMut(&AudioQueue, usize) + Sync + Send {}
 /// [StereoSample]s that the audio interface has requested.
 pub type NeedsAudioFn = Box<dyn NeedsAudioFnT>;
 
-/// [AudioService] manages the audio interface.
 #[derive(Debug)]
+pub enum AudioServiceInput {
+    Quit, // TODO
+}
+
+#[derive(Clone, Debug)]
+pub enum AudioServiceEvent {
+    /// The audio interface changed, and sample rate etc. might have changed.
+    Changed,
+}
+
+/// [AudioService] manages the audio interface.
+#[derive(Debug, Default)]
 pub struct AudioService {
-    #[allow(dead_code)]
-    sender: Sender<AudioInterfaceInput>,
-    app_receiver: Receiver<AudioPanelEvent>, // to give to the app to receive what we sent
-    app_sender: Sender<AudioPanelEvent>,     // for us to send to the app
+    input_channels: ChannelPair<AudioServiceInput>,
+    event_channels: ChannelPair<AudioServiceEvent>,
 
     config: Arc<Mutex<Option<AudioSettings>>>,
 }
 impl AudioService {
     /// Construct a new [AudioService].
     pub fn new_with(needs_audio_fn: NeedsAudioFn) -> Self {
-        let audio_stream_service = AudioStreamService::default();
-        let sender = audio_stream_service.sender().clone();
-
-        let (app_sender, app_receiver) = crossbeam_channel::unbounded();
-
-        let r = Self {
-            sender,
-            app_sender,
-            app_receiver,
-            config: Default::default(),
-        };
-        r.start_audio_stream(needs_audio_fn, audio_stream_service.receiver().clone());
+        let r = Self::default();
+        r.spawn_thread(
+            needs_audio_fn,
+            AudioStreamService::default().receiver().clone(),
+        );
 
         r
     }
 
-    fn start_audio_stream(
+    fn spawn_thread(
         &self,
         mut needs_audio_fn: NeedsAudioFn,
-        receiver: Receiver<AudioInterfaceEvent>,
+        receiver: Receiver<AudioStreamServiceEvent>,
     ) {
         let config = Arc::clone(&self.config);
-        let app_sender = self.app_sender.clone();
+        let sender = self.event_channels.sender.clone();
         std::thread::spawn(move || {
             let mut queue_opt = None;
             loop {
                 if let Ok(event) = receiver.recv() {
                     match event {
-                        AudioInterfaceEvent::Reset(sample_rate, channel_count, queue) => {
+                        AudioStreamServiceEvent::Reset(sample_rate, channel_count, queue) => {
                             if let Ok(mut config) = config.lock() {
                                 *config = Some(AudioSettings::new_with(sample_rate, channel_count));
                             }
-                            let _ = app_sender.send(AudioPanelEvent::InterfaceChanged);
+                            let _ = sender.send(AudioServiceEvent::Changed);
                             queue_opt = Some(queue);
                         }
-                        AudioInterfaceEvent::NeedsAudio(_when, count) => {
+                        AudioStreamServiceEvent::NeedsAudio(_when, count) => {
                             if let Some(queue) = queue_opt.as_ref() {
                                 (*needs_audio_fn)(queue, count);
                             }
                         }
-                        AudioInterfaceEvent::Quit => todo!(),
+                        AudioStreamServiceEvent::Quit => todo!(),
                     }
                 } else {
                     eprintln!("Unexpected failure of AudioInterfaceEvent channel");
@@ -167,9 +162,14 @@ impl AudioService {
         0
     }
 
-    /// The receive side of the [AudioPanelEvent] channel
-    pub fn receiver(&self) -> &Receiver<AudioPanelEvent> {
-        &self.app_receiver
+    /// The receiver side of the [AudioServiceEvent] channel
+    pub fn receiver(&self) -> &Receiver<AudioServiceEvent> {
+        &self.event_channels.receiver
+    }
+
+    /// The sender side of the [AudioServiceInput] channel
+    pub fn sender(&self) -> &Sender<AudioServiceInput> {
+        &self.input_channels.sender
     }
 
     /// Cleans up the audio service for quitting.

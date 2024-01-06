@@ -29,6 +29,7 @@ ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entity = { path = "entity" }
 ensnare-entities = { path = "entities", features = ["factory"] }
 ensnare-entities-toy = { path = "entities-toy" }
+ensnare-new-stuff = { path = "new-stuff" }
 ensnare-orchestration = { path = "orchestration" }
 ensnare-proc-macros = { path = "proc-macros" }
 ensnare-services = { path = "services" }
@@ -47,6 +48,7 @@ members = [
     "entities",
     "entities-toy",
     "entity",
+    "new-stuff",
     "orchestration",
     "proc-macros",
     "services",
