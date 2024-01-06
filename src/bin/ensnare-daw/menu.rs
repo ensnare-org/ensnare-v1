@@ -167,6 +167,7 @@ impl MenuBar {
         )]
     }
 
+    #[allow(dead_code)]
     pub(crate) fn set_is_any_track_selected(&mut self, is_any_track_selected: bool) {
         self.is_track_selected = is_any_track_selected;
     }

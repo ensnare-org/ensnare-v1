@@ -13,7 +13,7 @@ fn entity_validator_production_entities() {
 fn validate_factory_entities(factory: &EntityFactory<dyn EntityBounds>) {
     for (uid, key) in factory.keys().iter().enumerate() {
         let uid = Uid(1000 + uid);
-        if let Some(mut entity) = factory.new_entity(key, uid) {
+        if let Some(mut entity) = factory.new_entity(key.clone(), uid) {
             validate_entity(key, &mut entity);
         } else {
             panic!("Couldn't create entity with {key}, but EntityFactory said it existed!");

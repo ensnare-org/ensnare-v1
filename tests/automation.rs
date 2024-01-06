@@ -66,7 +66,7 @@ fn demo_automation() {
             .assign_uid_and_add_entity(
                 &track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();
@@ -95,7 +95,7 @@ fn demo_automation() {
             // way to query param names, but I'm not sure how often that will
             // happen.
             factory
-                .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap()
                 .control_index_for_name("dca-pan")
                 .unwrap()
@@ -172,7 +172,7 @@ fn demo_control_trips() {
         // Add a synth to play the pattern. Figure how out to identify the
         // parameter we want to control.
         let entity = factory
-            .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+            .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
             .unwrap();
         let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
         let synth_uid = orchestrator

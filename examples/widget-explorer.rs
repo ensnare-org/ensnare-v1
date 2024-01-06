@@ -408,7 +408,7 @@ impl Default for ToySynthSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy_synth: ToySynth::new_with(Uid::default(), &ToySynthParams::default()),
+            toy_synth: ToySynth::new_with(Uid::default()),
         }
     }
 }
@@ -464,7 +464,7 @@ impl Default for ToyEffectSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyEffect::new_with(Uid::default(), &ToyEffectParams::default()),
+            toy: ToyEffect::new_with(Uid::default()),
         }
     }
 }
@@ -492,7 +492,7 @@ impl Default for ToyInstrumentSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyInstrument::new_with(Uid::default(), &ToyInstrumentParams::default()),
+            toy: ToyInstrument::new_with(Uid::default()),
         }
     }
 }

@@ -59,7 +59,7 @@ pub(super) struct Ensnare {
     project_sender: Sender<ProjectServiceInput>,
 
     // A non-owning ref to the project. (ProjectService is the owner.)
-    project: Arc<RwLock<Project>>,
+    project: Option<Arc<RwLock<Project>>>,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
@@ -123,7 +123,7 @@ impl Ensnare {
             audio_sender: audio_service.sender().clone(),
             midi_sender: midi_service.sender().clone(),
             project_sender: project_service.sender().clone(),
-            project: Arc::clone(project_service.project()),
+            project: Default::default(),
             menu_bar: MenuBar::new_with(&factory),
             factory,
             settings,
@@ -231,6 +231,52 @@ impl Ensnare {
                         }
                         ProjectServiceEvent::Quit => {
                             // Nothing to do
+                        }
+                        ProjectServiceEvent::Loaded(new_project) => {
+                            if let Ok(project) = new_project.read() {
+                                let title = project.title.clone();
+
+                                // TODO: this duplicates TitleChanged. Should
+                                // the service be in charge of sending that
+                                // event after Loaded? Whose responsibility is it?
+                                ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(
+                                    title.to_string(),
+                                ));
+
+                                let load_path = if let Some(load_path) = project.load_path.as_ref()
+                                {
+                                    load_path.display().to_string()
+                                } else {
+                                    String::from("unknown")
+                                };
+                                self.toasts.add(Toast {
+                                    kind: egui_toast::ToastKind::Success,
+                                    text: format!("Loaded {} from {}", title, load_path).into(),
+                                    options: ToastOptions::default()
+                                        .duration_in_seconds(2.0)
+                                        .show_progress(false),
+                                });
+                            }
+                            self.project = Some(new_project);
+                        }
+                        ProjectServiceEvent::LoadFailed(e) => todo!("{e:?}"),
+                        ProjectServiceEvent::Saved(save_path) => {
+                            // TODO: this should happen only if the save operation was
+                            // explicit. Autosaves should be invisible.
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Success,
+                                text: format!("Saved to {}", save_path.display()).into(),
+                                options: ToastOptions::default()
+                                    .duration_in_seconds(1.0)
+                                    .show_progress(false),
+                            });
+                        }
+                        ProjectServiceEvent::SaveFailed(e) => {
+                            self.toasts.add(Toast {
+                                kind: egui_toast::ToastKind::Error,
+                                text: format!("Error saving {}", e).into(),
+                                options: ToastOptions::default().duration_in_seconds(5.0),
+                            });
                         }
                     },
                     // EnsnareEvent::OrchestratorEvent(event) => match event {
@@ -348,8 +394,13 @@ impl Ensnare {
 
         let mut control_bar_action = None;
         ui.horizontal_centered(|ui| {
-            if let Ok(mut project) = self.project.write() {
-                ui.add(transport(&mut project.transport));
+            if let Some(project) = self.project.as_mut() {
+                if let Ok(mut project) = project.write() {
+                    ui.add(transport(&mut project.transport));
+                }
+            } else {
+                // there might be some flicker here while we wait for the
+                // project to first come into existence
             }
             ui.add(control_bar_widget(
                 &mut self.control_bar,
@@ -370,7 +421,7 @@ impl Ensnare {
                 self.handle_project_new();
             }
             ControlBarAction::Open(path) => {
-                self.handle_project_load(Some(path));
+                self.handle_project_load(path);
             }
             ControlBarAction::Save(path) => {
                 self.handle_project_save(Some(path));
@@ -417,19 +468,21 @@ impl Ensnare {
             }
         }
         let mut action = None;
-        if let Ok(mut project) = self.project.write() {
-            project.ui_piano_roll(ui, &mut self.rendering_state.is_piano_roll_visible);
-            project.ui_detail(
-                ui,
-                self.rendering_state.detail_uid,
-                &self.rendering_state.detail_title,
-                &mut self.rendering_state.is_detail_open,
-            );
-            let _ = ui.add(project_widget(
-                &mut project,
-                &mut self.rendering_state.view_range,
-                &mut action,
-            ));
+        if let Some(project) = self.project.as_mut() {
+            if let Ok(mut project) = project.write() {
+                project.ui_piano_roll(ui, &mut self.rendering_state.is_piano_roll_visible);
+                project.ui_detail(
+                    ui,
+                    self.rendering_state.detail_uid,
+                    &self.rendering_state.detail_title,
+                    &mut self.rendering_state.is_detail_open,
+                );
+                let _ = ui.add(project_widget(
+                    &mut project,
+                    &mut self.rendering_state.view_range,
+                    &mut action,
+                ));
+            }
         }
         if let Some(action) = action {
             self.handle_action(action);
@@ -520,7 +573,7 @@ impl Ensnare {
                     self.handle_project_new();
                 }
                 MenuBarAction::ProjectOpen => {
-                    self.handle_project_load(Some(PathBuf::from("ensnare-project.json")));
+                    self.handle_project_load(PathBuf::from("ensnare-project.json"));
                 }
                 MenuBarAction::ProjectSave => {
                     self.handle_project_save(None);
@@ -546,11 +599,8 @@ impl Ensnare {
         self.send_to_project(ProjectServiceInput::Save(None));
     }
 
-    fn handle_project_load(&mut self, path: Option<PathBuf>) {
-        todo!()
-        // self.send_to_project(ProjectServiceInput::Open(PathBuf::from(
-        //     "ensnare-project.json",
-        // )));
+    fn handle_project_load(&mut self, path: PathBuf) {
+        self.send_to_project(ProjectServiceInput::Load(path));
     }
 
     fn check_drag_and_drop(&mut self) {
@@ -559,11 +609,10 @@ impl Ensnare {
                 DragSource::NewDevice(ref key) => match target {
                     DropTarget::Controllable(_, _) => todo!(),
                     DropTarget::Track(track_uid) => {
-                        self.project_sender
-                            .send(ProjectServiceInput::TrackAddEntity(
-                                track_uid,
-                                EntityKey::from(key),
-                            ));
+                        self.send_to_project(ProjectServiceInput::TrackAddEntity(
+                            track_uid,
+                            EntityKey::from(key),
+                        ));
                     }
                     DropTarget::TrackPosition(_, _) => {
                         eprintln!("DropTarget::TrackPosition not implemented - ignoring");

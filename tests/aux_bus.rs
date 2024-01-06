@@ -62,7 +62,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &track_uid_1,
                     factory
-                        .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                         .unwrap()
                 )
                 .is_ok());
@@ -70,7 +70,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &track_uid_1,
                     factory
-                        .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                         .unwrap(),
                 )
                 .unwrap()
@@ -91,7 +91,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &track_uid_2,
                     factory
-                        .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                         .unwrap()
                 )
                 .is_ok());
@@ -99,7 +99,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &track_uid_2,
                     factory
-                        .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                         .unwrap(),
                 )
                 .unwrap()
@@ -113,7 +113,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &aux_track_uid,
                     factory
-                        .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                         .unwrap(),
                 )
                 .unwrap();
@@ -121,7 +121,7 @@ fn aux_bus() {
                 .assign_uid_and_add_entity(
                     &aux_track_uid,
                     factory
-                        .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
+                        .new_entity(EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                         .unwrap(),
                 )
                 .unwrap()

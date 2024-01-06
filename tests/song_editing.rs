@@ -78,7 +78,7 @@ fn edit_song() {
             .assign_uid_and_add_entity(
                 &rhythm_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToyInstrument::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToyInstrument::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();
@@ -116,7 +116,7 @@ fn edit_song() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();
@@ -130,7 +130,7 @@ fn edit_song() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap()
             )
             .is_ok());
@@ -140,7 +140,7 @@ fn edit_song() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                     .unwrap()
             )
             .is_ok());
@@ -149,7 +149,7 @@ fn edit_song() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();

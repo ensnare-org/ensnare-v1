@@ -3,8 +3,7 @@
 //! The `render` example generates a WAV file from a serialized [DiskProject].
 
 use clap::Parser;
-use ensnare::prelude::*;
-use ensnare_entity::traits::EntityBounds;
+use ensnare_new_stuff::project::Project;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -25,30 +24,16 @@ struct Args {
     version: bool,
 }
 
-struct RenderProject {
-    title: ProjectTitle,
-    orchestrator: Orchestrator<dyn EntityBounds>,
-}
-impl From<DiskProject> for RenderProject {
-    fn from(project: DiskProject) -> Self {
-        Self {
-            title: project.title,
-            orchestrator: Orchestrator::new(), // TODO
-        }
-    }
-}
-
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     for input_filename in args.input {
         match std::fs::File::open(input_filename.clone()) {
-            Ok(f) => match serde_json::from_reader::<_, DiskProject>(std::io::BufReader::new(f)) {
-                Ok(project) => {
-                    let mut render_project: RenderProject = project.into();
+            Ok(f) => match serde_json::from_reader::<_, Project>(std::io::BufReader::new(f)) {
+                Ok(mut project) => {
                     eprintln!(
                         "Successfully read {} from {}",
-                        render_project.title, input_filename
+                        project.title, input_filename
                     );
                     if args.wav {
                         let re = regex::Regex::new(r"\.json$").unwrap();
@@ -57,14 +42,8 @@ fn main() -> anyhow::Result<()> {
                             panic!("would overwrite input file; couldn't generate output filename");
                         }
                         let output_path = std::path::PathBuf::from(output_filename.to_string());
-                        let mut helper = OrchestratorHelper::<dyn EntityBounds>::new_with(
-                            &mut render_project.orchestrator,
-                        );
-                        if let Err(e) = helper.write_to_file(&output_path) {
-                            eprintln!(
-                                "error while writing {input_filename} render to {}: {e:?}",
-                                output_path.display()
-                            );
+                        if let Err(e) = project.export_to_wav(output_path) {
+                            eprintln!("error while writing {input_filename} render to {output_filename}: {e:?}");
                             return Err(e);
                         }
                     }

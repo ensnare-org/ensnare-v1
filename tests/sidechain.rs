@@ -45,7 +45,7 @@ fn demo_sidechaining() {
             .assign_uid_and_add_entity(
                 &sidechain_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();
@@ -59,7 +59,7 @@ fn demo_sidechaining() {
                 &sidechain_track_uid,
                 factory
                     .new_entity(
-                        &EntityKey::from("signal-amplitude-inverted-passthrough"),
+                        EntityKey::from("signal-amplitude-inverted-passthrough"),
                         Uid::default(),
                     )
                     .unwrap(),
@@ -70,7 +70,7 @@ fn demo_sidechaining() {
             .assign_uid_and_add_entity(
                 &sidechain_track_uid,
                 factory
-                    .new_entity(&EntityKey::from("mute"), Uid::default())
+                    .new_entity(EntityKey::from("mute"), Uid::default())
                     .unwrap()
             )
             .is_ok());
@@ -95,7 +95,7 @@ fn demo_sidechaining() {
             .assign_uid_and_add_entity(
                 &lead_track_uid,
                 factory
-                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
             )
             .unwrap();
@@ -104,7 +104,7 @@ fn demo_sidechaining() {
             .is_ok());
 
         let entity = factory
-            .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+            .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
             .unwrap();
         let gain_ceiling_param_index = entity.control_index_for_name("ceiling").unwrap();
         let gain_uid = orchestrator

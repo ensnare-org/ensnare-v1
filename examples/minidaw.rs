@@ -26,6 +26,7 @@ use ensnare::{
 use ensnare_core::{types::TrackTitle, uid::TrackUid};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
+use ensnare_new_stuff::project::{Project, ProjectTitle};
 use ensnare_orchestration::{egui::entity_palette, DescribesProject};
 use ensnare_services::{control_bar_widget, ControlBarAction};
 use std::{
@@ -33,13 +34,13 @@ use std::{
     io::{Read, Write},
     ops::DerefMut,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 #[derive(Debug, Default)]
 struct Settings {
     audio_settings: AudioSettings,
-    midi_settings: Arc<Mutex<MidiSettings>>,
+    midi_settings: Arc<RwLock<MidiSettings>>,
 }
 impl Settings {
     const FILENAME: &'static str = "settings.json";
@@ -83,7 +84,7 @@ impl Settings {
 impl HasSettings for Settings {
     fn has_been_saved(&self) -> bool {
         let has_midi_been_saved = {
-            if let Ok(midi) = self.midi_settings.lock() {
+            if let Ok(midi) = self.midi_settings.read() {
                 midi.has_been_saved()
             } else {
                 true
@@ -98,7 +99,7 @@ impl HasSettings for Settings {
 
     fn mark_clean(&mut self) {
         self.audio_settings.mark_clean();
-        if let Ok(mut midi) = self.midi_settings.lock() {
+        if let Ok(mut midi) = self.midi_settings.write() {
             midi.mark_clean();
         }
     }
@@ -124,7 +125,7 @@ impl SettingsPanel {
         settings: Settings,
         orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
     ) -> Self {
-        let midi_panel = MidiService::new_with(Arc::clone(&settings.midi_settings));
+        let midi_panel = MidiService::new_with(&settings.midi_settings);
         let midi_panel_sender = midi_panel.sender().clone();
         let needs_audio_fn: NeedsAudioFn = {
             Box::new(move |audio_queue, samples_requested| {
@@ -189,7 +190,7 @@ impl Displays for SettingsPanel {
             ui.add(audio_settings(&mut self.settings.audio_settings))
         } | {
             ui.heading("MIDI");
-            let mut settings = self.settings.midi_settings.lock().unwrap();
+            let mut settings = self.settings.midi_settings.write().unwrap();
             ui.add(midi_settings(
                 &mut settings,
                 &self.midi_inputs,
@@ -378,14 +379,14 @@ impl MenuBar {
 
 struct MiniDaw {
     factory: Arc<EntityFactory<dyn EntityBounds>>,
-    orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
+    project_service: ProjectService,
+    project: Arc<RwLock<Project>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
     title: ProjectTitle,
     track_frontmost_uids: HashMap<TrackUid, Uid>,
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
-    orchestrator_panel: OrchestratorService<dyn EntityBounds>,
     settings_panel: SettingsPanel,
 
     view_range: ViewRange,
@@ -406,20 +407,17 @@ impl MiniDaw {
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let settings = Settings::load().unwrap_or_default();
-        let orchestrator = Arc::new(Mutex::new(Orchestrator::<dyn EntityBounds>::new()));
         let factory = Arc::new(factory);
-        let orchestrator_panel =
-            OrchestratorService::<dyn EntityBounds>::new_with(&orchestrator, &factory);
-        let orchestrator_for_settings_panel = Arc::clone(&orchestrator);
+        let project_service = ProjectService::new_with(&factory);
         let mut r = Self {
             factory: Arc::clone(&factory),
-            orchestrator,
+            project_service,
+            project: Arc::clone(project_service.project()),
             track_titles: Default::default(),
             title: Default::default(),
             track_frontmost_uids: Default::default(),
             menu_bar: MenuBar::new(&factory),
             control_bar: Default::default(),
-            orchestrator_panel,
             settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
 
             view_range: ViewRange(MusicalTime::START..(MusicalTime::DURATION_WHOLE * 4)),

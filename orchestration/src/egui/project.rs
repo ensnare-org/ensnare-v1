@@ -64,7 +64,8 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     let frontmost_uid = self
                         .project
                         .track_to_frontmost_timeline_displayer
-                        .get(&track_uid).cloned();
+                        .get(&track_uid)
+                        .cloned();
                     let font_galley: Option<Arc<Galley>> = if let Some(track_title) = track_title {
                         Some(make_title_bar_galley(ui, track_title))
                     } else {

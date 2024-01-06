@@ -242,7 +242,9 @@ impl EnsnareEntities {
 pub struct EnsnareEntities2 {}
 impl EnsnareEntities2 {
     /// Registers all the entities in this collection.
-    pub fn register(mut factory: EntityFactory<dyn EntityBounds>) -> EntityFactory<dyn EntityBounds> {
+    pub fn register(
+        mut factory: EntityFactory<dyn EntityBounds>,
+    ) -> EntityFactory<dyn EntityBounds> {
         // Controllers
         factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
             Box::new(Arpeggiator::new_with(uid, &ArpeggiatorParams::default()))

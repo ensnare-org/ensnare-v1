@@ -186,14 +186,14 @@ impl Project {
         self.composer.is_finished() && self.orchestrator.is_finished()
     }
 
-    pub fn export_to_wav(&mut self, path: PathBuf) {
+    pub fn export_to_wav(&mut self, path: PathBuf) -> anyhow::Result<()> {
         let spec = hound::WavSpec {
             channels: 2,
             sample_rate: self.sample_rate().into(),
             bits_per_sample: 16,
             sample_format: hound::SampleFormat::Int,
         };
-        let mut writer = hound::WavWriter::create(path, spec).unwrap();
+        let mut writer = hound::WavWriter::create(path, spec)?;
 
         self.play();
         while self.is_performing() {
@@ -205,6 +205,7 @@ impl Project {
                 let _ = writer.write_sample(right);
             }
         }
+        Ok(())
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
