@@ -2,9 +2,6 @@
 
 //! Ensnare is a library for generating digital audio.
 
-/// Wraps the [cpal] audio interface and makes it easy to address with a
-/// crossbeam channel.
-pub mod audio;
 /// Handles automation, or real-time automatic control of one entity's
 /// parameters by another entity's output.
 pub mod control;

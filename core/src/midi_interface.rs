@@ -87,6 +87,7 @@ pub enum MidiInterfaceEvent {
 
 /// [MidiInterfaceService] provides an interface to external MIDI hardware,
 /// thanks to the `midir` crate.
+#[derive(Debug)]
 pub struct MidiInterfaceService {
     input_sender: Sender<MidiInterfaceInput>,
     event_receiver: Receiver<MidiInterfaceEvent>,
@@ -112,35 +113,31 @@ impl MidiInterfaceService {
             let _ = midi_interface.start();
             let _ = event_sender.send(MidiInterfaceEvent::Ready);
 
-            loop {
-                if let Ok(input) = input_receiver.recv() {
-                    match input {
-                        MidiInterfaceInput::Midi(channel, message) => {
-                            midi_interface.handle_midi(channel, message);
-                        }
-                        MidiInterfaceInput::SelectMidiInput(which) => {
-                            midi_interface.select_input(which)
-                        }
-                        MidiInterfaceInput::SelectMidiOutput(which) => {
-                            midi_interface.select_output(which)
-                        }
-                        MidiInterfaceInput::Quit => {
-                            midi_interface.stop();
-                            break;
-                        }
-                        MidiInterfaceInput::RefreshPorts => midi_interface.refresh_ports(),
-                        MidiInterfaceInput::RestoreMidiInput(port_name) => {
-                            midi_interface.restore_input(port_name);
-                        }
-                        MidiInterfaceInput::RestoreMidiOutput(port_name) => {
-                            midi_interface.restore_output(port_name);
-                        }
+            while let Ok(input) = input_receiver.recv() {
+                match input {
+                    MidiInterfaceInput::Midi(channel, message) => {
+                        midi_interface.handle_midi(channel, message);
                     }
-                } else {
-                    eprintln!("MidiInterfaceService channel sender has hung up. Exiting...");
-                    break;
+                    MidiInterfaceInput::SelectMidiInput(which) => {
+                        midi_interface.select_input(which)
+                    }
+                    MidiInterfaceInput::SelectMidiOutput(which) => {
+                        midi_interface.select_output(which)
+                    }
+                    MidiInterfaceInput::Quit => {
+                        midi_interface.stop();
+                        return;
+                    }
+                    MidiInterfaceInput::RefreshPorts => midi_interface.refresh_ports(),
+                    MidiInterfaceInput::RestoreMidiInput(port_name) => {
+                        midi_interface.restore_input(port_name);
+                    }
+                    MidiInterfaceInput::RestoreMidiOutput(port_name) => {
+                        midi_interface.restore_output(port_name);
+                    }
                 }
             }
+            eprintln!("MidiInterfaceService exit");
         });
         Self {
             input_sender,

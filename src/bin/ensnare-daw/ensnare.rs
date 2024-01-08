@@ -3,7 +3,7 @@
 //! Main struct for Ensnare DAW application.
 
 use crate::{
-    events::{EnsnareEvent, EnsnareEventAggregationService},
+    events::{EnsnareEvent, EnsnareEventAggregationService, EnsnareInput},
     menu::{MenuBar, MenuBarAction},
     settings::Settings,
 };
@@ -18,6 +18,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
+use ensnare_entities::instruments::WelshSynth;
 use ensnare_new_stuff::project::Project;
 use std::{
     path::PathBuf,
@@ -99,14 +100,14 @@ impl Ensnare {
         //     Some(control_bar.sample_channel.sender.clone()),
         // );
         let mut r = Self {
-            aggregator: EnsnareEventAggregationService::new_with(
-                midi_service.receiver(),
-                audio_service.receiver(),
-                project_service.receiver(),
-            ),
             audio_sender: audio_service.sender().clone(),
             midi_sender: midi_service.sender().clone(),
             project_sender: project_service.sender().clone(),
+            aggregator: EnsnareEventAggregationService::new_with(
+                audio_service,
+                midi_service,
+                project_service,
+            ),
             project: Default::default(),
             menu_bar: MenuBar::new_with(&factory),
             factory,
@@ -123,6 +124,10 @@ impl Ensnare {
         };
         // TODO TEMP to make initial project more interesting
         r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
+        r.send_to_project(ProjectServiceInput::TrackAddEntity(
+            TrackUid(1),
+            EntityKey::from(WelshSynth::ENTITY_KEY),
+        ));
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r
@@ -170,160 +175,71 @@ impl Ensnare {
         });
     }
 
-    /// Processes all the aggregated events
-    fn handle_app_event_channel(&mut self, ctx: &eframe::egui::Context) {
+    /// Processes all the aggregated events.
+    fn handle_events(&mut self, ctx: &eframe::egui::Context) {
         // As long the channel has messages in it, we'll keep handling them. We
         // don't expect a giant number of messages; otherwise we'd worry about
         // blocking the UI.
-        loop {
-            if let Ok(m) = self.aggregator.receiver().try_recv() {
-                match m {
-                    EnsnareEvent::MidiPanelEvent(event) => {
-                        match event {
-                            MidiPanelEvent::Midi(..) => {
-                                // This was already forwarded to Orchestrator. Here we update the UI.
-                                self.control_bar.tickle_midi_in();
-                            }
-                            MidiPanelEvent::MidiOut => self.control_bar.tickle_midi_out(),
-                            MidiPanelEvent::SelectInput(_) => {
-                                // TODO: save selection in prefs
-                            }
-                            MidiPanelEvent::SelectOutput(_) => {
-                                // TODO: save selection in prefs
-                            }
-                            MidiPanelEvent::InputPortsRefreshed(ports) => {
-                                // TODO: remap any saved preferences to ports that we've found
-                                self.settings.handle_midi_input_port_refresh(&ports);
-                            }
-                            MidiPanelEvent::OutputPortsRefreshed(ports) => {
-                                // TODO: remap any saved preferences to ports that we've found
-                                self.settings.handle_midi_output_port_refresh(&ports);
-                            }
+        while let Ok(event) = self.aggregator.receiver().try_recv() {
+            match event {
+                EnsnareEvent::MidiPanelEvent(event) => {
+                    match event {
+                        MidiServiceEvent::Midi(..) => {
+                            // This was already forwarded to Orchestrator. Here we update the UI.
+                            self.control_bar.tickle_midi_in();
+                        }
+                        MidiServiceEvent::MidiOut => self.control_bar.tickle_midi_out(),
+                        MidiServiceEvent::SelectInput(_) => {
+                            // TODO: save selection in prefs
+                        }
+                        MidiServiceEvent::SelectOutput(_) => {
+                            // TODO: save selection in prefs
+                        }
+                        MidiServiceEvent::InputPortsRefreshed(ports) => {
+                            // TODO: remap any saved preferences to ports that we've found
+                            self.settings.handle_midi_input_port_refresh(&ports);
+                        }
+                        MidiServiceEvent::OutputPortsRefreshed(ports) => {
+                            // TODO: remap any saved preferences to ports that we've found
+                            self.settings.handle_midi_output_port_refresh(&ports);
                         }
                     }
-                    EnsnareEvent::AudioServiceEvent(event) => match event {
-                        AudioServiceEvent::Changed(queue) => {
-                            self.update_orchestrator_audio_interface_config();
-                            self.send_to_project(ProjectServiceInput::AudioQueue(queue));
-                        }
-                        AudioServiceEvent::NeedsAudio(count) => {
-                            self.send_to_project(ProjectServiceInput::NeedsAudio(count));
-                        }
-                    },
-                    EnsnareEvent::ProjectServiceEvent(event) => match event {
-                        ProjectServiceEvent::TitleChanged(title) => {
-                            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(title));
-                        }
-                        ProjectServiceEvent::IsPerformingChanged(is_performing) => {
-                            self.e.is_project_performing = is_performing;
-                        }
-                        ProjectServiceEvent::Quit => {
-                            // Nothing to do
-                        }
-                        ProjectServiceEvent::Loaded(new_project) => {
-                            if let Ok(project) = new_project.read() {
-                                let title = project.title.clone();
-
-                                // TODO: this duplicates TitleChanged. Should
-                                // the service be in charge of sending that
-                                // event after Loaded? Whose responsibility is it?
-                                ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(
-                                    title.to_string(),
-                                ));
-
-                                let load_path = if let Some(load_path) = project.load_path.as_ref()
-                                {
-                                    load_path.display().to_string()
-                                } else {
-                                    String::from("unknown")
-                                };
-                                self.toasts.add(Toast {
-                                    kind: egui_toast::ToastKind::Success,
-                                    text: format!("Loaded {} from {}", title, load_path).into(),
-                                    options: ToastOptions::default()
-                                        .duration_in_seconds(2.0)
-                                        .show_progress(false),
-                                });
-                            }
-                            self.project = Some(new_project);
-                        }
-                        ProjectServiceEvent::LoadFailed(e) => todo!("{e:?}"),
-                        ProjectServiceEvent::Saved(save_path) => {
-                            // TODO: this should happen only if the save operation was
-                            // explicit. Autosaves should be invisible.
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Success,
-                                text: format!("Saved to {}", save_path.display()).into(),
-                                options: ToastOptions::default()
-                                    .duration_in_seconds(1.0)
-                                    .show_progress(false),
-                            });
-                        }
-                        ProjectServiceEvent::SaveFailed(e) => {
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Error,
-                                text: format!("Error saving {}", e).into(),
-                                options: ToastOptions::default().duration_in_seconds(5.0),
-                            });
-                        }
-                    },
-                    // EnsnareEvent::OrchestratorEvent(event) => match event {
-                    //     OrchestratorEvent::Tempo(_tempo) => {
-                    //         // This is (usually) an acknowledgement that Orchestrator
-                    //         // got our request to change, so we don't need to do
-                    //         // anything.
-                    //     }
-                    //     OrchestratorEvent::Quit => {
-                    //         eprintln!("OrchestratorEvent::Quit")
-                    //     }
-                    //     OrchestratorEvent::Loaded(path, title) => {
-                    //         let title = title.unwrap_or(ProjectTitle::default().into());
-                    //         self.toasts.add(Toast {
-                    //             kind: egui_toast::ToastKind::Success,
-                    //             text: format!("Loaded {} from {}", title, path.display()).into(),
-                    //             options: ToastOptions::default()
-                    //                 .duration_in_seconds(2.0)
-                    //                 .show_progress(false),
-                    //         });
-                    //     }
-                    //     OrchestratorEvent::LoadError(path, error) => {
-                    //         self.toasts.add(Toast {
-                    //             kind: egui_toast::ToastKind::Error,
-                    //             text: format!("Error loading {}: {}", path.display(), error).into(),
-                    //             options: ToastOptions::default().duration_in_seconds(5.0),
-                    //         });
-                    //     }
-                    //     OrchestratorEvent::Saved(path) => {
-                    //         // TODO: this should happen only if the save operation was
-                    //         // explicit. Autosaves should be invisible.
-                    //         self.toasts.add(Toast {
-                    //             kind: egui_toast::ToastKind::Success,
-                    //             text: format!("Saved to {}", path.display()).into(),
-                    //             options: ToastOptions::default()
-                    //                 .duration_in_seconds(1.0)
-                    //                 .show_progress(false),
-                    //         });
-                    //     }
-                    //     OrchestratorEvent::SaveError(path, error) => {
-                    //         self.toasts.add(Toast {
-                    //             kind: egui_toast::ToastKind::Error,
-                    //             text: format!("Error saving {}: {}", path.display(), error).into(),
-                    //             options: ToastOptions::default().duration_in_seconds(5.0),
-                    //         });
-                    //     }
-                    //     OrchestratorEvent::New => {
-                    //         // No special UI needed for this.
-                    //     }
-                    // },
-                    EnsnareEvent::ProjectLoaded(result) => match result {
-                        Ok(project) => {
+                }
+                EnsnareEvent::AudioServiceEvent(event) => match event {
+                    AudioServiceEvent::Changed(queue) => {
+                        self.update_orchestrator_audio_interface_config();
+                        self.send_to_project(ProjectServiceInput::AudioQueue(queue));
+                    }
+                    AudioServiceEvent::NeedsAudio(count) => {
+                        self.send_to_project(ProjectServiceInput::NeedsAudio(count));
+                    }
+                },
+                EnsnareEvent::ProjectServiceEvent(event) => match event {
+                    ProjectServiceEvent::TitleChanged(title) => {
+                        ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(title));
+                    }
+                    ProjectServiceEvent::IsPerformingChanged(is_performing) => {
+                        self.e.is_project_performing = is_performing;
+                    }
+                    ProjectServiceEvent::Quit => {
+                        // Nothing to do
+                    }
+                    ProjectServiceEvent::Loaded(new_project) => {
+                        if let Ok(project) = new_project.read() {
                             let title = project.title.clone();
+
+                            // TODO: this duplicates TitleChanged. Should
+                            // the service be in charge of sending that
+                            // event after Loaded? Whose responsibility is it?
+                            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(
+                                title.to_string(),
+                            ));
+
                             let load_path = if let Some(load_path) = project.load_path.as_ref() {
                                 load_path.display().to_string()
                             } else {
                                 String::from("unknown")
                             };
-                            self.set_project(project);
                             self.toasts.add(Toast {
                                 kind: egui_toast::ToastKind::Success,
                                 text: format!("Loaded {} from {}", title, load_path).into(),
@@ -332,37 +248,78 @@ impl Ensnare {
                                     .show_progress(false),
                             });
                         }
-                        Err(err) => {
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Error,
-                                text: format!("Error loading {}", err).into(),
-                                options: ToastOptions::default().duration_in_seconds(5.0),
-                            });
-                        }
-                    },
-                    EnsnareEvent::ProjectSaved(result) => match result {
-                        Ok(save_path) => {
-                            // TODO: this should happen only if the save operation was
-                            // explicit. Autosaves should be invisible.
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Success,
-                                text: format!("Saved to {}", save_path.display()).into(),
-                                options: ToastOptions::default()
-                                    .duration_in_seconds(1.0)
-                                    .show_progress(false),
-                            });
-                        }
-                        Err(err) => {
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Error,
-                                text: format!("Error saving {}", err).into(),
-                                options: ToastOptions::default().duration_in_seconds(5.0),
-                            });
-                        }
-                    },
-                }
-            } else {
-                break;
+                        self.project = Some(new_project);
+                    }
+                    ProjectServiceEvent::LoadFailed(e) => todo!("{e:?}"),
+                    ProjectServiceEvent::Saved(save_path) => {
+                        // TODO: this should happen only if the save operation was
+                        // explicit. Autosaves should be invisible.
+                        self.toasts.add(Toast {
+                            kind: egui_toast::ToastKind::Success,
+                            text: format!("Saved to {}", save_path.display()).into(),
+                            options: ToastOptions::default()
+                                .duration_in_seconds(1.0)
+                                .show_progress(false),
+                        });
+                    }
+                    ProjectServiceEvent::SaveFailed(e) => {
+                        self.toasts.add(Toast {
+                            kind: egui_toast::ToastKind::Error,
+                            text: format!("Error saving {}", e).into(),
+                            options: ToastOptions::default().duration_in_seconds(5.0),
+                        });
+                    }
+                },
+                EnsnareEvent::Quit => {
+                    eprintln!("EnsnareEvent::Quit");
+                } // EnsnareEvent::OrchestratorEvent(event) => match event {
+                  //     OrchestratorEvent::Tempo(_tempo) => {
+                  //         // This is (usually) an acknowledgement that Orchestrator
+                  //         // got our request to change, so we don't need to do
+                  //         // anything.
+                  //     }
+                  //     OrchestratorEvent::Quit => {
+                  //         eprintln!("OrchestratorEvent::Quit")
+                  //     }
+                  //     OrchestratorEvent::Loaded(path, title) => {
+                  //         let title = title.unwrap_or(ProjectTitle::default().into());
+                  //         self.toasts.add(Toast {
+                  //             kind: egui_toast::ToastKind::Success,
+                  //             text: format!("Loaded {} from {}", title, path.display()).into(),
+                  //             options: ToastOptions::default()
+                  //                 .duration_in_seconds(2.0)
+                  //                 .show_progress(false),
+                  //         });
+                  //     }
+                  //     OrchestratorEvent::LoadError(path, error) => {
+                  //         self.toasts.add(Toast {
+                  //             kind: egui_toast::ToastKind::Error,
+                  //             text: format!("Error loading {}: {}", path.display(), error).into(),
+                  //             options: ToastOptions::default().duration_in_seconds(5.0),
+                  //         });
+                  //     }
+                  //     OrchestratorEvent::Saved(path) => {
+                  //         // TODO: this should happen only if the save operation was
+                  //         // explicit. Autosaves should be invisible.
+                  //         self.toasts.add(Toast {
+                  //             kind: egui_toast::ToastKind::Success,
+                  //             text: format!("Saved to {}", path.display()).into(),
+                  //             options: ToastOptions::default()
+                  //                 .duration_in_seconds(1.0)
+                  //                 .show_progress(false),
+                  //         });
+                  //     }
+                  //     OrchestratorEvent::SaveError(path, error) => {
+                  //         self.toasts.add(Toast {
+                  //             kind: egui_toast::ToastKind::Error,
+                  //             text: format!("Error saving {}: {}", path.display(), error).into(),
+                  //             options: ToastOptions::default().duration_in_seconds(5.0),
+                  //         });
+                  //     }
+                  //     OrchestratorEvent::New => {
+                  //         // No special UI needed for this.
+                  //     }
+                  // },
             }
         }
     }
@@ -652,7 +609,7 @@ impl Ensnare {
 }
 impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
-        self.handle_app_event_channel(ctx);
+        self.handle_events(ctx);
         self.handle_input_events(ctx);
         // self.orchestrator_service
         //     .set_control_only_down(self.modifiers.command_only());
@@ -702,8 +659,6 @@ impl App for Ensnare {
         if !self.settings.has_been_saved() {
             let _ = self.settings.save();
         }
-        self.send_to_audio(AudioServiceInput::Quit);
-        self.send_to_midi(MidiInterfaceInput::Quit);
-        self.send_to_project(ProjectServiceInput::Quit);
+        let _ = self.aggregator.sender().send(EnsnareInput::Quit);
     }
 }

@@ -60,11 +60,10 @@ egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
-ensnare-entities = { path = "entities", features = ["test"] }
+ensnare-entities = { path = "entities", features = ["factory", "test"] }
+regex = "1.7"
 strum = "0.25.0"
 typetag = "0.2.13"
-
-regex = "1.7"
 
 [[bin]]
 name = "ensnare-daw"

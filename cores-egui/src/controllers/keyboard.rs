@@ -8,13 +8,13 @@ use ensnare_core::prelude::*;
 pub struct KeyboardController {
     octave: u8,
 
-    keyboard_events: ChannelPair<Event>,
+    event_channels: ChannelPair<Event>,
 }
 impl Default for KeyboardController {
     fn default() -> Self {
         Self {
             octave: 5,
-            keyboard_events: Default::default(),
+            event_channels: Default::default(),
         }
     }
 }
@@ -28,7 +28,7 @@ impl Controls for KeyboardController {
     fn update_time_range(&mut self, range: &TimeRange) {}
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        while let Ok(event) = self.keyboard_events.receiver.try_recv() {
+        while let Ok(event) = self.event_channels.receiver.try_recv() {
             match event {
                 Event::Key {
                     key,
@@ -115,7 +115,7 @@ impl KeyboardController {
     }
 
     pub fn sender(&self) -> &Sender<Event> {
-        &self.keyboard_events.sender
+        &self.event_channels.sender
     }
 
     fn decrease_octave(&mut self) {

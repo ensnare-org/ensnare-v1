@@ -17,7 +17,7 @@ pub struct ControlBar {
     pub saw_midi_in_activity: bool,
     pub saw_midi_out_activity: bool,
     pub sample_buffer: CircularSampleBuffer,
-    pub sample_channel: ChannelPair<[Sample; 64]>,
+    pub sample_channels: ChannelPair<[Sample; 64]>,
     pub display_mode: ControlBarDisplayMode,
     pub fft_buffer: Vec<f32>,
 }

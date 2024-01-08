@@ -111,9 +111,9 @@ impl MidiSettings {
     }
 }
 
-/// The panel provides updates to the app through [MidiPanelEvent] messages.
+/// The panel provides updates to the app through [MidiServiceEvent] messages.
 #[derive(Clone, Debug)]
-pub enum MidiPanelEvent {
+pub enum MidiServiceEvent {
     /// A MIDI message arrived from the interface.
     Midi(MidiChannel, MidiMessage),
 
@@ -140,8 +140,10 @@ pub enum MidiPanelEvent {
 /// [MidiService] manages external MIDI hardware interfaces.
 #[derive(Debug)]
 pub struct MidiService {
-    sender: Sender<MidiInterfaceInput>, // for us to send to the interface
-    app_channel: ChannelPair<MidiPanelEvent>, // to tell the app what's happened.
+    midi_interface_service: MidiInterfaceService,
+
+    sender: Sender<MidiInterfaceInput>,
+    event_channels: ChannelPair<MidiServiceEvent>,
 
     inputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
     outputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
@@ -155,15 +157,17 @@ impl MidiService {
         let sender = midi_interface_service.sender().clone();
 
         let mut r = Self {
+            midi_interface_service,
+
             sender,
-            app_channel: Default::default(),
+            event_channels: Default::default(),
 
             inputs: Default::default(),
             outputs: Default::default(),
 
             settings: Arc::clone(settings),
         };
-        r.start_midi_interface(midi_interface_service.receiver().clone());
+        r.start_midi_interface();
         r.conform_selections_to_settings();
         r
     }
@@ -181,19 +185,20 @@ impl MidiService {
 
     // Sits in a loop, watching the receiving side of the event channel and
     // handling whatever comes through.
-    fn start_midi_interface(&self, receiver: Receiver<MidiInterfaceEvent>) {
+    fn start_midi_interface(&self) {
         let inputs = Arc::clone(&self.inputs);
         let outputs = Arc::clone(&self.outputs);
         let settings = Arc::clone(&self.settings);
-        let app_sender = self.app_channel.sender.clone();
-        std::thread::spawn(move || loop {
-            if let Ok(event) = receiver.recv() {
+        let app_sender = self.event_channels.sender.clone();
+        let receiver = self.midi_interface_service.receiver().clone();
+        std::thread::spawn(move || {
+            while let Ok(event) = receiver.recv() {
                 match event {
                     MidiInterfaceEvent::Ready => {}
                     MidiInterfaceEvent::InputPorts(ports) => {
                         if let Ok(mut inputs) = inputs.lock() {
                             *inputs = ports.clone();
-                            let _ = app_sender.send(MidiPanelEvent::InputPortsRefreshed(ports));
+                            let _ = app_sender.send(MidiServiceEvent::InputPortsRefreshed(ports));
                         }
                     }
                     MidiInterfaceEvent::InputPortSelected(port) => {
@@ -204,7 +209,7 @@ impl MidiService {
                     MidiInterfaceEvent::OutputPorts(ports) => {
                         if let Ok(mut outputs) = outputs.lock() {
                             *outputs = ports.clone();
-                            let _ = app_sender.send(MidiPanelEvent::OutputPortsRefreshed(ports));
+                            let _ = app_sender.send(MidiServiceEvent::OutputPortsRefreshed(ports));
                         }
                     }
                     MidiInterfaceEvent::OutputPortSelected(port) => {
@@ -216,17 +221,15 @@ impl MidiService {
                         if let Ok(mut settings) = settings.write() {
                             settings.last_input_instant = MidiSettings::create_last_input_instant();
                         }
-                        let _ = app_sender.send(MidiPanelEvent::Midi(channel, message));
+                        let _ = app_sender.send(MidiServiceEvent::Midi(channel, message));
                     }
                     MidiInterfaceEvent::MidiOut => {
-                        let _ = app_sender.send(MidiPanelEvent::MidiOut);
+                        let _ = app_sender.send(MidiServiceEvent::MidiOut);
                     }
-                    MidiInterfaceEvent::Quit => break,
+                    MidiInterfaceEvent::Quit => return,
                 }
-            } else {
-                eprintln!("unexpected failure of MidiInterfaceEvent channel");
-                break;
             }
+            eprintln!("MidiService exit");
         });
     }
 
@@ -246,9 +249,9 @@ impl MidiService {
             .sender
             .send(MidiInterfaceInput::SelectMidiInput(port.clone()));
         let _ = self
-            .app_channel
+            .event_channels
             .sender
-            .send(MidiPanelEvent::SelectInput(port.clone()));
+            .send(MidiServiceEvent::SelectInput(port.clone()));
     }
 
     /// Handles a change in selected MIDI output.
@@ -257,14 +260,14 @@ impl MidiService {
             .sender
             .send(MidiInterfaceInput::SelectMidiOutput(port.clone()));
         let _ = self
-            .app_channel
+            .event_channels
             .sender
-            .send(MidiPanelEvent::SelectOutput(port.clone()));
+            .send(MidiServiceEvent::SelectOutput(port.clone()));
     }
 
     /// The receive side of the [MidiPanelEvent] channel
-    pub fn receiver(&self) -> &Receiver<MidiPanelEvent> {
-        &self.app_channel.receiver
+    pub fn receiver(&self) -> &Receiver<MidiServiceEvent> {
+        &self.event_channels.receiver
     }
 
     /// Cleans up the MIDI service for quitting.
@@ -279,8 +282,8 @@ impl MidiService {
     }
 
     /// Allows sending to the [MidiPanelEvent] channel.
-    pub fn app_sender(&self) -> &Sender<MidiPanelEvent> {
-        &self.app_channel.sender
+    pub fn app_sender(&self) -> &Sender<MidiServiceEvent> {
+        &self.event_channels.sender
     }
 
     /// When settings are loaded, we have to look at them and update the actual

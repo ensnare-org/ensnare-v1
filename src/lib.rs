@@ -203,15 +203,17 @@ pub mod services {
     //! [Displays](crate::traits::Displays).
 
     pub use ensnare_services::{
-        AudioService, AudioServiceEvent, AudioSettings, ControlBar, MidiPanelEvent, MidiService,
-        MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+        AudioService, AudioServiceEvent, AudioSettings, AudioStreamService,
+        AudioStreamServiceEvent, AudioStreamServiceInput, ControlBar, MidiService,
+        MidiServiceEvent, MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent,
+        ProjectServiceInput,
     };
 
     /// `use ensnare::systems::prelude::*;` when working with services.
     pub mod prelude {
         pub use super::{
-            AudioService, AudioServiceEvent, AudioSettings, ControlBar, MidiPanelEvent,
-            MidiService, MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent,
+            AudioService, AudioServiceEvent, AudioSettings, ControlBar, MidiService,
+            MidiServiceEvent, MidiSettings, NeedsAudioFn, ProjectService, ProjectServiceEvent,
             ProjectServiceInput,
         };
     }
@@ -309,5 +311,6 @@ pub mod prelude {
         traits::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
     };
     pub use ensnare_cores_egui::prelude::*;
+    pub use ensnare_new_stuff::project::Project;
     pub use ensnare_orchestration::prelude::*;
 }

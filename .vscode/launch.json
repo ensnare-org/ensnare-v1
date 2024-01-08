@@ -10,19 +10,19 @@
             "name": "Launch Ensnare DAW",
             "cargo": {
                 "args": [
-                  "build",
-                  "--bin=ensnare-daw",
-                  "--package=ensnare",
-                  "--features=",
+                    "build",
+                    "--bin=ensnare-daw",
+                    "--package=ensnare",
+                    "--features=",
                 ],
                 "filter": {
-                  "name": "ensnare-daw",
-                  "kind": "bin"
+                    "name": "ensnare-daw",
+                    "kind": "bin"
                 }
-              },
-              "args": [],
-              "cwd": "${workspaceFolder}"
-                },
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
         {
             "type": "lldb",
             "request": "launch",
@@ -99,21 +99,21 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "MiniCLI example",
+            "name": "render example",
             "cargo": {
                 "args": [
                     "build",
-                    "--example=minicli",
+                    "--example=render",
                     "--package=ensnare",
                 ],
                 "filter": {
-                    "name": "minicli",
+                    "name": "render",
                     "kind": "example"
                 }
             },
             "args": [
                 "-w",
-                "minicli-work.json"
+                "simple.json"
             ],
             "cwd": "${workspaceFolder}"
         },

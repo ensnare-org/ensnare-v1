@@ -3,7 +3,8 @@
 //! The `render` example generates a WAV file from a serialized [DiskProject].
 
 use clap::Parser;
-use ensnare_new_stuff::project::Project;
+use ensnare::all_entities::EnsnareEntities2;
+use ensnare::prelude::*;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, about, long_about = None)]
@@ -35,6 +36,7 @@ fn main() -> anyhow::Result<()> {
                         "Successfully read {} from {}",
                         project.title, input_filename
                     );
+                    project.after_deser();
                     if args.wav {
                         let re = regex::Regex::new(r"\.json$").unwrap();
                         let output_filename = re.replace(&input_filename, ".wav");

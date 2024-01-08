@@ -114,12 +114,13 @@ impl Sampler {
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
+    InnerInstrument,
     IsEntity2,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
+#[entity2(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
     #[serde(skip)]

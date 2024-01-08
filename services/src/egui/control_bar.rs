@@ -137,7 +137,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             );
 
             // TODO: not on the UI thread!
-            while let Ok(samples) = self.control_bar.sample_channel.receiver.try_recv() {
+            while let Ok(samples) = self.control_bar.sample_channels.receiver.try_recv() {
                 self.control_bar.sample_buffer.push(&samples);
             }
 

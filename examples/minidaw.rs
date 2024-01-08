@@ -501,34 +501,30 @@ impl MiniDaw {
         // As long as any channel had a message in it, we'll keep handling them.
         // We don't expect a giant number of messages; otherwise we'd worry
         // about blocking the UI.
-        loop {
-            if !(self.handle_midi_panel_channel()
-                || self.handle_audio_panel_channel()
-                || self.handle_orchestrator_channel())
-            {
-                break;
-            }
-        }
+        while self.handle_midi_panel_channel()
+            || self.handle_audio_panel_channel()
+            || self.handle_orchestrator_channel()
+        {}
     }
 
     fn handle_midi_panel_channel(&mut self) -> bool {
         if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
             match m {
-                MidiPanelEvent::Midi(channel, message) => {
+                MidiServiceEvent::Midi(channel, message) => {
                     self.self
                         .orchestrator_panel
                         .send_to_service(OrchestratorInput::Midi(channel, message));
                 }
-                MidiPanelEvent::MidiOut => {
+                MidiServiceEvent::MidiOut => {
                     // a chance to indicate that outgoing MIDI data happened
                 }
-                MidiPanelEvent::SelectInput(_) => {
+                MidiServiceEvent::SelectInput(_) => {
                     // TODO: save selection in prefs
                 }
-                MidiPanelEvent::SelectOutput(_) => {
+                MidiServiceEvent::SelectOutput(_) => {
                     // TODO: save selection in prefs
                 }
-                MidiPanelEvent::PortsRefreshed => {
+                MidiServiceEvent::PortsRefreshed => {
                     // TODO: remap any saved preferences to ports that we've found
                     self.settings_panel.handle_midi_port_refresh();
                 }

@@ -11,7 +11,6 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
 app_dirs2 = "2.5"
-cpal = "0.15.2"
 crossbeam = "0.8.2"
 crossbeam-channel = "0.5.8"
 derive_builder = "0.12.0"

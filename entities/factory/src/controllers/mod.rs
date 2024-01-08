@@ -131,7 +131,7 @@ pub struct LivePatternSequencer {
     #[serde(skip)]
     inner: ensnare_cores::LivePatternSequencer,
     #[serde(skip)]
-    channel: ChannelPair<SequencerInput>,
+    input_channels: ChannelPair<SequencerInput>,
     #[serde(skip)]
     view_range: ViewRange,
 }
@@ -164,12 +164,12 @@ impl LivePatternSequencer {
             uid,
             inner: ensnare_cores::LivePatternSequencer::new_with(composer),
             view_range: Default::default(),
-            channel: Default::default(),
+            input_channels: Default::default(),
         }
     }
 
     pub fn sender(&self) -> &Sender<SequencerInput> {
-        &self.channel.sender
+        &self.input_channels.sender
     }
 }
 impl Controls for LivePatternSequencer {
@@ -178,7 +178,7 @@ impl Controls for LivePatternSequencer {
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        while let Ok(input) = self.channel.receiver.try_recv() {
+        while let Ok(input) = self.input_channels.receiver.try_recv() {
             match input {
                 SequencerInput::AddPattern(pattern_uid, position) => {
                     let _ = self

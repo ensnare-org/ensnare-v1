@@ -7,12 +7,14 @@ use crossbeam_channel::Sender;
 use ensnare::{
     arrangement::{Orchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
-    services::{AudioService, AudioSettings, MidiService, MidiSettings, NeedsAudioFn},
+    services::{
+        AudioService, AudioSettings, AudioStreamServiceInput, MidiService, MidiSettings,
+        NeedsAudioFn,
+    },
     traits::{Displays, HasSettings, WorkEvent},
     types::Sample,
     ui::widgets::{audio_settings, midi_settings},
 };
-use ensnare_core::audio::AudioStreamServiceInput;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
 use std::{

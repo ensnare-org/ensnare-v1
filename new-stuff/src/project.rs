@@ -4,7 +4,6 @@
 
 use crate::parts::{Automator, MidiRouter, Orchestrator};
 use anyhow::{anyhow, Result};
-use crossbeam::queue::ArrayQueue;
 use delegate::delegate;
 use eframe::egui::Id;
 use ensnare_core::{
@@ -12,7 +11,7 @@ use ensnare_core::{
     prelude::*,
     time::Transport,
     traits::ControlsAsProxy,
-    types::TrackTitle,
+    types::{AudioQueue, TrackTitle},
 };
 use ensnare_cores::Composer;
 use ensnare_entity::traits::EntityBounds;
@@ -65,7 +64,7 @@ pub struct Project {
     pub load_path: Option<PathBuf>,
 
     #[serde(skip)]
-    pub audio_queue: Option<Arc<ArrayQueue<StereoSample>>>,
+    pub audio_queue: Option<AudioQueue>,
 }
 impl Project {
     /// Starts with a default project and configures for easy first use.
@@ -86,7 +85,7 @@ impl Project {
     }
 
     pub fn temp_insert_16_random_patterns(&mut self) -> anyhow::Result<()> {
-        eprintln!("temp_insert_16_random_patterns()");
+        self.composer.insert_16_random_patterns();
         Ok(())
     }
 
@@ -108,10 +107,8 @@ impl Project {
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
         let track_uid = self.orchestrator.create_track(None)?;
-
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
-
         Ok(track_uid)
     }
 
@@ -174,16 +171,14 @@ impl Project {
     }
 
     fn generate_frames(&mut self, frames: &mut [StereoSample]) {
-        if self.transport.is_performing() {
-            let time_range = self.transport.advance(frames.len());
-            self.update_time_range(&time_range);
-            self.work(&mut |_| {});
-            self.is_finished = self.calculate_is_finished();
-            if self.is_finished {
-                self.stop();
-            }
-            self.generate_batch_values(frames);
+        let time_range = self.transport.advance(frames.len());
+        self.update_time_range(&time_range);
+        self.work(&mut |_| {});
+        self.is_finished = self.calculate_is_finished();
+        if self.is_finished {
+            self.stop();
         }
+        self.generate_batch_values(frames);
     }
 
     fn calculate_is_finished(&mut self) -> bool {
@@ -216,6 +211,7 @@ impl Project {
         let mut buffer = [StereoSample::SILENCE; 64];
         let buffer_len = buffer.len();
         let mut remaining = count;
+        let mut generated = 0;
 
         while remaining != 0 {
             let to_generate = if remaining >= buffer_len {
@@ -228,10 +224,12 @@ impl Project {
             if let Some(audio_queue) = self.audio_queue.as_ref() {
                 buffer_slice.iter().for_each(|s| {
                     let _ = audio_queue.push(*s);
+                    generated += 1;
                 });
             }
             remaining -= to_generate;
         }
+        eprintln!("fill_audio_queue {count} {generated}");
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
