@@ -2,12 +2,13 @@
 
 use crate::prelude::*;
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
-#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
 pub struct Dca {
     #[control]
     #[params]
