@@ -229,7 +229,6 @@ impl Project {
             }
             remaining -= to_generate;
         }
-        eprintln!("fill_audio_queue {count} {generated}");
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
