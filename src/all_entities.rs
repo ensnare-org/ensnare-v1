@@ -382,6 +382,11 @@ impl EnsnareEntities2 {
             Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))
         });
 
+        // Toys
+        factory.register_entity_with_str_key(ToyInstrument::ENTITY_KEY, |uid| {
+            Box::new(ToyInstrument::new_with(uid))
+        });
+
         factory
     }
 }

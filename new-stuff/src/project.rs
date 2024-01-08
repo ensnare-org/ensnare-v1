@@ -323,6 +323,12 @@ impl Project {
                 }
             });
     }
+
+    pub fn set_up_successor(&self, new_project: &mut Self) {
+        if let Some(audio_queue) = self.audio_queue.as_ref() {
+            new_project.audio_queue = Some(Arc::clone(audio_queue));
+        }
+    }
 }
 impl Generates<StereoSample> for Project {
     delegate! {

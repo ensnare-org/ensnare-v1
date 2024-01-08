@@ -71,7 +71,8 @@ impl ProjectService {
             while let Ok(input) = input_receiver.recv() {
                 match input {
                     ProjectServiceInput::Load(path) => match Project::load(path) {
-                        Ok(new_project) => {
+                        Ok(mut new_project) => {
+                            project.read().unwrap().set_up_successor(&mut new_project);
                             project = Arc::new(RwLock::new(new_project));
                             Self::notify_new_project(&event_sender, &project);
                         }
@@ -118,6 +119,8 @@ impl ProjectService {
                                 let _ = project.add_entity(track_uid, entity, Some(uid));
                                 let _ = project
                                     .set_midi_receiver_channel(uid, Some(MidiChannel::default()));
+                            } else {
+                                eprintln!("ProjectServiceInput::TrackAddEntity failed");
                             }
                         }
                     }

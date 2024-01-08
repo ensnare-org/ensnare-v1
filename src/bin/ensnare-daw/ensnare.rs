@@ -18,7 +18,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
-use ensnare_entities::instruments::WelshSynth;
+use ensnare_entities_toy::instruments::ToyInstrument;
 use ensnare_new_stuff::project::Project;
 use std::{
     path::PathBuf,
@@ -126,7 +126,7 @@ impl Ensnare {
         r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
         r.send_to_project(ProjectServiceInput::TrackAddEntity(
             TrackUid(1),
-            EntityKey::from(WelshSynth::ENTITY_KEY),
+            EntityKey::from(ToyInstrument::ENTITY_KEY),
         ));
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
@@ -508,9 +508,9 @@ impl Ensnare {
                 // This is a view-only thing, so we can add a field in this
                 // struct and use it to decide what to display. No need to get
                 // Project involved.
-                //                self.project.select_detail(uid, name);
                 self.rendering_state.detail_uid = Some(uid);
                 self.rendering_state.detail_title = title.clone();
+                self.rendering_state.is_detail_open = true;
             }
         }
     }

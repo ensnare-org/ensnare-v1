@@ -6,23 +6,25 @@ use ensnare_cores_egui::modulators::dca;
 use ensnare_egui_widgets::{envelope, oscillator, waveform};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerSerializable, IsEntity2, Metadata,
+    InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
+    IsEntity2, Metadata,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(
     Debug,
     Default,
+    Deserialize,
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
+    InnerInstrument,
     InnerSerializable,
     IsEntity2,
     Metadata,
-    serde::Serialize,
-    serde::Deserialize,
+    Serialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity2(Controls, TransformsAudio)]
 pub struct ToyInstrument {
     uid: Uid,
     inner: ensnare_cores::toys::ToyInstrument,

@@ -75,14 +75,14 @@ impl FmSynth {
 
 #[derive(
     Debug,
-    InnerControllable,
+    Deserialize,
     InnerConfigurable,
+    InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
     IsEntity2,
     Metadata,
     Serialize,
-    Deserialize,
 )]
 #[entity2(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
 pub struct Sampler {
@@ -110,15 +110,15 @@ impl Sampler {
 
 #[derive(
     Debug,
+    Deserialize,
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
-    InnerSerializable,
     InnerInstrument,
+    InnerSerializable,
     IsEntity2,
     Metadata,
     Serialize,
-    Deserialize,
 )]
 #[entity2(Controls, TransformsAudio)]
 pub struct WelshSynth {
