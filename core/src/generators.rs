@@ -84,6 +84,61 @@ impl OscillatorParams {
     }
 }
 
+#[derive(Debug)]
+pub struct OscillatorEphemerals {
+    /// working variables to generate semi-deterministic noise.
+    noise_x1: u32,
+    noise_x2: u32,
+
+    /// An internal copy of the current sample rate.
+    sample_rate: SampleRate,
+
+    /// The internal clock. Advances once per tick().
+    ///
+    ticks: usize,
+
+    signal: BipolarNormal,
+
+    // It's important for us to remember the "cursor" in the current waveform,
+    // because the frequency can change over time, so recalculating the position
+    // as if the current frequency were always the frequency leads to click,
+    // pops, transients, and suckage.
+    //
+    // Needs Kahan summation algorithm to avoid accumulation of FP errors.
+    cycle_position: KahanSum<f64>,
+
+    delta: f64,
+    delta_updated: bool,
+
+    // Whether this oscillator's owner should sync other oscillators to this
+    // one. Calculated during tick().
+    should_sync: bool,
+
+    // If this is a synced oscillator, then whether we should reset our waveform
+    // to the start.
+    is_sync_pending: bool,
+
+    // Set on init and reset().
+    reset_handled: bool,
+}
+impl Default for OscillatorEphemerals {
+    fn default() -> Self {
+        Self {
+            noise_x1: 0x70f4f854,
+            noise_x2: 0xe1e9f0a7,
+            sample_rate: Default::default(),
+            ticks: Default::default(),
+            signal: Default::default(),
+            cycle_position: Default::default(),
+            delta: Default::default(),
+            delta_updated: Default::default(),
+            should_sync: Default::default(),
+            is_sync_pending: Default::default(),
+            reset_handled: Default::default(),
+        }
+    }
+}
+
 #[derive(Debug, Control, Params, Serialize, Deserialize)]
 pub struct Oscillator {
     #[control]
@@ -117,41 +172,8 @@ pub struct Oscillator {
     #[params]
     linear_frequency_modulation: ParameterType,
 
-    /// working variables to generate semi-deterministic noise.
-    noise_x1: u32,
-    noise_x2: u32,
-
-    /// An internal copy of the current sample rate.
-    sample_rate: SampleRate,
-
-    /// The internal clock. Advances once per tick().
-    ///
-    ticks: usize,
-
-    signal: BipolarNormal,
-
-    // It's important for us to remember the "cursor" in the current waveform,
-    // because the frequency can change over time, so recalculating the position
-    // as if the current frequency were always the frequency leads to click,
-    // pops, transients, and suckage.
-    //
-    // Needs Kahan summation algorithm to avoid accumulation of FP errors.
     #[serde(skip)]
-    cycle_position: KahanSum<f64>,
-
-    delta: f64,
-    delta_updated: bool,
-
-    // Whether this oscillator's owner should sync other oscillators to this
-    // one. Calculated during tick().
-    should_sync: bool,
-
-    // If this is a synced oscillator, then whether we should reset our waveform
-    // to the start.
-    is_sync_pending: bool,
-
-    // Set on init and reset().
-    reset_handled: bool,
+    e: OscillatorEphemerals,
 }
 impl Default for Oscillator {
     fn default() -> Self {
@@ -162,23 +184,13 @@ impl Default for Oscillator {
             frequency_tune: Default::default(),
             frequency_modulation: Default::default(),
             linear_frequency_modulation: Default::default(),
-            noise_x1: 0x70f4f854,
-            noise_x2: 0xe1e9f0a7,
-            sample_rate: Default::default(),
-            ticks: Default::default(),
-            signal: Default::default(),
-            cycle_position: Default::default(),
-            delta: Default::default(),
-            delta_updated: Default::default(),
-            should_sync: Default::default(),
-            is_sync_pending: Default::default(),
-            reset_handled: Default::default(),
+            e: Default::default(),
         }
     }
 }
 impl Generates<BipolarNormal> for Oscillator {
     fn value(&self) -> BipolarNormal {
-        self.signal
+        self.e.signal
     }
 
     fn generate_batch_values(&mut self, values: &mut [BipolarNormal]) {
@@ -190,34 +202,34 @@ impl Generates<BipolarNormal> for Oscillator {
 }
 impl Configurable for Oscillator {
     fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
+        self.e.sample_rate
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
-        self.reset_handled = false;
+        self.e.sample_rate = sample_rate;
+        self.e.reset_handled = false;
     }
 }
 impl Ticks for Oscillator {
     fn tick(&mut self, tick_count: usize) {
         for _ in 0..tick_count {
-            if !self.reset_handled {
-                self.ticks = 0; // TODO: this might not be the right thing to do
+            if !self.e.reset_handled {
+                self.e.ticks = 0; // TODO: this might not be the right thing to do
 
                 self.update_delta();
-                self.cycle_position =
-                    KahanSum::new_with_value((self.delta * self.ticks as f64).fract());
+                self.e.cycle_position =
+                    KahanSum::new_with_value((self.e.delta * self.e.ticks as f64).fract());
             } else {
-                self.ticks += 1;
+                self.e.ticks += 1;
             }
 
             let cycle_position = self.calculate_cycle_position();
             let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
-            self.signal = BipolarNormal::from(amplitude_for_position);
+            self.e.signal = BipolarNormal::from(amplitude_for_position);
 
             // We need this to be at the end of tick() because any code running
             // during tick() might look at it.
-            self.reset_handled = true;
+            self.e.reset_handled = true;
         }
     }
 }
@@ -248,22 +260,22 @@ impl Oscillator {
 
     pub fn set_frequency(&mut self, frequency: FrequencyHz) {
         self.frequency = frequency;
-        self.delta_updated = false;
+        self.e.delta_updated = false;
     }
 
     pub fn set_fixed_frequency(&mut self, frequency: FrequencyHz) {
         self.fixed_frequency = Some(frequency);
-        self.delta_updated = false;
+        self.e.delta_updated = false;
     }
 
     pub fn set_frequency_modulation(&mut self, frequency_modulation: BipolarNormal) {
         self.frequency_modulation = frequency_modulation;
-        self.delta_updated = false;
+        self.e.delta_updated = false;
     }
 
     pub fn set_linear_frequency_modulation(&mut self, linear_frequency_modulation: ParameterType) {
         self.linear_frequency_modulation = linear_frequency_modulation;
-        self.delta_updated = false;
+        self.e.delta_updated = false;
     }
 
     pub fn waveform(&self) -> Waveform {
@@ -287,21 +299,21 @@ impl Oscillator {
     }
 
     pub fn should_sync(&self) -> bool {
-        self.should_sync
+        self.e.should_sync
     }
 
     pub fn sync(&mut self) {
-        self.is_sync_pending = true;
+        self.e.is_sync_pending = true;
     }
 
     fn update_delta(&mut self) {
-        if !self.delta_updated {
-            self.delta = (self.adjusted_frequency() / FrequencyHz::from(self.sample_rate.0)).0;
+        if !self.e.delta_updated {
+            self.e.delta = (self.adjusted_frequency() / FrequencyHz::from(self.e.sample_rate.0)).0;
 
             // This resets the accumulated error.
-            self.cycle_position = KahanSum::new_with_value(self.cycle_position.sum());
+            self.e.cycle_position = KahanSum::new_with_value(self.e.cycle_position.sum());
 
-            self.delta_updated = true;
+            self.e.delta_updated = true;
         }
     }
 
@@ -319,21 +331,21 @@ impl Oscillator {
         // oscillator will have started at a synthetic starting point, but the
         // synced ones will have started at zero. I don't think this is
         // important.
-        if self.is_sync_pending {
-            self.is_sync_pending = false;
-            self.cycle_position = Default::default();
+        if self.e.is_sync_pending {
+            self.e.is_sync_pending = false;
+            self.e.cycle_position = Default::default();
         }
 
         // If we haven't just reset, add delta to the previous position and mod
         // 1.0.
-        let next_cycle_position_unrounded = if !self.reset_handled {
+        let next_cycle_position_unrounded = if !self.e.reset_handled {
             0.0
         } else {
-            self.cycle_position += self.delta;
-            self.cycle_position.sum()
+            self.e.cycle_position += self.e.delta;
+            self.e.cycle_position.sum()
         };
 
-        self.should_sync = if !self.reset_handled {
+        self.e.should_sync = if !self.e.reset_handled {
             // If we're in the first post-reset tick(), then we want other
             // oscillators to sync.
             true
@@ -353,13 +365,13 @@ impl Oscillator {
             //
             // debug_assert_lt!(next_cycle_position_unrounded, 2.0);
 
-            self.cycle_position += -1.0;
+            self.e.cycle_position += -1.0;
             true
         } else {
             false
         };
 
-        self.cycle_position.sum()
+        self.e.cycle_position.sum()
     }
 
     // https://en.wikipedia.org/wiki/Sine_wave
@@ -388,9 +400,9 @@ impl Oscillator {
                 // makes this method require mut. Is there a noise algorithm
                 // that can modulate on time_seconds? (It's a complicated
                 // question, potentially.)
-                self.noise_x1 ^= self.noise_x2;
-                let tmp = 2.0 * (self.noise_x2 as f64 - (u32::MAX as f64 / 2.0)) / u32::MAX as f64;
-                (self.noise_x2, _) = self.noise_x2.overflowing_add(self.noise_x1);
+                self.e.noise_x1 ^= self.e.noise_x2;
+                let tmp = 2.0 * (self.e.noise_x2 as f64 - (u32::MAX as f64 / 2.0)) / u32::MAX as f64;
+                (self.e.noise_x2, _) = self.e.noise_x2.overflowing_add(self.e.noise_x1);
                 tmp
             }
             // TODO: figure out whether this was an either-or
@@ -989,8 +1001,8 @@ mod tests {
 
     impl DebugTicks for Oscillator {
         fn debug_tick_until(&mut self, tick_number: usize) {
-            if self.ticks < tick_number {
-                self.tick(tick_number - self.ticks);
+            if self.e.ticks < tick_number {
+                self.tick(tick_number - self.e.ticks);
             }
         }
     }
