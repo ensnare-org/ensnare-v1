@@ -89,7 +89,7 @@ impl Ensnare {
         let factory = Arc::new(factory);
 
         let settings = Settings::load().unwrap_or_default();
-        let audio_service = AudioService::new_with();
+        let audio_service = AudioService::new();
         let midi_service = MidiService::new_with(&settings.midi_settings);
         let project_service = ProjectService::new_with(&factory);
 
@@ -206,12 +206,15 @@ impl Ensnare {
                     }
                 }
                 EnsnareEvent::AudioServiceEvent(event) => match event {
-                    AudioServiceEvent::Changed(queue) => {
+                    AudioServiceEvent::Reset(sample_rate, channel_count, queue) => {
                         self.update_orchestrator_audio_interface_config();
                         self.send_to_project(ProjectServiceInput::AudioQueue(queue));
                     }
                     AudioServiceEvent::NeedsAudio(count) => {
                         self.send_to_project(ProjectServiceInput::NeedsAudio(count));
+                    }
+                    AudioServiceEvent::Underrun => {
+                        eprintln!("Warning: audio buffer underrun")
                     }
                 },
                 EnsnareEvent::ProjectServiceEvent(event) => match event {

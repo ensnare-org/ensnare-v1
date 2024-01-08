@@ -2,10 +2,7 @@
 
 //! Ensnare services
 
-pub use audio::{
-    AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, AudioStreamService,
-    AudioStreamServiceEvent, AudioStreamServiceInput, NeedsAudioFn,
-};
+pub use audio::{AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings};
 pub use control_bar::ControlBar;
 pub use egui::*;
 pub use midi::{MidiService, MidiServiceEvent, MidiSettings};

@@ -2,18 +2,12 @@
 
 //! A digital audio workstation.
 
-//use ::ensnare::all_entities::{EnsnareEntities, EntityWrapper};
 use ::ensnare::all_entities::EnsnareEntities2;
 use anyhow::anyhow;
 use eframe::egui::ViewportBuilder;
 use eframe::{
-    egui::{
-        CentralPanel, Context, Event, FontData, FontDefinitions, Layout, Modifiers, ScrollArea,
-        SidePanel, TextStyle, TopBottomPanel,
-    },
-    emath::Align,
+    egui::{Context, FontData, FontDefinitions, TextStyle},
     epaint::{Color32, FontFamily, FontId},
-    App, CreationContext,
 };
 use ensnare::Ensnare;
 use ensnare_drag_drop::DragDropManager;
@@ -141,8 +135,8 @@ fn main() -> anyhow::Result<()> {
             Box::new(Ensnare::new(cc, factory))
         }),
     ) {
-        Err(anyhow!("eframe::run_native(): {:?}", e))
-    } else {
-        Ok(())
+        return Err(anyhow!("eframe::run_native(): {:?}", e));
     }
+
+    Ok(())
 }

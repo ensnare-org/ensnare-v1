@@ -68,8 +68,13 @@ impl EnsnareEventAggregationService {
     /// immediately off the UI thread or forwards them to the app's event
     /// channel.
     fn spawn_thread(&self) {
-        let app_sender = self.event_channels.sender.clone();
+        // Sends aggregated events for the app to handle.
+        let ensnare_sender = self.event_channels.sender.clone();
+
+        // Takes commands from the app.
         let ensnare_receiver = self.input_channels.receiver.clone();
+
+        // Each of these pairs communicates with a service.
         let audio_sender = self.audio_service.sender().clone();
         let audio_receiver = self.audio_service.receiver().clone();
         let midi_sender = self.midi_service.sender().clone();
@@ -94,47 +99,39 @@ impl EnsnareEventAggregationService {
                                     let _ = audio_sender.send(AudioServiceInput::Quit);
                                     let _ = midi_sender.send(MidiInterfaceInput::Quit);
                                     let _ = project_sender.send(ProjectServiceInput::Quit);
-                                    let _ = app_sender.send(EnsnareEvent::Quit);
+                                    let _ = ensnare_sender.send(EnsnareEvent::Quit);
                                     return;
                                 }
                             }
                         }
                     }
-                    index if index == audio_index => match operation.recv(&audio_receiver) {
-                        Ok(event) => {
-                            let _ = app_sender.send(EnsnareEvent::AudioServiceEvent(event));
-                        }
-                        Err(e) => {
-                            eprintln!("audio: {e:?}");
-                        }
-                    },
-                    index if index == midi_index => {
-                        match operation.recv(&midi_receiver) {
-                            Ok(event) => {
-                                match event {
-                                    MidiServiceEvent::Midi(channel, message) => {
-                                        let _ = project_sender
-                                            .send(ProjectServiceInput::Midi(channel, message));
-                                        // We still send this through to the app
-                                        // so that it can update the UI activity
-                                        // indicators, but not as urgently as
-                                        // this block.
-                                    }
-                                    _ => {}
-                                }
-                                let _ = app_sender.send(EnsnareEvent::MidiPanelEvent(event));
-                            }
-                            Err(e) => eprintln!("midi: {e:?}"),
+                    index if index == audio_index => {
+                        if let Ok(event) = operation.recv(&audio_receiver) {
+                            let _ = ensnare_sender.send(EnsnareEvent::AudioServiceEvent(event));
                         }
                     }
-                    index if index == project_index => match operation.recv(&project_receiver) {
-                        Ok(event) => {
-                            let _ = app_sender.send(EnsnareEvent::ProjectServiceEvent(event));
+                    index if index == midi_index => {
+                        if let Ok(event) = operation.recv(&midi_receiver) {
+                            match event {
+                                MidiServiceEvent::Midi(channel, message) => {
+                                    // Forward right away to the project. We
+                                    // still forward it to the app so that it
+                                    // can update the UI activity indicators.
+                                    let _ = project_sender
+                                        .send(ProjectServiceInput::Midi(channel, message));
+                                }
+                                _ => {
+                                    // fall through and forward to the app.
+                                }
+                            }
+                            let _ = ensnare_sender.send(EnsnareEvent::MidiPanelEvent(event));
                         }
-                        Err(e) => {
-                            eprintln!("project: {e:?}");
+                    }
+                    index if index == project_index => {
+                        if let Ok(event) = operation.recv(&project_receiver) {
+                            let _ = ensnare_sender.send(EnsnareEvent::ProjectServiceEvent(event));
                         }
-                    },
+                    }
                     _ => {
                         panic!("missing case for a new receiver")
                     }

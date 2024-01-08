@@ -208,10 +208,12 @@ impl Project {
     }
 
     pub fn fill_audio_queue(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
         let mut buffer = [StereoSample::SILENCE; 64];
         let buffer_len = buffer.len();
         let mut remaining = count;
-        let mut generated = 0;
 
         while remaining != 0 {
             let to_generate = if remaining >= buffer_len {
@@ -220,11 +222,16 @@ impl Project {
                 remaining
             };
             let buffer_slice = &mut buffer[0..to_generate];
+            buffer_slice.fill(StereoSample::SILENCE);
             self.generate_frames(buffer_slice);
             if let Some(audio_queue) = self.audio_queue.as_ref() {
                 buffer_slice.iter().for_each(|s| {
-                    let _ = audio_queue.push(*s);
-                    generated += 1;
+                    if let Some(_old_element) = audio_queue.force_push(*s) {
+                        eprintln!("overrun! requested {count} frames");
+
+                        // There is no point in continuing.
+                        return;
+                    }
                 });
             }
             remaining -= to_generate;

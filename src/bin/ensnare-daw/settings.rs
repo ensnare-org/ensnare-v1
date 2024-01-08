@@ -5,23 +5,17 @@
 
 use crossbeam_channel::Sender;
 use ensnare::{
-    arrangement::{Orchestrator, OrchestratorHelper},
     midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
-    services::{
-        AudioService, AudioSettings, AudioStreamServiceInput, MidiService, MidiSettings,
-        NeedsAudioFn,
-    },
-    traits::{Displays, HasSettings, WorkEvent},
-    types::Sample,
+    services::{AudioSettings, MidiSettings},
+    traits::{Displays, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
-use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 /// Global preferences.
@@ -30,8 +24,6 @@ pub(crate) struct Settings {
     pub(crate) audio_settings: AudioSettings,
     pub(crate) midi_settings: Arc<std::sync::RwLock<MidiSettings>>,
 
-    #[serde(skip)]
-    audio_sender: Option<Sender<AudioStreamServiceInput>>,
     #[serde(skip)]
     midi_sender: Option<Sender<MidiInterfaceInput>>,
 
