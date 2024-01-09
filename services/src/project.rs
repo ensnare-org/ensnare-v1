@@ -2,6 +2,7 @@
 
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::Key;
 use ensnare_core::{piano_roll::PatternUid, prelude::*, types::AudioQueue};
 use ensnare_entity::prelude::*;
 use ensnare_new_stuff::project::Project;
@@ -24,7 +25,7 @@ pub enum ProjectServiceInput {
     TrackAddEntity(TrackUid, EntityKey),
     PatternArrange(TrackUid, PatternUid, MusicalTime),
     LinkControl(Uid, Uid, ControlIndex),
-    KeyEvent(eframe::egui::Key, bool),
+    KeyEvent(Key, bool),
     NextTimelineDisplayer,
     AudioQueue(AudioQueue),
     NeedsAudio(usize),
@@ -68,6 +69,7 @@ impl ProjectService {
         let factory = Arc::clone(&self.factory);
         std::thread::spawn(move || {
             let mut project = Arc::new(RwLock::new(Project::new_project()));
+            let mut key_handler = KeyHandler::default();
             while let Ok(input) = input_receiver.recv() {
                 match input {
                     ProjectServiceInput::Load(path) => match Project::load(path) {
@@ -134,8 +136,16 @@ impl ProjectService {
                     ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
                         let _ = project.write().unwrap().link(source_uid, target_uid, index);
                     }
-                    ProjectServiceInput::KeyEvent(_key, _pressed) => {
-                        eprintln!("{:?}", input);
+                    ProjectServiceInput::KeyEvent(key, pressed) => {
+                        if let Some(message) = key_handler.handle_key(&key, pressed) {
+                            project.write().unwrap().handle_midi_message(
+                                MidiChannel::default(),
+                                message,
+                                &mut |c, m| {
+                                    eprintln!("TODO: {c:?} {m:?}");
+                                },
+                            )
+                        }
                     }
                     ProjectServiceInput::NextTimelineDisplayer => {
                         todo!("self.project.switch_to_next_frontmost_timeline_displayer()");
@@ -153,7 +163,7 @@ impl ProjectService {
                         .write()
                         .unwrap()
                         .handle_midi_message(channel, message, &mut |c, m| {
-                            eprintln!("hey!");
+                            eprintln!("TODO: {c:?} {m:?}");
                         }),
                 }
             }
@@ -173,5 +183,88 @@ impl ProjectService {
     /// The sender side of the [ProjectServiceInput] channel.
     pub fn sender(&self) -> &Sender<ProjectServiceInput> {
         &self.input_channels.sender
+    }
+}
+
+/// Represents an octave as MIDI conventions expect them: A before middle C is
+/// in octave 5, and the range is from 0 to 10.
+///
+/// TODO: I looked around for a bounded integer type or crate, but all made a
+/// mountain out of this molehill-sized use case.
+#[derive(Debug)]
+struct Octave(pub u8);
+impl Default for Octave {
+    fn default() -> Self {
+        Self(5)
+    }
+}
+impl Octave {
+    fn decrease(&mut self) {
+        if self.0 > 0 {
+            self.0 -= 1;
+        }
+    }
+    fn increase(&mut self) {
+        if self.0 < 10 {
+            self.0 += 1;
+        }
+    }
+}
+
+/// Maps [eframe::egui::Key] presses to MIDI events using a piano-keyboard-like
+/// layout of QWERTY keys homed at the A-K row. Contains a bit of state, using
+/// left/right arrow to change octaves.
+#[derive(Debug, Default)]
+struct KeyHandler {
+    octave: Octave,
+}
+
+impl KeyHandler {
+    fn handle_key(&mut self, key: &Key, pressed: bool) -> Option<MidiMessage> {
+        match key {
+            Key::A => Some(self.midi_note_message(0, pressed)),
+            Key::W => Some(self.midi_note_message(1, pressed)),
+            Key::S => Some(self.midi_note_message(2, pressed)),
+            Key::E => Some(self.midi_note_message(3, pressed)),
+            Key::D => Some(self.midi_note_message(4, pressed)),
+            Key::F => Some(self.midi_note_message(5, pressed)),
+            Key::T => Some(self.midi_note_message(6, pressed)),
+            Key::G => Some(self.midi_note_message(7, pressed)),
+            Key::Y => Some(self.midi_note_message(8, pressed)),
+            Key::H => Some(self.midi_note_message(9, pressed)),
+            Key::U => Some(self.midi_note_message(10, pressed)),
+            Key::J => Some(self.midi_note_message(11, pressed)),
+            Key::K => Some(self.midi_note_message(12, pressed)),
+            Key::O => Some(self.midi_note_message(13, pressed)),
+            Key::ArrowLeft => {
+                if pressed {
+                    self.octave.decrease();
+                }
+                None
+            }
+            Key::ArrowRight => {
+                if pressed {
+                    self.octave.increase();
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn midi_note_message(&self, midi_note_number: u8, pressed: bool) -> MidiMessage {
+        let midi_note_number = (midi_note_number + self.octave.0 * 12).min(127);
+
+        if pressed {
+            MidiMessage::NoteOn {
+                key: u7::from(midi_note_number),
+                vel: u7::from(127),
+            }
+        } else {
+            MidiMessage::NoteOff {
+                key: u7::from(midi_note_number),
+                vel: u7::from(0),
+            }
+        }
     }
 }
