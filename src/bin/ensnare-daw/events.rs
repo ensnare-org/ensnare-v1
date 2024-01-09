@@ -6,6 +6,7 @@ use ensnare_services::{
     AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
     ProjectService, ProjectServiceEvent, ProjectServiceInput,
 };
+use std::sync::Arc;
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -107,6 +108,17 @@ impl EnsnareEventAggregationService {
                     }
                     index if index == audio_index => {
                         if let Ok(event) = operation.recv(&audio_receiver) {
+                            match event {
+                                AudioServiceEvent::NeedsAudio(count) => {
+                                    let _ =
+                                        project_sender.send(ProjectServiceInput::NeedsAudio(count));
+                                }
+                                AudioServiceEvent::Reset(_, _, ref queue) => {
+                                    let _ = project_sender
+                                        .send(ProjectServiceInput::AudioQueue(Arc::clone(queue)));
+                                }
+                                AudioServiceEvent::Underrun => {}
+                            }
                             let _ = ensnare_sender.send(EnsnareEvent::AudioServiceEvent(event));
                         }
                     }

@@ -18,7 +18,6 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
-use ensnare_entities::instruments::WelshSynth;
 use ensnare_new_stuff::project::Project;
 use std::{
     path::PathBuf,
@@ -125,11 +124,11 @@ impl Ensnare {
             modifiers: Modifiers::default(),
         };
         // TODO TEMP to make initial project more interesting
-        r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
-        r.send_to_project(ProjectServiceInput::TrackAddEntity(
-            TrackUid(1),
-            EntityKey::from(WelshSynth::ENTITY_KEY),
-        ));
+        // r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
+        // r.send_to_project(ProjectServiceInput::TrackAddEntity(
+        //     TrackUid(1),
+        //     EntityKey::from(ensnare_entities::instruments::WelshSynth::ENTITY_KEY),
+        // ));
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r
@@ -208,12 +207,12 @@ impl Ensnare {
                     }
                 }
                 EnsnareEvent::AudioServiceEvent(event) => match event {
-                    AudioServiceEvent::Reset(sample_rate, channel_count, queue) => {
+                    AudioServiceEvent::Reset(_sample_rate, _channel_count, _queue) => {
+                        // Already forwarded by aggregator to project.
                         self.update_orchestrator_audio_interface_config();
-                        self.send_to_project(ProjectServiceInput::AudioQueue(queue));
                     }
-                    AudioServiceEvent::NeedsAudio(count) => {
-                        self.send_to_project(ProjectServiceInput::NeedsAudio(count));
+                    AudioServiceEvent::NeedsAudio(_count) => {
+                        // Forward was already handled by aggregator.
                     }
                     AudioServiceEvent::Underrun => {
                         eprintln!("Warning: audio buffer underrun")
