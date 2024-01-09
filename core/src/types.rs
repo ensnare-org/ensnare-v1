@@ -5,6 +5,7 @@ use crate::{
     piano_roll::PatternUid,
     time::MusicalTime,
 };
+use bounded_vec_deque::BoundedVecDeque;
 use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
@@ -14,7 +15,7 @@ use std::{
     fmt::Display,
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, RangeInclusive, Sub},
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
 
 /// [SampleType] is the underlying primitive that makes up [StereoSample].
@@ -724,10 +725,22 @@ impl Div<Ratio> for ParameterType {
     }
 }
 
-/// The producer-consumer queue of stereo samples that the audio stream consumes.
-//
-// TODO: why isn't this a ring buffer?
+/// A ring buffer of stereo samples that the audio stream consumes.
 pub type AudioQueue = Arc<ArrayQueue<StereoSample>>;
+
+/// A ring buffer of mono samples used to visualize the generated audio stream.
+#[derive(Debug)]
+pub struct VisualizationQueue(pub Arc<RwLock<BoundedVecDeque<Sample>>>);
+impl Default for VisualizationQueue {
+    fn default() -> Self {
+        Self(Arc::new(RwLock::new(BoundedVecDeque::new(256))))
+    }
+}
+impl Clone for VisualizationQueue {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
 
 /// A convenience struct to bundle both halves of a [crossbeam_channel]
 /// together.

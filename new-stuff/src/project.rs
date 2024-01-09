@@ -11,7 +11,7 @@ use ensnare_core::{
     prelude::*,
     time::Transport,
     traits::ControlsAsProxy,
-    types::{AudioQueue, TrackTitle},
+    types::{AudioQueue, TrackTitle, VisualizationQueue},
 };
 use ensnare_cores::Composer;
 use ensnare_entity::traits::EntityBounds;
@@ -58,13 +58,18 @@ pub struct Project {
     #[serde(skip)]
     is_finished: bool,
 
-    // If present, then this is the path that was used to load this project from
-    // disk.
+    /// If present, then this is the path that was used to load this project
+    /// from disk.
     #[serde(skip)]
     pub load_path: Option<PathBuf>,
 
     #[serde(skip)]
     pub audio_queue: Option<AudioQueue>,
+
+    /// A non-owned VecDeque that acts as a ring buffer of the most recent
+    /// generated audio frames.
+    #[serde(skip)]
+    pub visualization_queue: Option<VisualizationQueue>,
 }
 impl Project {
     /// Starts with a default project and configures for easy first use.
@@ -234,6 +239,14 @@ impl Project {
                     }
                 });
             }
+            if let Some(queue) = self.visualization_queue.as_ref() {
+                if let Ok(mut queue) = queue.0.write() {
+                    buffer_slice.iter().for_each(|s| {
+                        let mono_sample: Sample = (*s).into();
+                        queue.push_back(mono_sample);
+                    });
+                }
+            }
             remaining -= to_generate;
         }
     }
@@ -325,8 +338,11 @@ impl Project {
     }
 
     pub fn set_up_successor(&self, new_project: &mut Self) {
-        if let Some(audio_queue) = self.audio_queue.as_ref() {
-            new_project.audio_queue = Some(Arc::clone(audio_queue));
+        if let Some(queue) = self.audio_queue.as_ref() {
+            new_project.audio_queue = Some(Arc::clone(queue));
+        }
+        if let Some(queue) = self.visualization_queue.as_ref() {
+            new_project.visualization_queue = Some(queue.clone());
         }
     }
 }

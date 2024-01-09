@@ -5,7 +5,7 @@ use eframe::{
     egui::{Image, ImageButton, Layout, Widget},
     epaint::vec2,
 };
-use ensnare_cores_egui::widgets::audio::{frequency_domain, time_domain};
+use ensnare_cores_egui::widgets::audio::{frequency_domain, time_domain, FrequencyDomain};
 use ensnare_egui_widgets::activity_indicator;
 use std::path::PathBuf;
 use strum_macros::Display;
@@ -136,30 +136,32 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 },
             );
 
-            // TODO: not on the UI thread!
-            while let Ok(samples) = self.control_bar.sample_channels.receiver.try_recv() {
-                self.control_bar.sample_buffer.push(&samples);
+            if let Ok(queue) = self.control_bar.visualization_queue.0.read() {
+                let (sample_buffer_slice_1, sample_buffer_slice_2) = queue.as_slices();
+                ui.scope(|ui| {
+                    ui.set_max_size(vec2(64.0, 32.0));
+                    if match self.control_bar.display_mode {
+                        ControlBarDisplayMode::Time => {
+                            ui.add(time_domain(sample_buffer_slice_1, sample_buffer_slice_2))
+                        }
+                        ControlBarDisplayMode::Frequency => {
+                            let values = FrequencyDomain::analyze_spectrum(
+                                sample_buffer_slice_1,
+                                sample_buffer_slice_2,
+                            )
+                            .unwrap();
+                            ui.add(frequency_domain(&values))
+                        }
+                    }
+                    .clicked()
+                    {
+                        self.control_bar.display_mode = match self.control_bar.display_mode {
+                            ControlBarDisplayMode::Time => ControlBarDisplayMode::Frequency,
+                            ControlBarDisplayMode::Frequency => ControlBarDisplayMode::Time,
+                        }
+                    }
+                });
             }
-
-            let (samples, start) = self.control_bar.sample_buffer.get();
-            ui.scope(|ui| {
-                ui.set_max_size(vec2(64.0, 32.0));
-                if match self.control_bar.display_mode {
-                    ControlBarDisplayMode::Time => ui.add(time_domain(samples, start)),
-                    ControlBarDisplayMode::Frequency => {
-                        self.control_bar.fft_buffer =
-                            self.control_bar.sample_buffer.analyze_spectrum().unwrap();
-                        ui.add(frequency_domain(&self.control_bar.fft_buffer))
-                    }
-                }
-                .clicked()
-                {
-                    self.control_bar.display_mode = match self.control_bar.display_mode {
-                        ControlBarDisplayMode::Time => ControlBarDisplayMode::Frequency,
-                        ControlBarDisplayMode::Frequency => ControlBarDisplayMode::Time,
-                    }
-                }
-            });
             ui.separator();
             if ui
                 .add(ImageButton::new(

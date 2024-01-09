@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use anyhow::anyhow;
 use eframe::{
     egui::{self, Sense, Widget},
     emath::RectTransform,
@@ -99,8 +100,11 @@ impl CircularSampleBuffer {
 }
 
 /// Wraps a [TimeDomain] as a [Widget](eframe::egui::Widget).
-pub fn time_domain(samples: &[Sample], start: usize) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| TimeDomain::new(samples, start).ui(ui)
+pub fn time_domain<'a>(
+    slice_1: &'a [Sample],
+    slice_2: &'a [Sample],
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| TimeDomain::new(slice_1, slice_2).ui(ui)
 }
 
 /// Wraps a [FrequencyDomain] as a [Widget](eframe::egui::Widget).
@@ -121,14 +125,19 @@ pub fn init_random_samples() -> [Sample; 256] {
 
 /// Displays a series of [Sample]s in the time domain. That's a fancy way of
 /// saying it shows the amplitudes.
+///
+/// The series is passed in as two slices because we expect that callers will
+/// have used a ring buffer to hold the incoming samples, and we don't want to
+/// require a contiguous buffer, which would require expensive ring-buffer
+/// rotations most of the time.
 #[derive(Debug)]
 pub struct TimeDomain<'a> {
-    samples: &'a [Sample],
-    start: usize,
+    slice_1: &'a [Sample],
+    slice_2: &'a [Sample],
 }
 impl<'a> TimeDomain<'a> {
-    fn new(samples: &'a [Sample], start: usize) -> Self {
-        Self { samples, start }
+    fn new(slice_1: &'a [Sample], slice_2: &'a [Sample]) -> Self {
+        Self { slice_1, slice_2 }
     }
 }
 impl<'a> eframe::egui::Widget for TimeDomain<'a> {
@@ -137,9 +146,10 @@ impl<'a> eframe::egui::Widget for TimeDomain<'a> {
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let rect = response.rect.shrink(1.0);
 
+        let buffer_len = self.slice_1.len() + self.slice_2.len();
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
-                0.0..=self.samples.len() as f32,
+                0.0..=buffer_len as f32,
                 Sample::MAX.0 as f32..=Sample::MIN.0 as f32,
             ),
             rect,
@@ -153,9 +163,7 @@ impl<'a> eframe::egui::Widget for TimeDomain<'a> {
             ui.visuals().window_stroke,
         )));
 
-        for i in 0..self.samples.len() {
-            let cursor = (self.start + i) % self.samples.len();
-            let sample = self.samples[cursor];
+        for (i, sample) in self.slice_1.iter().chain(self.slice_2).enumerate() {
             shapes.push(eframe::epaint::Shape::LineSegment {
                 points: [
                     to_screen * pos2(i as f32, Sample::MIN.0 as f32),
@@ -179,6 +187,31 @@ pub struct FrequencyDomain<'a> {
 impl<'a> FrequencyDomain<'a> {
     fn new(values: &'a [f32]) -> Self {
         Self { values }
+    }
+}
+impl<'a> FrequencyDomain<'a> {
+    /// Does a quick-and-dirty FFT of the input samples, producing a buffer that
+    /// is suitable for an unlabeled visualization. If you want labels, then do
+    /// this transformation yourself so you can display the Hz bucket labels.
+    ///
+    /// TODO: there's a ton of heap usage in this method. See whether the crate
+    /// can be enhanced to work better with preallocated buffers.
+    pub fn analyze_spectrum(slice_1: &[Sample], slice_2: &[Sample]) -> anyhow::Result<Vec<f32>> {
+        let rotated: Vec<f32> = slice_1
+            .iter()
+            .chain(slice_2.iter())
+            .map(|s| s.0 as f32)
+            .collect();
+        let hann_window = spectrum_analyzer::windows::hann_window(&rotated);
+        match spectrum_analyzer::samples_fft_to_spectrum(
+            &hann_window,
+            44100,
+            FrequencyLimit::All,
+            Some(&divide_by_N_sqrt),
+        ) {
+            Ok(spectrum) => Ok(spectrum.data().iter().map(|pair| pair.1.val()).collect()),
+            Err(e) => Err(anyhow!("samples_fft_to_spectrum failed: {e:?}")),
+        }
     }
 }
 impl<'a> eframe::egui::Widget for FrequencyDomain<'a> {
@@ -214,7 +247,7 @@ impl<'a> eframe::egui::Widget for FrequencyDomain<'a> {
                     width: 1.0,
                     color: Color32::YELLOW,
                 },
-            })
+            });
         }
 
         painter.extend(shapes);

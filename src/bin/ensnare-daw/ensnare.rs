@@ -66,7 +66,6 @@ pub(super) struct Ensnare {
 
     menu_bar: MenuBar,
     control_bar: ControlBar,
-    //    orchestrator_service: OrchestratorService<dyn EntityBounds>,
     settings: Settings,
 
     toasts: Toasts,
@@ -93,13 +92,8 @@ impl Ensnare {
         let audio_service = AudioService::new();
         let midi_service = MidiService::new_with(&settings.midi_settings);
         let project_service = ProjectService::new_with(&factory);
-
         let control_bar = ControlBar::default();
-        // let settings_panel = SettingsPanel::new_with(
-        //     settings,
-        //     &orchestrator,
-        //     Some(control_bar.sample_channel.sender.clone()),
-        // );
+
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
             midi_sender: midi_service.sender().clone(),
@@ -123,6 +117,14 @@ impl Ensnare {
             e: Default::default(),
             modifiers: Modifiers::default(),
         };
+
+        // TODO: this works, but I'm not sure it's a good design. Is it like
+        // EntityFactory and should be provided to the ProjectService
+        // constructor?
+        r.send_to_project(ProjectServiceInput::VisualizationQueue(
+            r.control_bar.visualization_queue.clone(),
+        ));
+
         // TODO TEMP to make initial project more interesting
         // r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
         // r.send_to_project(ProjectServiceInput::TrackAddEntity(
@@ -132,27 +134,6 @@ impl Ensnare {
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r
-    }
-
-    fn set_project(&mut self, project: Project) {
-        // self.orchestrator_service
-        //     .send_to_service(OrchestratorInput::SetOrchestrator(Arc::clone(
-        //         &project.orchestrator,
-        //     )));
-        // self.settings_panel.exit();
-        // self.settings_panel = SettingsPanel::new_with(
-        //     Settings::default(), // TODO
-        //     &project.orchestrator,
-        //     Some(self.control_bar.sample_channel.sender.clone()),
-        // );
-        // self.keyboard_events_sender = project
-        //     .orchestrator
-        //     .lock()
-        //     .unwrap()
-        //     .keyboard_controller
-        //     .sender()
-        //     .clone();
-        // self.project = project;
     }
 
     /// Watches certain channels and asks for a repaint, which triggers the

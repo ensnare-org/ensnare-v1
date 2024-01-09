@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::*;
-use ensnare_cores_egui::widgets::audio::CircularSampleBuffer;
+use ensnare_core::types::VisualizationQueue;
 
 #[derive(Debug, Default)]
 pub enum ControlBarDisplayMode {
@@ -16,8 +15,10 @@ pub enum ControlBarDisplayMode {
 pub struct ControlBar {
     pub saw_midi_in_activity: bool,
     pub saw_midi_out_activity: bool,
-    pub sample_buffer: CircularSampleBuffer,
-    pub sample_channels: ChannelPair<[Sample; 64]>,
+
+    /// An owned VecDeque that acts as a ring buffer of the most recent
+    /// generated audio frames.
+    pub visualization_queue: VisualizationQueue,
     pub display_mode: ControlBarDisplayMode,
     pub fft_buffer: Vec<f32>,
 }

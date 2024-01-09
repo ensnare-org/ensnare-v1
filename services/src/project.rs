@@ -3,7 +3,11 @@
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Key;
-use ensnare_core::{piano_roll::PatternUid, prelude::*, types::AudioQueue};
+use ensnare_core::{
+    piano_roll::PatternUid,
+    prelude::*,
+    types::{AudioQueue, VisualizationQueue},
+};
 use ensnare_entity::prelude::*;
 use ensnare_new_stuff::project::Project;
 use std::{
@@ -28,6 +32,7 @@ pub enum ProjectServiceInput {
     KeyEvent(Key, bool),
     NextTimelineDisplayer,
     AudioQueue(AudioQueue),
+    VisualizationQueue(VisualizationQueue),
     NeedsAudio(usize),
 }
 
@@ -155,6 +160,9 @@ impl ProjectService {
                     }
                     ProjectServiceInput::AudioQueue(queue) => {
                         project.write().unwrap().audio_queue = Some(queue);
+                    }
+                    ProjectServiceInput::VisualizationQueue(queue) => {
+                        project.write().unwrap().visualization_queue = Some(queue)
                     }
                     ProjectServiceInput::NeedsAudio(count) => {
                         project.write().unwrap().fill_audio_queue(count);
