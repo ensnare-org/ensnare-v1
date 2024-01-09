@@ -401,7 +401,8 @@ impl Oscillator {
                 // that can modulate on time_seconds? (It's a complicated
                 // question, potentially.)
                 self.e.noise_x1 ^= self.e.noise_x2;
-                let tmp = 2.0 * (self.e.noise_x2 as f64 - (u32::MAX as f64 / 2.0)) / u32::MAX as f64;
+                let tmp =
+                    2.0 * (self.e.noise_x2 as f64 - (u32::MAX as f64 / 2.0)) / u32::MAX as f64;
                 (self.e.noise_x2, _) = self.e.noise_x2.overflowing_add(self.e.noise_x1);
                 tmp
             }

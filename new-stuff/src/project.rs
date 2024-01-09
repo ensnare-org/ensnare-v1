@@ -431,9 +431,17 @@ impl HandlesMidi for Project {
     }
 }
 impl Serializable for Project {
-    fn before_ser(&mut self) {}
+    fn before_ser(&mut self) {
+        self.automator.before_ser();
+        self.orchestrator.before_ser();
+        self.composer.before_ser();
+        self.midi_router.before_ser();
+    }
 
     fn after_deser(&mut self) {
+        self.automator.after_deser();
+        self.orchestrator.after_deser();
         self.composer.after_deser();
+        self.midi_router.after_deser();
     }
 }

@@ -11,6 +11,7 @@ use ensnare_core::{
     voices::StealingVoiceStore,
 };
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
 #[derive(
@@ -33,7 +34,7 @@ pub enum LfoRouting {
     FilterCutoff,
 }
 
-#[derive(Control, Debug, Default, Params)]
+#[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
 pub struct WelshVoice {
     #[control]
     #[params]
@@ -76,11 +77,16 @@ pub struct WelshVoice {
     #[params]
     pub filter_envelope: Envelope,
 
+    #[serde(skip)]
     note_on_key: u7,
+    #[serde(skip)]
     note_on_velocity: u7,
+    #[serde(skip)]
     steal_is_underway: bool,
 
+    #[serde(skip)]
     sample: StereoSample,
+    #[serde(skip)]
     ticks: usize,
 }
 impl IsStereoSampleVoice for WelshVoice {}
@@ -312,7 +318,7 @@ impl WelshVoice {
 
 /// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Control, Params, Deserialize, Serialize)]
 pub struct WelshSynth {
     #[control]
     #[params]
@@ -322,6 +328,7 @@ pub struct WelshSynth {
     #[params]
     pub dca: Dca,
 
+    #[serde(skip)]
     pub inner_synth: Synthesizer<WelshVoice>,
 }
 impl Generates<StereoSample> for WelshSynth {
@@ -333,7 +340,17 @@ impl Generates<StereoSample> for WelshSynth {
         self.inner_synth.generate_batch_values(values);
     }
 }
-impl Serializable for WelshSynth {}
+impl Serializable for WelshSynth {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {
+        const VOICE_CAPACITY: usize = 8;
+        let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
+            WelshVoice::new_with(&self.voice.to_params())
+        });
+        self.inner_synth = Synthesizer::<WelshVoice>::new_with(Box::new(voice_store));
+    }
+}
 impl Configurable for WelshSynth {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.inner_synth.update_sample_rate(sample_rate);

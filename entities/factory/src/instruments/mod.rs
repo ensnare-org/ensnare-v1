@@ -123,7 +123,6 @@ impl Sampler {
 #[entity2(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::WelshSynth,
 }
 impl Displays for WelshSynth {

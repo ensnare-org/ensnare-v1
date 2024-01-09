@@ -114,6 +114,17 @@ impl Generates<StereoSample> for Orchestrator {
 }
 impl Ticks for Orchestrator {}
 impl Configurable for Orchestrator {}
+impl Serializable for Orchestrator {
+    fn before_ser(&mut self) {
+        self.track_repo.before_ser();
+        self.entity_repo.before_ser();
+    }
+
+    fn after_deser(&mut self) {
+        self.track_repo.after_deser();
+        self.entity_repo.after_deser();
+    }
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TrackRepository {
@@ -153,6 +164,12 @@ impl TrackRepository {
         }
     }
 }
+impl Serializable for TrackRepository {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {}
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct EntityRepository {
     uid_factory: UidFactory<Uid>,
@@ -300,6 +317,15 @@ impl Ticks for EntityRepository {
         self.entities.values_mut().for_each(|e| e.tick(tick_count));
     }
 }
+impl Serializable for EntityRepository {
+    fn before_ser(&mut self) {
+        self.entities.values_mut().for_each(|e| e.before_ser());
+    }
+
+    fn after_deser(&mut self) {
+        self.entities.values_mut().for_each(|e| e.after_deser());
+    }
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Automator {
@@ -319,6 +345,11 @@ impl Automator {
             controllables.retain(|rlink| (ControlLink { uid: target, param }) != *rlink);
         }
     }
+}
+impl Serializable for Automator {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {}
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -343,4 +374,9 @@ impl MidiRouter {
         }
         Ok(())
     }
+}
+impl Serializable for MidiRouter {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {}
 }

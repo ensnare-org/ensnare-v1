@@ -2,9 +2,10 @@
 
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
+use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control, Params, Serialize, Deserialize)]
 pub struct BiQuadFilterLowPass24db {
     #[control]
     #[params]
@@ -13,8 +14,10 @@ pub struct BiQuadFilterLowPass24db {
     #[params]
     passband_ripple: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
 
+    #[serde(skip)]
     channels: [BiQuadFilterLowPass24dbChannel; 2],
 }
 impl Default for BiQuadFilterLowPass24db {

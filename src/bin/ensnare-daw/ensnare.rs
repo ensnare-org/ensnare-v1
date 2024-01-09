@@ -18,7 +18,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
-use ensnare_entities_toy::instruments::ToyInstrument;
+use ensnare_entities::instruments::WelshSynth;
 use ensnare_new_stuff::project::Project;
 use std::{
     path::PathBuf,
@@ -56,7 +56,9 @@ pub(super) struct Ensnare {
     aggregator: EnsnareEventAggregationService,
 
     // Channels for sending commands to services.
+    #[allow(dead_code)]
     audio_sender: Sender<AudioServiceInput>,
+    #[allow(dead_code)]
     midi_sender: Sender<MidiInterfaceInput>,
     project_sender: Sender<ProjectServiceInput>,
 
@@ -126,7 +128,7 @@ impl Ensnare {
         r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
         r.send_to_project(ProjectServiceInput::TrackAddEntity(
             TrackUid(1),
-            EntityKey::from(ToyInstrument::ENTITY_KEY),
+            EntityKey::from(WelshSynth::ENTITY_KEY),
         ));
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
@@ -592,12 +594,14 @@ impl Ensnare {
         }
     }
 
+    #[allow(dead_code)]
     fn send_to_audio(&self, input: AudioServiceInput) {
         if let Err(e) = self.audio_sender.send(input) {
             eprintln!("Error {e} while sending AudioServiceInput");
         }
     }
 
+    #[allow(dead_code)]
     fn send_to_midi(&self, input: MidiInterfaceInput) {
         if let Err(e) = self.midi_sender.send(input) {
             eprintln!("Error {e} while sending MidiInterfaceInput");
