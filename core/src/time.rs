@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable, TimeRange},
+    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
     types::ParameterType,
 };
 use anyhow::{anyhow, Error};
@@ -14,6 +14,12 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 use strum_macros::{FromRepr, IntoStaticStr};
+
+pub mod prelude {
+    pub use super::{
+        BeatValue, MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange,
+    };
+}
 
 /// Beats per minute.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
@@ -451,6 +457,29 @@ impl Sub<Self> for MusicalTime {
         Self {
             units: self.units - rhs.units,
         }
+    }
+}
+
+/// A [ViewRange] indicates a musical time range. It's used to determine what
+/// the UI should show when it's rendering something in a timeline.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ViewRange(pub std::ops::Range<MusicalTime>);
+impl Default for ViewRange {
+    fn default() -> Self {
+        Self(MusicalTime::START..MusicalTime::new_with_beats(4))
+    }
+}
+
+/// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
+/// determine which time slice to handle during [Controls::work()].
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimeRange(pub std::ops::Range<MusicalTime>);
+impl TimeRange {
+    pub fn new_with_start_and_end(start: MusicalTime, end: MusicalTime) -> Self {
+        Self(start..end)
+    }
+    pub fn new_with_start_and_duration(start: MusicalTime, duration: MusicalTime) -> Self {
+        Self(start..(start + duration))
     }
 }
 

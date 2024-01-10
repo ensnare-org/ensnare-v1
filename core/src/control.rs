@@ -4,6 +4,10 @@ use super::prelude::*;
 use derive_more::Display;
 use std::ops::Add;
 
+pub mod prelude {
+    pub use super::{ControlIndex, ControlName, ControlValue};
+}
+
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.
 #[derive(Debug, Display)]

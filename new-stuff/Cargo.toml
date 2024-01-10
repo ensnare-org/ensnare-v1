@@ -17,7 +17,7 @@ egui_extras = { version = "0.24", features = ["all_loaders"] }
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
 # ensnare-drag-drop = { path = "drag-drop" }
-# ensnare-cores-egui = { path = "cores-egui" }
+ensnare-cores-egui = { path = "../cores-egui" }
 # ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entity = { path = "../entity" }
 # ensnare-entities = { path = "entities", features = ["factory"] }

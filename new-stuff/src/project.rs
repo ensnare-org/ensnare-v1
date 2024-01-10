@@ -14,6 +14,7 @@ use ensnare_core::{
     types::{AudioQueue, TrackTitle, VisualizationQueue},
 };
 use ensnare_cores::Composer;
+use ensnare_cores_egui::composer;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -55,6 +56,15 @@ pub struct Project {
     pub composer: Composer,
     pub midi_router: MidiRouter,
 
+    // The part of the project to show in the UI. We've made the explicit
+    // decision to make view parameters persistent, so that a loaded project
+    // looks the same as when it was saved. The downside is that saving a
+    // project after browsing it will usually generate diffs. TODO: maybe put
+    // these kinds of items into a "ProjectViewState" struct, and don't mark the
+    // project dirty when those change. Then they'll be saved only along with
+    // substantial changes.
+    pub view_range: ViewRange,
+
     #[serde(skip)]
     is_finished: bool,
 
@@ -76,7 +86,11 @@ impl Project {
     pub fn new_project() -> Self {
         let mut r = Self::default();
         let _ = r.create_starter_tracks();
-        // r.switch_to_next_frontmost_timeline_displayer();
+
+        // hack - default to a 3-minute song
+        r.view_range = ViewRange(
+            MusicalTime::START..MusicalTime::new_with_beats((r.transport.tempo().0 * 3.0) as usize),
+        );
         r
     }
 
@@ -136,21 +150,10 @@ impl Project {
         Ok(track_uid)
     }
 
-    // These can't be delegated because they return references from things
-    // protected by RwLock.
-    // to self.orchestrator.read().unwrap() {
-    //      pub fn track_uids(&self) -> &[TrackUid];
-    // }
-    // to self.composer.read().unwrap() {
-    //         pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern>;
-    // }
-    // to self.composer.write().unwrap() {
-    //     pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern>;
-    // }
-
     delegate! {
         to self.orchestrator {
             pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid>;
+            pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
             pub fn delete_track(&mut self, uid: TrackUid) -> Result<()>;
 
@@ -164,6 +167,8 @@ impl Project {
         }
         to self.composer {
             pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
+            pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern>;
+            pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern>;
             pub fn notify_pattern_change(&mut self);
             pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
             pub fn arrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime) -> Result<()>;
@@ -304,13 +309,11 @@ impl Project {
                 eframe::epaint::vec2(5.0, 5.0),
             )
             .show(ui.ctx(), |ui| {
-                // let mut inner = self.piano_roll.write().unwrap();
-                // let response = ui.add(piano_roll(&mut inner));
-                // if response.changed() {
-                //     self.sequence_repository.write().unwrap().notify_change();
-                // }
-                // response
-                ui.label("I'm a piano roll")
+                let response = ui.add(composer(&mut self.composer));
+                if response.changed() {
+                    //self.sequence_repository.write().unwrap().notify_change();
+                }
+                response
             });
     }
 

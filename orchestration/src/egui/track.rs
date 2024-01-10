@@ -2,20 +2,17 @@
 
 use crate::track::TrackWidgetAction;
 use eframe::{
-    egui::{Frame, Margin, Sense, TextFormat, Widget},
+    egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
     epaint::{
-        text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
+        pos2, text::LayoutJob, vec2, Color32, FontId, Galley, Rect, RectShape, Shape, Stroke,
+        TextShape, Vec2,
     },
 };
-use ensnare_core::{
-    time::MusicalTime,
-    types::TrackTitle,
-    uid::{TrackUid, Uid},
-};
+use ensnare_core::prelude::*;
+use ensnare_cores::Composer;
 use ensnare_cores_egui::widgets::timeline::{cursor, grid};
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-use ensnare_egui_widgets::ViewRange;
 use ensnare_new_stuff::parts::Orchestrator;
 use std::{f32::consts::PI, sync::Arc};
 
@@ -35,6 +32,7 @@ pub struct TrackInfo<'a> {
 pub fn new_track_widget<'a>(
     track_info: &'a TrackInfo<'a>,
     orchestrator: &'a mut Orchestrator,
+    composer: &'a mut Composer,
     view_range: ViewRange,
     frontmost_uid: Option<Uid>,
     cursor: Option<MusicalTime>,
@@ -44,6 +42,7 @@ pub fn new_track_widget<'a>(
         NewTrackWidget::new(
             track_info,
             orchestrator,
+            composer,
             view_range,
             frontmost_uid,
             cursor,
@@ -58,6 +57,7 @@ pub fn new_track_widget<'a>(
 struct NewTrackWidget<'a> {
     track_info: &'a TrackInfo<'a>,
     orchestrator: &'a mut Orchestrator,
+    composer: &'a mut Composer,
     frontmost_uid: Option<Uid>,
     view_range: ViewRange,
     cursor: Option<MusicalTime>,
@@ -71,6 +71,7 @@ impl<'a> NewTrackWidget<'a> {
     pub fn new(
         track_info: &'a TrackInfo<'a>,
         orchestrator: &'a mut Orchestrator,
+        composer: &'a mut Composer,
         view_range: ViewRange,
         frontmost_uid: Option<Uid>,
         cursor: Option<MusicalTime>,
@@ -79,6 +80,7 @@ impl<'a> NewTrackWidget<'a> {
         Self {
             track_info,
             orchestrator,
+            composer,
             view_range,
             frontmost_uid,
             cursor,
@@ -205,6 +207,17 @@ impl<'a> Widget for NewTrackWidget<'a> {
                                     });
                                 }
                             }
+
+                            // HACK! just display the one we know about
+                            ui.add_enabled_ui(true, |ui| {
+                                ui.allocate_ui_at_rect(rect, |ui| {
+                                    ui.add(track_arrangement(
+                                        self.track_info.track_uid,
+                                        self.composer,
+                                        &self.view_range,
+                                    ));
+                                });
+                            });
 
                             // Next, if it's present, draw the cursor.
                             if let Some(position) = self.cursor {
@@ -344,5 +357,111 @@ impl eframe::egui::Widget for TitleBar {
 impl TitleBar {
     fn new(font_galley: Option<Arc<Galley>>) -> Self {
         Self { font_galley }
+    }
+}
+
+/// Wraps a [TrackArrangement] as a [Widget](eframe::egui::Widget).
+pub fn track_arrangement<'a>(
+    track_uid: TrackUid,
+    composer: &'a mut Composer,
+    view_range: &'a ViewRange,
+) -> impl eframe::egui::Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| TrackArrangement::new(track_uid, composer, view_range).ui(ui)
+}
+
+/// An egui widget that draws a track arrangement overlaid in the track view.
+#[derive(Debug)]
+struct TrackArrangement<'a> {
+    track_uid: TrackUid,
+    composer: &'a mut Composer,
+    view_range: &'a ViewRange,
+}
+impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
+            let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
+            let x_range_f32 = self.view_range.0.start.total_units() as f32
+                ..=self.view_range.0.end.total_units() as f32;
+            let y_range = i8::MAX as f32..=u8::MIN as f32;
+            let local_space_rect = Rect::from_x_y_ranges(x_range_f32, y_range);
+            let to_screen = RectTransform::from_to(local_space_rect, response.rect);
+            let from_screen = to_screen.inverse();
+
+            // Check whether we edited the sequence
+            if response.clicked() {
+                if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
+                    let local_pos = from_screen * click_pos;
+                    let time = MusicalTime::new_with_units(local_pos.x as usize).quantized();
+                    let key = local_pos.y as u8;
+                    let note = Note::new_with(key, time, MusicalTime::DURATION_QUARTER);
+                    eprintln!("Saw a click at {time}, note {note:?}");
+                    // self.sequencer.toggle_note(note);
+                    // self.sequencer.calculate_events();
+                }
+            }
+
+            let visuals = if ui.is_enabled() {
+                ui.ctx().style().visuals.widgets.active
+            } else {
+                ui.ctx().style().visuals.widgets.inactive
+            };
+
+            // Generate all the note shapes
+            // let note_shapes: Vec<Shape> = self
+            //     .sequencer
+            //     .notes()
+            //     .iter()
+            //     .map(|note| self.shape_for_note(&to_screen, &visuals, note))
+            //     .collect();
+
+            // Generate all the pattern note shapes
+            if let Some(arrangements) = self.composer.arrangements.get(&self.track_uid) {
+                let pattern_shapes: Vec<Shape> =
+                    arrangements
+                        .iter()
+                        .fold(Vec::default(), |mut v, arrangement| {
+                            if let Some(pattern) = self.composer.pattern(&arrangement.pattern_uid) {
+                                pattern.notes().iter().for_each(|note| {
+                                    let note = Note {
+                                        key: note.key,
+                                        range: TimeRange(
+                                            (note.range.0.start + arrangement.position)
+                                                ..(note.range.0.end + arrangement.position),
+                                        ),
+                                    };
+                                    v.push(Self::shape_for_note(&to_screen, &visuals, &note));
+                                });
+                            }
+                            v
+                        });
+
+                // Paint all the shapes
+                //            painter.extend(note_shapes);
+                painter.extend(pattern_shapes);
+            }
+
+            response
+        })
+        .inner
+    }
+}
+impl<'a> TrackArrangement<'a> {
+    fn new(track_uid: TrackUid, composer: &'a mut Composer, view_range: &'a ViewRange) -> Self {
+        Self {
+            track_uid,
+            composer,
+            view_range,
+        }
+    }
+
+    fn shape_for_note(to_screen: &RectTransform, visuals: &WidgetVisuals, note: &Note) -> Shape {
+        let a = to_screen * pos2(note.range.0.start.total_units() as f32, note.key as f32);
+        let b = to_screen * pos2(note.range.0.end.total_units() as f32, note.key as f32);
+        Shape::Rect(RectShape::new(
+            Rect::from_two_pos(a, b),
+            visuals.rounding,
+            visuals.bg_fill,
+            visuals.fg_stroke,
+        ))
     }
 }

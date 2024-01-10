@@ -1,17 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::rng::Rng;
-use crate::{
-    prelude::*,
-    selection_set::SelectionSet,
-    traits::TimeRange,
-    uid::{IsUid, UidFactory},
-};
+use crate::{prelude::*, selection_set::SelectionSet};
 use anyhow::anyhow;
 use derive_builder::Builder;
 use ensnare_proc_macros::Params;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
+
+pub mod prelude {
+    pub use super::{Note, Pattern, PatternBuilder, PatternUid};
+}
 
 /// Identifies a [Pattern].
 #[derive(

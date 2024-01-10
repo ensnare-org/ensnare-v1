@@ -2,10 +2,10 @@
 
 use ensnare_core::{
     midi::{MidiChannel, MidiEvent, MidiMessage},
-    time::{MusicalTime, SampleRate, Tempo, TimeSignature},
+    time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
     traits::{
         Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, SequencesMidi,
-        TimeRange, WorkEvent,
+        WorkEvent,
     },
 };
 use serde::{Deserialize, Serialize};

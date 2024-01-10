@@ -6,6 +6,7 @@ use anyhow::{anyhow, Result};
 use ensnare_core::{
     piano_roll::{Pattern, PatternBuilder, PatternUid},
     prelude::*,
+    selection_set::SelectionSet,
     traits::Sequences,
 };
 use serde::{Deserialize, Serialize};
@@ -38,8 +39,12 @@ impl Default for ModSerial {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Composer {
     pattern_uid_factory: UidFactory<PatternUid>,
-    patterns: HashMap<PatternUid, Pattern>,
-    arrangements: HashMap<TrackUid, Vec<Arrangement>>,
+    pub patterns: HashMap<PatternUid, Pattern>,
+    pub ordered_pattern_uids: Vec<PatternUid>,
+    pub arrangements: HashMap<TrackUid, Vec<Arrangement>>,
+
+    #[serde(skip)]
+    pub pattern_selection_set: SelectionSet<PatternUid>,
 
     #[serde(skip)]
     inner: PatternSequencer,
@@ -73,6 +78,7 @@ impl Composer {
             self.pattern_uid_factory.mint_next()
         };
         self.patterns.insert(pattern_uid, contents);
+        self.ordered_pattern_uids.push(pattern_uid);
         Ok(pattern_uid)
     }
 
@@ -90,6 +96,7 @@ impl Composer {
 
     pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern> {
         if let Some(pattern) = self.patterns.remove(&pattern_uid) {
+            self.ordered_pattern_uids.retain(|uid| pattern_uid != *uid);
             Ok(pattern)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))

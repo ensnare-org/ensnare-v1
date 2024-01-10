@@ -1,11 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    midi::{prelude::*, MidiEvent},
-    piano_roll::Note,
-    prelude::*,
-    traits::{Sequences, SequencesMidi, TimeRange},
-};
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::{Control, Params};
 
 enum TestControllerAction {

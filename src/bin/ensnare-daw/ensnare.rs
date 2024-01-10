@@ -35,7 +35,6 @@ use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction};
 pub(super) struct RenderingState {
     pub(super) is_piano_roll_visible: bool,
     pub(super) is_settings_panel_open: bool,
-    pub(super) view_range: ViewRange,
     pub(super) is_detail_open: bool,
     pub(super) detail_uid: Option<Uid>,
     pub(super) detail_title: String,
@@ -126,7 +125,7 @@ impl Ensnare {
         ));
 
         // TODO TEMP to make initial project more interesting
-        // r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
+        r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
         // r.send_to_project(ProjectServiceInput::TrackAddEntity(
         //     TrackUid(1),
         //     EntityKey::from(ensnare_entities::instruments::WelshSynth::ENTITY_KEY),
@@ -220,18 +219,20 @@ impl Ensnare {
                                 title.to_string(),
                             ));
 
-                            let load_path = if let Some(load_path) = project.load_path.as_ref() {
-                                load_path.display().to_string()
-                            } else {
-                                String::from("unknown")
-                            };
-                            self.toasts.add(Toast {
-                                kind: egui_toast::ToastKind::Success,
-                                text: format!("Loaded {} from {}", title, load_path).into(),
-                                options: ToastOptions::default()
-                                    .duration_in_seconds(2.0)
-                                    .show_progress(false),
-                            });
+                            if let Some(load_path) = project.load_path.as_ref() {
+                                self.toasts.add(Toast {
+                                    kind: egui_toast::ToastKind::Success,
+                                    text: format!(
+                                        "Loaded {} from {}",
+                                        title,
+                                        load_path.display().to_string()
+                                    )
+                                    .into(),
+                                    options: ToastOptions::default()
+                                        .duration_in_seconds(2.0)
+                                        .show_progress(false),
+                                });
+                            }
                         }
                         self.project = Some(new_project);
                     }
@@ -257,54 +258,7 @@ impl Ensnare {
                 },
                 EnsnareEvent::Quit => {
                     eprintln!("EnsnareEvent::Quit");
-                } // EnsnareEvent::OrchestratorEvent(event) => match event {
-                  //     OrchestratorEvent::Tempo(_tempo) => {
-                  //         // This is (usually) an acknowledgement that Orchestrator
-                  //         // got our request to change, so we don't need to do
-                  //         // anything.
-                  //     }
-                  //     OrchestratorEvent::Quit => {
-                  //         eprintln!("OrchestratorEvent::Quit")
-                  //     }
-                  //     OrchestratorEvent::Loaded(path, title) => {
-                  //         let title = title.unwrap_or(ProjectTitle::default().into());
-                  //         self.toasts.add(Toast {
-                  //             kind: egui_toast::ToastKind::Success,
-                  //             text: format!("Loaded {} from {}", title, path.display()).into(),
-                  //             options: ToastOptions::default()
-                  //                 .duration_in_seconds(2.0)
-                  //                 .show_progress(false),
-                  //         });
-                  //     }
-                  //     OrchestratorEvent::LoadError(path, error) => {
-                  //         self.toasts.add(Toast {
-                  //             kind: egui_toast::ToastKind::Error,
-                  //             text: format!("Error loading {}: {}", path.display(), error).into(),
-                  //             options: ToastOptions::default().duration_in_seconds(5.0),
-                  //         });
-                  //     }
-                  //     OrchestratorEvent::Saved(path) => {
-                  //         // TODO: this should happen only if the save operation was
-                  //         // explicit. Autosaves should be invisible.
-                  //         self.toasts.add(Toast {
-                  //             kind: egui_toast::ToastKind::Success,
-                  //             text: format!("Saved to {}", path.display()).into(),
-                  //             options: ToastOptions::default()
-                  //                 .duration_in_seconds(1.0)
-                  //                 .show_progress(false),
-                  //         });
-                  //     }
-                  //     OrchestratorEvent::SaveError(path, error) => {
-                  //         self.toasts.add(Toast {
-                  //             kind: egui_toast::ToastKind::Error,
-                  //             text: format!("Error saving {}: {}", path.display(), error).into(),
-                  //             options: ToastOptions::default().duration_in_seconds(5.0),
-                  //         });
-                  //     }
-                  //     OrchestratorEvent::New => {
-                  //         // No special UI needed for this.
-                  //     }
-                  // },
+                }
             }
         }
     }
@@ -407,11 +361,7 @@ impl Ensnare {
                     &self.rendering_state.detail_title,
                     &mut self.rendering_state.is_detail_open,
                 );
-                let _ = ui.add(project_widget(
-                    &mut project,
-                    &mut self.rendering_state.view_range,
-                    &mut action,
-                ));
+                let _ = ui.add(project_widget(&mut project, &mut action));
             }
         }
         if let Some(action) = action {

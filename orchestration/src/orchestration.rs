@@ -13,10 +13,10 @@ use crossbeam_channel::Sender;
 use ensnare_core::{
     control::ControlIndex,
     midi::{MidiChannel, MidiMessage},
-    time::{SampleRate, Tempo, TimeSignature, Transport},
+    time::{SampleRate, Tempo, TimeRange, TimeSignature, Transport},
     traits::{
         Configurable, ControlEventsFn, Controllable, Controls, ControlsAsProxy, Generates,
-        HandlesMidi, MidiMessagesFn, Ticks, TimeRange, WorkEvent,
+        HandlesMidi, MidiMessagesFn, Ticks, WorkEvent,
     },
     types::{AudioQueue, Normal, Sample, StereoSample},
     uid::{EntityUidFactory, TrackUid, TrackUidFactory, Uid},

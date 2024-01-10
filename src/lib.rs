@@ -237,12 +237,10 @@ pub mod traits {
 pub mod types {
     //! Common data types used throughout the system.
     pub use ensnare_core::{
-        time::{MusicalTime, SampleRate, Tempo, TimeSignature},
-        traits::TimeRange,
+        time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange},
         types::*,
         uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
     };
-    pub use ensnare_egui_widgets::ViewRange;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -261,6 +259,7 @@ pub mod ui {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::{
             piano_roll::piano_roll,
+            prelude::*,
             widgets::{audio, pattern, placeholder, timeline},
         };
         pub use ensnare_orchestration::egui::entity_palette;

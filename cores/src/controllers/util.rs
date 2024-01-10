@@ -3,9 +3,8 @@
 use bit_vec::BitVec;
 use ensnare_core::{
     midi::{u7, MidiChannel, MidiMessage},
-    traits::{
-        Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, TimeRange, WorkEvent,
-    },
+    time::TimeRange,
+    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, WorkEvent},
 };
 use std::fmt::Debug;
 

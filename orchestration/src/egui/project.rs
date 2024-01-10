@@ -11,12 +11,8 @@ use crate::{
     traits::Orchestrates,
 };
 use eframe::{egui::Widget, epaint::Galley};
-use ensnare_core::{
-    types::TrackTitle,
-    uid::{TrackUid, Uid},
-};
+use ensnare_core::prelude::*;
 use ensnare_cores_egui::widgets::timeline::legend;
-use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_new_stuff::project::Project;
 use std::sync::Arc;
@@ -29,17 +25,15 @@ pub trait DescribesProject: core::fmt::Debug {
 /// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
 pub fn project_widget<'a>(
     project: &'a mut Project,
-    view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| ProjectWidget::new(project, view_range, action).ui(ui)
+    move |ui: &mut eframe::egui::Ui| ProjectWidget::new(project, action).ui(ui)
 }
 
 /// An egui component that draws the main view of a project.
 #[derive(Debug)]
 struct ProjectWidget<'a> {
     project: &'a mut Project,
-    view_range: &'a mut ViewRange,
     action: &'a mut Option<ProjectAction>,
 }
 impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
@@ -50,7 +44,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         let response = ui
             .horizontal(|ui| {
                 ui.add_enabled(false, title_bar(None));
-                ui.add(legend(self.view_range));
+                ui.add(legend(&mut self.project.view_range));
             })
             .response;
 
@@ -111,7 +105,8 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     ui.add(new_track_widget(
                         &track_info,
                         &mut self.project.orchestrator,
-                        self.view_range.clone(),
+                        &mut self.project.composer,
+                        self.project.view_range.clone(),
                         frontmost_uid,
                         cursor,
                         &mut action,
@@ -132,16 +127,8 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
     }
 }
 impl<'a> ProjectWidget<'a> {
-    fn new(
-        project: &'a mut Project,
-        view_range: &'a mut ViewRange,
-        action: &'a mut Option<ProjectAction>,
-    ) -> Self {
-        Self {
-            project,
-            view_range,
-            action,
-        }
+    fn new(project: &'a mut Project, action: &'a mut Option<ProjectAction>) -> Self {
+        Self { project, action }
     }
 }
 

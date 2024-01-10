@@ -7,7 +7,6 @@ pub use core::drag_normal;
 pub use generators::{envelope, oscillator};
 pub use indicators::{activity_indicator, level_indicator};
 pub use misc::{oblique_strategies, ObliqueStrategiesManager};
-pub use types::ViewRange;
 
 mod audio;
 mod core;

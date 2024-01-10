@@ -18,6 +18,13 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+pub mod prelude {
+    pub use super::{
+        Arrangement, BipolarNormal, ChannelPair, FrequencyHz, FrequencyRange, Normal,
+        ParameterType, Ratio, Sample, SampleType, SignalType, StereoSample, TrackTitle,
+    };
+}
+
 /// [SampleType] is the underlying primitive that makes up [StereoSample].
 pub type SampleType = f64;
 

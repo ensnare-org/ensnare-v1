@@ -4,11 +4,7 @@ use crossbeam_channel::Sender;
 use delegate::delegate;
 use ensnare_core::{
     controllers::{ControlTripParams, TimerParams, TriggerParams},
-    piano_roll::{Pattern, PatternUid},
     prelude::*,
-    time::MusicalTime,
-    traits::{Controls, Sequences},
-    uid::Uid,
 };
 use ensnare_cores::{
     ArpeggiatorParams, Composer, LfoControllerParams, SignalPassthroughControllerParams,
@@ -17,7 +13,6 @@ use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
     pattern_sequencer_widget, trip,
 };
-use ensnare_egui_widgets::ViewRange;
 use ensnare_entity::prelude::*;
 use ensnare_orchestration::ControlRouter;
 use ensnare_proc_macros::{

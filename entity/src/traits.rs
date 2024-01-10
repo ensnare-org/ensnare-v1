@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_egui_widgets::ViewRange;
 
 /// [Entity] is a generic type of thing that can have various discoverable
 /// capabilities. Almost everything in this system is an Entity of some kind. A

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{prelude::*, traits::TimeRange};
+use ensnare_core::prelude::*;
 use ensnare_proc_macros::Params;
 
 #[derive(Debug, Default, Clone, Copy)]

@@ -44,13 +44,7 @@ pub mod voices;
 pub mod prelude {
     pub use super::traits::prelude::*;
     pub use super::{
-        control::{ControlIndex, ControlName, ControlValue},
-        midi::prelude::*,
-        time::{BeatValue, MusicalTime, SampleRate, Tempo, TimeSignature},
-        types::{
-            Arrangement, BipolarNormal, ChannelPair, FrequencyHz, Normal, ParameterType, Ratio,
-            Sample, SampleType, SignalType, StereoSample,
-        },
-        uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
+        control::prelude::*, midi::prelude::*, piano_roll::prelude::*, time::prelude::*,
+        types::prelude::*, uid::prelude::*,
     };
 }

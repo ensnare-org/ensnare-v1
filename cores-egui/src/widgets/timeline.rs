@@ -6,7 +6,6 @@ use eframe::{
     epaint::{pos2, FontId, RectShape, Shape, Vec2},
 };
 use ensnare_core::prelude::*;
-use ensnare_egui_widgets::ViewRange;
 
 /// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
 pub fn timeline_icon_strip<'a>(

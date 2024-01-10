@@ -9,17 +9,17 @@
 use crate::{
     control::{ControlIndex, ControlValue},
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
-    prelude::*,
-    time::{MusicalTime, SampleRate, TimeSignature},
+    time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
+    types::{Normal, Sample, StereoSample},
+    uid::Uid,
 };
-use serde::{Deserialize, Serialize};
 
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
         Configurable, ControlEventsFn, Controllable, Controls, Generates,
         GeneratesToInternalBuffer, HandlesMidi, HasSettings, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, PlaysNotes, SequencesMidi, Serializable, StoresVoices, Ticks, TimeRange,
+        MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices, Ticks,
         TransformsAudio, WorkEvent,
     };
 }
@@ -176,19 +176,6 @@ pub enum WorkEvent {
 impl MessageBounds for WorkEvent {}
 
 pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
-
-/// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
-/// determine which time slice to handle during [Controls::work()].
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TimeRange(pub std::ops::Range<MusicalTime>);
-impl TimeRange {
-    pub fn new_with_start_and_end(start: MusicalTime, end: MusicalTime) -> Self {
-        Self(start..end)
-    }
-    pub fn new_with_start_and_duration(start: MusicalTime, duration: MusicalTime) -> Self {
-        Self(start..(start + duration))
-    }
-}
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
 /// It also has a concept of a performance that has a beginning and an end. It

@@ -21,7 +21,7 @@ use ensnare::{
     synthesizer::{Synthesizer, VoicePerNoteStore},
     utils::Paths,
 };
-use ensnare_core::traits::TimeRange;
+use ensnare_core::time::TimeRange;
 use ensnare_cores::{Sampler, SamplerVoice};
 use ensnare_proc_macros::{Control, IsEntity, Metadata, Params};
 use std::{path::Path, sync::Arc};

@@ -8,6 +8,10 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+pub mod prelude {
+    pub use super::{IsUid, TrackUid, TrackUidFactory, Uid, UidFactory};
+}
+
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + From<usize> {
     fn as_usize(&self) -> usize;

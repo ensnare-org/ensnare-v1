@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng, traits::TimeRange};
+use crate::{prelude::*, rng::Rng};
 use derive_builder::Builder;
 use ensnare_proc_macros::{Control, Params};
 

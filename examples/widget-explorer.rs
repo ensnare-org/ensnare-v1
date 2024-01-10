@@ -21,7 +21,7 @@ use ensnare::{
         CircularSampleBuffer, DragSource, DropTarget,
     },
 };
-use ensnare_core::{traits::TimeRange, types::TrackTitle};
+use ensnare_core::{time::TimeRange, types::TrackTitle};
 use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     NoteSequencerBuilder,

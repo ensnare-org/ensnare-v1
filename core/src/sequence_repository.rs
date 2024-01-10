@@ -204,7 +204,7 @@ impl From<&SequenceRepository> for Vec<ArrangementInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::TimeRange;
+    use crate::time::TimeRange;
 
     #[test]
     fn sequence_repository() {

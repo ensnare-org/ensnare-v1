@@ -3,7 +3,8 @@
 use ensnare_core::{
     control::ControlIndex,
     midi::MidiChannel,
-    traits::{Configurable, Controls, Generates, TimeRange},
+    time::TimeRange,
+    traits::{Configurable, Controls, Generates},
     types::{Normal, StereoSample},
     uid::{TrackUid, Uid},
 };

@@ -5,12 +5,9 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
 };
-use ensnare_core::{
-    controllers::ControlTripPath, generators::Waveform, piano_roll::Note, prelude::*,
-    time::MusicalTime, types::FrequencyRange, uid::Uid,
-};
+use ensnare_core::{controllers::ControlTripPath, generators::Waveform, prelude::*};
 use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode, LivePatternSequencer};
-use ensnare_egui_widgets::{frequency, waveform, ViewRange};
+use ensnare_egui_widgets::{frequency, waveform};
 use strum::IntoEnumIterator;
 
 pub use keyboard::KeyboardController;
