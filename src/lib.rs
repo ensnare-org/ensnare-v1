@@ -254,7 +254,6 @@ pub mod types {
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub use ensnare_cores_egui::widgets::audio::CircularSampleBuffer;
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::{

@@ -28,7 +28,7 @@ use std::{
 // and ideally it can get by with just importing prelude::*.
 use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::{egui::entity_palette, ProjectAction};
+use ensnare_orchestration::egui::entity_palette;
 use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction};
 
 #[derive(Debug, Default)]

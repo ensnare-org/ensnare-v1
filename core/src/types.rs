@@ -12,6 +12,7 @@ use crossbeam::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::VecDeque,
     fmt::Display,
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, RangeInclusive, Sub},
@@ -740,7 +741,12 @@ pub type AudioQueue = Arc<ArrayQueue<StereoSample>>;
 pub struct VisualizationQueue(pub Arc<RwLock<BoundedVecDeque<Sample>>>);
 impl Default for VisualizationQueue {
     fn default() -> Self {
-        Self(Arc::new(RwLock::new(BoundedVecDeque::new(256))))
+        const LEN: usize = 256;
+        let mut deque = VecDeque::new();
+        deque.resize(LEN, Sample::default());
+        Self(Arc::new(RwLock::new(BoundedVecDeque::from_unbounded(
+            deque, LEN,
+        ))))
     }
 }
 impl Clone for VisualizationQueue {

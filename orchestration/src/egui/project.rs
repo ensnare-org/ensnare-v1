@@ -5,17 +5,28 @@ use super::{
     signal_chain::SignalChainItem,
     track::{make_title_bar_galley, title_bar, TrackInfo},
 };
-use crate::{
-    orchestration::{Orchestrator, ProjectAction},
-    track::TrackWidgetAction,
-    traits::Orchestrates,
-};
+use crate::{orchestration::Orchestrator, track::TrackWidgetAction, traits::Orchestrates};
 use eframe::{egui::Widget, epaint::Galley};
 use ensnare_core::prelude::*;
 use ensnare_cores_egui::widgets::timeline::legend;
-use ensnare_entity::traits::EntityBounds;
+use ensnare_entity::{factory::EntityKey, traits::EntityBounds};
 use ensnare_new_stuff::project::Project;
 use std::sync::Arc;
+use strum_macros::Display;
+
+/// Actions that [Orchestrator]'s UI might need the parent to perform.
+#[derive(Clone, Debug, Display)]
+pub enum ProjectAction {
+    /// A [Track] was clicked in the UI.
+    ClickTrack(TrackUid),
+    /// A [Track] was double-clicked in the UI.
+    DoubleClickTrack(TrackUid),
+    /// A [Track] wants a new device of type [Key].
+    NewDeviceForTrack(TrackUid, EntityKey),
+    // The user selected an entity with the given uid and name. The UI should
+    // show that entity's detail view.
+    EntitySelected(Uid, String),
+}
 
 pub trait DescribesProject: core::fmt::Debug {
     fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle>;

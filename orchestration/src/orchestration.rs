@@ -30,21 +30,6 @@ use std::{
     sync::{Arc, RwLock},
     vec::Vec,
 };
-use strum_macros::Display;
-
-/// Actions that [Orchestrator]'s UI might need the parent to perform.
-#[derive(Clone, Debug, Display)]
-pub enum ProjectAction {
-    /// A [Track] was clicked in the UI.
-    ClickTrack(TrackUid),
-    /// A [Track] was double-clicked in the UI.
-    DoubleClickTrack(TrackUid),
-    /// A [Track] wants a new device of type [Key].
-    NewDeviceForTrack(TrackUid, EntityKey),
-    // The user selected an entity with the given uid and name. The UI should
-    // show that entity's detail view.
-    EntitySelected(Uid, String),
-}
 
 #[cfg(obsolete)]
 mod obsolete {

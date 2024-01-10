@@ -322,8 +322,8 @@ impl<'a> NoteSequencerWidget<'a> {
     }
 }
 impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
-    fn ui(self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        todo!()
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.label("Coming soon!")
     }
 }
 

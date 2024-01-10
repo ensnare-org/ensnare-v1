@@ -7,56 +7,74 @@ use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
 use ensnare::prelude::*;
-use ensnare_core::time::TimeRange;
+use ensnare_core::{time::TimeRange, types::AudioQueue};
 use std::sync::{Arc, Mutex};
 
 mod calculator;
 
 struct CalculatorApp {
     calculator: Arc<Mutex<Calculator>>,
-    audio_interface: AudioService,
+    audio_service: AudioService,
+    audio_queue: Option<AudioQueue>,
 }
 impl CalculatorApp {
     const APP_NAME: &'static str = "Pocket Calculator";
 
     fn new(_cc: &CreationContext) -> Self {
-        let calculator = Arc::new(Mutex::new(Calculator::default()));
-        let c4na = Arc::clone(&calculator);
-        let needs_audio_fn: NeedsAudioFn = {
-            Box::new(move |audio_queue, samples_requested| {
-                let mut buffer = [StereoSample::SILENCE; 64];
-
-                for _ in 0..(samples_requested / buffer.len()) + 1 {
-                    if let Ok(mut calculator) = c4na.lock() {
-                        // This is a lot of redundant calculation for something that
-                        // doesn't change much, but it's cheap.
-                        let range = TimeRange(
-                            MusicalTime::START
-                                ..MusicalTime::new_with_units(MusicalTime::frames_to_units(
-                                    calculator.tempo(),
-                                    calculator.sample_rate(),
-                                    buffer.len(),
-                                )),
-                        );
-
-                        calculator.update_time_range(&range);
-                        calculator.work(&mut |_| {});
-                        calculator.generate_batch_values(&mut buffer);
-                        for sample in buffer {
-                            let _ = audio_queue.push(sample);
-                        }
-                    }
-                }
-            })
-        };
         Self {
-            calculator,
-            audio_interface: AudioService::new_with(needs_audio_fn),
+            calculator: Arc::new(Mutex::new(Calculator::default())),
+            audio_service: AudioService::new(),
+            audio_queue: None,
         }
     }
 }
 impl eframe::App for CalculatorApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        while let Ok(event) = self.audio_service.receiver().try_recv() {
+            {
+                match event {
+                    AudioServiceEvent::Reset(sample_rate, _channel_count, audio_queue) => {
+                        self.calculator
+                            .lock()
+                            .unwrap()
+                            .update_sample_rate(sample_rate);
+                        self.audio_queue = Some(audio_queue);
+                    }
+                    AudioServiceEvent::NeedsAudio(count) => {
+                        let mut buffer = [StereoSample::SILENCE; 64];
+
+                        for _ in 0..(count / buffer.len()) + 1 {
+                            if let Ok(mut calculator) = self.calculator.lock() {
+                                // This is a lot of redundant calculation for something that
+                                // doesn't change much, but it's cheap.
+                                let range = TimeRange(
+                                    MusicalTime::START
+                                        ..MusicalTime::new_with_units(
+                                            MusicalTime::frames_to_units(
+                                                calculator.tempo(),
+                                                calculator.sample_rate(),
+                                                buffer.len(),
+                                            ),
+                                        ),
+                                );
+
+                                calculator.update_time_range(&range);
+                                calculator.work(&mut |_| {});
+                                calculator.generate_batch_values(&mut buffer);
+                                if let Some(queue) = self.audio_queue.as_ref() {
+                                    buffer.iter().for_each(|s| {
+                                        let _ = queue.force_push(*s);
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    AudioServiceEvent::Underrun => {
+                        eprintln!("AudioServiceEvent::Underrun");
+                    }
+                }
+            }
+        }
         let center = eframe::egui::CentralPanel::default();
 
         center.show(ctx, |ui| {
@@ -71,7 +89,7 @@ impl eframe::App for CalculatorApp {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        self.audio_interface.exit();
+        let _ = self.audio_service.sender().send(AudioServiceInput::Quit);
     }
 }
 

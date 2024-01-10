@@ -3,6 +3,8 @@
 //! The `widget-explorer` example is a sandbox for developing egui Ensnare
 //! widgets.
 
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use eframe::{
     egui::{
@@ -18,17 +20,21 @@ use ensnare::{
     prelude::*,
     ui::{
         widgets::{audio, pattern, placeholder, timeline},
-        CircularSampleBuffer, DragSource, DropTarget,
+        DragSource, DropTarget,
     },
 };
-use ensnare_core::{time::TimeRange, types::TrackTitle};
+use ensnare_core::{
+    rng::Rng,
+    time::TimeRange,
+    types::{TrackTitle, VisualizationQueue},
+};
 use ensnare_cores::{
     toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
     NoteSequencerBuilder,
 };
 use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
-    prelude::live_pattern_sequencer_widget,
+    prelude::live_pattern_sequencer_widget, widgets::audio::FrequencyDomain,
 };
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
@@ -583,12 +589,27 @@ impl WigglerSettings {
     }
 }
 
+trait RandomizesBuffer {
+    fn visualization_queue(&self) -> &VisualizationQueue;
+    fn rng(&mut self) -> &mut Rng;
+
+    fn add_noise_to_buffer(&mut self) {
+        let queue = Arc::clone(&self.visualization_queue().0);
+        for _ in 0..8 {
+            queue.write().unwrap().push_back(Sample::from(Normal::from(
+                self.rng().rand_u64() as f64 / u64::MAX as f64,
+            )));
+        }
+    }
+}
+
 #[derive(Debug)]
 struct TimeDomainSettings {
     hide: bool,
     max_width: f32,
     max_height: f32,
-    buffer: CircularSampleBuffer,
+    visualization_queue: VisualizationQueue,
+    rng: Rng,
 }
 impl Default for TimeDomainSettings {
     fn default() -> Self {
@@ -596,7 +617,8 @@ impl Default for TimeDomainSettings {
             hide: Default::default(),
             max_width: 128.0,
             max_height: 64.0,
-            buffer: CircularSampleBuffer::new(256),
+            visualization_queue: Default::default(),
+            rng: Default::default(),
         }
     }
 }
@@ -608,17 +630,28 @@ impl Displays for TimeDomainSettings {
             | ui.add(DragValue::new(&mut self.max_height).prefix("height: "))
     }
 }
+impl RandomizesBuffer for TimeDomainSettings {
+    fn visualization_queue(&self) -> &VisualizationQueue {
+        &self.visualization_queue
+    }
+
+    fn rng(&mut self) -> &mut Rng {
+        &mut self.rng
+    }
+}
 impl TimeDomainSettings {
     const NAME: &'static str = "Audio Time Domain";
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        self.buffer.add_some_noise();
+        self.add_noise_to_buffer();
         if !self.hide {
             ui.scope(|ui| {
                 ui.set_max_width(self.max_width);
                 ui.set_max_height(self.max_height);
-                let (buffer, cursor) = self.buffer.get();
-                ui.add(audio::time_domain(buffer, cursor));
+                if let Ok(queue) = self.visualization_queue.0.read() {
+                    let (slice_1, slice_2) = queue.as_slices();
+                    ui.add(audio::time_domain(slice_1, slice_2));
+                }
             });
         }
     }
@@ -629,7 +662,8 @@ struct FrequencyDomainSettings {
     hide: bool,
     max_width: f32,
     max_height: f32,
-    buffer: CircularSampleBuffer,
+    visualization_queue: VisualizationQueue,
+    rng: Rng,
 
     fft_calc_counter: u8, // Used to test occasional recomputation of FFT
     fft_buffer: Vec<f32>,
@@ -640,10 +674,20 @@ impl Default for FrequencyDomainSettings {
             hide: Default::default(),
             max_width: 128.0,
             max_height: 64.0,
-            buffer: CircularSampleBuffer::new(256),
+            visualization_queue: Default::default(),
+            rng: Default::default(),
             fft_calc_counter: Default::default(),
             fft_buffer: Default::default(),
         }
+    }
+}
+impl RandomizesBuffer for FrequencyDomainSettings {
+    fn visualization_queue(&self) -> &VisualizationQueue {
+        &self.visualization_queue
+    }
+
+    fn rng(&mut self) -> &mut Rng {
+        &mut self.rng
     }
 }
 impl Displays for FrequencyDomainSettings {
@@ -657,12 +701,15 @@ impl FrequencyDomainSettings {
     const NAME: &'static str = "Audio Frequency Domain";
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        self.buffer.add_some_noise();
+        self.add_noise_to_buffer();
 
         // We act on 0 so that it's always initialized by the time we get to the
         // end of this method.
         if self.fft_calc_counter == 0 {
-            self.fft_buffer = self.buffer.analyze_spectrum().unwrap();
+            if let Ok(queue) = self.visualization_queue.0.read() {
+                let (slice_1, slice_2) = queue.as_slices();
+                self.fft_buffer = FrequencyDomain::analyze_spectrum(slice_1, slice_2).unwrap();
+            }
         }
         self.fft_calc_counter += 1;
         if self.fft_calc_counter > 4 {
