@@ -177,6 +177,8 @@ impl MessageBounds for WorkEvent {}
 
 pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 
+/// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
+/// determine which time slice to handle during [Controls::work()].
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeRange(pub std::ops::Range<MusicalTime>);
 impl TimeRange {
@@ -194,45 +196,55 @@ impl TimeRange {
 /// the performance.
 #[allow(unused_variables)]
 pub trait Controls: Send {
-    /// Returns the current [MusicalTime] range, or None if not performing.
+    /// Returns the current [MusicalTime] range, or [None] if not performing or
+    /// not applicable.
     fn time_range(&self) -> Option<TimeRange> {
         None
     }
 
-    /// Sets the range of [MusicalTime] to which the next work() method applies.
+    /// Sets the range of [MusicalTime] to which the next [Controls::work()]
+    /// method applies.
+    ///
+    /// Because a project performance often groups many audio frames into a
+    /// single batch of work for efficiency reasons, the [TimeRange] is not
+    /// necessarily the same as the current audio frame being rendered. Instead,
+    /// it is a window that covers the current batch of frames.
     fn update_time_range(&mut self, time_range: &TimeRange) {}
 
-    /// The entity should perform work for the time range specified in the
-    /// previous [update_time()]. If the work produces any events, use
-    /// [control_events_fn] to ask the system to queue them. They might be
+    /// Performs work for the time range specified in the previous
+    /// [Controls::update_time_range()]. If the work produces any events,
+    /// calling [control_events_fn] asks the system to queue them. They might be
     /// handled right away, or later.
-    ///
-    /// Returns the number of requested ticks handled before terminating (TODO:
-    /// no it doesn't).
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {}
 
-    /// Returns true if the entity is done with all its scheduled work. An
-    /// entity that performs work only on command should always return true, as
-    /// the framework ends the piece being performed only when all things
-    /// implementing [Controls] indicate that they're finished.
+    /// Indicates whether this entity has completed all its scheduled work.
+    ///
+    /// The framework ends the performance only when all entities indicate that
+    /// they're finished. Thus, an entity should return false only if it knows
+    /// that it has more work to do (such as a sequencer that has not yet
+    /// reached the end of its arranged sequences). An entity that performs work
+    /// only on command, such as a synthesizer, should always return true;
+    /// otherwise, the performance would never end.
     fn is_finished(&self) -> bool {
         true
     }
 
-    /// Tells the device to play its performance from the current location. A
-    /// device *must* refresh is_finished() during this method.
+    /// Tells the entity to play its performance from the current location. A
+    /// device *must* refresh [Controls::is_finished()] during this method.
     fn play(&mut self) {}
 
     /// Tells the device to stop playing its performance. It shouldn't change
-    /// its cursor location, so that a play() after a stop() acts like a resume.
+    /// its cursor location, so that a [Controls::play()] after a
+    /// [Controls::stop()] acts like a resume.
     fn stop(&mut self) {}
 
-    /// Resets cursors to the beginning. This is set_cursor Lite (TODO).
+    /// Resets cursors to the beginning.
     fn skip_to_start(&mut self) {}
 
-    /// Whether the device is currently playing. This is part of the trait so
-    /// that implementers don't have to leak their internal state to unit test
-    /// code.
+    /// Whether the entity is currently playing.
+    //
+    // TODO: This is part of the trait so that implementers don't have to leak
+    // their internal state to unit test code. Consider removing.
     fn is_performing(&self) -> bool {
         false
     }
@@ -240,6 +252,7 @@ pub trait Controls: Send {
 
 pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, WorkEvent) + 'a;
 
+/// A version of [Controls] for collections of entities.
 #[allow(unused_variables)]
 pub trait ControlsAsProxy: Controls {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {}
