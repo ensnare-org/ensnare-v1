@@ -128,9 +128,9 @@ impl Project {
         let mut r = Self::default();
         let _ = r.create_starter_tracks();
 
-        // hack - default to a 3-minute song
+        // hack - default to a 1-minute song
         r.view_range = ViewRange(
-            MusicalTime::START..MusicalTime::new_with_beats((r.transport.tempo().0 * 3.0) as usize),
+            MusicalTime::START..MusicalTime::new_with_beats(r.transport.tempo().0 as usize),
         );
         r
     }
