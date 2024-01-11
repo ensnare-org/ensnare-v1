@@ -4,7 +4,7 @@ pub use {
     drumkit::{Drumkit, DrumkitParams},
     fm::{FmSynth, FmSynthParams},
     sampler::{Sampler, SamplerParams, SamplerVoice},
-    test::{TestAudioSource, TestAudioSourceParams},
+    test::TestAudioSource,
     welsh::{WelshSynth, WelshVoice},
 };
 

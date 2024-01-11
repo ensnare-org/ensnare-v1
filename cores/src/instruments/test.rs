@@ -1,18 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// Produces a constant audio signal. Used for ensuring that a known signal
 /// value gets all the way through the pipeline.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct TestAudioSource {
     // This should be a Normal, but we use this audio source for testing
     // edge conditions. Thus we need to let it go out of range.
     #[control]
-    #[params]
     level: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
 }
 impl Ticks for TestAudioSource {}
@@ -43,9 +44,9 @@ impl TestAudioSource {
     pub const QUIET: SampleType = -1.0;
     pub const TOO_QUIET: SampleType = -1.1;
 
-    pub fn new_with(params: &TestAudioSourceParams) -> Self {
+    pub fn new_with(level: ParameterType) -> Self {
         Self {
-            level: params.level(),
+            level,
             ..Default::default()
         }
     }

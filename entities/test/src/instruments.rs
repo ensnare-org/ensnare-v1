@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{IsEntity2, Metadata, Params};
+use ensnare_proc_macros::{InnerInstrument, IsEntity2, Metadata, Params};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
@@ -92,5 +92,29 @@ impl HandlesMidi for TestInstrumentCountsMidiMessages {
 impl TestInstrumentCountsMidiMessages {
     pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
         &self.received_midi_message_count
+    }
+}
+
+#[derive(Debug, Default, InnerInstrument, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[entity2(
+    Configurable,
+    Controllable,
+    Controls,
+    Displays,
+    Serializable,
+    SkipInner,
+    TransformsAudio
+)]
+#[entity2(SkipInner, HandlesMidi)]
+pub struct TestAudioSource {
+    uid: Uid,
+    inner: ensnare_cores::TestAudioSource,
+}
+impl TestAudioSource {
+    pub fn new_with(uid: Uid, level: ParameterType) -> Self {
+        Self {
+            uid,
+            inner: ensnare_cores::TestAudioSource::new_with(level),
+        }
     }
 }

@@ -246,19 +246,6 @@ pub(crate) mod tests {
             "Deleting nonexistent track shouldn't change anything"
         );
 
-        let mut ids: HashSet<Uid> = HashSet::default();
-        for _ in 0..64 {
-            let e = Box::new(TestInstrument::default());
-            let uid = orchestrates
-                .assign_uid_and_add_entity(&track_1_uid, e)
-                .unwrap();
-            assert!(
-                !ids.contains(&uid),
-                "added entities should be assigned unique IDs"
-            );
-            ids.insert(uid);
-        }
-
         orchestrates.delete_track(&track_1_uid);
         assert!(
             orchestrates.track_uids().is_empty(),

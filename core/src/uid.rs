@@ -137,6 +137,7 @@ impl Default for UidFactory<TrackUid> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn uid_factory() {
@@ -152,6 +153,17 @@ mod tests {
             uid_3, uid_3_expected_duplicate,
             "Minted Uids will repeat if factory doesn't know about them all"
         );
+
+        // This is redundant. Taken from an Orchestrator unit test and adopted here.
+        let mut ids: HashSet<Uid> = HashSet::default();
+        for _ in 0..64 {
+            let uid = f.mint_next();
+            assert!(
+                !ids.contains(&uid),
+                "added entities should be assigned unique IDs"
+            );
+            ids.insert(uid);
+        }
     }
 
     #[test]

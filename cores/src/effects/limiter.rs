@@ -58,93 +58,53 @@ impl Limiter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{TestAudioSource, TestAudioSourceParams};
+    use crate::TestAudioSource;
     use more_asserts::{assert_gt, assert_lt};
 
     #[test]
     fn limiter_mainline() {
         // audio sources are at or past boundaries
         assert_gt!(
-            TestAudioSource::new_with(&TestAudioSourceParams {
-                level: TestAudioSource::TOO_LOUD
-            })
-            .value(),
+            TestAudioSource::new_with(TestAudioSource::TOO_LOUD).value(),
             StereoSample::MAX
         );
         assert_eq!(
-            TestAudioSource::new_with(&TestAudioSourceParams {
-                level: TestAudioSource::LOUD
-            })
-            .value(),
+            TestAudioSource::new_with(TestAudioSource::LOUD).value(),
             StereoSample::MAX
         );
         assert_eq!(
-            TestAudioSource::new_with(&TestAudioSourceParams {
-                level: TestAudioSource::SILENT
-            })
-            .value(),
+            TestAudioSource::new_with(TestAudioSource::SILENT).value(),
             StereoSample::SILENCE
         );
         assert_eq!(
-            TestAudioSource::new_with(&TestAudioSourceParams {
-                level: TestAudioSource::QUIET
-            })
-            .value(),
+            TestAudioSource::new_with(TestAudioSource::QUIET).value(),
             StereoSample::MIN
         );
         assert_lt!(
-            TestAudioSource::new_with(&TestAudioSourceParams {
-                level: TestAudioSource::TOO_QUIET
-            })
-            .value(),
+            TestAudioSource::new_with(TestAudioSource::TOO_QUIET).value(),
             StereoSample::MIN
         );
 
         // Limiter clamps high and low, and doesn't change values inside the range.
         let mut limiter = Limiter::default();
         assert_eq!(
-            limiter.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::TOO_LOUD
-                })
-                .value()
-            ),
+            limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::TOO_LOUD).value()),
             StereoSample::MAX
         );
         assert_eq!(
-            limiter.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::LOUD
-                })
-                .value()
-            ),
+            limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::LOUD).value()),
             StereoSample::MAX
         );
         assert_eq!(
-            limiter.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::SILENT
-                })
-                .value()
-            ),
+            limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::SILENT).value()),
             StereoSample::SILENCE
         );
         assert_eq!(
-            limiter.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::QUIET
-                })
-                .value()
-            ),
+            limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::QUIET).value()),
             StereoSample::MIN
         );
         assert_eq!(
-            limiter.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::TOO_QUIET
-                })
-                .value()
-            ),
+            limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::TOO_QUIET).value()),
             StereoSample::MIN
         );
     }

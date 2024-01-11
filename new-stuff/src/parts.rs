@@ -16,6 +16,9 @@ use crate::types::ControlLink;
 pub struct Orchestrator {
     pub track_repo: TrackRepository,
     pub entity_repo: EntityRepository,
+
+    pub aux_track_uids: Vec<TrackUid>,
+    pub bus_station: BusStation,
 }
 impl Orchestrator {
     delegate! {
@@ -24,7 +27,6 @@ impl Orchestrator {
             #[call(uids)]
             pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
-            pub fn delete_track(&mut self, uid: TrackUid) -> Result<()>;
         }
         to self.entity_repo {
             pub fn add_entity(
@@ -46,6 +48,11 @@ impl Orchestrator {
             #[call(get_mut)]
             pub fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<(dyn EntityBounds)>>;
         }
+    }
+
+    pub fn delete_track(&mut self, uid: TrackUid) -> Result<()> {
+        self.bus_station.remove_sends_for_track(uid);
+        self.track_repo.delete_track(uid)
     }
 
     pub fn entities_for_track(&self, uid: TrackUid) -> Option<&Vec<Uid>> {
@@ -93,28 +100,69 @@ impl ControlsAsProxy for Orchestrator {
 impl Generates<StereoSample> for Orchestrator {
     fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
         let buffer_len = values.len();
-        let track_buffers: Vec<Vec<StereoSample>> = self
-            .track_repo
-            .uids
-            .iter()
-            .map(|track_uid| {
+
+        // First handle all non-aux tracks. As a side effect, we also create empty buffers for the aux tracks.
+        let (track_buffers, mut aux_track_buffers): (
+            HashMap<TrackUid, Vec<StereoSample>>,
+            HashMap<TrackUid, Vec<StereoSample>>,
+        ) = self.track_repo.uids.iter().fold(
+            (HashMap::default(), HashMap::default()),
+            |(mut h, mut aux_h), track_uid| {
                 let mut track_buffer = Vec::default();
                 track_buffer.resize(buffer_len, StereoSample::SILENCE);
+                if self.aux_track_uids.contains(track_uid) {
+                    aux_h.insert(*track_uid, track_buffer);
+                } else {
+                    if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
+                        entity_uids.iter().for_each(|uid| {
+                            if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
+                                entity.generate_batch_values(&mut track_buffer);
+                            }
+                        });
+                    }
+                    h.insert(*track_uid, track_buffer);
+                }
+                (h, aux_h)
+            },
+        );
+
+        // Then send audio to the aux tracks.
+        for (track_uid, routes) in self.bus_station.sends() {
+            // We have a source track_uid and the aux tracks that should receive it.
+            if let Some(source_track_buffer) = track_buffers.get(track_uid) {
+                // Mix the source into the destination aux track.
+                for route in routes {
+                    if let Some(aux) = aux_track_buffers.get_mut(&route.aux_track_uid) {
+                        for (src, dst) in source_track_buffer.iter().zip(aux.iter_mut()) {
+                            *dst += *src * route.amount;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Let the aux tracks do their processing.
+        aux_track_buffers
+            .iter_mut()
+            .for_each(|(track_uid, track_buffer)| {
                 if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
                     entity_uids.iter().for_each(|uid| {
                         if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
-                            entity.generate_batch_values(&mut track_buffer);
+                            entity.transform_batch(track_buffer);
                         }
                     });
                 }
-                track_buffer
-            })
-            .collect();
-        track_buffers.iter().for_each(|buffer| {
-            for (dst, src) in values.iter_mut().zip(buffer) {
-                *dst += *src;
-            }
-        });
+            });
+
+        // Mix all the tracks into the final buffer.
+        track_buffers
+            .values()
+            .chain(aux_track_buffers.values())
+            .for_each(|buffer| {
+                for (dst, src) in values.iter_mut().zip(buffer) {
+                    *dst += *src;
+                }
+            });
     }
 }
 impl Ticks for Orchestrator {}
@@ -533,6 +581,61 @@ impl Serializable for MidiRouter {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {}
+}
+
+/// A [BusRoute] represents a signal connection between two tracks.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BusRoute {
+    /// The [TrackUid] of the receiving track.
+    pub aux_track_uid: TrackUid,
+    /// How much gain should be applied to this connection.
+    pub amount: Normal,
+}
+
+/// A [BusStation] manages how signals move between tracks and aux tracks. These
+/// collections of signals are sometimes called buses.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct BusStation {
+    routes: HashMap<TrackUid, Vec<BusRoute>>,
+}
+
+impl BusStation {
+    pub(crate) fn add_send(
+        &mut self,
+        track_uid: TrackUid,
+        dst_uid: TrackUid,
+        amount: Normal,
+    ) -> anyhow::Result<()> {
+        self.routes.entry(track_uid).or_default().push(BusRoute {
+            aux_track_uid: dst_uid,
+            amount,
+        });
+        Ok(())
+    }
+
+    pub(crate) fn remove_send(&mut self, track_uid: TrackUid, aux_track_uid: TrackUid) {
+        if let Some(routes) = self.routes.get_mut(&track_uid) {
+            routes.retain(|route| route.aux_track_uid != aux_track_uid);
+        }
+    }
+
+    pub(crate) fn sends(&self) -> impl Iterator<Item = (&TrackUid, &Vec<BusRoute>)> {
+        self.routes.iter()
+    }
+
+    // If we want this method to be immutable and cheap, then we can't guarantee
+    // that it will return a Vec. Such is life.
+    #[allow(dead_code)]
+    pub(crate) fn sends_for_track(&self, track_uid: &TrackUid) -> Option<&Vec<BusRoute>> {
+        self.routes.get(track_uid)
+    }
+
+    pub(crate) fn remove_sends_for_track(&mut self, track_uid: TrackUid) {
+        self.routes.remove(&track_uid);
+        self.routes
+            .values_mut()
+            .for_each(|routes| routes.retain(|route| route.aux_track_uid != track_uid));
+    }
 }
 
 #[cfg(test)]
@@ -1032,5 +1135,62 @@ mod tests {
         assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
         t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
         assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
+    }
+
+    #[test]
+    fn bus_station_mainline() {
+        let mut station = BusStation::default();
+        assert!(station.routes.is_empty());
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.8))
+            .is_ok());
+        assert_eq!(station.routes.len(), 1);
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.7))
+            .is_ok());
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Adding a new send route with a new amount should replace the prior one"
+        );
+
+        station.remove_send(TrackUid(7), TrackUid(13));
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Removing route should still leave a (possibly empty) Vec"
+        );
+        assert!(
+            station.sends_for_track(&TrackUid(7)).unwrap().is_empty(),
+            "Removing route should work"
+        );
+
+        // Removing nonexistent route is a no-op
+        station.remove_send(TrackUid(7), TrackUid(13));
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.8))
+            .is_ok());
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(14), Normal::from(0.8))
+            .is_ok());
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Adding two sends to a track should not create an extra Vec"
+        );
+        assert_eq!(
+            station.sends_for_track(&TrackUid(7)).unwrap().len(),
+            2,
+            "Adding two sends to a track should work"
+        );
+
+        // Empty can be either None or Vec::default(). Don't care.
+        station.remove_sends_for_track(TrackUid(7));
+        if let Some(sends) = station.sends_for_track(&TrackUid(7)) {
+            assert!(sends.is_empty(), "Removing all a track's sends should work");
+        }
     }
 }

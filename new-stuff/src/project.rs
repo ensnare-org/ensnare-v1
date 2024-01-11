@@ -88,6 +88,41 @@ impl Project {
     /// The fixed [Uid] for the project's [Transport].
     pub const TRANSPORT_UID: Uid = Uid(2);
 
+    delegate! {
+        to self.orchestrator {
+            pub fn track_uids(&self) -> &[TrackUid];
+            pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
+
+            pub fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>, uid: Option<Uid>) -> Result<Uid>;
+            pub fn move_entity(&mut self, uid: Uid, new_track_uid: Option<TrackUid>, new_position: Option<usize>)-> Result<()>;
+            pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
+            pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
+        }
+        to self.orchestrator.entity_repo {
+            pub fn mint_entity_uid(&self) -> Uid;
+        }
+        to self.orchestrator.track_repo {
+            pub fn mint_track_uid(&self) -> TrackUid;
+        }
+        to self.orchestrator.bus_station {
+            pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
+            pub fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
+        }
+        to self.composer {
+            pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
+            pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern>;
+            pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern>;
+            pub fn notify_pattern_change(&mut self);
+            pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
+            pub fn arrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime) -> Result<()>;
+            pub fn unarrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime);
+        }
+        to self.automator {
+            pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
+            pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
+        }
+    }
+
     /// Starts with a default project and configures for easy first use.
     pub fn new_project() -> Self {
         let mut r = Self::default();
@@ -98,15 +133,6 @@ impl Project {
             MusicalTime::START..MusicalTime::new_with_beats((r.transport.tempo().0 * 3.0) as usize),
         );
         r
-    }
-
-    delegate! {
-        to self.orchestrator.entity_repo {
-            pub fn mint_entity_uid(&self) -> Uid;
-        }
-        to self.orchestrator.track_repo {
-            pub fn mint_track_uid(&self) -> TrackUid;
-        }
     }
 
     pub fn temp_insert_16_random_patterns(&mut self) -> anyhow::Result<()> {
@@ -153,32 +179,8 @@ impl Project {
         let track_uid = self.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Aux {}", track_uid)));
+        self.orchestrator.aux_track_uids.push(track_uid);
         Ok(track_uid)
-    }
-
-    delegate! {
-        to self.orchestrator {
-            pub fn track_uids(&self) -> &[TrackUid];
-            pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
-
-            pub fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>, uid: Option<Uid>) -> Result<Uid>;
-            pub fn move_entity(&mut self, uid: Uid, new_track_uid: Option<TrackUid>, new_position: Option<usize>)-> Result<()>;
-            pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
-            pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
-        }
-        to self.composer {
-            pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
-            pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern>;
-            pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern>;
-            pub fn notify_pattern_change(&mut self);
-            pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
-            pub fn arrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime) -> Result<()>;
-            pub fn unarrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime);
-        }
-        to self.automator {
-            pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
-            pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
-        }
     }
 
     pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
@@ -190,6 +192,7 @@ impl Project {
 
     pub fn delete_track(&mut self, uid: TrackUid) -> Result<()> {
         self.track_to_midi_router.remove(&uid);
+        self.orchestrator.aux_track_uids.retain(|t| *t != uid);
         self.orchestrator.delete_track(uid)
     }
 
@@ -518,7 +521,10 @@ impl Serializable for Project {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_entities::instruments::TestInstrumentCountsMidiMessages;
+    use ensnare_entities::{
+        effects::TestEffectNegatesInput,
+        instruments::{TestAudioSource, TestInstrumentCountsMidiMessages},
+    };
     use ensnare_entities_toy::controllers::ToyControllerAlwaysSendsMidiMessage;
     use ensnare_proc_macros::{IsEntity2, Metadata};
 
@@ -741,5 +747,50 @@ mod tests {
         if let Ok(c) = counter_2.lock() {
             assert_eq!(0, *c);
         };
+    }
+
+    #[test]
+    fn sends_send() {
+        const EXPECTED_LEVEL: ParameterType = ensnare_cores::TestAudioSource::MEDIUM;
+        let mut project = Project::default();
+        let midi_track_uid = project.new_midi_track().unwrap();
+        let aux_track_uid = project.new_aux_track().unwrap();
+
+        let _ = project.add_entity(
+            midi_track_uid,
+            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            None,
+        );
+        let mut samples = [StereoSample::SILENCE; 64];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(EXPECTED_LEVEL);
+        assert!(
+            samples.iter().all(|s| *s == expected_sample),
+            "Without a send, original signal should pass through unchanged."
+        );
+
+        assert!(project
+            .add_send(midi_track_uid, aux_track_uid, Normal::from(0.5))
+            .is_ok());
+        let mut samples = [StereoSample::SILENCE; 64];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.75);
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "With a 50% send to an aux track with no effects, we should see the original MEDIUM=0.5 plus 50% of it = 0.75, but at sample #{index} we got {:?}", s);
+        });
+
+        // Add an effect to the aux track.
+        let _ = project.add_entity(
+            aux_track_uid,
+            Box::new(TestEffectNegatesInput::default()),
+            None,
+        );
+
+        let mut samples = [StereoSample::SILENCE; 64];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * -1.0);
+        samples.iter().enumerate().for_each(|(index,s)| {
+            assert_eq!(*s ,expected_sample, "With a 50% send to an aux with a negating effect, we should see the original 0.5 plus a negation of 50% of 0.5 = 0.250, but at sample #{index} we got {:?}", s);
+        });
     }
 }

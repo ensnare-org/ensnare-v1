@@ -36,7 +36,7 @@ impl Gain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{TestAudioSource, TestAudioSourceParams};
+    use crate::TestAudioSource;
 
     #[test]
     fn gain_mainline() {
@@ -44,12 +44,7 @@ mod tests {
             ceiling: Normal::new(0.5),
         });
         assert_eq!(
-            gain.transform_audio(
-                TestAudioSource::new_with(&TestAudioSourceParams {
-                    level: TestAudioSource::LOUD
-                })
-                .value()
-            ),
+            gain.transform_audio(TestAudioSource::new_with(TestAudioSource::LOUD).value()),
             StereoSample::from(0.5)
         );
     }
