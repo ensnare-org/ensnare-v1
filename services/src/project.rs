@@ -18,6 +18,7 @@ use std::{
 #[derive(Debug)]
 pub enum ProjectServiceInput {
     Init,
+    New,
     Load(PathBuf),
     Save(Option<PathBuf>),
     Midi(MidiChannel, MidiMessage),
@@ -77,6 +78,12 @@ impl ProjectService {
             let mut key_handler = KeyHandler::default();
             while let Ok(input) = input_receiver.recv() {
                 match input {
+                    ProjectServiceInput::Init => {
+                        Self::notify_new_project(&event_sender, &project);
+                    }
+                    ProjectServiceInput::New => {
+                        todo!()
+                    }
                     ProjectServiceInput::Load(path) => match Project::load(path) {
                         Ok(mut new_project) => {
                             project.read().unwrap().set_up_successor(&mut new_project);
@@ -154,9 +161,6 @@ impl ProjectService {
                     }
                     ProjectServiceInput::NextTimelineDisplayer => {
                         todo!("self.project.switch_to_next_frontmost_timeline_displayer()");
-                    }
-                    ProjectServiceInput::Init => {
-                        Self::notify_new_project(&event_sender, &project);
                     }
                     ProjectServiceInput::AudioQueue(queue) => {
                         project.write().unwrap().audio_queue = Some(queue);

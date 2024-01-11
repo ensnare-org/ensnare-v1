@@ -5,7 +5,7 @@ pub use {
     fm::{FmSynth, FmSynthParams},
     sampler::{Sampler, SamplerParams, SamplerVoice},
     test::{TestAudioSource, TestAudioSourceParams},
-    welsh::{WelshSynth, WelshSynthParams, WelshVoice},
+    welsh::{WelshSynth, WelshVoice},
 };
 
 mod drumkit;

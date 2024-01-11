@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{prelude::*, utils::Paths};
-use ensnare_cores::{DrumkitParams, FmSynthParams, SamplerParams, WelshSynthParams};
+use ensnare_cores::{DrumkitParams, FmSynthParams, SamplerParams};
 use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
@@ -131,10 +131,10 @@ impl Displays for WelshSynth {
     }
 }
 impl WelshSynth {
-    pub fn new_with(uid: Uid, params: &WelshSynthParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::WelshSynth::new_with(params),
+            inner: ensnare_cores::WelshSynth::default(),
         }
     }
 }

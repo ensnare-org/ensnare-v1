@@ -157,7 +157,7 @@ impl Composer {
     /// Use like this:
     ///
     /// ```no_run
-    /// use crate::Composer;
+    /// use ensnare_cores::Composer;
     ///
     /// let composer = Composer::default();
     /// let mut composer_serial = 0;

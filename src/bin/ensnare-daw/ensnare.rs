@@ -29,7 +29,7 @@ use std::{
 use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use ensnare_orchestration::egui::entity_palette;
-use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction};
+use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction, MidiServiceInput};
 
 #[derive(Debug, Default)]
 pub(super) struct RenderingState {
@@ -57,7 +57,7 @@ pub(super) struct Ensnare {
     #[allow(dead_code)]
     audio_sender: Sender<AudioServiceInput>,
     #[allow(dead_code)]
-    midi_sender: Sender<MidiInterfaceInput>,
+    midi_sender: Sender<MidiServiceInput>,
     project_sender: Sender<ProjectServiceInput>,
 
     // A non-owning ref to the project. (ProjectService is the owner.)
@@ -95,7 +95,7 @@ impl Ensnare {
 
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
-            midi_sender: midi_service.sender().clone(),
+            midi_sender: midi_service.input_channels.sender.clone(),
             project_sender: project_service.sender().clone(),
             aggregator: EnsnareEventAggregationService::new_with(
                 audio_service,
@@ -532,9 +532,9 @@ impl Ensnare {
     }
 
     #[allow(dead_code)]
-    fn send_to_midi(&self, input: MidiInterfaceInput) {
+    fn send_to_midi(&self, input: MidiServiceInput) {
         if let Err(e) = self.midi_sender.send(input) {
-            eprintln!("Error {e} while sending MidiInterfaceInput");
+            eprintln!("Error {e} while sending MidiServiceInput");
         }
     }
 

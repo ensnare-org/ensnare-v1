@@ -7,7 +7,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 
 use anyhow::anyhow;
-use crossbeam_channel::Select;
+use crossbeam_channel::{Select, Sender};
 use eframe::{
     egui::{
         self, warn_if_debug_build, Button, Context, Direction, FontData, FontDefinitions, Layout,
@@ -27,8 +27,9 @@ use ensnare_core::{types::TrackTitle, uid::TrackUid};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_new_stuff::project::{Project, ProjectTitle};
-use ensnare_orchestration::{egui::entity_palette, DescribesProject};
-use ensnare_services::{control_bar_widget, ControlBarAction};
+use ensnare_orchestration::egui::entity_palette;
+use ensnare_services::{control_bar_widget, ControlBarAction, MidiServiceInput};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -37,10 +38,19 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct Settings {
     audio_settings: AudioSettings,
     midi_settings: Arc<RwLock<MidiSettings>>,
+
+    #[serde(skip)]
+    midi_sender: Option<Sender<MidiInterfaceServiceInput>>,
+
+    // Cached options for fast menu drawing.
+    #[serde(skip)]
+    midi_inputs: Vec<MidiPortDescriptor>,
+    #[serde(skip)]
+    midi_outputs: Vec<MidiPortDescriptor>,
 }
 impl Settings {
     const FILENAME: &'static str = "settings.json";
@@ -80,6 +90,14 @@ impl Settings {
         self.mark_clean();
         Ok(())
     }
+
+    fn handle_midi_input_port_refresh(&mut self, ports: &[MidiPortDescriptor]) {
+        self.midi_inputs = ports.to_vec();
+    }
+
+    fn handle_midi_output_port_refresh(&mut self, ports: &[MidiPortDescriptor]) {
+        self.midi_outputs = ports.to_vec();
+    }
 }
 impl HasSettings for Settings {
     fn has_been_saved(&self) -> bool {
@@ -104,6 +122,48 @@ impl HasSettings for Settings {
         }
     }
 }
+impl Displays for Settings {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let mut new_input = None;
+        let mut new_output = None;
+        let response = {
+            ui.heading("Audio");
+            ui.add(audio_settings(&mut self.audio_settings))
+        } | {
+            ui.heading("MIDI");
+            let mut settings = self.midi_settings.write().unwrap();
+            ui.add(midi_settings(
+                &mut settings,
+                &self.midi_inputs,
+                &self.midi_outputs,
+                &mut new_input,
+                &mut new_output,
+            ))
+        };
+
+        if let Some(sender) = &self.midi_sender {
+            if let Some(new_input) = &new_input {
+                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiInput(
+                    new_input.clone(),
+                ));
+            }
+            if let Some(new_output) = &new_output {
+                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiOutput(
+                    new_output.clone(),
+                ));
+            }
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            let mut debug_on_hover = ui.ctx().debug_on_hover();
+            ui.checkbox(&mut debug_on_hover, "🐛 Debug on hover")
+                .on_hover_text("Show structure of the ui when you hover with the mouse");
+            ui.ctx().set_debug_on_hover(debug_on_hover);
+        }
+        response
+    }
+}
 
 // Settings are unique to each app, so this particular one is here in this
 // example code rather than part of the crate. As much as possible, we're
@@ -111,8 +171,8 @@ impl HasSettings for Settings {
 #[derive(Debug)]
 struct SettingsPanel {
     settings: Settings,
-    audio_panel: AudioService,
-    midi_panel: MidiService,
+    audio_service: AudioService,
+    midi_service: MidiService,
 
     midi_inputs: Vec<MidiPortDescriptor>,
     midi_outputs: Vec<MidiPortDescriptor>,
@@ -121,29 +181,13 @@ struct SettingsPanel {
 }
 impl SettingsPanel {
     /// Creates a new [SettingsPanel].
-    pub fn new_with(
-        settings: Settings,
-        orchestrator: Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
-    ) -> Self {
-        let midi_panel = MidiService::new_with(&settings.midi_settings);
-        let midi_panel_sender = midi_panel.sender().clone();
-        let needs_audio_fn: NeedsAudioFn = {
-            Box::new(move |audio_queue, samples_requested| {
-                if let Ok(mut o) = orchestrator.lock() {
-                    let mut helper = OrchestratorHelper::new_with(o.deref_mut());
-                    helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
-                        if let WorkEvent::Midi(channel, message) = event {
-                            let _ =
-                                midi_panel_sender.send(MidiInterfaceInput::Midi(channel, message));
-                        }
-                    });
-                }
-            })
-        };
+    pub fn new_with(settings: Settings) -> Self {
+        let midi_service = MidiService::new_with(&settings.midi_settings);
+        let midi_service_sender = midi_service.sender().clone();
         Self {
             settings,
-            audio_panel: AudioService::new_with(needs_audio_fn),
-            midi_panel,
+            audio_service: AudioService::new(),
+            midi_service,
             midi_inputs: Default::default(),
             midi_outputs: Default::default(),
             is_open: Default::default(),
@@ -162,59 +206,23 @@ impl SettingsPanel {
 
     /// The owned [AudioPanel].
     pub fn audio_panel(&self) -> &AudioService {
-        &self.audio_panel
+        &self.audio_service
     }
 
     /// The owned [MidiPanel].
     pub fn midi_panel(&self) -> &MidiService {
-        &self.midi_panel
+        &self.midi_service
     }
 
     /// Asks the panel to shut down any services associated with contained panels.
     pub fn exit(&self) {
-        self.audio_panel.exit();
-        self.midi_panel.exit();
+        let _ = self.audio_service.sender().send(AudioServiceInput::Quit);
+        self.midi_service.exit();
     }
 
     fn handle_midi_port_refresh(&mut self) {
-        self.midi_inputs = self.midi_panel.inputs().lock().unwrap().clone();
-        self.midi_outputs = self.midi_panel.outputs().lock().unwrap().clone();
-    }
-}
-impl Displays for SettingsPanel {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut new_input = None;
-        let mut new_output = None;
-        let response = {
-            ui.heading("Audio");
-            ui.add(audio_settings(&mut self.settings.audio_settings))
-        } | {
-            ui.heading("MIDI");
-            let mut settings = self.settings.midi_settings.write().unwrap();
-            ui.add(midi_settings(
-                &mut settings,
-                &self.midi_inputs,
-                &self.midi_outputs,
-                &mut new_input,
-                &mut new_output,
-            ))
-        };
-
-        if let Some(new_input) = &new_input {
-            self.midi_panel.select_input(new_input);
-        }
-        if let Some(new_output) = &new_output {
-            self.midi_panel.select_output(new_output);
-        }
-
-        #[cfg(debug_assertions)]
-        {
-            let mut debug_on_hover = ui.ctx().debug_on_hover();
-            ui.checkbox(&mut debug_on_hover, "🐛 Debug on hover")
-                .on_hover_text("Show structure of the ui when you hover with the mouse");
-            ui.ctx().set_debug_on_hover(debug_on_hover);
-        }
-        response
+        self.midi_inputs = self.midi_service.inputs().lock().unwrap().clone();
+        self.midi_outputs = self.midi_service.outputs().lock().unwrap().clone();
     }
 }
 
@@ -379,6 +387,8 @@ impl MenuBar {
 
 struct MiniDaw {
     factory: Arc<EntityFactory<dyn EntityBounds>>,
+    audio_service: AudioService,
+    midi_service: MidiService,
     project_service: ProjectService,
     project: Option<Arc<RwLock<Project>>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
@@ -408,9 +418,13 @@ impl MiniDaw {
 
         let settings = Settings::load().unwrap_or_default();
         let factory = Arc::new(factory);
+        let audio_service = AudioService::new();
+        let midi_service = MidiService::new_with(&settings.midi_settings);
         let project_service = ProjectService::new_with(&factory);
         let mut r = Self {
             factory: Arc::clone(&factory),
+            audio_service,
+            midi_service,
             project_service,
             project: Default::default(),
             track_titles: Default::default(),
@@ -418,7 +432,7 @@ impl MiniDaw {
             track_frontmost_uids: Default::default(),
             menu_bar: MenuBar::new(&factory),
             control_bar: Default::default(),
-            settings_panel: SettingsPanel::new_with(settings, orchestrator_for_settings_panel),
+            settings_panel: SettingsPanel::new_with(settings),
 
             view_range: ViewRange(MusicalTime::START..(MusicalTime::DURATION_WHOLE * 4)),
 
@@ -503,7 +517,7 @@ impl MiniDaw {
         // about blocking the UI.
         while self.handle_midi_panel_channel()
             || self.handle_audio_panel_channel()
-            || self.handle_orchestrator_channel()
+            || self.handle_project_channel()
         {}
     }
 
@@ -511,9 +525,7 @@ impl MiniDaw {
         if let Ok(m) = self.settings_panel.midi_panel().receiver().try_recv() {
             match m {
                 MidiServiceEvent::Midi(channel, message) => {
-                    self.self
-                        .orchestrator_panel
-                        .send_to_service(OrchestratorInput::Midi(channel, message));
+                    self.send_to_project(ProjectServiceInput::Midi(channel, message));
                 }
                 MidiServiceEvent::MidiOut => {
                     // a chance to indicate that outgoing MIDI data happened
@@ -524,9 +536,17 @@ impl MiniDaw {
                 MidiServiceEvent::SelectOutput(_) => {
                     // TODO: save selection in prefs
                 }
-                MidiServiceEvent::PortsRefreshed => {
+                MidiServiceEvent::InputPortsRefreshed(ports) => {
                     // TODO: remap any saved preferences to ports that we've found
-                    self.settings_panel.handle_midi_port_refresh();
+                    self.settings_panel
+                        .settings
+                        .handle_midi_input_port_refresh(&ports);
+                }
+                MidiServiceEvent::OutputPortsRefreshed(ports) => {
+                    // TODO: remap any saved preferences to ports that we've found
+                    self.settings_panel
+                        .settings
+                        .handle_midi_output_port_refresh(&ports);
                 }
             }
             true
@@ -538,9 +558,20 @@ impl MiniDaw {
     fn handle_audio_panel_channel(&mut self) -> bool {
         if let Ok(m) = self.settings_panel.audio_panel().receiver().try_recv() {
             match m {
-                AudioPanelEvent::InterfaceChanged => {
-                    self.update_orchestrator_audio_interface_config();
+                AudioServiceEvent::Reset(_sample_rate, _channel_count, ref queue) => {
+                    let _ = self
+                        .project_service
+                        .sender()
+                        .send(ProjectServiceInput::AudioQueue(Arc::clone(queue)));
                 }
+
+                AudioServiceEvent::NeedsAudio(count) => {
+                    let _ = self
+                        .project_service
+                        .sender()
+                        .send(ProjectServiceInput::NeedsAudio(count));
+                }
+                AudioServiceEvent::Underrun => eprintln!("AudioServiceEvent::Underrun"),
             }
             true
         } else {
@@ -548,62 +579,70 @@ impl MiniDaw {
         }
     }
 
-    fn handle_orchestrator_channel(&mut self) -> bool {
-        if let Ok(m) = self.orchestrator_panel.receiver().try_recv() {
+    fn handle_project_channel(&mut self) -> bool {
+        if let Ok(m) = self.project_service.receiver().try_recv() {
             match m {
-                OrchestratorEvent::Tempo(_tempo) => {
-                    // This is (usually) an acknowledgement that Orchestrator
-                    // got our request to change, so we don't need to do
-                    // anything.
-                }
-                OrchestratorEvent::Quit => {
-                    eprintln!("OrchestratorEvent::Quit")
-                }
-                OrchestratorEvent::Loaded(path, _) => {
-                    // TODO - it's unclear whether this event should still know
-                    // about the project title, since it now belongs to Project
-                    // rather than Orchestrator.
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Success,
-                        text: format!(
-                            "Loaded {} from {}",
-                            <ProjectTitle as Into<String>>::into(self.title.clone()),
-                            path.display()
-                        )
-                        .into(),
-                        options: ToastOptions::default()
-                            .duration_in_seconds(2.0)
-                            .show_progress(false),
-                    });
-                }
-                OrchestratorEvent::LoadError(path, error) => {
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Error,
-                        text: format!("Error loading {}: {}", path.display(), error).into(),
-                        options: ToastOptions::default().duration_in_seconds(5.0),
-                    });
-                }
-                OrchestratorEvent::Saved(path) => {
-                    // TODO: this should happen only if the save operation was
-                    // explicit. Autosaves should be invisible.
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Success,
-                        text: format!("Saved to {}", path.display()).into(),
-                        options: ToastOptions::default()
-                            .duration_in_seconds(1.0)
-                            .show_progress(false),
-                    });
-                }
-                OrchestratorEvent::SaveError(path, error) => {
-                    self.toasts.add(Toast {
-                        kind: egui_toast::ToastKind::Error,
-                        text: format!("Error saving {}: {}", path.display(), error).into(),
-                        options: ToastOptions::default().duration_in_seconds(5.0),
-                    });
-                }
-                OrchestratorEvent::New => {
-                    // No special UI needed for this.
-                }
+                ProjectServiceEvent::Loaded(_) => todo!(),
+                ProjectServiceEvent::LoadFailed(_) => todo!(),
+                ProjectServiceEvent::Saved(_) => todo!(),
+                ProjectServiceEvent::SaveFailed(_) => todo!(),
+                ProjectServiceEvent::TitleChanged(_) => todo!(),
+                ProjectServiceEvent::IsPerformingChanged(_) => todo!(),
+                ProjectServiceEvent::Quit => {
+                    // Good to know, but no need to do anything.
+                } // OrchestratorEvent::Tempo(_tempo) => {
+                  //     // This is (usually) an acknowledgement that Orchestrator
+                  //     // got our request to change, so we don't need to do
+                  //     // anything.
+                  // }
+                  // OrchestratorEvent::Quit => {
+                  //     eprintln!("OrchestratorEvent::Quit")
+                  // }
+                  // OrchestratorEvent::Loaded(path, _) => {
+                  //     // TODO - it's unclear whether this event should still know
+                  //     // about the project title, since it now belongs to Project
+                  //     // rather than Orchestrator.
+                  //     self.toasts.add(Toast {
+                  //         kind: egui_toast::ToastKind::Success,
+                  //         text: format!(
+                  //             "Loaded {} from {}",
+                  //             <ProjectTitle as Into<String>>::into(self.title.clone()),
+                  //             path.display()
+                  //         )
+                  //         .into(),
+                  //         options: ToastOptions::default()
+                  //             .duration_in_seconds(2.0)
+                  //             .show_progress(false),
+                  //     });
+                  // }
+                  // OrchestratorEvent::LoadError(path, error) => {
+                  //     self.toasts.add(Toast {
+                  //         kind: egui_toast::ToastKind::Error,
+                  //         text: format!("Error loading {}: {}", path.display(), error).into(),
+                  //         options: ToastOptions::default().duration_in_seconds(5.0),
+                  //     });
+                  // }
+                  // OrchestratorEvent::Saved(path) => {
+                  //     // TODO: this should happen only if the save operation was
+                  //     // explicit. Autosaves should be invisible.
+                  //     self.toasts.add(Toast {
+                  //         kind: egui_toast::ToastKind::Success,
+                  //         text: format!("Saved to {}", path.display()).into(),
+                  //         options: ToastOptions::default()
+                  //             .duration_in_seconds(1.0)
+                  //             .show_progress(false),
+                  //     });
+                  // }
+                  // OrchestratorEvent::SaveError(path, error) => {
+                  //     self.toasts.add(Toast {
+                  //         kind: egui_toast::ToastKind::Error,
+                  //         text: format!("Error saving {}: {}", path.display(), error).into(),
+                  //         options: ToastOptions::default().duration_in_seconds(5.0),
+                  //     });
+                  // }
+                  // OrchestratorEvent::New => {
+                  //     // No special UI needed for this.
+                  // }
             }
             true
         } else {
@@ -620,9 +659,9 @@ impl MiniDaw {
     // complete the operation that is ready, while ready() just tells us that a
     // recv() would not block.
     fn spawn_channel_watcher(&mut self, ctx: Context) {
-        let r1 = self.settings_panel.midi_panel().receiver().clone();
-        let r2 = self.settings_panel.audio_panel().receiver().clone();
-        let r3 = self.orchestrator_panel.receiver().clone();
+        let r1 = self.midi_service.receiver().clone();
+        let r2 = self.audio_service.receiver().clone();
+        let r3 = self.project_service.receiver().clone();
         let _ = std::thread::spawn(move || {
             let mut sel = Select::new();
             let _ = sel.recv(&r1);
@@ -635,76 +674,60 @@ impl MiniDaw {
         });
     }
 
-    fn update_orchestrator_audio_interface_config(&mut self) {
-        let sample_rate = self.settings_panel.audio_panel().sample_rate();
-        if let Ok(mut o) = self.orchestrator.lock() {
-            o.update_sample_rate(sample_rate);
-        }
-    }
-
     fn handle_control_panel_action(&mut self, action: ControlBarAction) {
         let input = match action {
-            ControlBarAction::Play => Some(OrchestratorInput::ProjectPlay),
-            ControlBarAction::Stop => Some(OrchestratorInput::ProjectStop),
-            ControlBarAction::New => Some(OrchestratorInput::ProjectNew),
-            ControlBarAction::Open(path) => Some(OrchestratorInput::ProjectOpen(path)),
-            ControlBarAction::Save(path) => Some(OrchestratorInput::ProjectSave(path)),
+            ControlBarAction::Play => Some(ProjectServiceInput::Play),
+            ControlBarAction::Stop => Some(ProjectServiceInput::Stop),
+            ControlBarAction::New => Some(ProjectServiceInput::New),
+            ControlBarAction::Open(path) => Some(ProjectServiceInput::Load(path)),
+            ControlBarAction::Save(path) => Some(ProjectServiceInput::Save(Some(path))),
             ControlBarAction::ToggleSettings => {
                 self.settings_panel.toggle();
                 None
             }
         };
         if let Some(input) = input {
-            self.orchestrator_panel.send_to_service(input);
+            self.send_to_project(input);
         }
     }
 
     fn handle_menu_bar_action(&mut self, action: MenuBarAction) {
         let mut input = None;
+        let mut coming_soon = false;
         match action {
             MenuBarAction::Quit => self.exit_requested = true,
-            MenuBarAction::TrackNewAudio => input = Some(OrchestratorInput::TrackNewAudio),
-            MenuBarAction::TrackNewAux => input = Some(OrchestratorInput::TrackNewAux),
-            MenuBarAction::TrackNewMidi => input = Some(OrchestratorInput::TrackNewMidi),
-            MenuBarAction::TrackDelete => input = Some(OrchestratorInput::TrackDeleteSelected),
-            MenuBarAction::TrackDuplicate => {
-                input = Some(OrchestratorInput::TrackDuplicateSelected)
-            }
-            MenuBarAction::TrackRemoveSelectedPatterns => {
-                input = Some(OrchestratorInput::TrackPatternRemoveSelected)
-            }
-            MenuBarAction::ComingSoon => {
-                self.toasts.add(Toast {
-                    kind: egui_toast::ToastKind::Info,
-                    text: "Coming soon!".into(),
-                    options: ToastOptions::default(),
-                });
-            }
-            MenuBarAction::ProjectNew => input = Some(OrchestratorInput::ProjectNew),
+            MenuBarAction::TrackNewAudio => coming_soon = true,
+            MenuBarAction::TrackNewAux => coming_soon = true,
+            MenuBarAction::TrackNewMidi => coming_soon = true,
+            MenuBarAction::TrackDelete => coming_soon = true,
+            MenuBarAction::TrackDuplicate => coming_soon = true,
+            MenuBarAction::TrackRemoveSelectedPatterns => coming_soon = true,
+            MenuBarAction::ComingSoon => coming_soon = true,
+            MenuBarAction::ProjectNew => input = Some(ProjectServiceInput::New),
             MenuBarAction::ProjectOpen => {
-                input = Some(OrchestratorInput::ProjectOpen(PathBuf::from(
-                    "minidaw.json",
-                )))
+                input = Some(ProjectServiceInput::Load(PathBuf::from("minidaw.json")))
             }
             MenuBarAction::ProjectSave => {
-                input = Some(OrchestratorInput::ProjectSave(PathBuf::from(
+                input = Some(ProjectServiceInput::Save(Some(PathBuf::from(
                     "minidaw.json",
-                )))
+                ))))
             }
-            MenuBarAction::TrackAddEntity(_key) => {
-                //                input = Some(OrchestratorInput::TrackAddEntity(key))
-            }
+            MenuBarAction::TrackAddEntity(_key) => coming_soon = true,
+        }
+        if coming_soon {
+            self.toasts.add(Toast {
+                kind: egui_toast::ToastKind::Info,
+                text: "Coming soon!".into(),
+                options: ToastOptions::default(),
+            });
         }
         if let Some(input) = input {
-            self.orchestrator_panel.send_to_service(input);
+            self.send_to_project(input);
         }
     }
 
     fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
-        if let Some(action) = self
-            .menu_bar
-            .show_with_action(ui, self.orchestrator_panel.is_any_track_selected())
-        {
+        if let Some(action) = self.menu_bar.show_with_action(ui, false) {
             self.handle_menu_bar_action(action);
         }
         ui.separator();
@@ -738,45 +761,15 @@ impl MiniDaw {
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui, is_control_only_down: bool) {
         ScrollArea::vertical().show(ui, |ui| {
-            self.orchestrator_panel
-                .set_control_only_down(is_control_only_down);
-            if let Ok(mut o) = self.orchestrator.lock() {
-                #[derive(Debug)]
-                struct ProjectDescriber<'a> {
-                    track_titles: &'a HashMap<TrackUid, TrackTitle>,
-                    track_frontmost_uids: &'a HashMap<TrackUid, Uid>,
-                }
-                impl<'a> DescribesProject for ProjectDescriber<'a> {
-                    fn track_title(&self, track_uid: &TrackUid) -> Option<&TrackTitle> {
-                        self.track_titles.get(track_uid)
+            // self.orchestrator_panel
+            //     .set_control_only_down(is_control_only_down);
+            if let Some(project) = self.project.as_ref() {
+                if let Ok(mut project) = project.write() {
+                    let mut action = None;
+                    let _ = ui.add(project_widget(&mut project, &mut action));
+                    if let Some(action) = action {
+                        todo!("deal with this! {action:?}");
                     }
-
-                    fn track_frontmost_timeline_displayer(
-                        &self,
-                        track_uid: &TrackUid,
-                    ) -> Option<Uid> {
-                        if let Some(uid) = self.track_frontmost_uids.get(track_uid) {
-                            Some(*uid)
-                        } else {
-                            None
-                        }
-                    }
-                }
-                let project_describer = ProjectDescriber {
-                    track_titles: &self.track_titles,
-                    track_frontmost_uids: &self.track_frontmost_uids,
-                };
-                let mut view_range = self.view_range.clone();
-                let mut action = None;
-                let _ = ui.add(project_widget(
-                    &project_describer,
-                    o.deref_mut(),
-                    &mut view_range,
-                    &mut action,
-                ));
-                self.view_range = view_range;
-                if let Some(action) = action {
-                    todo!("deal with this! {action:?}");
                 }
             }
         });
@@ -797,10 +790,22 @@ impl MiniDaw {
         let mut is_settings_open = self.settings_panel.is_open();
         egui::Window::new("Settings")
             .open(&mut is_settings_open)
-            .show(ctx, |ui| self.settings_panel.ui(ui));
+            .show(ctx, |ui| self.settings_panel.settings.ui(ui));
         if self.settings_panel.is_open() && !is_settings_open {
             self.settings_panel.toggle();
         }
+    }
+
+    fn send_to_project(&self, input: ProjectServiceInput) {
+        let _ = self.project_service.sender().send(input);
+    }
+
+    fn send_to_audio(&self, input: AudioServiceInput) {
+        let _ = self.audio_service.sender().send(input);
+    }
+
+    fn send_to_midi(&self, input: MidiServiceInput) {
+        let _ = self.midi_service.input_channels.sender.send(input);
     }
 }
 impl eframe::App for MiniDaw {
@@ -859,8 +864,9 @@ impl eframe::App for MiniDaw {
         if !self.settings_panel.settings.has_been_saved() {
             let _ = self.settings_panel.settings.save();
         }
-        self.settings_panel.exit();
-        self.orchestrator_panel.exit();
+        self.send_to_audio(AudioServiceInput::Quit);
+        self.send_to_midi(MidiServiceInput::Quit);
+        self.send_to_project(ProjectServiceInput::Quit);
     }
 }
 

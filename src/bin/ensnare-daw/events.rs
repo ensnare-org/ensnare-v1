@@ -1,10 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::{Receiver, Select, Sender};
-use ensnare_core::{midi_interface::MidiInterfaceInput, types::ChannelPair};
+use ensnare_core::types::ChannelPair;
 use ensnare_services::{
     AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
-    ProjectService, ProjectServiceEvent, ProjectServiceInput,
+    MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
 };
 use std::sync::Arc;
 use thiserror::Error;
@@ -78,7 +78,11 @@ impl EnsnareEventAggregationService {
         // Each of these pairs communicates with a service.
         let audio_sender = self.audio_service.sender().clone();
         let audio_receiver = self.audio_service.receiver().clone();
-        let midi_sender = self.midi_service.sender().clone();
+
+        // Note that this one is temporarily different! MidiInterfaceService and
+        // MidiService are separate but shouldn't be. It's confusing!
+        let midi_sender = self.midi_service.input_channels.sender.clone();
+
         let midi_receiver = self.midi_service.receiver().clone();
         let project_sender = self.project_service.sender().clone();
         let project_receiver = self.project_service.receiver().clone();
@@ -98,7 +102,7 @@ impl EnsnareEventAggregationService {
                             match input {
                                 EnsnareInput::Quit => {
                                     let _ = audio_sender.send(AudioServiceInput::Quit);
-                                    let _ = midi_sender.send(MidiInterfaceInput::Quit);
+                                    let _ = midi_sender.send(MidiServiceInput::Quit);
                                     let _ = project_sender.send(ProjectServiceInput::Quit);
                                     let _ = ensnare_sender.send(EnsnareEvent::Quit);
                                     return;

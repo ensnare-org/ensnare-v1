@@ -18,7 +18,6 @@ use ensnare_core::{
 use ensnare_cores::{
     ArpeggiatorParams, BiQuadFilterLowPass24dbParams, DrumkitParams, FmSynthParams, GainParams,
     LfoControllerParams, ReverbParams, SamplerParams, SignalPassthroughControllerParams,
-    WelshSynthParams,
 };
 use ensnare_entity::{prelude::*, traits::EntityBounds};
 
@@ -162,7 +161,7 @@ impl BuiltInEntities {
             Box::new(sampler)
         });
         factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
-            Box::new(WelshSynth::new_with(uid, &WelshSynthParams::default()))
+            Box::new(WelshSynth::new_with(uid))
         });
 
         factory

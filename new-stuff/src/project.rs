@@ -110,7 +110,7 @@ impl Project {
 
     /// Adds a set of tracks that make sense for a new project.
     pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
-        if !self.orchestrator.track_repo.uids.is_empty() {
+        if !self.orchestrator.track_repo.uids().is_empty() {
             return Err(anyhow!("Must be invoked on an empty project."));
         }
 
@@ -257,13 +257,8 @@ impl Project {
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
-        if let Some(controllables) = self.automator.controllables.get(&uid) {
-            controllables.iter().for_each(|link| {
-                if let Some(entity) = self.orchestrator.get_entity_mut(&link.uid) {
-                    entity.control_set_param_by_index(link.param, value);
-                }
-            });
-        }
+        self.automator
+            .route(&mut self.orchestrator.entity_repo, uid, value);
     }
 
     pub fn load(path: PathBuf) -> anyhow::Result<Self> {

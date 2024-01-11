@@ -6,6 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# ensnare-drag-drop = { path = "drag-drop" }
+# ensnare-egui-widgets = { path = "egui-widgets" }
+# ensnare-entities-toy = { path = "entities-toy" }
+# ensnare-orchestration = { path = "orchestration" }
+# ensnare-services = { path = "services" }
 anyhow = "1.0.75"
 crossbeam = "0.8.3"
 crossbeam-channel = "0.5.8"
@@ -16,18 +21,17 @@ egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
 egui_extras = { version = "0.24", features = ["all_loaders"] }
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
-# ensnare-drag-drop = { path = "drag-drop" }
 ensnare-cores-egui = { path = "../cores-egui" }
-# ensnare-egui-widgets = { path = "egui-widgets" }
 ensnare-entity = { path = "../entity" }
-# ensnare-entities = { path = "entities", features = ["factory"] }
-# ensnare-entities-toy = { path = "entities-toy" }
-# ensnare-orchestration = { path = "orchestration" }
-# ensnare-proc-macros = { path = "proc-macros" }
-# ensnare-services = { path = "services" }
+ensnare-proc-macros = { path = "../proc-macros" }
 env_logger = "0.10"
 hound = "3.5.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 strum_macros = "0.25.2"
 thiserror = "1.0.50"
+typetag = "0.2.14"
+
+[dev-dependencies]
+more-asserts = "0.3.1"
+ensnare-entities = { path = "../entities", features = ["factory", "test"] }

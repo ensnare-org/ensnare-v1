@@ -11,7 +11,6 @@ pub mod arrangement {
     pub use ensnare_orchestration::{
         orchestration::{Orchestrator, OrchestratorHelper},
         traits::Orchestrates,
-        DescribesProject,
     };
 
     /// The most commonly used imports.
@@ -167,14 +166,15 @@ pub mod midi {
         //! External MIDI hardware, such as MIDI interfaces or MIDI keyboards
         //! plugged in through USB).
         pub use ensnare_core::midi_interface::{
-            MidiInterfaceEvent, MidiInterfaceInput, MidiInterfaceService, MidiPortDescriptor,
+            MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
+            MidiPortDescriptor,
         };
     }
 
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            interface::{MidiInterfaceEvent, MidiInterfaceInput, MidiPortDescriptor},
+            interface::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor},
             u4, u7, MidiChannel, MidiMessage, MidiNote,
         };
     }
@@ -204,7 +204,8 @@ pub mod services {
 
     pub use ensnare_services::{
         AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, ControlBar, MidiService,
-        MidiServiceEvent, MidiSettings, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+        MidiServiceEvent, MidiServiceInput, MidiSettings, ProjectService, ProjectServiceEvent,
+        ProjectServiceInput,
     };
 
     /// `use ensnare::systems::prelude::*;` when working with services.
@@ -284,23 +285,15 @@ pub mod utils {
     }
 }
 
-#[cfg(obsolete)]
-pub use old_project::DiskProject;
 pub use version::app_version;
 
 mod version;
 
 pub mod all_entities;
 
-#[cfg(obsolete)]
-pub mod old_project;
-
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
-    #[cfg(obsolete)]
-    pub use super::old_project::prelude::*;
-
     pub use super::{
         arrangement::prelude::*, composition::prelude::*, control::prelude::*,
         entities::prelude::*, generators::prelude::*, midi::prelude::*, services::prelude::*,

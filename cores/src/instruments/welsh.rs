@@ -1,16 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{BiQuadFilterLowPass24db, BiQuadFilterLowPass24dbParams};
+use crate::BiQuadFilterLowPass24db;
 use core::fmt::Debug;
 use ensnare_core::{
-    generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams},
+    generators::{Envelope, Oscillator},
     instruments::Synthesizer,
-    modulators::{Dca, DcaParams},
+    modulators::Dca,
     prelude::*,
     traits::GeneratesEnvelope,
     voices::StealingVoiceStore,
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
 
@@ -34,47 +34,34 @@ pub enum LfoRouting {
     FilterCutoff,
 }
 
-#[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
+#[derive(Control, Debug, Default, Serialize, Deserialize)]
 pub struct WelshVoice {
     #[control]
-    #[params]
     pub oscillator_1: Oscillator,
     #[control]
-    #[params]
     pub oscillator_2: Oscillator,
     #[control]
-    #[params]
     pub oscillator_2_sync: bool,
     #[control]
-    #[params]
     pub oscillator_mix: Normal, // 1.0 = entirely osc 0, 0.0 = entirely osc 1.
     #[control]
-    #[params]
     pub amp_envelope: Envelope,
     #[control]
-    #[params]
     pub dca: Dca,
 
     #[control]
-    #[params]
     pub lfo: Oscillator,
-    #[params(leaf = true)]
     pub lfo_routing: LfoRouting,
     #[control]
-    #[params]
     pub lfo_depth: Normal,
 
     #[control]
-    #[params]
     pub filter: BiQuadFilterLowPass24db,
     #[control]
-    #[params]
     pub filter_cutoff_start: Normal,
     #[control]
-    #[params]
     pub filter_cutoff_end: Normal,
     #[control]
-    #[params]
     pub filter_envelope: Envelope,
 
     #[serde(skip)]
@@ -240,29 +227,6 @@ impl WelshVoice {
         self.oscillator_2.set_frequency(frequency_hz);
     }
 
-    pub fn new_with(params: &WelshVoiceParams) -> Self {
-        Self {
-            oscillator_1: Oscillator::new_with(&params.oscillator_1),
-            oscillator_2: Oscillator::new_with(&params.oscillator_2),
-            oscillator_2_sync: params.oscillator_2_sync,
-            oscillator_mix: params.oscillator_mix(),
-            amp_envelope: Envelope::new_with(&params.amp_envelope),
-            dca: Dca::new_with(params.dca()),
-            lfo: Oscillator::new_with(&params.lfo),
-            lfo_routing: params.lfo_routing(),
-            lfo_depth: params.lfo_depth(),
-            filter: BiQuadFilterLowPass24db::new_with(params.filter()),
-            filter_cutoff_start: params.filter_cutoff_start(),
-            filter_cutoff_end: params.filter_cutoff_end(),
-            filter_envelope: Envelope::new_with(&params.filter_envelope),
-            note_on_key: Default::default(),
-            note_on_velocity: Default::default(),
-            steal_is_underway: Default::default(),
-            sample: Default::default(),
-            ticks: Default::default(),
-        }
-    }
-
     pub fn set_lfo_depth(&mut self, lfo_depth: Normal) {
         self.lfo_depth = lfo_depth;
     }
@@ -314,23 +278,41 @@ impl WelshVoice {
     pub fn filter_cutoff_end(&self) -> Normal {
         self.filter_cutoff_end
     }
+
+    pub fn clone_fresh(&self) -> Self {
+        todo!(" fill in the important fields... note that this likely matches the serde fields.");
+        // let r = Self::default();
+        // r
+    }
 }
 
 /// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
-#[derive(Debug, Control, Params, Deserialize, Serialize)]
+#[derive(Debug, Control, Deserialize, Serialize)]
 pub struct WelshSynth {
     #[control]
-    #[params]
     pub voice: WelshVoice,
 
     #[control]
-    #[params]
     pub dca: Dca,
 
     #[serde(skip)]
     pub inner_synth: Synthesizer<WelshVoice>,
 }
+impl Default for WelshSynth {
+    fn default() -> Self {
+        const VOICE_CAPACITY: usize = 8;
+        let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
+            WelshVoice::default()
+        });
+        Self {
+            inner_synth: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
+            voice: WelshVoice::default(),
+            dca: Dca::default(),
+        }
+    }
+}
+
 impl Generates<StereoSample> for WelshSynth {
     fn value(&self) -> StereoSample {
         self.inner_synth.value()
@@ -346,7 +328,7 @@ impl Serializable for WelshSynth {
     fn after_deser(&mut self) {
         const VOICE_CAPACITY: usize = 8;
         let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
-            WelshVoice::new_with(&self.voice.to_params())
+            self.voice.clone_fresh()
         });
         self.inner_synth = Synthesizer::<WelshVoice>::new_with(Box::new(voice_store));
     }
@@ -392,18 +374,6 @@ impl HandlesMidi for WelshSynth {
     }
 }
 impl WelshSynth {
-    pub fn new_with(params: &WelshSynthParams) -> Self {
-        const VOICE_CAPACITY: usize = 8;
-        let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
-            WelshVoice::new_with(params.voice())
-        });
-        Self {
-            inner_synth: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
-            voice: WelshVoice::new_with(params.voice()),
-            dca: Dca::new_with(params.dca()),
-        }
-    }
-
     pub fn preset_name(&self) -> &str {
         "none"
         //        self.preset.name.as_str()

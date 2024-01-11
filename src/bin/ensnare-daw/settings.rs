@@ -5,11 +5,11 @@
 
 use crossbeam_channel::Sender;
 use ensnare::{
-    midi::interface::{MidiInterfaceInput, MidiPortDescriptor},
     services::{AudioSettings, MidiSettings},
     traits::{Displays, HasSettings},
     ui::widgets::{audio_settings, midi_settings},
 };
+use ensnare_core::midi_interface::{MidiInterfaceServiceInput, MidiPortDescriptor};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -25,7 +25,7 @@ pub(crate) struct Settings {
     pub(crate) midi_settings: Arc<std::sync::RwLock<MidiSettings>>,
 
     #[serde(skip)]
-    midi_sender: Option<Sender<MidiInterfaceInput>>,
+    midi_sender: Option<Sender<MidiInterfaceServiceInput>>,
 
     // Cached options for fast menu drawing.
     #[serde(skip)]
@@ -131,10 +131,14 @@ impl Displays for Settings {
 
         if let Some(sender) = &self.midi_sender {
             if let Some(new_input) = &new_input {
-                let _ = sender.send(MidiInterfaceInput::SelectMidiInput(new_input.clone()));
+                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiInput(
+                    new_input.clone(),
+                ));
             }
             if let Some(new_output) = &new_output {
-                let _ = sender.send(MidiInterfaceInput::SelectMidiOutput(new_output.clone()));
+                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiOutput(
+                    new_output.clone(),
+                ));
             }
         }
 

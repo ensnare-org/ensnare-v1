@@ -3,7 +3,8 @@
 use crossbeam_channel::{Receiver, Sender};
 use ensnare_core::{
     midi_interface::{
-        MidiInterfaceEvent, MidiInterfaceInput, MidiInterfaceService, MidiPortDescriptor,
+        MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
+        MidiPortDescriptor,
     },
     prelude::*,
 };
@@ -111,8 +112,14 @@ impl MidiSettings {
     }
 }
 
-/// The panel provides updates to the app through [MidiServiceEvent] messages.
-#[derive(Clone, Debug)]
+/// The app sends [MidiServiceInput] messages to control the service.
+#[derive(Debug)]
+pub enum MidiServiceInput {
+    Quit,
+}
+
+/// [MidiServiceEvent] messages tell the app what happens with the service.
+#[derive(Debug)]
 pub enum MidiServiceEvent {
     /// A MIDI message arrived from the interface.
     Midi(MidiChannel, MidiMessage),
@@ -140,10 +147,11 @@ pub enum MidiServiceEvent {
 /// [MidiService] manages external MIDI hardware interfaces.
 #[derive(Debug)]
 pub struct MidiService {
-    midi_interface_service: MidiInterfaceService,
-
-    sender: Sender<MidiInterfaceInput>,
+    // TEMP pub until MidiInterfaceService is refactored into this struct
+    pub input_channels: ChannelPair<MidiServiceInput>,
     event_channels: ChannelPair<MidiServiceEvent>,
+
+    midi_interface_service: MidiInterfaceService,
 
     inputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
     outputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
@@ -154,38 +162,36 @@ impl MidiService {
     /// Creates a new [MidiService].
     pub fn new_with(settings: &Arc<RwLock<MidiSettings>>) -> Self {
         let midi_interface_service = MidiInterfaceService::default();
-        let sender = midi_interface_service.sender().clone();
-
         let mut r = Self {
-            midi_interface_service,
-
-            sender,
+            input_channels: Default::default(),
             event_channels: Default::default(),
+
+            midi_interface_service,
 
             inputs: Default::default(),
             outputs: Default::default(),
 
             settings: Arc::clone(settings),
         };
-        r.start_midi_interface();
+        r.spawn_thread();
         r.conform_selections_to_settings();
         r
     }
 
-    /// Sends a [MidiInterfaceInput] message to the service.
-    pub fn send(&mut self, input: MidiInterfaceInput) {
-        if let MidiInterfaceInput::Midi(..) = input {
+    /// Sends a [MidiInterfaceServiceInput] message to the service.
+    pub fn send(&mut self, input: MidiInterfaceServiceInput) {
+        if let MidiInterfaceServiceInput::Midi(..) = input {
             if let Ok(mut settings) = self.settings.write() {
                 settings.last_output_instant = Instant::now();
             }
         }
 
-        let _ = self.sender.send(input);
+        let _ = self.midi_interface_service.sender().send(input);
     }
 
     // Sits in a loop, watching the receiving side of the event channel and
     // handling whatever comes through.
-    fn start_midi_interface(&self) {
+    fn spawn_thread(&self) {
         let inputs = Arc::clone(&self.inputs);
         let outputs = Arc::clone(&self.outputs);
         let settings = Arc::clone(&self.settings);
@@ -194,39 +200,39 @@ impl MidiService {
         std::thread::spawn(move || {
             while let Ok(event) = receiver.recv() {
                 match event {
-                    MidiInterfaceEvent::Ready => {}
-                    MidiInterfaceEvent::InputPorts(ports) => {
+                    MidiInterfaceServiceEvent::Ready => {}
+                    MidiInterfaceServiceEvent::InputPorts(ports) => {
                         if let Ok(mut inputs) = inputs.lock() {
                             *inputs = ports.clone();
                             let _ = app_sender.send(MidiServiceEvent::InputPortsRefreshed(ports));
                         }
                     }
-                    MidiInterfaceEvent::InputPortSelected(port) => {
+                    MidiInterfaceServiceEvent::InputPortSelected(port) => {
                         if let Ok(mut settings) = settings.write() {
                             settings.set_input(port);
                         }
                     }
-                    MidiInterfaceEvent::OutputPorts(ports) => {
+                    MidiInterfaceServiceEvent::OutputPorts(ports) => {
                         if let Ok(mut outputs) = outputs.lock() {
                             *outputs = ports.clone();
                             let _ = app_sender.send(MidiServiceEvent::OutputPortsRefreshed(ports));
                         }
                     }
-                    MidiInterfaceEvent::OutputPortSelected(port) => {
+                    MidiInterfaceServiceEvent::OutputPortSelected(port) => {
                         if let Ok(mut settings) = settings.write() {
                             settings.set_output(port);
                         }
                     }
-                    MidiInterfaceEvent::Midi(channel, message) => {
+                    MidiInterfaceServiceEvent::Midi(channel, message) => {
                         if let Ok(mut settings) = settings.write() {
                             settings.last_input_instant = MidiSettings::create_last_input_instant();
                         }
                         let _ = app_sender.send(MidiServiceEvent::Midi(channel, message));
                     }
-                    MidiInterfaceEvent::MidiOut => {
+                    MidiInterfaceServiceEvent::MidiOut => {
                         let _ = app_sender.send(MidiServiceEvent::MidiOut);
                     }
-                    MidiInterfaceEvent::Quit => return,
+                    MidiInterfaceServiceEvent::Quit => return,
                 }
             }
             eprintln!("MidiService exit");
@@ -246,8 +252,9 @@ impl MidiService {
     /// Handles a change in selected MIDI input.
     pub fn select_input(&mut self, port: &MidiPortDescriptor) {
         let _ = self
-            .sender
-            .send(MidiInterfaceInput::SelectMidiInput(port.clone()));
+            .midi_interface_service
+            .sender()
+            .send(MidiInterfaceServiceInput::SelectMidiInput(port.clone()));
         let _ = self
             .event_channels
             .sender
@@ -257,8 +264,9 @@ impl MidiService {
     /// Handles a change in selected MIDI output.
     pub fn select_output(&mut self, port: &MidiPortDescriptor) {
         let _ = self
-            .sender
-            .send(MidiInterfaceInput::SelectMidiOutput(port.clone()));
+            .midi_interface_service
+            .sender()
+            .send(MidiInterfaceServiceInput::SelectMidiOutput(port.clone()));
         let _ = self
             .event_channels
             .sender
@@ -276,9 +284,9 @@ impl MidiService {
         eprintln!("MIDI Panel acks the quit... TODO");
     }
 
-    /// Allows sending to the [MidiInterfaceInput] channel.
-    pub fn sender(&self) -> &Sender<MidiInterfaceInput> {
-        &self.sender
+    /// Allows sending directly to the [MidiInterfaceServiceInput] channel.
+    pub fn sender(&self) -> &Sender<MidiInterfaceServiceInput> {
+        self.midi_interface_service.sender()
     }
 
     /// Allows sending to the [MidiPanelEvent] channel.

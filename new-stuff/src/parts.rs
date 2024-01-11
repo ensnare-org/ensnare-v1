@@ -21,14 +21,11 @@ impl Orchestrator {
     delegate! {
         to self.track_repo {
             pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid>;
+            #[call(uids)]
+            pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
             pub fn delete_track(&mut self, uid: TrackUid) -> Result<()>;
         }
-    }
-    pub fn track_uids(&self) -> &[TrackUid] {
-        &self.track_repo.uids
-    }
-    delegate! {
         to self.entity_repo {
             pub fn add_entity(
                 &mut self,
@@ -49,6 +46,14 @@ impl Orchestrator {
             #[call(get_mut)]
             pub fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<(dyn EntityBounds)>>;
         }
+    }
+
+    pub fn entities_for_track(&self, uid: TrackUid) -> Option<&Vec<Uid>> {
+        self.entity_repo.uids_for_track.get(&uid)
+    }
+
+    pub fn track_for_entity(&self, uid: Uid) -> Option<TrackUid> {
+        self.entity_repo.track_for_uid.get(&uid).copied()
     }
 }
 impl Controls for Orchestrator {
@@ -129,7 +134,7 @@ impl Serializable for Orchestrator {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TrackRepository {
     uid_factory: UidFactory<TrackUid>,
-    pub uids: Vec<TrackUid>,
+    uids: Vec<TrackUid>,
 }
 impl TrackRepository {
     pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
@@ -163,6 +168,10 @@ impl TrackRepository {
             pub fn mint_track_uid(&self) -> TrackUid;
         }
     }
+
+    pub fn uids(&self) -> &[TrackUid] {
+        self.uids.as_ref()
+    }
 }
 impl Serializable for TrackRepository {
     fn before_ser(&mut self) {}
@@ -178,17 +187,36 @@ pub struct EntityRepository {
     pub track_for_uid: HashMap<Uid, TrackUid>,
 }
 impl EntityRepository {
+    delegate! {
+        to self.uid_factory {
+            #[call(mint_next)]
+            pub fn mint_entity_uid(&self) -> Uid;
+        }
+    }
+
+    /// Adds the provided [Entity] to the repository.
+    ///
+    /// The uid is determined using ordered rules.
+    ///
+    /// 1. If the optional uid parameter is present, then it is used.
+    /// 2. If the entity has a non-default Uid, then it is used.
+    /// 3. The repository generates a new Uid.
+    ///
+    /// In any case, the repo sets the entity Uid to match.
     pub fn add_entity(
         &mut self,
         track_uid: TrackUid,
-        entity: Box<dyn EntityBounds>,
+        mut entity: Box<dyn EntityBounds>,
         uid: Option<Uid>,
     ) -> Result<Uid> {
         let uid = if let Some(uid) = uid {
             uid
+        } else if entity.uid() != Uid::default() {
+            entity.uid()
         } else {
             self.uid_factory.mint_next()
         };
+        entity.set_uid(uid);
         self.entities.insert(uid, entity);
         self.uids_for_track
             .entry(track_uid.clone())
@@ -258,11 +286,8 @@ impl EntityRepository {
         self.entities.get_mut(&uid)
     }
 
-    delegate! {
-        to self.uid_factory {
-            #[call(mint_next)]
-            pub fn mint_entity_uid(&self) -> Uid;
-        }
+    pub fn uids_for_track(&self) -> &HashMap<TrackUid, Vec<Uid>> {
+        &self.uids_for_track
     }
 }
 impl Controls for EntityRepository {
@@ -345,6 +370,20 @@ impl Automator {
             controllables.retain(|rlink| (ControlLink { uid: target, param }) != *rlink);
         }
     }
+
+    pub fn control_links(&self, uid: Uid) -> Option<&Vec<ControlLink>> {
+        self.controllables.get(&uid)
+    }
+
+    pub fn route(&mut self, entity_repo: &mut EntityRepository, uid: Uid, value: ControlValue) {
+        if let Some(controllables) = self.controllables.get(&uid) {
+            controllables.iter().for_each(|link| {
+                if let Some(entity) = entity_repo.entity_mut(link.uid) {
+                    entity.control_set_param_by_index(link.param, value);
+                }
+            });
+        }
+    }
 }
 impl Serializable for Automator {
     fn before_ser(&mut self) {}
@@ -379,4 +418,286 @@ impl Serializable for MidiRouter {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ensnare_entities::instruments::{TestInstrument, TestInstrumentParams};
+    use ensnare_proc_macros::{IsEntity2, Metadata};
+    use more_asserts::assert_gt;
+    use std::sync::Arc;
+
+    #[test]
+    fn track_repo_mainline() {
+        let mut repo = TrackRepository::default();
+
+        assert!(repo.uids.is_empty(), "Default should have no tracks");
+
+        let track_1_uid = repo.create_track(None).unwrap();
+        assert_gt!(track_1_uid.0, 0, "new track's uid should be nonzero");
+        assert_eq!(repo.uids.len(), 1, "should be one track after creating one");
+
+        let track_2_uid = repo.create_track(None).unwrap();
+        assert_eq!(
+            repo.uids.len(),
+            2,
+            "should be two tracks after creating second"
+        );
+        assert!(repo.set_track_position(track_2_uid, 0).is_ok());
+        assert_eq!(
+            repo.uids,
+            vec![track_2_uid, track_1_uid],
+            "order of track uids should be as expected after move"
+        );
+        assert!(repo.delete_track(track_2_uid).is_ok());
+
+        assert_ne!(
+            repo.mint_track_uid(),
+            repo.mint_track_uid(),
+            "Two consecutively minted Uids should be different."
+        );
+    }
+
+    #[test]
+    fn entity_repo_mainline() {
+        let mut repo = EntityRepository::default();
+        assert!(repo.entities.is_empty(), "Initial repo should be empty");
+
+        let track_uid = TrackUid(1);
+        let uid = repo
+            .add_entity(track_uid, Box::new(TestInstrument::default()), None)
+            .unwrap();
+        let entity = repo.remove_entity(uid).unwrap();
+        assert_ne!(
+            entity.uid(),
+            Uid::default(),
+            "add_entity(..., None) with an entity having a default Uid should assign an autogen Uid"
+        );
+        assert!(
+            repo.entities.is_empty(),
+            "Repo should be empty after removing inserted entities"
+        );
+
+        let expected_uid = Uid(998877);
+        let uid = repo
+            .add_entity(
+                track_uid,
+                Box::new(TestInstrument::new_with(
+                    expected_uid,
+                    &TestInstrumentParams::default(),
+                )),
+                None,
+            )
+            .unwrap();
+        let entity = repo.remove_entity(uid).unwrap();
+        assert_eq!(
+            entity.uid(),
+            expected_uid,
+            "add_entity(..., None) with an entity having a Uid should use that Uid"
+        );
+        assert!(
+            repo.entities.is_empty(),
+            "Repo should be empty after removing inserted entities"
+        );
+
+        let expected_uid = Uid(998877);
+        let uid = repo
+            .add_entity(
+                track_uid,
+                Box::new(TestInstrument::new_with(
+                    Uid(33333),
+                    &TestInstrumentParams::default(),
+                )),
+                Some(expected_uid),
+            )
+            .unwrap();
+        let entity = repo.remove_entity(uid).unwrap();
+        assert_eq!(
+            entity.uid(),
+            expected_uid,
+            "add_entity(..., Some) with an entity having a Uid should use the Uid provided as the parameter"
+        );
+        assert!(
+            repo.entities.is_empty(),
+            "Repo should be empty after removing inserted entities"
+        );
+    }
+
+    #[test]
+    fn orchestrator_mainline() {
+        let mut orchestrator = Orchestrator::default();
+
+        let nonexistent_track_uid = TrackUid(12345);
+        assert!(
+            orchestrator
+                .entities_for_track(nonexistent_track_uid)
+                .is_none(),
+            "Getting track entities for nonexistent track should return None"
+        );
+
+        let track_uid = orchestrator.create_track(None).unwrap();
+        assert!(
+            orchestrator.entities_for_track(track_uid).is_none(),
+            "Getting track entries for a track that exists but is empty should return None"
+        );
+        let target_uid = orchestrator
+            .add_entity(track_uid, Box::new(TestInstrument::default()), None)
+            .unwrap();
+        assert_eq!(
+            orchestrator.track_for_entity(target_uid).unwrap(),
+            track_uid,
+            "Added entity's track uid should be retrievable"
+        );
+        let track_entities = orchestrator.entities_for_track(track_uid).unwrap();
+        assert_eq!(track_entities.len(), 1);
+        assert!(track_entities.contains(&target_uid));
+
+        assert!(
+            orchestrator.get_entity_mut(&Uid(99999)).is_none(),
+            "getting nonexistent entity should return None"
+        );
+        assert!(
+            orchestrator.get_entity_mut(&target_uid).is_some(),
+            "getting an entity should return it"
+        );
+    }
+
+    #[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
+    #[entity2(
+        Configurable,
+        Controls,
+        Displays,
+        GeneratesStereoSample,
+        HandlesMidi,
+        Serializable,
+        SkipInner,
+        Ticks,
+        TransformsAudio
+    )]
+    pub struct TestControllable {
+        uid: Uid,
+        tracker: Arc<std::sync::RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
+    }
+    impl TestControllable {
+        pub fn new_with(
+            uid: Uid,
+            tracker: Arc<std::sync::RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
+        ) -> Self {
+            Self { uid, tracker }
+        }
+    }
+    impl Controllable for TestControllable {
+        fn control_set_param_by_index(&mut self, index: ControlIndex, value: ControlValue) {
+            if let Ok(mut tracker) = self.tracker.write() {
+                tracker.push((self.uid, index, value));
+            }
+        }
+    }
+
+    #[test]
+    fn automator_mainline() {
+        let mut automator = Automator::default();
+
+        assert!(
+            automator.controllables.is_empty(),
+            "new Automator should be empty"
+        );
+
+        let source_1_uid = Uid(1);
+        let source_2_uid = Uid(2);
+        let target_1_uid = Uid(3);
+        let target_2_uid = Uid(4);
+
+        assert!(automator
+            .link(source_1_uid, target_1_uid, ControlIndex(0))
+            .is_ok());
+        assert_eq!(
+            automator.controllables.len(),
+            1,
+            "there should be one vec after inserting one link"
+        );
+        assert!(automator
+            .link(source_1_uid, target_2_uid, ControlIndex(1))
+            .is_ok());
+        assert_eq!(
+            automator.controllables.len(),
+            1,
+            "there should still be one vec after inserting a second link for same source_uid"
+        );
+        assert!(automator
+            .link(source_2_uid, target_1_uid, ControlIndex(0))
+            .is_ok());
+        assert_eq!(
+            automator.controllables.len(),
+            2,
+            "there should be two vecs after inserting one link for a second Uid"
+        );
+
+        assert_eq!(
+            automator.control_links(source_1_uid).unwrap().len(),
+            2,
+            "the first source's vec should have two entries"
+        );
+        assert_eq!(
+            automator.control_links(source_2_uid).unwrap().len(),
+            1,
+            "the second source's vec should have one entry"
+        );
+
+        let tracker = std::sync::Arc::new(std::sync::RwLock::new(Vec::default()));
+        let controllable_1 =
+            TestControllable::new_with(target_1_uid, std::sync::Arc::clone(&tracker));
+        let controllable_2 =
+            TestControllable::new_with(target_2_uid, std::sync::Arc::clone(&tracker));
+        let track_uid = TrackUid(1);
+        let mut repo = EntityRepository::default();
+        let _ = repo.add_entity(track_uid, Box::new(controllable_1), Some(target_1_uid));
+        let _ = repo.add_entity(track_uid, Box::new(controllable_2), Some(target_2_uid));
+
+        // The closures are wooden and repetitive because we don't have access
+        // to EntityStore in this crate, so we hardwired a simple version of it
+        // here.
+        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        if let Ok(t) = tracker.read() {
+            assert_eq!(
+                t.len(),
+                2,
+                "there should be expected number of control events after the route {:#?}",
+                t
+            );
+            assert_eq!(t[0], (target_1_uid, ControlIndex(0), ControlValue(0.5)));
+            assert_eq!(t[1], (target_2_uid, ControlIndex(1), ControlValue(0.5)));
+        };
+
+        // Try removing links. Start with nonexistent link
+        if let Ok(mut t) = tracker.write() {
+            t.clear();
+        }
+        automator.unlink(source_1_uid, target_1_uid, ControlIndex(99));
+        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        if let Ok(t) = tracker.read() {
+            assert_eq!(
+                t.len(),
+                2,
+                "route results shouldn't change when removing nonexistent link {:#?}",
+                t
+            );
+        };
+
+        if let Ok(mut t) = tracker.write() {
+            t.clear();
+        }
+        automator.unlink(source_1_uid, target_1_uid, ControlIndex(0));
+        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        if let Ok(t) = tracker.read() {
+            assert_eq!(
+                t.len(),
+                1,
+                "removing a link should continue routing to remaining ones {:#?}",
+                t
+            );
+            assert_eq!(t[0], (target_2_uid, ControlIndex(1), ControlValue(0.5)));
+        };
+    }
 }

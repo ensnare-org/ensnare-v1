@@ -24,9 +24,9 @@ impl std::fmt::Display for MidiPortDescriptor {
     }
 }
 
-/// The client sends requests to the MIDI interface through [MidiInterfaceInput] messages.
+/// The client sends requests to the MIDI interface through [MidiInterfaceServiceInput] messages.
 #[derive(Clone, Debug)]
-pub enum MidiInterfaceInput {
+pub enum MidiInterfaceServiceInput {
     /// Requests a rescan of the MIDI input/output ports.
     RefreshPorts,
 
@@ -53,10 +53,10 @@ pub enum MidiInterfaceInput {
     RestoreMidiOutput(String),
 }
 
-/// The service provides updates to the client through [MidiInterfaceEvent]
+/// The service provides updates to the client through [MidiInterfaceServiceEvent]
 /// messages.
 #[derive(Clone, Debug)]
-pub enum MidiInterfaceEvent {
+pub enum MidiInterfaceServiceEvent {
     /// The service has successfully started. It sends this event first. It's
     /// not important to wait for this event, because anything sent on the input
     /// channel will queue up until the service is ready to handle it..
@@ -89,8 +89,8 @@ pub enum MidiInterfaceEvent {
 /// thanks to the `midir` crate.
 #[derive(Debug)]
 pub struct MidiInterfaceService {
-    input_sender: Sender<MidiInterfaceInput>,
-    event_receiver: Receiver<MidiInterfaceEvent>,
+    input_sender: Sender<MidiInterfaceServiceInput>,
+    event_receiver: Receiver<MidiInterfaceServiceEvent>,
 
     #[allow(dead_code)]
     handler: JoinHandle<()>,
@@ -111,28 +111,28 @@ impl MidiInterfaceService {
         let handler = std::thread::spawn(move || {
             let mut midi_interface = MidiInterface::new_with(event_sender.clone());
             let _ = midi_interface.start();
-            let _ = event_sender.send(MidiInterfaceEvent::Ready);
+            let _ = event_sender.send(MidiInterfaceServiceEvent::Ready);
 
             while let Ok(input) = input_receiver.recv() {
                 match input {
-                    MidiInterfaceInput::Midi(channel, message) => {
+                    MidiInterfaceServiceInput::Midi(channel, message) => {
                         midi_interface.handle_midi(channel, message);
                     }
-                    MidiInterfaceInput::SelectMidiInput(which) => {
+                    MidiInterfaceServiceInput::SelectMidiInput(which) => {
                         midi_interface.select_input(which)
                     }
-                    MidiInterfaceInput::SelectMidiOutput(which) => {
+                    MidiInterfaceServiceInput::SelectMidiOutput(which) => {
                         midi_interface.select_output(which)
                     }
-                    MidiInterfaceInput::Quit => {
+                    MidiInterfaceServiceInput::Quit => {
                         midi_interface.stop();
                         return;
                     }
-                    MidiInterfaceInput::RefreshPorts => midi_interface.refresh_ports(),
-                    MidiInterfaceInput::RestoreMidiInput(port_name) => {
+                    MidiInterfaceServiceInput::RefreshPorts => midi_interface.refresh_ports(),
+                    MidiInterfaceServiceInput::RestoreMidiInput(port_name) => {
                         midi_interface.restore_input(port_name);
                     }
-                    MidiInterfaceInput::RestoreMidiOutput(port_name) => {
+                    MidiInterfaceServiceInput::RestoreMidiOutput(port_name) => {
                         midi_interface.restore_output(port_name);
                     }
                 }
@@ -146,11 +146,11 @@ impl MidiInterfaceService {
         }
     }
 
-    pub fn sender(&self) -> &Sender<MidiInterfaceInput> {
+    pub fn sender(&self) -> &Sender<MidiInterfaceServiceInput> {
         &self.input_sender
     }
 
-    pub fn receiver(&self) -> &Receiver<MidiInterfaceEvent> {
+    pub fn receiver(&self) -> &Receiver<MidiInterfaceServiceEvent> {
         &self.event_receiver
     }
 }
@@ -161,10 +161,10 @@ struct MidiInputHandler {
     midi: Option<MidiInput>,
     active_port: Option<MidiPortDescriptor>,
     connection: Option<MidiInputConnection<()>>,
-    sender: Sender<MidiInterfaceEvent>,
+    sender: Sender<MidiInterfaceServiceEvent>,
 }
 impl MidiInputHandler {
-    pub fn new_with(sender: Sender<MidiInterfaceEvent>) -> anyhow::Result<Self> {
+    pub fn new_with(sender: Sender<MidiInterfaceServiceEvent>) -> anyhow::Result<Self> {
         if let Ok(midi_input) = MidiInput::new("Ensnare MIDI input") {
             Ok(Self {
                 midi: Some(midi_input),
@@ -203,7 +203,7 @@ impl MidiInputHandler {
                 .collect();
             let _ = self
                 .sender
-                .try_send(MidiInterfaceEvent::InputPorts(descriptors));
+                .try_send(MidiInterfaceServiceEvent::InputPorts(descriptors));
         }
     }
 
@@ -261,7 +261,7 @@ impl MidiInputHandler {
                 "Ensnare MIDI input",
                 move |_, event, _| {
                     if let Ok(LiveEvent::Midi { channel, message }) = LiveEvent::parse(event) {
-                        let _ = sender_clone.try_send(MidiInterfaceEvent::Midi(
+                        let _ = sender_clone.try_send(MidiInterfaceServiceEvent::Midi(
                             MidiChannel::from(channel),
                             message,
                         ));
@@ -324,7 +324,7 @@ struct MidiOutputHandler {
     active_port: Option<MidiPortDescriptor>,
     connection: Option<MidiOutputConnection>,
     outputs: Vec<(usize, String)>,
-    sender: Sender<MidiInterfaceEvent>,
+    sender: Sender<MidiInterfaceServiceEvent>,
 }
 impl std::fmt::Debug for MidiOutputHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -332,7 +332,7 @@ impl std::fmt::Debug for MidiOutputHandler {
     }
 }
 impl MidiOutputHandler {
-    fn new_with(sender: Sender<MidiInterfaceEvent>) -> anyhow::Result<Self> {
+    fn new_with(sender: Sender<MidiInterfaceServiceEvent>) -> anyhow::Result<Self> {
         if let Ok(midi_out) = MidiOutput::new("Ensnare MIDI output") {
             Ok(Self {
                 midi: Some(midi_out),
@@ -354,7 +354,7 @@ impl MidiOutputHandler {
     fn refresh_ports(&mut self) {
         if let Some(midi) = self.midi.as_mut() {
             let ports = midi.ports();
-            let _ = self.sender.try_send(MidiInterfaceEvent::OutputPorts(
+            let _ = self.sender.try_send(MidiInterfaceServiceEvent::OutputPorts(
                 ports
                     .iter()
                     .enumerate()
@@ -468,10 +468,10 @@ struct MidiInterface {
     midi_input: Option<MidiInputHandler>,
     midi_output: Option<MidiOutputHandler>,
 
-    sender: Sender<MidiInterfaceEvent>,
+    sender: Sender<MidiInterfaceServiceEvent>,
 }
 impl MidiInterface {
-    pub fn new_with(sender: Sender<MidiInterfaceEvent>) -> Self {
+    pub fn new_with(sender: Sender<MidiInterfaceServiceEvent>) -> Self {
         let midi_input = MidiInputHandler::new_with(sender.clone()).ok();
         let midi_output = MidiOutputHandler::new_with(sender.clone()).ok();
         Self {
@@ -486,7 +486,7 @@ impl MidiInterface {
             midi.handle_midi(channel, message);
 
             // TODO: this happens even if no interface(s) are selected.
-            let _ = self.sender.try_send(MidiInterfaceEvent::MidiOut);
+            let _ = self.sender.try_send(MidiInterfaceServiceEvent::MidiOut);
         }
     }
 
@@ -507,15 +507,17 @@ impl MidiInterface {
         if let Some(midi) = self.midi_output.as_mut() {
             midi.stop();
         }
-        let _ = self.sender.try_send(MidiInterfaceEvent::Quit);
+        let _ = self.sender.try_send(MidiInterfaceServiceEvent::Quit);
     }
 
     fn select_input(&mut self, which: MidiPortDescriptor) {
         if let Some(input) = self.midi_input.as_mut() {
             if input.select_port(which.index).is_ok() {
-                let _ = self.sender.try_send(MidiInterfaceEvent::InputPortSelected(
-                    input.active_port.clone(),
-                ));
+                let _ = self
+                    .sender
+                    .try_send(MidiInterfaceServiceEvent::InputPortSelected(
+                        input.active_port.clone(),
+                    ));
             }
         };
     }
@@ -523,9 +525,11 @@ impl MidiInterface {
     fn select_output(&mut self, which: MidiPortDescriptor) {
         if let Some(output) = self.midi_output.as_mut() {
             if output.select_port(which.index).is_ok() {
-                let _ = self.sender.try_send(MidiInterfaceEvent::OutputPortSelected(
-                    output.active_port.clone(),
-                ));
+                let _ = self
+                    .sender
+                    .try_send(MidiInterfaceServiceEvent::OutputPortSelected(
+                        output.active_port.clone(),
+                    ));
             }
         };
     }
