@@ -82,6 +82,12 @@ pub struct Project {
     pub visualization_queue: Option<VisualizationQueue>,
 }
 impl Project {
+    /// The fixed [Uid] for the project's Orchestrator.
+    pub const ORCHESTRATOR_UID: Uid = Uid(1);
+
+    /// The fixed [Uid] for the project's [Transport].
+    pub const TRANSPORT_UID: Uid = Uid(2);
+
     /// Starts with a default project and configures for easy first use.
     pub fn new_project() -> Self {
         let mut r = Self::default();
@@ -257,8 +263,17 @@ impl Project {
     }
 
     fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
-        self.automator
-            .route(&mut self.orchestrator.entity_repo, uid, value);
+        self.automator.route(
+            &mut self.orchestrator.entity_repo,
+            Some(&mut |link| match link.uid {
+                Self::TRANSPORT_UID => self.transport.control_set_param_by_index(link.param, value),
+                _ => {
+                    eprintln!("Asked to route unknown uid {uid}");
+                }
+            }),
+            uid,
+            value,
+        );
     }
 
     pub fn load(path: PathBuf) -> anyhow::Result<Self> {
@@ -451,5 +466,73 @@ impl Serializable for Project {
         self.orchestrator.after_deser();
         self.composer.after_deser();
         self.midi_router.after_deser();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ensnare_proc_macros::{IsEntity2, Metadata};
+
+    trait TestEntity: EntityBounds {}
+
+    /// An [IsEntity2] that sends one Control event each time work() is called.
+    #[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
+    #[entity2(
+        Configurable,
+        Controllable,
+        Displays,
+        GeneratesStereoSample,
+        HandlesMidi,
+        Serializable,
+        SkipInner,
+        Ticks,
+        TransformsAudio
+    )]
+    pub struct TestControllerSendsOneEvent {
+        uid: Uid,
+    }
+    impl Controls for TestControllerSendsOneEvent {
+        fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+            control_events_fn(WorkEvent::Control(ControlValue::MAX));
+        }
+    }
+    impl TestEntity for TestControllerSendsOneEvent {}
+
+    #[test]
+    fn project_handles_transport_control() {
+        let mut project = Project::default();
+
+        let track_uid = project.create_track(None).unwrap();
+        let uid = project
+            .add_entity(
+                track_uid,
+                Box::new(TestControllerSendsOneEvent::default()),
+                None,
+            )
+            .unwrap();
+
+        assert!(
+            project
+                .link(
+                    uid,
+                    Project::TRANSPORT_UID,
+                    ControlIndex(Transport::TEMPO_INDEX)
+                )
+                .is_ok(),
+            "Linking with Transport's tempo should work"
+        );
+
+        assert_eq!(
+            project.tempo(),
+            Tempo::default(),
+            "Initial project tempo should be default"
+        );
+        project.work(&mut |_| {});
+        assert_eq!(
+            project.tempo(),
+            Tempo::from(Tempo::MAX_VALUE),
+            "After a cycle of work, project tempo should be changed by automation"
+        );
     }
 }

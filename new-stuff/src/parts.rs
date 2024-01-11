@@ -118,7 +118,31 @@ impl Generates<StereoSample> for Orchestrator {
     }
 }
 impl Ticks for Orchestrator {}
-impl Configurable for Orchestrator {}
+impl Configurable for Orchestrator {
+    fn sample_rate(&self) -> SampleRate {
+        self.entity_repo.sample_rate()
+    }
+
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.entity_repo.update_sample_rate(sample_rate)
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.entity_repo.tempo()
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.entity_repo.update_tempo(tempo)
+    }
+
+    fn time_signature(&self) -> TimeSignature {
+        self.entity_repo.time_signature()
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.entity_repo.update_time_signature(time_signature)
+    }
+}
 impl Serializable for Orchestrator {
     fn before_ser(&mut self) {
         self.track_repo.before_ser();
@@ -185,6 +209,10 @@ pub struct EntityRepository {
     pub entities: HashMap<Uid, Box<dyn EntityBounds>>,
     pub uids_for_track: HashMap<TrackUid, Vec<Uid>>,
     pub track_for_uid: HashMap<Uid, TrackUid>,
+
+    sample_rate: SampleRate,
+    tempo: Tempo,
+    time_signature: TimeSignature,
 }
 impl EntityRepository {
     delegate! {
@@ -336,7 +364,40 @@ impl ControlsAsProxy for EntityRepository {
             .for_each(|(uid, e)| e.work(&mut |inner_event| control_events_fn(*uid, inner_event)));
     }
 }
-impl Configurable for EntityRepository {}
+impl Configurable for EntityRepository {
+    fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
+    }
+
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.sample_rate = sample_rate;
+        self.entities
+            .values_mut()
+            .for_each(|e| e.update_sample_rate(sample_rate));
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.tempo
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.tempo = tempo;
+        self.entities
+            .values_mut()
+            .for_each(|e| e.update_tempo(tempo))
+    }
+
+    fn time_signature(&self) -> TimeSignature {
+        self.time_signature
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.time_signature = time_signature;
+        self.entities
+            .values_mut()
+            .for_each(|e| e.update_time_signature(time_signature))
+    }
+}
 impl Ticks for EntityRepository {
     fn tick(&mut self, tick_count: usize) {
         self.entities.values_mut().for_each(|e| e.tick(tick_count));
@@ -375,11 +436,21 @@ impl Automator {
         self.controllables.get(&uid)
     }
 
-    pub fn route(&mut self, entity_repo: &mut EntityRepository, uid: Uid, value: ControlValue) {
+    pub fn route(
+        &mut self,
+        entity_repo: &mut EntityRepository,
+        mut not_found_fn: Option<&mut dyn FnMut(&ControlLink)>,
+        uid: Uid,
+        value: ControlValue,
+    ) {
         if let Some(controllables) = self.controllables.get(&uid) {
             controllables.iter().for_each(|link| {
                 if let Some(entity) = entity_repo.entity_mut(link.uid) {
                     entity.control_set_param_by_index(link.param, value);
+                } else {
+                    if let Some(not_found_fn) = not_found_fn.as_mut() {
+                        not_found_fn(link);
+                    }
                 }
             });
         }
@@ -455,6 +526,7 @@ impl Serializable for MidiRouter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensnare_core::time::TransportBuilder;
     use ensnare_entities::instruments::{TestInstrument, TestInstrumentParams};
     use ensnare_proc_macros::{Control, IsEntity2, Metadata};
     use more_asserts::assert_gt;
@@ -690,7 +762,7 @@ mod tests {
         // The closures are wooden and repetitive because we don't have access
         // to EntityStore in this crate, so we hardwired a simple version of it
         // here.
-        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),
@@ -707,7 +779,7 @@ mod tests {
             t.clear();
         }
         automator.unlink(source_1_uid, target_1_uid, ControlIndex(99));
-        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),
@@ -721,7 +793,7 @@ mod tests {
             t.clear();
         }
         automator.unlink(source_1_uid, target_1_uid, ControlIndex(0));
-        let _ = automator.route(&mut repo, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),
@@ -925,5 +997,28 @@ mod tests {
         let m = new_note_on(1, 1);
 
         assert!(r.route(&mut repo, MidiChannel(1), m).is_err());
+    }
+
+    #[test]
+    fn transport_is_automatable() {
+        let mut t = TransportBuilder::default().build().unwrap();
+
+        assert_eq!(t.tempo(), Tempo::default());
+
+        assert_eq!(
+            t.control_index_count(),
+            1,
+            "Transport should have one automatable parameter"
+        );
+        const TEMPO_INDEX: ControlIndex = ControlIndex(0);
+        assert_eq!(
+            t.control_name_for_index(TEMPO_INDEX),
+            Some("tempo".to_string()),
+            "Transport's parameter name should be 'tempo'"
+        );
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MAX);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
     }
 }
