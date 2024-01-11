@@ -210,9 +210,15 @@ pub struct EntityRepository {
     pub uids_for_track: HashMap<TrackUid, Vec<Uid>>,
     pub track_for_uid: HashMap<Uid, TrackUid>,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
+    #[serde(skip)]
     tempo: Tempo,
+    #[serde(skip)]
     time_signature: TimeSignature,
+
+    #[serde(skip)]
+    is_finished: bool,
 }
 impl EntityRepository {
     delegate! {
@@ -317,6 +323,10 @@ impl EntityRepository {
     pub fn uids_for_track(&self) -> &HashMap<TrackUid, Vec<Uid>> {
         &self.uids_for_track
     }
+
+    fn update_is_finished(&mut self) {
+        self.is_finished = self.entities.values().all(|e| e.is_finished());
+    }
 }
 impl Controls for EntityRepository {
     fn time_range(&self) -> Option<TimeRange> {
@@ -334,11 +344,12 @@ impl Controls for EntityRepository {
     }
 
     fn is_finished(&self) -> bool {
-        self.entities.values().all(|e| e.is_finished())
+        self.is_finished
     }
 
     fn play(&mut self) {
         self.entities.values_mut().for_each(|e| e.play());
+        self.update_is_finished();
     }
 
     fn stop(&mut self) {
@@ -362,6 +373,7 @@ impl ControlsAsProxy for EntityRepository {
         self.entities
             .iter_mut()
             .for_each(|(uid, e)| e.work(&mut |inner_event| control_events_fn(*uid, inner_event)));
+        self.update_is_finished();
     }
 }
 impl Configurable for EntityRepository {

@@ -190,15 +190,14 @@ impl Project {
         let time_range = self.transport.advance(frames.len());
         self.update_time_range(&time_range);
         self.work(&mut |_| {});
-        self.is_finished = self.calculate_is_finished();
         if self.is_finished {
             self.stop();
         }
         self.generate_batch_values(frames);
     }
 
-    fn calculate_is_finished(&mut self) -> bool {
-        self.composer.is_finished() && self.orchestrator.is_finished()
+    fn update_is_finished(&mut self) {
+        self.is_finished = self.composer.is_finished() && self.orchestrator.is_finished();
     }
 
     pub fn export_to_wav(&mut self, path: PathBuf) -> anyhow::Result<()> {
@@ -398,6 +397,7 @@ impl Controls for Project {
         self.transport.play();
         self.orchestrator.play();
         self.composer.play();
+        self.update_is_finished();
     }
 
     fn stop(&mut self) {
@@ -439,6 +439,7 @@ impl Controls for Project {
                 }
             }
         }
+        self.update_is_finished();
     }
 }
 impl HandlesMidi for Project {
@@ -498,6 +499,82 @@ mod tests {
         }
     }
     impl TestEntity for TestControllerSendsOneEvent {}
+
+    #[test]
+    fn project_basics() {
+        let mut project = Project::default();
+
+        assert!(
+            project.sample_rate().0 != 0,
+            "Default sample rate should be reasonable"
+        );
+        let new_sample_rate = SampleRate(3);
+        project.update_sample_rate(new_sample_rate);
+        assert_eq!(
+            project.sample_rate(),
+            new_sample_rate,
+            "Sample rate should be settable"
+        );
+
+        assert!(
+            project.tempo().0 > 0.0,
+            "Default tempo should be reasonable"
+        );
+        let new_tempo = Tempo(64.0);
+        project.update_tempo(new_tempo);
+        assert_eq!(project.tempo(), new_tempo, "Tempo should be settable");
+    }
+
+    #[test]
+    fn project_starter_tracks() {
+        let mut project = Project::default();
+        assert!(project.track_uids().is_empty());
+        assert!(project.create_starter_tracks().is_ok());
+        assert!(!project.track_uids().is_empty());
+        assert!(project.create_starter_tracks().is_err());
+
+        assert_eq!(
+            project.track_uids().len(),
+            4,
+            "we should have four tracks after create_starter_tracks()."
+        );
+    }
+
+    #[test]
+    fn track_discovery() {
+        let mut project = Project::default();
+        assert!(project.create_starter_tracks().is_ok());
+        let track_count = project.track_uids().len();
+
+        project
+            .track_uids()
+            .iter()
+            .for_each(|uid| assert!(project.track_titles.get(uid).is_some()));
+    }
+
+    #[test]
+    fn track_crud() {
+        let mut project = Project::default();
+        assert_eq!(project.track_uids().len(), 0);
+        let track_uid = project.new_midi_track().unwrap();
+        assert_eq!(project.track_uids().len(), 1);
+
+        assert!(project.track_uids()[0] == track_uid);
+
+        project.delete_track(track_uid);
+        assert!(project.track_uids().is_empty());
+    }
+
+    #[test]
+    fn zero_length_performance_ends_immediately() {
+        let mut project = Project::default();
+
+        // Controls::is_finished() is undefined before play(), so no fair
+        // calling it before play().
+
+        project.play();
+        assert!(project.is_finished());
+    }
 
     #[test]
     fn project_handles_transport_control() {
