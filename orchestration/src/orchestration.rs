@@ -1062,7 +1062,7 @@ impl<E: EntityBounds + ?Sized> Orchestrates<E> for Orchestrator<E> {
     }
 
     fn set_effect_humidity(&mut self, uid: Uid, humidity: Normal) -> anyhow::Result<()> {
-        if let Some(entity) = self.entity_store.get(&uid) {
+        if let Some(_entity) = self.entity_store.get(&uid) {
             // if entity.as_effect().is_some() {
             self.humidifier.set_humidity_by_uid(uid, humidity);
             Ok(())
@@ -1491,7 +1491,6 @@ impl<'a, E: EntityBounds + ?Sized> OrchestratorHelper<'a, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::tests::validate_orchestrates_trait;
     use ensnare_core::{control::ControlValue, time::TransportBuilder};
     use ensnare_proc_macros::{IsEntity2, Metadata};
     use serde::{Deserialize, Serialize};

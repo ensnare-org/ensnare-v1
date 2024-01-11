@@ -431,17 +431,11 @@ impl HandlesMidi for Project {
         &mut self,
         channel: MidiChannel,
         message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
+        _midi_messages_fn: &mut MidiMessagesFn,
     ) {
-        if let Some(receivers) = self.midi_router.midi_receivers.get(&channel) {
-            receivers.iter().for_each(|receiver_uid| {
-                if let Some(entity) = self.orchestrator.get_entity_mut(receiver_uid) {
-                    entity.handle_midi_message(channel, message, &mut |c, m| {
-                        midi_messages_fn(c, m);
-                    });
-                }
-            });
-        }
+        let _ = self
+            .midi_router
+            .route(&mut self.orchestrator.entity_repo, channel, message);
     }
 }
 impl Serializable for Project {
