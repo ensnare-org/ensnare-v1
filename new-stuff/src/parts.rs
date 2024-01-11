@@ -19,6 +19,7 @@ pub struct Orchestrator {
 
     pub aux_track_uids: Vec<TrackUid>,
     pub bus_station: BusStation,
+    pub humidifier: Humidifier,
 }
 impl Orchestrator {
     delegate! {
@@ -117,6 +118,14 @@ impl Generates<StereoSample> for Orchestrator {
                         entity_uids.iter().for_each(|uid| {
                             if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
                                 entity.generate_batch_values(&mut track_buffer);
+                                let humidity = self.humidifier.get_humidity_by_uid(uid);
+                                if humidity != Normal::zero() {
+                                    self.humidifier.transform_batch(
+                                        humidity,
+                                        entity,
+                                        &mut track_buffer,
+                                    );
+                                }
                             }
                         });
                     }
@@ -638,10 +647,61 @@ impl BusStation {
     }
 }
 
+/// Controls the wet/dry mix of arranged effects.
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Humidifier {
+    uid_to_humidity: HashMap<Uid, Normal>,
+}
+impl Humidifier {
+    pub fn get_humidity_by_uid(&self, uid: &Uid) -> Normal {
+        self.uid_to_humidity.get(uid).cloned().unwrap_or_default()
+    }
+
+    pub fn set_humidity_by_uid(&mut self, uid: Uid, humidity: Normal) {
+        self.uid_to_humidity.insert(uid, humidity);
+    }
+
+    pub fn transform_batch(
+        &mut self,
+        humidity: Normal,
+        effect: &mut Box<dyn EntityBounds>,
+        samples: &mut [StereoSample],
+    ) {
+        for sample in samples {
+            *sample = self.transform_audio(humidity, *sample, effect.transform_audio(*sample));
+        }
+    }
+
+    pub fn transform_audio(
+        &mut self,
+        humidity: Normal,
+        pre_effect: StereoSample,
+        post_effect: StereoSample,
+    ) -> StereoSample {
+        StereoSample(
+            self.transform_channel(humidity, 0, pre_effect.0, post_effect.0),
+            self.transform_channel(humidity, 1, pre_effect.1, post_effect.1),
+        )
+    }
+
+    fn transform_channel(
+        &mut self,
+        humidity: Normal,
+        _: usize,
+        pre_effect: Sample,
+        post_effect: Sample,
+    ) -> Sample {
+        let humidity: f64 = humidity.into();
+        let aridity = 1.0 - humidity;
+        post_effect * humidity + pre_effect * aridity
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use ensnare_core::time::TransportBuilder;
+    use ensnare_cores::TestEffectNegatesInput;
     use ensnare_entities::instruments::{TestInstrument, TestInstrumentParams};
     use ensnare_proc_macros::{Control, IsEntity2, Metadata};
     use more_asserts::assert_gt;
@@ -1192,5 +1252,67 @@ mod tests {
         if let Some(sends) = station.sends_for_track(&TrackUid(7)) {
             assert!(sends.is_empty(), "Removing all a track's sends should work");
         }
+    }
+
+    #[test]
+    fn humidifier_lookups_work() {
+        let mut wd = Humidifier::default();
+        assert_eq!(
+            wd.get_humidity_by_uid(&Uid(1)),
+            Normal::maximum(),
+            "a missing Uid should return default humidity 1.0"
+        );
+
+        let uid = Uid(1);
+        wd.set_humidity_by_uid(uid, Normal::from(0.5));
+        assert_eq!(
+            wd.get_humidity_by_uid(&Uid(1)),
+            Normal::from(0.5),
+            "a non-missing Uid should return the humidity that we set"
+        );
+    }
+
+    #[test]
+    fn humidifier_processing_works() {
+        let mut humidifier = Humidifier::default();
+
+        let mut effect = TestEffectNegatesInput::default();
+        assert_eq!(
+            effect.transform_channel(0, Sample::MAX),
+            Sample::MIN,
+            "we expected ToyEffect to negate the input"
+        );
+
+        let pre_effect = Sample::MAX;
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::maximum(),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            Sample::MIN,
+            "Wetness 1.0 means full effect, zero pre-effect"
+        );
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::from_percentage(50.0),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            Sample::from(0.0),
+            "Wetness 0.5 means even parts effect and pre-effect"
+        );
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::zero(),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            pre_effect,
+            "Wetness 0.0 means no change from pre-effect to post"
+        );
     }
 }
