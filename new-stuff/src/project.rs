@@ -54,7 +54,7 @@ pub struct Project {
     pub orchestrator: Orchestrator,
     pub automator: Automator,
     pub composer: Composer,
-    pub midi_router: MidiRouter,
+    pub track_to_midi_router: HashMap<TrackUid, MidiRouter>,
 
     // The part of the project to show in the UI. We've made the explicit
     // decision to make view parameters persistent, so that a loaded project
@@ -131,7 +131,7 @@ impl Project {
     /// Adds a new MIDI track, which can contain controllers, instruments, and
     /// effects. Returns the new track's [TrackUid] if successful.
     pub fn new_midi_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.orchestrator.create_track(None)?;
+        let track_uid = self.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("MIDI {}", track_uid)));
         Ok(track_uid)
@@ -140,7 +140,7 @@ impl Project {
     /// Adds a new audio track, which can contain audio clips and effects.
     /// Returns the new track's [TrackUid] if successful.
     pub fn new_audio_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.orchestrator.create_track(None)?;
+        let track_uid = self.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Audio {}", track_uid)));
         Ok(track_uid)
@@ -150,7 +150,7 @@ impl Project {
     /// tracks can *send* their output audio. Returns the new track's [TrackUid]
     /// if successful.
     pub fn new_aux_track(&mut self) -> anyhow::Result<TrackUid> {
-        let track_uid = self.orchestrator.create_track(None)?;
+        let track_uid = self.create_track(None)?;
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Aux {}", track_uid)));
         Ok(track_uid)
@@ -158,18 +158,13 @@ impl Project {
 
     delegate! {
         to self.orchestrator {
-            pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid>;
             pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
-            pub fn delete_track(&mut self, uid: TrackUid) -> Result<()>;
 
             pub fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>, uid: Option<Uid>) -> Result<Uid>;
             pub fn move_entity(&mut self, uid: Uid, new_track_uid: Option<TrackUid>, new_position: Option<usize>)-> Result<()>;
             pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
             pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
-        }
-        to self.midi_router {
-            pub fn set_midi_receiver_channel(&mut self, entity_uid: Uid, channel: Option<MidiChannel>) -> Result<()>;
         }
         to self.composer {
             pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
@@ -183,6 +178,38 @@ impl Project {
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
             pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
+        }
+    }
+
+    pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
+        let track_uid = self.orchestrator.create_track(uid)?;
+        self.track_to_midi_router
+            .insert(track_uid, MidiRouter::default());
+        Ok(track_uid)
+    }
+
+    pub fn delete_track(&mut self, uid: TrackUid) -> Result<()> {
+        self.track_to_midi_router.remove(&uid);
+        self.orchestrator.delete_track(uid)
+    }
+
+    pub fn set_midi_receiver_channel(
+        &mut self,
+        entity_uid: Uid,
+        channel: Option<MidiChannel>,
+    ) -> Result<()> {
+        if let Some(track_uid) = self.orchestrator.track_for_entity(entity_uid) {
+            if let Some(midi_router) = self.track_to_midi_router.get_mut(&track_uid) {
+                midi_router.set_midi_receiver_channel(entity_uid, channel)
+            } else {
+                Err(anyhow!(
+                    "set_midi_receiver_channel: no MidiRouter found for track {track_uid}"
+                ))
+            }
+        } else {
+            Err(anyhow!(
+                "set_midi_receiver_channel: no track found for entity {entity_uid}"
+            ))
         }
     }
 
@@ -430,9 +457,15 @@ impl Controls for Project {
         while let Some((uid, event)) = events.pop() {
             match event {
                 WorkEvent::Midi(channel, message) => {
-                    self.handle_midi_message(channel, message, &mut |c, m| {
-                        events.push((Uid::default(), WorkEvent::Midi(c, m)))
-                    });
+                    if let Some(track_uid) = self.orchestrator.track_for_entity(uid) {
+                        if let Some(midi_router) = self.track_to_midi_router.get(&track_uid) {
+                            let _ = midi_router.route(
+                                &mut self.orchestrator.entity_repo,
+                                channel,
+                                message,
+                            );
+                        }
+                    }
                 }
                 WorkEvent::Control(value) => {
                     self.dispatch_control_event(uid, value);
@@ -443,15 +476,19 @@ impl Controls for Project {
     }
 }
 impl HandlesMidi for Project {
+    // This method handles only external MIDI messages, which potentially go to
+    // every track.
     fn handle_midi_message(
         &mut self,
         channel: MidiChannel,
         message: MidiMessage,
         _midi_messages_fn: &mut MidiMessagesFn,
     ) {
-        let _ = self
-            .midi_router
-            .route(&mut self.orchestrator.entity_repo, channel, message);
+        self.track_to_midi_router
+            .values_mut()
+            .for_each(|midi_router| {
+                let _ = midi_router.route(&mut self.orchestrator.entity_repo, channel, message);
+            })
     }
 }
 impl Serializable for Project {
@@ -459,20 +496,30 @@ impl Serializable for Project {
         self.automator.before_ser();
         self.orchestrator.before_ser();
         self.composer.before_ser();
-        self.midi_router.before_ser();
+        self.track_to_midi_router
+            .values_mut()
+            .for_each(|midi_router| {
+                let _ = midi_router.before_ser();
+            })
     }
 
     fn after_deser(&mut self) {
         self.automator.after_deser();
         self.orchestrator.after_deser();
         self.composer.after_deser();
-        self.midi_router.after_deser();
+        self.track_to_midi_router
+            .values_mut()
+            .for_each(|midi_router| {
+                let _ = midi_router.after_deser();
+            })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensnare_entities::instruments::TestInstrumentCountsMidiMessages;
+    use ensnare_entities_toy::controllers::ToyControllerAlwaysSendsMidiMessage;
     use ensnare_proc_macros::{IsEntity2, Metadata};
 
     trait TestEntity: EntityBounds {}
@@ -544,8 +591,6 @@ mod tests {
     fn track_discovery() {
         let mut project = Project::default();
         assert!(project.create_starter_tracks().is_ok());
-        let track_count = project.track_uids().len();
-
         project
             .track_uids()
             .iter()
@@ -561,7 +606,7 @@ mod tests {
 
         assert!(project.track_uids()[0] == track_uid);
 
-        project.delete_track(track_uid);
+        assert!(project.delete_track(track_uid).is_ok());
         assert!(project.track_uids().is_empty());
     }
 
@@ -611,5 +656,90 @@ mod tests {
             Tempo::from(Tempo::MAX_VALUE),
             "After a cycle of work, project tempo should be changed by automation"
         );
+    }
+
+    #[test]
+    fn midi_routing_from_external_reaches_instruments() {
+        let mut project = Project::default();
+        let track_uid = project.new_midi_track().unwrap();
+
+        let instrument = TestInstrumentCountsMidiMessages::default();
+        let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
+        let instrument_uid = project
+            .add_entity(track_uid, Box::new(instrument), None)
+            .unwrap();
+        assert!(project
+            .set_midi_receiver_channel(instrument_uid, Some(MidiChannel::default()))
+            .is_ok());
+
+        let test_message = MidiMessage::NoteOn {
+            key: 7.into(),
+            vel: 13.into(),
+        };
+        if let Ok(received) = midi_messages_received.lock() {
+            assert_eq!(
+                *received, 0,
+                "Before sending an external MIDI message to Project, count should be zero"
+            );
+        };
+        project.handle_midi_message(
+            MidiChannel::default(),
+            test_message,
+            &mut |channel, message| panic!("Didn't expect {channel:?} {message:?}",),
+        );
+        if let Ok(received) = midi_messages_received.lock() {
+            assert_eq!(
+                *received, 1,
+                "Count should update after sending an external MIDI message to Project"
+            );
+        };
+    }
+
+    #[test]
+    fn midi_messages_from_track_a_do_not_reach_track_b() {
+        let mut project = Project::default();
+        let track_a_uid = project.new_midi_track().unwrap();
+        let track_b_uid = project.new_midi_track().unwrap();
+
+        // On Track 1, put a sender and receiver.
+        let sender_uid = project
+            .add_entity(
+                track_a_uid,
+                Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+                None,
+            )
+            .unwrap();
+        let receiver_1 = TestInstrumentCountsMidiMessages::default();
+        let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
+        let receiver_1_uid = project
+            .add_entity(track_a_uid, Box::new(receiver_1), None)
+            .unwrap();
+
+        // On Track 2, put another receiver.
+        let receiver_2 = TestInstrumentCountsMidiMessages::default();
+        let counter_2 = Arc::clone(receiver_2.received_midi_message_count_mutex());
+        let receiver_2_uid = project
+            .add_entity(track_b_uid, Box::new(receiver_2), None)
+            .unwrap();
+
+        // Hook up everyone to MIDI.
+        let _ = project.set_midi_receiver_channel(sender_uid, Some(MidiChannel::default()));
+        let _ = project.set_midi_receiver_channel(receiver_1_uid, Some(MidiChannel::default()));
+        let _ = project.set_midi_receiver_channel(receiver_2_uid, Some(MidiChannel::default()));
+
+        // Fire everything up.
+        project.play();
+        project.work(&mut |_| {});
+
+        // Sender should have sent a message that receiver #1 should receive,
+        // because they're both in the same Track.
+        if let Ok(c) = counter_1.lock() {
+            assert_eq!(1, *c);
+        }
+        // But Receiver #2 shouldn't see that message, because it's in a
+        // different Track.
+        if let Ok(c) = counter_2.lock() {
+            assert_eq!(0, *c);
+        };
     }
 }

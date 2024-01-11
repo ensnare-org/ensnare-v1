@@ -35,3 +35,4 @@ typetag = "0.2.14"
 [dev-dependencies]
 more-asserts = "0.3.1"
 ensnare-entities = { path = "../entities", features = ["factory", "test"] }
+ensnare-entities-toy = { path = "../entities-toy" }

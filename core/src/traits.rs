@@ -379,6 +379,11 @@ pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
 /// traffic to individual devices. midi_messages_fn allows the implementor to
 /// produce more MIDI messages in response to this message. For example, an
 /// arpeggiator might produce notes in response to a note-on.
+///
+/// Note that this method implies that a MIDI message can produce more MIDI
+/// messages, but not Control events. Devices can choose to accumulate Control
+/// events and send them at the next work() if desired, though doing so will be
+/// a work slice laterd.
 pub trait HandlesMidi {
     #[allow(missing_docs)]
     #[allow(unused_variables)]
