@@ -10,7 +10,6 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.75"
-crossbeam-channel = "0.5.8"
 derive_builder = "0.12.0"
 eframe = "0.24"
 ensnare-core = { path = "../core" }
@@ -21,8 +20,6 @@ ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-new-stuff = { path = "../new-stuff" }
 ensnare-proc-macros = { path = "../proc-macros" }
-hound = "3.5.0"
-rayon = "1.8.0"
 serde = { version = "1.0.193", features = ["derive"] }
 strum_macros = "0.25"
 typetag = "0.2.14"

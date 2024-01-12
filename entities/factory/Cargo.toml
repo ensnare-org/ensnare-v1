@@ -16,7 +16,6 @@ eframe = "0.24"
 ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
 ensnare-cores-egui = { path = "../../cores-egui" }
-ensnare-egui-widgets = { path = "../../egui-widgets" }
 ensnare-entity = { path = "../../entity" }
 ensnare-orchestration = { path = "../../orchestration" }
 ensnare-proc-macros = { path = "../../proc-macros" }

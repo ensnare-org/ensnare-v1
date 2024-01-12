@@ -6,25 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# ensnare-drag-drop = { path = "drag-drop" }
-# ensnare-egui-widgets = { path = "egui-widgets" }
-# ensnare-entities-toy = { path = "entities-toy" }
-# ensnare-orchestration = { path = "orchestration" }
-# ensnare-services = { path = "services" }
 anyhow = "1.0.75"
-crossbeam = "0.8.3"
-crossbeam-channel = "0.5.8"
 delegate = "0.10.0"
 derive_more = "0.99.17"
 eframe = "0.24"
-egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
-egui_extras = { version = "0.24", features = ["all_loaders"] }
 ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
 ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-entity = { path = "../entity" }
 ensnare-proc-macros = { path = "../proc-macros" }
-env_logger = "0.10"
 hound = "3.5.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

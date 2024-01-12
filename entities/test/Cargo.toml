@@ -11,11 +11,8 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
 delegate = "0.10.0"
-eframe = "0.24"
 ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
-ensnare-cores-egui = { path = "../../cores-egui" }
-ensnare-egui-widgets = { path = "../../egui-widgets" }
 ensnare-entity = { path = "../../entity" }
 ensnare-proc-macros = { path = "../../proc-macros" }
 serde = "1.0.193"
