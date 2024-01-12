@@ -140,8 +140,8 @@ impl ProjectService {
                     }
                     ProjectServiceInput::PatternArrange(track_uid, pattern_uid, position) => {
                         let _ = project.write().unwrap().arrange_pattern(
-                            &track_uid,
-                            &pattern_uid,
+                            track_uid,
+                            pattern_uid,
                             position,
                         );
                     }

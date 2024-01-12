@@ -141,12 +141,12 @@ impl Project {
         }
         to self.composer {
             pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
-            pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern>;
-            pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern>;
+            pub fn pattern(&self, pattern_uid: PatternUid) -> Option<&Pattern>;
+            pub fn pattern_mut(&mut self, pattern_uid: PatternUid) -> Option<&mut Pattern>;
             pub fn notify_pattern_change(&mut self);
             pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
-            pub fn arrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime) -> Result<()>;
-            pub fn unarrange_pattern(&mut self, track_uid: &TrackUid, pattern_uid: &PatternUid, position: MusicalTime);
+            pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<()>;
+            pub fn unarrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime);
         }
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
@@ -498,15 +498,13 @@ impl Controls for Project {
             .work_as_proxy(&mut |uid, event| events.push((uid, event)));
         while let Some((uid, event)) = events.pop() {
             match event {
-                WorkEvent::Midi(channel, message) => {
-                    if let Some(track_uid) = self.orchestrator.track_for_entity(uid) {
-                        if let Some(midi_router) = self.track_to_midi_router.get(&track_uid) {
-                            let _ = midi_router.route(
-                                &mut self.orchestrator.entity_repo,
-                                channel,
-                                message,
-                            );
-                        }
+                WorkEvent::Midi(_, _) => {
+                    todo!("Someone has not mapped WorkEvent::Midi to WorkEvent::MidiForTrack before passing it to Project");
+                }
+                WorkEvent::MidiForTrack(track_uid, channel, message) => {
+                    if let Some(midi_router) = self.track_to_midi_router.get(&track_uid) {
+                        let _ =
+                            midi_router.route(&mut self.orchestrator.entity_repo, channel, message);
                     }
                 }
                 WorkEvent::Control(value) => {
@@ -564,7 +562,7 @@ mod tests {
         effects::TestEffectNegatesInput,
         instruments::{TestAudioSource, TestInstrumentCountsMidiMessages},
     };
-    use ensnare_entities_toy::controllers::ToyControllerAlwaysSendsMidiMessage;
+    use ensnare_entities_toy::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
     use ensnare_proc_macros::{IsEntity2, Metadata};
 
     trait TestEntity: EntityBounds {}
@@ -615,6 +613,43 @@ mod tests {
         let new_tempo = Tempo(64.0);
         project.update_tempo(new_tempo);
         assert_eq!(project.tempo(), new_tempo, "Tempo should be settable");
+    }
+
+    #[test]
+    fn project_makes_sounds() {
+        let mut project = Project::default();
+        let track_uid = project.create_track(None).unwrap();
+        let instrument_uid = project
+            .add_entity(
+                track_uid,
+                Box::new(ToyInstrument::new_with(Uid::default())),
+                None,
+            )
+            .unwrap();
+        assert!(project
+            .set_midi_receiver_channel(instrument_uid, Some(MidiChannel::default()))
+            .is_ok());
+        let pattern_uid = project
+            .add_pattern(
+                PatternBuilder::default()
+                    .note(Note::new_with_midi_note(
+                        MidiNote::A4,
+                        MusicalTime::START,
+                        MusicalTime::DURATION_EIGHTH,
+                    ))
+                    .build()
+                    .unwrap(),
+                None,
+            )
+            .unwrap();
+        let _ = project.arrange_pattern(track_uid, pattern_uid, MusicalTime::START);
+
+        project.play();
+        let mut frames = [StereoSample::SILENCE; 4];
+        project.generate_frames(&mut frames);
+        assert!(frames
+            .iter()
+            .any(|frame| { *frame != StereoSample::SILENCE }));
     }
 
     #[test]

@@ -151,7 +151,7 @@ impl Sequences for LivePatternSequencer {
         position: MusicalTime,
     ) -> anyhow::Result<()> {
         let composer = self.composer.read().unwrap();
-        if let Some(pattern) = composer.pattern(pattern_uid) {
+        if let Some(pattern) = composer.pattern(*pattern_uid) {
             let _ = self.inner.record(channel, &pattern, position);
             self.arrangements.push(LivePatternArrangement {
                 pattern_uid: *pattern_uid,
@@ -236,7 +236,7 @@ impl LivePatternSequencer {
     fn replay(&mut self) {
         let composer = self.composer.read().unwrap();
         self.arrangements.iter().for_each(|arrangement| {
-            if let Some(pattern) = composer.pattern(&arrangement.pattern_uid) {
+            if let Some(pattern) = composer.pattern(arrangement.pattern_uid) {
                 let _ = self
                     .inner
                     .record(MidiChannel::default(), pattern, arrangement.range.start);

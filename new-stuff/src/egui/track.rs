@@ -388,12 +388,12 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
             //     .collect();
 
             // Generate all the pattern note shapes
-            if let Some(arrangements) = self.composer.arrangements.get(&self.track_uid) {
+            if let Some(arrangements) = self.composer.tracks_to_arrangements.get(&self.track_uid) {
                 let pattern_shapes: Vec<Shape> =
                     arrangements
                         .iter()
                         .fold(Vec::default(), |mut v, arrangement| {
-                            if let Some(pattern) = self.composer.pattern(&arrangement.pattern_uid) {
+                            if let Some(pattern) = self.composer.pattern(arrangement.pattern_uid) {
                                 pattern.notes().iter().for_each(|note| {
                                     let note = Note {
                                         key: note.key,

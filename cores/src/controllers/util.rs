@@ -75,6 +75,7 @@ pub mod tests {
         let mut v = Vec::default();
         mnm.work(&mut |e| match e {
             WorkEvent::Midi(_, message) => v.push(message),
+            WorkEvent::MidiForTrack(_, _, message) => v.push(message),
             WorkEvent::Control(_) => panic!("didn't expect a Control event here"),
         });
         v

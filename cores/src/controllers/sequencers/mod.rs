@@ -36,6 +36,7 @@ pub mod tests {
         sequences.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences.work(&mut |event| match event {
             WorkEvent::Midi(channel, message) => v.push((channel, message)),
+            WorkEvent::MidiForTrack(_, channel, message) => v.push((channel, message)),
             WorkEvent::Control(_) => panic!(),
         });
         v
@@ -291,6 +292,7 @@ pub mod tests {
         sequences_midi.update_time_range(&TimeRange(start_time..start_time + duration));
         sequences_midi.work(&mut |event| match event {
             WorkEvent::Midi(channel, message) => v.push((channel, message)),
+            WorkEvent::MidiForTrack(_, channel, message) => v.push((channel, message)),
             WorkEvent::Control(_) => panic!(),
         });
         v

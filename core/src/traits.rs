@@ -11,7 +11,7 @@ use crate::{
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
     types::{Normal, Sample, StereoSample},
-    uid::Uid,
+    uid::{TrackUid, Uid},
 };
 
 /// Quick import of all important traits.
@@ -159,18 +159,20 @@ pub trait MessageBounds: std::fmt::Debug + Send {}
 /// something else that might then get forwarded to recipients.
 #[derive(Clone, Debug)]
 pub enum WorkEvent {
-    /// A MIDI message sent to a channel. Controllers produce this message, and
-    /// the system transforms it into one or more
-    /// [HandlesMidi::handle_midi_message()] calls to route it to instruments or
-    /// other controllers.
+    /// A MIDI message sent to a channel.
     Midi(MidiChannel, MidiMessage),
+
+    /// A MIDI message that's limited to a specific track. Lower-level
+    /// [WorkEvent::Midi] messages are decorated with the track information when
+    /// passing to higher-level processors.
+    MidiForTrack(TrackUid, MidiChannel, MidiMessage),
 
     /// A control event. Indicates that the sender's value has changed, and that
     /// subscribers should receive the update. This is how we perform
-    /// automation: a controller produces a [EntityEvent::Control] message, and
+    /// automation: a controller produces a [WorkEvent::Control] message, and
     /// the system transforms it into [Controllable::control_set_param_by_index]
-    /// method calls to inform subscribing [Entities](Entity) that their linked
-    /// parameters should change.
+    /// method calls to inform subscribing entities that their linked parameters
+    /// should change.
     Control(ControlValue),
 }
 impl MessageBounds for WorkEvent {}

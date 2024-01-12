@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 /// The smallest possible [IsEntity2].
-#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
 #[entity2(SkipInner)]
 #[entity2(
     Controllable,
@@ -24,7 +24,7 @@ pub struct TestInstrument {
     pub sample_rate: SampleRate,
 }
 impl TestInstrument {
-    pub fn new_with(uid: Uid, _: &TestInstrumentParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
             ..Default::default()
@@ -66,6 +66,7 @@ impl Generates<StereoSample> for TestInstrument {
 #[entity2("skip_inner", "controls")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
+    #[serde(skip)]
     pub received_midi_message_count: Arc<Mutex<usize>>,
 }
 impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
@@ -111,6 +112,13 @@ pub struct TestAudioSource {
     inner: ensnare_cores::TestAudioSource,
 }
 impl TestAudioSource {
+    pub const TOO_LOUD: SampleType = 1.1;
+    pub const LOUD: SampleType = 1.0;
+    pub const MEDIUM: SampleType = 0.5;
+    pub const SILENT: SampleType = 0.0;
+    pub const QUIET: SampleType = -1.0;
+    pub const TOO_QUIET: SampleType = -1.1;
+
     pub fn new_with(uid: Uid, level: ParameterType) -> Self {
         Self {
             uid,

@@ -466,9 +466,21 @@ impl Controls for EntityRepository {
 }
 impl ControlsAsProxy for EntityRepository {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
-        self.entities
-            .iter_mut()
-            .for_each(|(uid, e)| e.work(&mut |inner_event| control_events_fn(*uid, inner_event)));
+        self.entities.iter_mut().for_each(|(uid, e)| {
+            let mut track_uid = None;
+            e.work(&mut |inner_event| match inner_event {
+                WorkEvent::Midi(channel, message) => {
+                    if track_uid.is_none() {
+                        track_uid = self.track_for_uid.get(uid).copied();
+                    }
+                    control_events_fn(
+                        *uid,
+                        WorkEvent::MidiForTrack(track_uid.unwrap_or_default(), channel, message),
+                    );
+                }
+                _ => control_events_fn(*uid, inner_event),
+            })
+        });
         self.update_is_finished();
     }
 }
@@ -836,7 +848,7 @@ mod tests {
     use super::*;
     use ensnare_core::time::TransportBuilder;
     use ensnare_cores::TestEffectNegatesInput;
-    use ensnare_entities::instruments::{TestInstrument, TestInstrumentParams};
+    use ensnare_entities::instruments::TestInstrument;
     use ensnare_proc_macros::{Control, IsEntity2, Metadata};
     use more_asserts::assert_gt;
     use std::sync::{Arc, RwLock};
@@ -896,10 +908,7 @@ mod tests {
         let uid = repo
             .add_entity(
                 track_uid,
-                Box::new(TestInstrument::new_with(
-                    expected_uid,
-                    &TestInstrumentParams::default(),
-                )),
+                Box::new(TestInstrument::new_with(expected_uid)),
                 None,
             )
             .unwrap();
@@ -918,10 +927,7 @@ mod tests {
         let uid = repo
             .add_entity(
                 track_uid,
-                Box::new(TestInstrument::new_with(
-                    Uid(33333),
-                    &TestInstrumentParams::default(),
-                )),
+                Box::new(TestInstrument::new_with(Uid(33333))),
                 Some(expected_uid),
             )
             .unwrap();
@@ -990,6 +996,7 @@ mod tests {
     )]
     pub struct TestControllable {
         uid: Uid,
+        #[serde(skip)]
         tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
     }
     impl TestControllable {

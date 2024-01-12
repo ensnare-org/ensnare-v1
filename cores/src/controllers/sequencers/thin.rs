@@ -29,7 +29,7 @@ impl ThinSequencer {
         self.inner.clear();
 
         // Run through all the arrangements for this track.
-        if let Some(arrangements) = composer.arrangements.get(&self.track_uid) {
+        if let Some(arrangements) = composer.tracks_to_arrangements.get(&self.track_uid) {
             arrangements.iter().for_each(|arrangement| {
                 let _ = self.inner.record(
                     MidiChannel::default(),

@@ -40,9 +40,10 @@ impl Default for ModSerial {
 pub struct ComposerEphemerals {
     pub pattern_selection_set: SelectionSet<PatternUid>,
 
-    inner: PatternSequencer,
+    tracks_to_sequencers: HashMap<TrackUid, PatternSequencer>,
 
     time_range: TimeRange,
+    is_finished: bool,
     is_performing: bool,
 
     // Each time something changes in the repo, this number will change. Use the
@@ -55,7 +56,7 @@ pub struct Composer {
     pattern_uid_factory: UidFactory<PatternUid>,
     pub patterns: HashMap<PatternUid, Pattern>,
     pub ordered_pattern_uids: Vec<PatternUid>,
-    pub arrangements: HashMap<TrackUid, Vec<Arrangement>>,
+    pub tracks_to_arrangements: HashMap<TrackUid, Vec<Arrangement>>,
 
     #[serde(skip)]
     pub e: ComposerEphemerals,
@@ -83,12 +84,12 @@ impl Composer {
         Ok(pattern_uid)
     }
 
-    pub fn pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern> {
-        self.patterns.get(pattern_uid)
+    pub fn pattern(&self, pattern_uid: PatternUid) -> Option<&Pattern> {
+        self.patterns.get(&pattern_uid)
     }
 
-    pub fn pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern> {
-        self.patterns.get_mut(pattern_uid)
+    pub fn pattern_mut(&mut self, pattern_uid: PatternUid) -> Option<&mut Pattern> {
+        self.patterns.get_mut(&pattern_uid)
     }
 
     pub fn notify_pattern_change(&mut self) {
@@ -106,23 +107,21 @@ impl Composer {
 
     pub fn arrange_pattern(
         &mut self,
-        track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
+        track_uid: TrackUid,
+        pattern_uid: PatternUid,
         position: MusicalTime,
     ) -> Result<()> {
-        if let Some(pattern) = self.patterns.get(pattern_uid) {
-            self.arrangements
-                .entry(*track_uid)
+        if let Some(pattern) = self.patterns.get(&pattern_uid) {
+            self.tracks_to_arrangements
+                .entry(track_uid)
                 .or_default()
                 .push(Arrangement {
-                    pattern_uid: *pattern_uid,
+                    pattern_uid,
                     position,
                 });
 
-            // TODO: we're not remembering the track
-            self.e
-                .inner
-                .record(MidiChannel::default(), pattern, position)
+            let sequencer = self.e.tracks_to_sequencers.entry(track_uid).or_default();
+            sequencer.record(MidiChannel::default(), pattern, position)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
         }
@@ -130,13 +129,13 @@ impl Composer {
 
     pub fn unarrange_pattern(
         &mut self,
-        track_uid: &TrackUid,
-        pattern_uid: &PatternUid,
+        track_uid: TrackUid,
+        pattern_uid: PatternUid,
         position: MusicalTime,
     ) {
-        if let Some(arrangements) = self.arrangements.get_mut(track_uid) {
+        if let Some(arrangements) = self.tracks_to_arrangements.get_mut(&track_uid) {
             let arrangement = Arrangement {
-                pattern_uid: *pattern_uid,
+                pattern_uid: pattern_uid,
                 position,
             };
             arrangements.retain(|a| *a != arrangement);
@@ -145,17 +144,18 @@ impl Composer {
     }
 
     fn replay_arrangements(&mut self) {
-        self.e.inner.clear();
-        self.arrangements.values().for_each(|arrangements| {
-            arrangements.iter().for_each(|a| {
-                if let Some(pattern) = self.patterns.get(&a.pattern_uid) {
-                    let _ = self
-                        .e
-                        .inner
-                        .record(MidiChannel::default(), pattern, a.position);
-                }
-            })
-        })
+        self.e.tracks_to_sequencers.clear();
+        self.tracks_to_arrangements.keys().for_each(|track_uid| {
+            if let Some(arrangements) = self.tracks_to_arrangements.get(track_uid) {
+                arrangements.iter().for_each(|arrangement| {
+                    if let Some(pattern) = self.patterns.get(&arrangement.pattern_uid) {
+                        let sequencer = self.e.tracks_to_sequencers.entry(*track_uid).or_default();
+                        let _ =
+                            sequencer.record(MidiChannel::default(), pattern, arrangement.position);
+                    }
+                });
+            }
+        });
     }
 
     /// Use like this:
@@ -177,6 +177,14 @@ impl Composer {
         *last_known = self.e.mod_serial.0;
         has_changed
     }
+
+    fn update_is_finished(&mut self) {
+        self.e.is_finished = self
+            .e
+            .tracks_to_sequencers
+            .values()
+            .all(|s| s.is_finished());
+    }
 }
 impl Controls for Composer {
     fn time_range(&self) -> Option<TimeRange> {
@@ -184,7 +192,10 @@ impl Controls for Composer {
     }
 
     fn update_time_range(&mut self, time_range: &TimeRange) {
-        self.e.inner.update_time_range(time_range);
+        self.e
+            .tracks_to_sequencers
+            .values_mut()
+            .for_each(|s| s.update_time_range(time_range));
         self.e.time_range = time_range.clone();
     }
 
@@ -192,16 +203,32 @@ impl Controls for Composer {
         if self.is_performing() {
             // TODO: no duplicate time range detection
             // No note killer
-            self.e.inner.work(control_events_fn);
+            self.e
+                .tracks_to_sequencers
+                .iter_mut()
+                .for_each(|(track_uid, sequencer)| {
+                    sequencer.work(&mut |event| match event {
+                        WorkEvent::Midi(channel, message) => {
+                            control_events_fn(WorkEvent::MidiForTrack(
+                                track_uid.clone(),
+                                channel,
+                                message,
+                            ));
+                        }
+                        _ => control_events_fn(event),
+                    });
+                });
         }
+        self.update_is_finished();
     }
 
     fn is_finished(&self) -> bool {
-        self.e.inner.is_finished()
+        self.e.is_finished
     }
 
     fn play(&mut self) {
         self.e.is_performing = true;
+        self.update_is_finished();
     }
 
     fn stop(&mut self) {
