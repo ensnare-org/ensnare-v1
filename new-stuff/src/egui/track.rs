@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::cursor::cursor;
-use super::signal_chain::{new_signal_chain_widget, NewSignalChainWidgetAction, SignalChainItem};
+use super::signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction};
 use crate::egui::grid::grid;
 use crate::{parts::Orchestrator, project::ProjectViewState};
 use eframe::{
@@ -235,48 +235,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                 })
                                 .inner;
 
-                            // Get all the entities for this track.
-                            let entity_uids = if let Some(entity_uids) =
-                                self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
-                            {
-                                entity_uids.to_vec()
-                            } else {
-                                Vec::default()
-                            };
-
-                            // // Render non-foreground timeline displayers.
-                            // entity_uids
-                            //     .iter()
-                            //     .filter(|uid| Some(**uid) != self.frontmost_uid)
-                            //     .for_each(|uid| {
-                            //         if let Some(entity) =
-                            //             self.orchestrator.entity_repo.entity_mut(*uid)
-                            //         {
-                            //             if entity.displays_in_timeline() {
-                            //                 ui.add_enabled_ui(false, |ui| {
-                            //                     ui.allocate_ui_at_rect(rect, |ui| {
-                            //                         entity.set_view_range(&self.view_range);
-                            //                         entity.ui(ui);
-                            //                     });
-                            //                 });
-                            //             }
-                            //         }
-                            //     });
-
-                            // // Render the foreground timeline displayer, if there is one.
-                            // if let Some(frontmost_uid) = self.frontmost_uid {
-                            //     if let Some(entity) =
-                            //         self.orchestrator.entity_repo.entity_mut(frontmost_uid)
-                            //     {
-                            //         ui.add_enabled_ui(true, |ui| {
-                            //             ui.allocate_ui_at_rect(rect, |ui| {
-                            //                 entity.set_view_range(&self.view_range);
-                            //                 entity.ui(ui);
-                            //             });
-                            //         });
-                            //     }
-                            // }
-
+                            // Draw the widget corresponding to the current mode.
                             match self.view_state.arrangement_mode {
                                 crate::project::ArrangementViewMode::Composition => {
                                     ui.add_enabled_ui(true, |ui| {
@@ -302,8 +261,6 @@ impl<'a> Widget for TrackWidget<'a> {
                                     });
                                 }
                             }
-
-                            // HACK! just display the one we know about
 
                             // Next, if it's present, draw the cursor.
                             if let Some(position) = self.view_state.cursor {
@@ -346,7 +303,7 @@ impl<'a> Widget for TrackWidget<'a> {
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
                             let mut action = None;
-                            ui.add(new_signal_chain_widget(
+                            ui.add(signal_chain_widget(
                                 track_uid,
                                 self.track_info.signal_items,
                                 &mut action,
@@ -354,7 +311,7 @@ impl<'a> Widget for TrackWidget<'a> {
 
                             if let Some(action) = action {
                                 match action {
-                                    NewSignalChainWidgetAction::EntitySelected(uid, name) => {
+                                    SignalChainWidgetAction::EntitySelected(uid, name) => {
                                         *self.action =
                                             Some(TrackWidgetAction::EntitySelected(uid, name));
                                     }

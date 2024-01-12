@@ -7,31 +7,31 @@ use strum_macros::Display;
 
 pub type SignalChainItem = (Uid, String, bool);
 
-/// Wraps a [NewSignalChainWidget] as a [Widget](eframe::egui::Widget).
-pub fn new_signal_chain_widget<'a>(
+/// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget).
+pub fn signal_chain_widget<'a>(
     track_uid: TrackUid,
     items: &'a [SignalChainItem],
 
-    action: &'a mut Option<NewSignalChainWidgetAction>,
+    action: &'a mut Option<SignalChainWidgetAction>,
 ) -> impl Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| NewSignalChainWidget::new(track_uid, items, action).ui(ui)
+    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track_uid, items, action).ui(ui)
 }
 
 #[derive(Debug, Display)]
-pub enum NewSignalChainWidgetAction {
+pub enum SignalChainWidgetAction {
     EntitySelected(Uid, String),
 }
 
-struct NewSignalChainWidget<'a> {
+struct SignalChainWidget<'a> {
     track_uid: TrackUid,
     items: &'a [SignalChainItem],
-    action: &'a mut Option<NewSignalChainWidgetAction>,
+    action: &'a mut Option<SignalChainWidgetAction>,
 }
-impl<'a> NewSignalChainWidget<'a> {
+impl<'a> SignalChainWidget<'a> {
     pub fn new(
         track_uid: TrackUid,
         items: &'a [SignalChainItem],
-        action: &'a mut Option<NewSignalChainWidgetAction>,
+        action: &'a mut Option<SignalChainWidgetAction>,
     ) -> Self {
         Self {
             track_uid,
@@ -48,7 +48,7 @@ impl<'a> NewSignalChainWidget<'a> {
         }
     }
 }
-impl<'a> Widget for NewSignalChainWidget<'a> {
+impl<'a> Widget for SignalChainWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
         let response = eframe::egui::Frame::default()
@@ -63,7 +63,7 @@ impl<'a> Widget for NewSignalChainWidget<'a> {
                                 .add(signal_item(*uid, name.clone(), *is_control_source))
                                 .clicked()
                             {
-                                *self.action = Some(NewSignalChainWidgetAction::EntitySelected(
+                                *self.action = Some(SignalChainWidgetAction::EntitySelected(
                                     *uid,
                                     name.clone(),
                                 ));

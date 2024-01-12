@@ -12,7 +12,6 @@ mod audio;
 mod control_bar;
 mod egui;
 mod midi;
-mod orchestrator;
 mod project;
 
 pub mod prelude {
