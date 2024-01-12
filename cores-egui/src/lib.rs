@@ -54,7 +54,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             let response = ui.add(pattern::carousel(
                 &self.inner.ordered_pattern_uids,
                 &self.inner.patterns,
-                &mut self.inner.pattern_selection_set,
+                &mut self.inner.e.pattern_selection_set,
             )) | self.ui_pattern_edit(ui);
             response
         })
@@ -67,7 +67,7 @@ impl<'a> ComposerWidget<'a> {
     }
 
     fn ui_pattern_edit(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        if let Some(pattern_uid) = self.inner.pattern_selection_set.single_selection() {
+        if let Some(pattern_uid) = self.inner.e.pattern_selection_set.single_selection() {
             ui.set_min_height(192.0);
             if let Some(pat) = self.inner.patterns.get_mut(pattern_uid) {
                 let desired_size = vec2(ui.available_width(), 96.0);
