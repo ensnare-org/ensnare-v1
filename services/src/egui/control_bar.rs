@@ -5,8 +5,7 @@ use eframe::{
     egui::{Image, ImageButton, Layout, Widget},
     epaint::vec2,
 };
-use ensnare_cores_egui::widgets::audio::{frequency_domain, time_domain, FrequencyDomain};
-use ensnare_egui_widgets::activity_indicator;
+use ensnare_egui_widgets::{activity_indicator, analyze_spectrum, frequency_domain, time_domain};
 use std::path::PathBuf;
 use strum_macros::Display;
 
@@ -145,11 +144,9 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                             ui.add(time_domain(sample_buffer_slice_1, sample_buffer_slice_2))
                         }
                         ControlBarDisplayMode::Frequency => {
-                            let values = FrequencyDomain::analyze_spectrum(
-                                sample_buffer_slice_1,
-                                sample_buffer_slice_2,
-                            )
-                            .unwrap();
+                            let values =
+                                analyze_spectrum(sample_buffer_slice_1, sample_buffer_slice_2)
+                                    .unwrap();
                             ui.add(frequency_domain(&values))
                         }
                     }

@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::parts::MIDI_NOTE_F32_RANGE;
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},
     emath::RectTransform,
@@ -14,6 +13,16 @@ use ensnare_core::{
 };
 use ensnare_drag_drop::{DragDropManager, DragSource};
 use std::collections::HashMap;
+
+/// A range that's useful for arranging MIDI notes along an egui axis. Note that
+/// this is in reverse order, because vertically-oriented piano rolls show the
+/// highest notes at the top of the screen.
+pub const MIDI_NOTE_F32_RANGE: std::ops::RangeInclusive<f32> =
+    ensnare_core::midi::MidiNote::MAX as u8 as f32..=ensnare_core::midi::MidiNote::MIN as u8 as f32;
+
+/// A range that covers all MIDI note values in ascending order.
+pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
+    ensnare_core::midi::MidiNote::MIN as u8..=ensnare_core::midi::MidiNote::MAX as u8;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
 pub fn icon(

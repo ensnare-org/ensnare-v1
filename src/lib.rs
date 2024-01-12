@@ -250,11 +250,7 @@ pub mod ui {
     //! Components that provide and coordinate the user interface.
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_cores_egui::{
-            piano_roll::piano_roll,
-            prelude::*,
-            widgets::{audio, pattern, placeholder},
-        };
+        pub use ensnare_cores_egui::{piano_roll::piano_roll, prelude::*, widgets::pattern};
         pub use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
         pub use ensnare_services::{
             audio_settings, control_bar_widget, midi_settings, ControlBarAction,

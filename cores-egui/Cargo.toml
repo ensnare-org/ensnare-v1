@@ -16,5 +16,4 @@ ensnare-core = { path = "../core" }
 ensnare-cores = { path = "../cores" }
 ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
-spectrum-analyzer = "1.5.0"
 strum = "0.25"

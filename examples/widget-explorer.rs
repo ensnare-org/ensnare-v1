@@ -18,10 +18,7 @@ use eframe::{
 use ensnare::{
     app_version,
     prelude::*,
-    ui::{
-        widgets::{audio, pattern, placeholder},
-        DragSource, DropTarget,
-    },
+    ui::{widgets::pattern, DragSource, DropTarget},
 };
 use ensnare_core::{
     rng::Rng,
@@ -31,7 +28,7 @@ use ensnare_core::{
 use ensnare_cores::{toys::ToyControllerParams, NoteSequencerBuilder};
 use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
-    prelude::live_pattern_sequencer_widget, widgets::audio::FrequencyDomain,
+    prelude::live_pattern_sequencer_widget,
 };
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
@@ -581,7 +578,7 @@ impl WigglerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(placeholder::wiggler());
+            ui.add(ensnare_egui_widgets::wiggler());
         }
     }
 }
@@ -647,7 +644,7 @@ impl TimeDomainSettings {
                 ui.set_max_height(self.max_height);
                 if let Ok(queue) = self.visualization_queue.0.read() {
                     let (slice_1, slice_2) = queue.as_slices();
-                    ui.add(audio::time_domain(slice_1, slice_2));
+                    ui.add(ensnare_egui_widgets::time_domain(slice_1, slice_2));
                 }
             });
         }
@@ -705,7 +702,7 @@ impl FrequencyDomainSettings {
         if self.fft_calc_counter == 0 {
             if let Ok(queue) = self.visualization_queue.0.read() {
                 let (slice_1, slice_2) = queue.as_slices();
-                self.fft_buffer = FrequencyDomain::analyze_spectrum(slice_1, slice_2).unwrap();
+                self.fft_buffer = ensnare_egui_widgets::analyze_spectrum(slice_1, slice_2).unwrap();
             }
         }
         self.fft_calc_counter += 1;
@@ -716,17 +713,28 @@ impl FrequencyDomainSettings {
             ui.scope(|ui| {
                 ui.set_max_width(self.max_width);
                 ui.set_max_height(self.max_height);
-                ui.add(audio::frequency_domain(&self.fft_buffer));
+                ui.add(ensnare_egui_widgets::frequency_domain(&self.fft_buffer));
             });
         }
     }
+}
+
+/// Creates 256 samples of noise.
+pub fn init_random_samples() -> [Sample; 256] {
+    let mut r = [Sample::default(); 256];
+    let mut rng = Rng::default();
+    for s in &mut r {
+        let value = rng.rand_float().fract() * 2.0 - 1.0;
+        *s = Sample::from(value);
+    }
+    r
 }
 
 #[derive(Debug)]
 struct SampleClip([Sample; 256]);
 impl Default for SampleClip {
     fn default() -> Self {
-        Self(audio::init_random_samples())
+        Self(init_random_samples())
     }
 }
 
