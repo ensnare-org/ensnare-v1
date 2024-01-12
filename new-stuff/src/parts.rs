@@ -1,16 +1,16 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::types::ControlLink;
 use anyhow::{anyhow, Result};
 use delegate::delegate;
 use ensnare_core::{
+    generators::{PathUid, SignalPath},
     prelude::*,
     traits::{ControlProxyEventsFn, ControlsAsProxy},
 };
 use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
-
-use crate::types::ControlLink;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Orchestrator {
@@ -524,6 +524,15 @@ impl Serializable for EntityRepository {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Automator {
     pub controllables: HashMap<Uid, Vec<ControlLink>>,
+
+    uid_factory: UidFactory<PathUid>,
+    pub paths: HashMap<PathUid, SignalPath>,
+    pub path_links: HashMap<PathUid, Vec<ControlLink>>,
+
+    #[serde(skip)]
+    is_finished: bool,
+    #[serde(skip)]
+    time_range: TimeRange,
 }
 impl Automator {
     pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()> {
@@ -563,11 +572,62 @@ impl Automator {
             });
         }
     }
+
+    pub fn add_path(&mut self, path: SignalPath) -> Result<PathUid> {
+        let path_uid = self.uid_factory.mint_next();
+        self.paths.insert(path_uid, path);
+        Ok(path_uid)
+    }
+
+    pub fn remove_path(&mut self, path_uid: PathUid) -> Option<SignalPath> {
+        self.paths.remove(&path_uid)
+    }
+
+    pub fn link_path(
+        &mut self,
+        path_uid: PathUid,
+        target_uid: Uid,
+        param: ControlIndex,
+    ) -> Result<()> {
+        if self.paths.contains_key(&path_uid) {
+            self.path_links
+                .entry(path_uid)
+                .or_default()
+                .push(ControlLink {
+                    uid: target_uid,
+                    param,
+                });
+            Ok(())
+        } else {
+            Err(anyhow!("Couldn't find path {path_uid}"))
+        }
+    }
+
+    pub fn unlink_path(&mut self, path_uid: PathUid) {
+        self.path_links.entry(path_uid).or_default().clear();
+    }
 }
 impl Serializable for Automator {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {}
+}
+impl Controls for Automator {
+    fn time_range(&self) -> Option<TimeRange> {
+        Some(self.time_range.clone())
+    }
+
+    fn update_time_range(&mut self, time_range: &TimeRange) {
+        self.time_range = time_range.clone();
+    }
+
+    fn work(&mut self, _control_events_fn: &mut ControlEventsFn) {
+        self.is_finished = true;
+    }
+
+    fn is_finished(&self) -> bool {
+        self.is_finished
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -930,14 +990,14 @@ mod tests {
     )]
     pub struct TestControllable {
         uid: Uid,
-        tracker: Arc<std::sync::RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
+        tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
     }
     impl TestControllable {
-        pub fn new_with(
-            uid: Uid,
-            tracker: Arc<std::sync::RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
-        ) -> Self {
-            Self { uid, tracker }
+        pub fn new_with(tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>) -> Self {
+            Self {
+                uid: Default::default(),
+                tracker,
+            }
         }
     }
     impl Controllable for TestControllable {
@@ -998,19 +1058,14 @@ mod tests {
             "the second source's vec should have one entry"
         );
 
-        let tracker = std::sync::Arc::new(std::sync::RwLock::new(Vec::default()));
-        let controllable_1 =
-            TestControllable::new_with(target_1_uid, std::sync::Arc::clone(&tracker));
-        let controllable_2 =
-            TestControllable::new_with(target_2_uid, std::sync::Arc::clone(&tracker));
+        let tracker = Arc::new(RwLock::new(Vec::default()));
+        let controllable_1 = TestControllable::new_with(Arc::clone(&tracker));
+        let controllable_2 = TestControllable::new_with(Arc::clone(&tracker));
         let track_uid = TrackUid(1);
         let mut repo = EntityRepository::default();
         let _ = repo.add_entity(track_uid, Box::new(controllable_1), Some(target_1_uid));
         let _ = repo.add_entity(track_uid, Box::new(controllable_2), Some(target_2_uid));
 
-        // The closures are wooden and repetitive because we don't have access
-        // to EntityStore in this crate, so we hardwired a simple version of it
-        // here.
         let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
@@ -1052,6 +1107,30 @@ mod tests {
             );
             assert_eq!(t[0], (target_2_uid, ControlIndex(1), ControlValue(0.5)));
         };
+    }
+
+    #[test]
+    fn automator_paths_mainline() {
+        let mut automator = Automator::default();
+        assert!(automator.paths.is_empty());
+        assert!(automator.path_links.is_empty());
+
+        let path_uid = automator.add_path(SignalPath::default()).unwrap();
+        assert_eq!(automator.paths.len(), 1);
+        assert!(automator.path_links.is_empty());
+
+        let target_uid = Uid(1024);
+        let _ = automator.link_path(path_uid, target_uid, ControlIndex(123));
+
+        automator.update_time_range(&TimeRange::new_with_start_and_duration(
+            MusicalTime::START,
+            MusicalTime::DURATION_SIXTEENTH,
+        ));
+        automator.work(&mut |event| {
+            todo!("got {event:?}");
+        });
+
+        // TODO: finish this
     }
 
     #[derive(Debug, Control, Default, IsEntity2, Metadata, Serialize, Deserialize)]

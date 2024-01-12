@@ -52,7 +52,6 @@ pub mod control {
     //! all applicable types in the system.
 
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
-    pub use ensnare_orchestration::ControlRouter;
 
     pub use ensnare_core::controllers::{
         ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripParams,
@@ -61,7 +60,7 @@ pub mod control {
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{ControlIndex, ControlName, ControlRouter, ControlValue};
+        pub use super::{ControlIndex, ControlName, ControlValue};
     }
 }
 

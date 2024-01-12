@@ -3,7 +3,7 @@
 use crossbeam_channel::Sender;
 use delegate::delegate;
 use ensnare_core::{
-    controllers::{ControlTripParams, TimerParams, TriggerParams},
+    controllers::{TimerParams, TriggerParams},
     prelude::*,
 };
 use ensnare_cores::{
@@ -11,10 +11,9 @@ use ensnare_cores::{
 };
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
-    pattern_sequencer_widget, trip,
+    pattern_sequencer_widget,
 };
 use ensnare_entity::prelude::*;
-use ensnare_orchestration::ControlRouter;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity2, Metadata,
@@ -428,66 +427,5 @@ impl Trigger {
             uid,
             inner: ensnare_core::controllers::Trigger::new_with(params),
         }
-    }
-}
-
-#[derive(
-    Control,
-    Debug,
-    InnerConfigurable,
-    InnerControls,
-    InnerHandlesMidi,
-    InnerSerializable,
-    IsEntity2,
-    Metadata,
-    Serialize,
-    Deserialize,
-)]
-#[entity2(GeneratesStereoSample, Ticks, TransformsAudio)]
-pub struct ControlTrip {
-    uid: Uid,
-    #[serde(skip)]
-    inner: ensnare_core::controllers::ControlTrip,
-    #[serde(skip)]
-    control_router: Arc<RwLock<ControlRouter>>,
-    #[serde(skip)]
-    view_range: ViewRange,
-}
-impl Displays for ControlTrip {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let control_router = self.control_router.read().unwrap();
-        ui.add(trip(
-            self.uid,
-            &mut self.inner,
-            control_router.control_links(self.uid),
-            self.view_range.clone(),
-        ))
-    }
-
-    fn set_view_range(&mut self, view_range: &ViewRange) {
-        self.view_range = view_range.clone();
-    }
-}
-impl ControlTrip {
-    pub fn new_with(
-        uid: Uid,
-        params: &ControlTripParams,
-        control_router: &Arc<RwLock<ControlRouter>>,
-    ) -> Self {
-        Self {
-            uid,
-            inner: ensnare_core::controllers::ControlTrip::new_with(params),
-            control_router: Arc::clone(control_router),
-            view_range: Default::default(),
-        }
-    }
-}
-impl TryFrom<(Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>)> for ControlTrip {
-    type Error = anyhow::Error;
-
-    fn try_from(
-        value: (Uid, &ControlTripParams, &Arc<RwLock<ControlRouter>>),
-    ) -> Result<Self, Self::Error> {
-        Ok(Self::new_with(value.0, value.1, value.2))
     }
 }

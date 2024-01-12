@@ -9,7 +9,7 @@ use ensnare_proc_macros::{Control, Params};
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
-use std::{f64::consts::PI, fmt::Debug};
+use std::{f64::consts::PI, fmt::Debug, ops::Range, sync::atomic::AtomicUsize};
 use strum::EnumCount;
 use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
 
@@ -460,7 +460,7 @@ impl EnvelopeParams {
     }
 }
 
-#[derive(Debug, Default, Control, Params, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
 pub struct Envelope {
     #[control]
     #[params]
@@ -877,10 +877,12 @@ impl Envelope {
         Normal::new(self.uncorrected_amplitude.sum())
     }
 
+    #[allow(dead_code)]
     fn debug_state(&self) -> &State {
         &self.state
     }
 
+    #[allow(dead_code)]
     pub(crate) fn debug_is_shutting_down(&self) -> bool {
         matches!(self.debug_state(), State::Shutdown)
     }
@@ -983,6 +985,77 @@ impl SteppedEnvelope {
             value = step.end_value;
         }
         value
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub enum SignalStepType {
+    // Remains at the value for the entire time.
+    #[default]
+    Flat,
+    // Straight path from value.start..value.end during time.start..time.end
+    Linear,
+    /// Curved. Starts out changing quickly and ends up changing slowly.
+    Logarithmic,
+    /// Curved. Starts out changing slowly and ends up changing quickly.
+    Exponential,
+}
+
+/// Represents a single step of a signal path. Could be used to construct an
+/// arbitrarily complex envelope, for example.
+///
+// TODO: this is basically identical to SteppedEnvelope and ControlTrip. I'm
+// rewriting it in 2024 as an excuse to apply a year+ of Rust experience to the
+// problem.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SignalStep {
+    pub value: Range<Normal>,
+    pub time: Range<MusicalTime>,
+    pub ty: SignalStepType,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SignalPath {
+    pub steps: Vec<SignalStep>,
+}
+
+/// A [PathUid] identifies a [SignalPath].
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    derive_more::Display,
+)]
+pub struct PathUid(pub usize);
+impl IsUid for PathUid {
+    fn as_usize(&self) -> usize {
+        self.0
+    }
+}
+impl From<usize> for PathUid {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+pub type PathUidFactory = UidFactory<PathUid>;
+impl UidFactory<PathUid> {
+    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1024);
+}
+impl Default for PathUidFactory {
+    fn default() -> Self {
+        Self {
+            next_uid_value: Self::FIRST_UID,
+            _phantom: Default::default(),
+        }
     }
 }
 
