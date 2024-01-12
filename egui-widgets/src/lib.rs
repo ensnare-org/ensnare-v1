@@ -13,7 +13,6 @@ mod core;
 mod generators;
 mod indicators;
 mod misc;
-mod types;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

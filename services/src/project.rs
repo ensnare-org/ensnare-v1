@@ -160,7 +160,7 @@ impl ProjectService {
                         }
                     }
                     ProjectServiceInput::NextTimelineDisplayer => {
-                        todo!("self.project.switch_to_next_frontmost_timeline_displayer()");
+                        project.write().unwrap().advance_arrangement_view_mode();
                     }
                     ProjectServiceInput::AudioQueue(queue) => {
                         project.write().unwrap().audio_queue = Some(queue);

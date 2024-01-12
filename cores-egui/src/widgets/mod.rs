@@ -1,9 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub mod prelude {
-    pub use super::{audio, parts::*, pattern, placeholder, timeline};
-}
-
 /// Contains widgets that help visualize audio.
 pub mod audio;
 
@@ -17,5 +13,6 @@ pub mod pattern;
 /// Contains widgets that are useful as placeholders during development.
 pub mod placeholder;
 
-/// Contains widgets that help draw timeline views.
-pub mod timeline;
+pub mod prelude {
+    pub use super::{audio, parts::*, pattern, placeholder};
+}

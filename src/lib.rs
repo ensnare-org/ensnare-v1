@@ -253,14 +253,15 @@ pub mod ui {
         pub use ensnare_cores_egui::{
             piano_roll::piano_roll,
             prelude::*,
-            widgets::{audio, pattern, placeholder, timeline},
+            widgets::{audio, pattern, placeholder},
         };
-        pub use ensnare_orchestration::egui::entity_palette;
+        pub use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
         pub use ensnare_services::{
             audio_settings, control_bar_widget, midi_settings, ControlBarAction,
         };
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+    pub use ensnare_new_stuff::egui::*;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -294,5 +295,4 @@ pub mod prelude {
     };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_new_stuff::project::Project;
-    pub use ensnare_orchestration::prelude::*;
 }

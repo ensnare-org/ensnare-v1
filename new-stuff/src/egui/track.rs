@@ -1,6 +1,9 @@
-// Copyright (c) 2023 Mike and Makeda Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::track::TrackWidgetAction;
+use super::cursor::cursor;
+use super::signal_chain::{new_signal_chain_widget, NewSignalChainWidgetAction, SignalChainItem};
+use crate::egui::grid::grid;
+use crate::{parts::Orchestrator, project::ProjectViewState};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -9,283 +12,17 @@ use eframe::{
         TextShape, Vec2,
     },
 };
-use ensnare_core::prelude::*;
-use ensnare_cores::Composer;
-use ensnare_cores_egui::widgets::timeline::{cursor, grid};
-use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-use ensnare_new_stuff::parts::Orchestrator;
-use std::{f32::consts::PI, sync::Arc};
-
-use super::{
-    new_signal_chain_widget,
-    signal_chain::{NewSignalChainWidgetAction, SignalChainItem},
+use ensnare_core::piano_roll::Note;
+use ensnare_core::time::TimeRange;
+use ensnare_core::{
+    time::{MusicalTime, ViewRange},
+    types::TrackTitle,
+    uid::{TrackUid, Uid},
 };
-
-#[derive(Debug)]
-pub struct TrackInfo<'a> {
-    pub track_uid: TrackUid,
-    pub signal_items: &'a [SignalChainItem],
-    pub title_font_galley: Option<Arc<Galley>>,
-}
-
-/// Wraps an [NewTrackWidget] as a [Widget](eframe::egui::Widget).
-pub fn new_track_widget<'a>(
-    track_info: &'a TrackInfo<'a>,
-    orchestrator: &'a mut Orchestrator,
-    composer: &'a mut Composer,
-    view_range: ViewRange,
-    frontmost_uid: Option<Uid>,
-    cursor: Option<MusicalTime>,
-    action: &'a mut Option<TrackWidgetAction>,
-) -> impl Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        NewTrackWidget::new(
-            track_info,
-            orchestrator,
-            composer,
-            view_range,
-            frontmost_uid,
-            cursor,
-            action,
-        )
-        .ui(ui)
-    }
-}
-
-/// An egui component that draws a track.
-#[derive(Debug)]
-struct NewTrackWidget<'a> {
-    track_info: &'a TrackInfo<'a>,
-    orchestrator: &'a mut Orchestrator,
-    composer: &'a mut Composer,
-    frontmost_uid: Option<Uid>,
-    view_range: ViewRange,
-    cursor: Option<MusicalTime>,
-
-    action: &'a mut Option<TrackWidgetAction>,
-}
-impl<'a> NewTrackWidget<'a> {
-    const TIMELINE_HEIGHT: f32 = 64.0;
-    const TRACK_HEIGHT: f32 = 96.0;
-
-    pub fn new(
-        track_info: &'a TrackInfo<'a>,
-        orchestrator: &'a mut Orchestrator,
-        composer: &'a mut Composer,
-        view_range: ViewRange,
-        frontmost_uid: Option<Uid>,
-        cursor: Option<MusicalTime>,
-        action: &'a mut Option<TrackWidgetAction>,
-    ) -> Self {
-        Self {
-            track_info,
-            orchestrator,
-            composer,
-            view_range,
-            frontmost_uid,
-            cursor,
-            action,
-        }
-    }
-
-    // Looks at what's being dragged, if anything, and updates any state needed
-    // to handle it. Returns whether we are interested in this drag source.
-    fn check_drag_source_for_timeline() -> bool {
-        if let Some(source) = DragDropManager::source() {
-            if matches!(source, DragSource::Pattern(..)) {
-                return true;
-            }
-        }
-        false
-    }
-}
-impl<'a> Widget for NewTrackWidget<'a> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let track_uid = self.track_info.track_uid;
-
-        // inner_margin() should be half of the Frame stroke width to leave room
-        // for it. Thanks vikrinox on the egui Discord.
-        eframe::egui::Frame::default()
-            .inner_margin(eframe::egui::Margin::same(0.5))
-            .stroke(eframe::epaint::Stroke {
-                width: 1.0,
-                color: {
-                    if false {
-                        Color32::YELLOW
-                    } else {
-                        Color32::DARK_GRAY
-                    }
-                },
-            })
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.set_min_height(Self::TRACK_HEIGHT);
-
-                    // The `Response` is based on the title bar, so
-                    // clicking/dragging on the title bar affects the `Track` as
-                    // a whole.
-                    let font_galley = self
-                        .track_info
-                        .title_font_galley
-                        .as_ref()
-                        .map(|fg| Arc::clone(&fg));
-                    let response = ui.add(title_bar(font_galley));
-
-                    // Take up all the space we're given, even if we can't fill
-                    // it with widget content.
-                    ui.set_min_size(ui.available_size());
-
-                    // The frames shouldn't have space between them.
-                    ui.style_mut().spacing.item_spacing = Vec2::ZERO;
-
-                    // Build the track content with the device view beneath it.
-                    ui.vertical(|ui| {
-                        let can_accept = Self::check_drag_source_for_timeline();
-                        let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
-                            // Determine the rectangle that all the composited
-                            // layers will use.
-                            let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
-                            let (_id, rect) = ui.allocate_space(desired_size);
-
-                            let temp_range =
-                                ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
-
-                            let from_screen = RectTransform::from_to(
-                                rect,
-                                Rect::from_x_y_ranges(
-                                    self.view_range.0.start.total_units() as f32
-                                        ..=self.view_range.0.end.total_units() as f32,
-                                    rect.top()..=rect.bottom(),
-                                ),
-                            );
-
-                            // The Grid is always disabled and drawn first.
-                            let _ = ui
-                                .allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(grid(temp_range.clone(), self.view_range.clone()))
-                                })
-                                .inner;
-
-                            // Get all the entities for this track.
-                            let entity_uids = if let Some(entity_uids) =
-                                self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
-                            {
-                                entity_uids.to_vec()
-                            } else {
-                                Vec::default()
-                            };
-
-                            // Render non-foreground timeline displayers.
-                            entity_uids
-                                .iter()
-                                .filter(|uid| Some(**uid) != self.frontmost_uid)
-                                .for_each(|uid| {
-                                    if let Some(entity) =
-                                        self.orchestrator.entity_repo.entity_mut(*uid)
-                                    {
-                                        if entity.displays_in_timeline() {
-                                            ui.add_enabled_ui(false, |ui| {
-                                                ui.allocate_ui_at_rect(rect, |ui| {
-                                                    entity.set_view_range(&self.view_range);
-                                                    entity.ui(ui);
-                                                });
-                                            });
-                                        }
-                                    }
-                                });
-
-                            // Render the foreground timeline displayer, if there is one.
-                            if let Some(frontmost_uid) = self.frontmost_uid {
-                                if let Some(entity) =
-                                    self.orchestrator.entity_repo.entity_mut(frontmost_uid)
-                                {
-                                    ui.add_enabled_ui(true, |ui| {
-                                        ui.allocate_ui_at_rect(rect, |ui| {
-                                            entity.set_view_range(&self.view_range);
-                                            entity.ui(ui);
-                                        });
-                                    });
-                                }
-                            }
-
-                            // HACK! just display the one we know about
-                            ui.add_enabled_ui(true, |ui| {
-                                ui.allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(track_arrangement(
-                                        self.track_info.track_uid,
-                                        self.composer,
-                                        &self.view_range,
-                                    ));
-                                });
-                            });
-
-                            // Next, if it's present, draw the cursor.
-                            if let Some(position) = self.cursor {
-                                if self.view_range.0.contains(&position) {
-                                    let _ = ui
-                                        .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(position, self.view_range.clone()))
-                                        })
-                                        .inner;
-                                }
-                            }
-
-                            let time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
-                                let time_pos = from_screen * pointer_pos;
-                                let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                if self.view_range.0.contains(&time) {
-                                    let _ = ui
-                                        .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(time, self.view_range.clone()))
-                                        })
-                                        .inner;
-                                }
-                                Some(time)
-                            } else {
-                                None
-                            };
-
-                            // Note drag/drop position
-                            if let Some(time) = time {
-                                ((), DropTarget::TrackPosition(track_uid, time))
-                            } else {
-                                ((), DropTarget::Track(track_uid))
-                            }
-                        })
-                        .response;
-
-                        // Draw the signal chain view for every kind of track.
-                        ui.scope(|ui| {
-                            let mut action = None;
-                            ui.add(new_signal_chain_widget(
-                                track_uid,
-                                self.track_info.signal_items,
-                                &mut action,
-                            ));
-
-                            if let Some(action) = action {
-                                match action {
-                                    NewSignalChainWidgetAction::EntitySelected(uid, name) => {
-                                        *self.action =
-                                            Some(TrackWidgetAction::EntitySelected(uid, name));
-                                    }
-                                }
-                            }
-                        });
-
-                        // This must be last. It makes sure we fill the
-                        // remaining space.
-                        ui.allocate_space(ui.available_size());
-
-                        response
-                    })
-                    .inner
-                })
-                .inner
-            })
-            .inner
-    }
-}
+use ensnare_cores::Composer;
+use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use std::{f32::consts::PI, sync::Arc};
+use strum_macros::Display;
 
 /// Call this once for the TrackTitle, and then provide it on each frame to
 /// the widget.
@@ -357,6 +94,285 @@ impl eframe::egui::Widget for TitleBar {
 impl TitleBar {
     fn new(font_galley: Option<Arc<Galley>>) -> Self {
         Self { font_galley }
+    }
+}
+
+#[derive(Debug)]
+pub struct TrackInfo<'a> {
+    pub track_uid: TrackUid,
+    pub signal_items: &'a [SignalChainItem],
+    pub title_font_galley: Option<Arc<Galley>>,
+}
+
+#[derive(Debug, Display)]
+pub enum TrackWidgetAction {
+    // The user selected an entity with the given uid and name. The UI should
+    // show that entity's detail view.
+    EntitySelected(Uid, String),
+}
+
+/// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
+pub fn track_widget<'a>(
+    track_info: &'a TrackInfo<'a>,
+    orchestrator: &'a mut Orchestrator,
+    composer: &'a mut Composer,
+    view_state: &'a mut ProjectViewState,
+    action: &'a mut Option<TrackWidgetAction>,
+) -> impl Widget + 'a {
+    move |ui: &mut eframe::egui::Ui| {
+        TrackWidget::new(track_info, orchestrator, composer, view_state, action).ui(ui)
+    }
+}
+
+/// An egui component that draws a track.
+#[derive(Debug)]
+struct TrackWidget<'a> {
+    track_info: &'a TrackInfo<'a>,
+    orchestrator: &'a mut Orchestrator,
+    composer: &'a mut Composer,
+    view_state: &'a mut ProjectViewState,
+
+    action: &'a mut Option<TrackWidgetAction>,
+}
+impl<'a> TrackWidget<'a> {
+    const TIMELINE_HEIGHT: f32 = 64.0;
+    const TRACK_HEIGHT: f32 = 96.0;
+
+    pub fn new(
+        track_info: &'a TrackInfo<'a>,
+        orchestrator: &'a mut Orchestrator,
+        composer: &'a mut Composer,
+        view_state: &'a mut ProjectViewState,
+        action: &'a mut Option<TrackWidgetAction>,
+    ) -> Self {
+        Self {
+            track_info,
+            orchestrator,
+            composer,
+            view_state,
+            action,
+        }
+    }
+
+    // Looks at what's being dragged, if anything, and updates any state needed
+    // to handle it. Returns whether we are interested in this drag source.
+    fn check_drag_source_for_timeline() -> bool {
+        if let Some(source) = DragDropManager::source() {
+            if matches!(source, DragSource::Pattern(..)) {
+                return true;
+            }
+        }
+        false
+    }
+}
+impl<'a> Widget for TrackWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let track_uid = self.track_info.track_uid;
+
+        // inner_margin() should be half of the Frame stroke width to leave room
+        // for it. Thanks vikrinox on the egui Discord.
+        eframe::egui::Frame::default()
+            .inner_margin(eframe::egui::Margin::same(0.5))
+            .stroke(eframe::epaint::Stroke {
+                width: 1.0,
+                color: {
+                    if false {
+                        Color32::YELLOW
+                    } else {
+                        Color32::DARK_GRAY
+                    }
+                },
+            })
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.set_min_height(Self::TRACK_HEIGHT);
+
+                    // The `Response` is based on the title bar, so
+                    // clicking/dragging on the title bar affects the `Track` as
+                    // a whole.
+                    let font_galley = self
+                        .track_info
+                        .title_font_galley
+                        .as_ref()
+                        .map(|fg| Arc::clone(&fg));
+                    let response = ui.add(title_bar(font_galley));
+
+                    // Take up all the space we're given, even if we can't fill
+                    // it with widget content.
+                    ui.set_min_size(ui.available_size());
+
+                    // The frames shouldn't have space between them.
+                    ui.style_mut().spacing.item_spacing = Vec2::ZERO;
+
+                    // Build the track content with the device view beneath it.
+                    ui.vertical(|ui| {
+                        let can_accept = Self::check_drag_source_for_timeline();
+                        let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
+                            // Determine the rectangle that all the composited
+                            // layers will use.
+                            let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
+                            let (_id, rect) = ui.allocate_space(desired_size);
+
+                            let temp_range =
+                                ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
+
+                            let from_screen = RectTransform::from_to(
+                                rect,
+                                Rect::from_x_y_ranges(
+                                    self.view_state.view_range.0.start.total_units() as f32
+                                        ..=self.view_state.view_range.0.end.total_units() as f32,
+                                    rect.top()..=rect.bottom(),
+                                ),
+                            );
+
+                            // The Grid is always disabled and drawn first.
+                            let _ = ui
+                                .allocate_ui_at_rect(rect, |ui| {
+                                    ui.add(grid(
+                                        temp_range.clone(),
+                                        self.view_state.view_range.clone(),
+                                    ))
+                                })
+                                .inner;
+
+                            // Get all the entities for this track.
+                            let entity_uids = if let Some(entity_uids) =
+                                self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
+                            {
+                                entity_uids.to_vec()
+                            } else {
+                                Vec::default()
+                            };
+
+                            // // Render non-foreground timeline displayers.
+                            // entity_uids
+                            //     .iter()
+                            //     .filter(|uid| Some(**uid) != self.frontmost_uid)
+                            //     .for_each(|uid| {
+                            //         if let Some(entity) =
+                            //             self.orchestrator.entity_repo.entity_mut(*uid)
+                            //         {
+                            //             if entity.displays_in_timeline() {
+                            //                 ui.add_enabled_ui(false, |ui| {
+                            //                     ui.allocate_ui_at_rect(rect, |ui| {
+                            //                         entity.set_view_range(&self.view_range);
+                            //                         entity.ui(ui);
+                            //                     });
+                            //                 });
+                            //             }
+                            //         }
+                            //     });
+
+                            // // Render the foreground timeline displayer, if there is one.
+                            // if let Some(frontmost_uid) = self.frontmost_uid {
+                            //     if let Some(entity) =
+                            //         self.orchestrator.entity_repo.entity_mut(frontmost_uid)
+                            //     {
+                            //         ui.add_enabled_ui(true, |ui| {
+                            //             ui.allocate_ui_at_rect(rect, |ui| {
+                            //                 entity.set_view_range(&self.view_range);
+                            //                 entity.ui(ui);
+                            //             });
+                            //         });
+                            //     }
+                            // }
+
+                            match self.view_state.arrangement_mode {
+                                crate::project::ArrangementViewMode::Composition => {
+                                    ui.add_enabled_ui(true, |ui| {
+                                        ui.allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(track_arrangement(
+                                                self.track_info.track_uid,
+                                                self.composer,
+                                                &self.view_state.view_range,
+                                            ));
+                                        });
+                                    });
+                                }
+                                crate::project::ArrangementViewMode::Control(_) => {
+                                    ui.add_enabled_ui(true, |ui| {
+                                        ui.allocate_ui_at_rect(rect, |ui| ui.label("control!!!!"));
+                                    });
+                                }
+                                crate::project::ArrangementViewMode::SomethingElse => {
+                                    ui.add_enabled_ui(true, |ui| {
+                                        ui.allocate_ui_at_rect(rect, |ui| {
+                                            ui.label("something else111!!!!")
+                                        });
+                                    });
+                                }
+                            }
+
+                            // HACK! just display the one we know about
+
+                            // Next, if it's present, draw the cursor.
+                            if let Some(position) = self.view_state.cursor {
+                                if self.view_state.view_range.0.contains(&position) {
+                                    let _ = ui
+                                        .allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(cursor(
+                                                position,
+                                                self.view_state.view_range.clone(),
+                                            ))
+                                        })
+                                        .inner;
+                                }
+                            }
+
+                            let time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                                let time_pos = from_screen * pointer_pos;
+                                let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                if self.view_state.view_range.0.contains(&time) {
+                                    let _ = ui
+                                        .allocate_ui_at_rect(rect, |ui| {
+                                            ui.add(cursor(time, self.view_state.view_range.clone()))
+                                        })
+                                        .inner;
+                                }
+                                Some(time)
+                            } else {
+                                None
+                            };
+
+                            // Note drag/drop position
+                            if let Some(time) = time {
+                                ((), DropTarget::TrackPosition(track_uid, time))
+                            } else {
+                                ((), DropTarget::Track(track_uid))
+                            }
+                        })
+                        .response;
+
+                        // Draw the signal chain view for every kind of track.
+                        ui.scope(|ui| {
+                            let mut action = None;
+                            ui.add(new_signal_chain_widget(
+                                track_uid,
+                                self.track_info.signal_items,
+                                &mut action,
+                            ));
+
+                            if let Some(action) = action {
+                                match action {
+                                    NewSignalChainWidgetAction::EntitySelected(uid, name) => {
+                                        *self.action =
+                                            Some(TrackWidgetAction::EntitySelected(uid, name));
+                                    }
+                                }
+                            }
+                        });
+
+                        // This must be last. It makes sure we fill the
+                        // remaining space.
+                        ui.allocate_space(ui.available_size());
+
+                        response
+                    })
+                    .inner
+                })
+                .inner
+            })
+            .inner
     }
 }
 

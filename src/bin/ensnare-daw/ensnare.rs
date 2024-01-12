@@ -17,8 +17,12 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{app_version, prelude::*};
-use ensnare_new_stuff::project::Project;
+use ensnare::{
+    app_version,
+    prelude::*,
+    ui::widgets::{oblique_strategies, ObliqueStrategiesManager},
+    ui::{entity_palette, timeline_icon_strip, ProjectAction, TimelineIconStripAction},
+};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -26,9 +30,6 @@ use std::{
 
 // TODO: clean these up. An app should need to use only the top ensnare crate,
 // and ideally it can get by with just importing prelude::*.
-use ensnare_cores_egui::widgets::timeline::{timeline_icon_strip, TimelineIconStripAction};
-use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-use ensnare_orchestration::egui::entity_palette;
 use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction, MidiServiceInput};
 
 #[derive(Debug, Default)]
@@ -354,6 +355,7 @@ impl Ensnare {
         let mut action = None;
         if let Some(project) = self.project.as_mut() {
             if let Ok(mut project) = project.write() {
+                project.view_state.cursor = Some(project.transport.current_time());
                 project.ui_piano_roll(ui, &mut self.rendering_state.is_piano_roll_visible);
                 project.ui_detail(
                     ui,
@@ -361,7 +363,7 @@ impl Ensnare {
                     &self.rendering_state.detail_title,
                     &mut self.rendering_state.is_detail_open,
                 );
-                let _ = ui.add(project_widget(&mut project, &mut action));
+                project.ui(ui, &mut action);
             }
         }
         if let Some(action) = action {

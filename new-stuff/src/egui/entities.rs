@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use eframe::egui::Widget;
 use ensnare_drag_drop::{DragDropManager, DragSource};

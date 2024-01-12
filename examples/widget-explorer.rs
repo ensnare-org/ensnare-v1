@@ -19,7 +19,7 @@ use ensnare::{
     app_version,
     prelude::*,
     ui::{
-        widgets::{audio, pattern, placeholder, timeline},
+        widgets::{audio, pattern, placeholder},
         DragSource, DropTarget,
     },
 };
@@ -36,7 +36,7 @@ use ensnare_cores_egui::{
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_orchestration::egui::{make_title_bar_galley, title_bar};
+use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar};
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -48,7 +48,7 @@ impl LegendSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(timeline::legend(&mut self.range));
+            ui.add(legend(&mut self.range));
         }
     }
 }
@@ -254,7 +254,7 @@ impl GridSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(timeline::grid(self.range.clone(), self.view_range.clone()));
+            ui.add(grid(self.range.clone(), self.view_range.clone()));
         }
     }
 

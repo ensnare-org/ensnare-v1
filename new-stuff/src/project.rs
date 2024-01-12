@@ -2,13 +2,18 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::parts::{Automator, MidiRouter, Orchestrator};
+use crate::{
+    egui::{project_widget, ProjectAction},
+    parts::{Automator, MidiRouter, Orchestrator},
+};
 use anyhow::{anyhow, Result};
 use delegate::delegate;
 use eframe::egui::Id;
 use ensnare_core::{
+    generators::PathUid,
     piano_roll::{Pattern, PatternUid},
     prelude::*,
+    selection_set::SelectionSet,
     time::Transport,
     traits::ControlsAsProxy,
     types::{AudioQueue, TrackTitle, VisualizationQueue},
@@ -43,12 +48,39 @@ impl From<&str> for ProjectTitle {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub enum ArrangementViewMode {
+    #[default]
+    Composition,
+    Control(PathUid),
+    SomethingElse,
+}
+
+/// Groups all the persistent fields related to the project GUI view.
+///
+/// We've made the explicit decision to make view parameters persistent, so that
+/// a loaded project looks the same as when it was saved. The downside is that
+/// saving a project after browsing it will usually generate diffs. TODO: maybe
+/// put these kinds of items into a "ProjectViewState" struct, and don't mark
+/// the project dirty when those change. Then they'll be saved only along with
+/// substantial changes.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct ProjectViewState {
+    // The part of the project to show in the UI.
+    pub view_range: ViewRange,
+    // Which tracks are selected.
+    pub track_selection_set: SelectionSet<TrackUid>,
+    // Which widget to render in the track arrangement section.
+    pub arrangement_mode: ArrangementViewMode,
+    // The current playback point. This is redundant -- copied from Transport.
+    pub cursor: Option<MusicalTime>,
+}
+
 /// A musical piece. Also knows how to render the piece to digital audio.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Project {
     pub title: ProjectTitle,
     pub track_titles: HashMap<TrackUid, TrackTitle>,
-    pub track_to_frontmost_timeline_displayer: HashMap<TrackUid, Uid>,
 
     pub transport: Transport,
     pub orchestrator: Orchestrator,
@@ -56,14 +88,7 @@ pub struct Project {
     pub composer: Composer,
     pub track_to_midi_router: HashMap<TrackUid, MidiRouter>,
 
-    // The part of the project to show in the UI. We've made the explicit
-    // decision to make view parameters persistent, so that a loaded project
-    // looks the same as when it was saved. The downside is that saving a
-    // project after browsing it will usually generate diffs. TODO: maybe put
-    // these kinds of items into a "ProjectViewState" struct, and don't mark the
-    // project dirty when those change. Then they'll be saved only along with
-    // substantial changes.
-    pub view_range: ViewRange,
+    pub view_state: ProjectViewState,
 
     #[serde(skip)]
     is_finished: bool,
@@ -135,7 +160,7 @@ impl Project {
         let _ = r.create_starter_tracks();
 
         // hack - default to a 1-minute song
-        r.view_range = ViewRange(
+        r.view_state.view_range = ViewRange(
             MusicalTime::START..MusicalTime::new_with_beats(r.transport.tempo().0 as usize),
         );
         r
@@ -339,10 +364,8 @@ impl Project {
         self.load_path.as_ref()
     }
 
-    pub fn track_frontmost_timeline_displayer(&self, track_uid: TrackUid) -> Option<Uid> {
-        self.track_to_frontmost_timeline_displayer
-            .get(&track_uid)
-            .copied()
+    pub fn ui(&mut self, ui: &mut eframe::egui::Ui, action: &mut Option<ProjectAction>) {
+        let _ = ui.add(project_widget(self, action));
     }
 
     pub fn ui_piano_roll(&mut self, ui: &mut eframe::egui::Ui, is_visible: &mut bool) {
@@ -392,6 +415,16 @@ impl Project {
         if let Some(queue) = self.visualization_queue.as_ref() {
             new_project.visualization_queue = Some(queue.clone());
         }
+    }
+
+    pub fn advance_arrangement_view_mode(&mut self) {
+        // TODO: this needs to be specific to a track, or else the control path
+        // uid makes no sense.
+        self.view_state.arrangement_mode = match self.view_state.arrangement_mode {
+            ArrangementViewMode::Composition => ArrangementViewMode::Control(PathUid(0)),
+            ArrangementViewMode::Control(_path_uid) => ArrangementViewMode::SomethingElse,
+            ArrangementViewMode::SomethingElse => ArrangementViewMode::Composition,
+        };
     }
 }
 impl Generates<StereoSample> for Project {
