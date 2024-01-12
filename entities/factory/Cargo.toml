@@ -17,7 +17,6 @@ ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
 ensnare-cores-egui = { path = "../../cores-egui" }
 ensnare-entity = { path = "../../entity" }
-ensnare-orchestration = { path = "../../orchestration" }
 ensnare-proc-macros = { path = "../../proc-macros" }
 serde = "1.0.193"
 typetag = "0.2.14"
