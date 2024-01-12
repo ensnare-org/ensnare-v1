@@ -20,6 +20,7 @@ pub struct Orchestrator {
     pub aux_track_uids: Vec<TrackUid>,
     pub bus_station: BusStation,
     pub humidifier: Humidifier,
+    pub mixer: Mixer,
 }
 impl Orchestrator {
     delegate! {
@@ -28,6 +29,7 @@ impl Orchestrator {
             #[call(uids)]
             pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
+            pub fn mint_track_uid(&self) -> TrackUid;
         }
         to self.entity_repo {
             pub fn add_entity(
@@ -44,10 +46,33 @@ impl Orchestrator {
             ) -> Result<()>;
             pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
             pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
+            pub fn mint_entity_uid(&self) -> Uid;
         }
         to self.entity_repo.entities {
             #[call(get_mut)]
             pub fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<(dyn EntityBounds)>>;
+        }
+        to self.bus_station {
+            pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
+            pub fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
+        }
+        to self.humidifier {
+            pub fn get_humidity(&self, uid: &Uid) -> Normal;
+            pub fn set_humidity(&mut self, uid: Uid, humidity: Normal);
+            pub fn transform_batch(
+                &mut self,
+                humidity: Normal,
+                effect: &mut Box<dyn EntityBounds>,
+                samples: &mut [StereoSample],
+            );
+        }
+        to self.mixer {
+            pub fn track_output(&mut self, track_uid: TrackUid) -> Normal;
+            pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal);
+            pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool);
+            pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
+            pub fn solo_track(&self) -> Option<TrackUid>;
+            pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
         }
     }
 
@@ -101,6 +126,7 @@ impl ControlsAsProxy for Orchestrator {
 impl Generates<StereoSample> for Orchestrator {
     fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
         let buffer_len = values.len();
+        let solo_track_uid = self.solo_track();
 
         // First handle all non-aux tracks. As a side effect, we also create empty buffers for the aux tracks.
         let (track_buffers, mut aux_track_buffers): (
@@ -114,20 +140,24 @@ impl Generates<StereoSample> for Orchestrator {
                 if self.aux_track_uids.contains(track_uid) {
                     aux_h.insert(*track_uid, track_buffer);
                 } else {
-                    if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
-                        entity_uids.iter().for_each(|uid| {
-                            if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
-                                entity.generate_batch_values(&mut track_buffer);
-                                let humidity = self.humidifier.get_humidity_by_uid(uid);
-                                if humidity != Normal::zero() {
-                                    self.humidifier.transform_batch(
-                                        humidity,
-                                        entity,
-                                        &mut track_buffer,
-                                    );
+                    let should_work = !self.mixer.is_track_muted(*track_uid)
+                        && (solo_track_uid.is_none() || solo_track_uid == Some(*track_uid));
+                    if should_work {
+                        if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
+                            entity_uids.iter().for_each(|uid| {
+                                if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
+                                    entity.generate_batch_values(&mut track_buffer);
+                                    let humidity = self.humidifier.get_humidity(uid);
+                                    if humidity != Normal::zero() {
+                                        self.humidifier.transform_batch(
+                                            humidity,
+                                            entity,
+                                            &mut track_buffer,
+                                        );
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
                     h.insert(*track_uid, track_buffer);
                 }
@@ -154,22 +184,31 @@ impl Generates<StereoSample> for Orchestrator {
         aux_track_buffers
             .iter_mut()
             .for_each(|(track_uid, track_buffer)| {
-                if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
-                    entity_uids.iter().for_each(|uid| {
-                        if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
-                            entity.transform_batch(track_buffer);
-                        }
-                    });
+                let should_work = !self.mixer.is_track_muted(*track_uid)
+                    && (solo_track_uid.is_none() || solo_track_uid == Some(*track_uid));
+                if should_work {
+                    if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
+                        entity_uids.iter().for_each(|uid| {
+                            if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
+                                entity.transform_batch(track_buffer);
+                            }
+                        });
+                    }
                 }
             });
 
         // Mix all the tracks into the final buffer.
         track_buffers
-            .values()
-            .chain(aux_track_buffers.values())
-            .for_each(|buffer| {
-                for (dst, src) in values.iter_mut().zip(buffer) {
-                    *dst += *src;
+            .iter()
+            .chain(aux_track_buffers.iter())
+            .for_each(|(track_uid, buffer)| {
+                let should_mix = !self.mixer.is_track_muted(*track_uid)
+                    && (solo_track_uid.is_none() || solo_track_uid == Some(*track_uid));
+                if should_mix {
+                    let output = self.track_output(*track_uid);
+                    for (dst, src) in values.iter_mut().zip(buffer) {
+                        *dst += *src * output;
+                    }
                 }
             });
     }
@@ -653,11 +692,11 @@ pub struct Humidifier {
     uid_to_humidity: HashMap<Uid, Normal>,
 }
 impl Humidifier {
-    pub fn get_humidity_by_uid(&self, uid: &Uid) -> Normal {
+    pub fn get_humidity(&self, uid: &Uid) -> Normal {
         self.uid_to_humidity.get(uid).cloned().unwrap_or_default()
     }
 
-    pub fn set_humidity_by_uid(&mut self, uid: Uid, humidity: Normal) {
+    pub fn set_humidity(&mut self, uid: Uid, humidity: Normal) {
         self.uid_to_humidity.insert(uid, humidity);
     }
 
@@ -694,6 +733,41 @@ impl Humidifier {
         let humidity: f64 = humidity.into();
         let aridity = 1.0 - humidity;
         post_effect * humidity + pre_effect * aridity
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Mixer {
+    track_output: HashMap<TrackUid, Normal>,
+    track_mute: HashMap<TrackUid, bool>,
+    pub solo_track: Option<TrackUid>,
+}
+impl Mixer {
+    pub fn track_output(&mut self, track_uid: TrackUid) -> Normal {
+        self.track_output
+            .get(&track_uid)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+        self.track_output.insert(track_uid, output);
+    }
+
+    pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+        self.track_mute.insert(track_uid, muted);
+    }
+
+    pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool {
+        self.track_mute.get(&track_uid).copied().unwrap_or_default()
+    }
+
+    pub fn solo_track(&self) -> Option<TrackUid> {
+        self.solo_track
+    }
+
+    pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>) {
+        self.solo_track = track_uid
     }
 }
 
@@ -1258,22 +1332,22 @@ mod tests {
     fn humidifier_lookups_work() {
         let mut wd = Humidifier::default();
         assert_eq!(
-            wd.get_humidity_by_uid(&Uid(1)),
+            wd.get_humidity(&Uid(1)),
             Normal::maximum(),
             "a missing Uid should return default humidity 1.0"
         );
 
         let uid = Uid(1);
-        wd.set_humidity_by_uid(uid, Normal::from(0.5));
+        wd.set_humidity(uid, Normal::from(0.5));
         assert_eq!(
-            wd.get_humidity_by_uid(&Uid(1)),
+            wd.get_humidity(&Uid(1)),
             Normal::from(0.5),
             "a non-missing Uid should return the humidity that we set"
         );
     }
 
     #[test]
-    fn humidifier_processing_works() {
+    fn humidifier_mainline() {
         let mut humidifier = Humidifier::default();
 
         let mut effect = TestEffectNegatesInput::default();
@@ -1314,5 +1388,31 @@ mod tests {
             pre_effect,
             "Wetness 0.0 means no change from pre-effect to post"
         );
+    }
+
+    #[test]
+    fn mixer_mainline() {
+        let mut mixer = Mixer::default();
+        assert!(mixer.track_output.is_empty());
+        assert!(mixer.track_mute.is_empty());
+
+        let track_1 = TrackUid(1);
+        let track_2 = TrackUid(2);
+
+        assert!(!mixer.is_track_muted(track_1));
+        assert!(!mixer.is_track_muted(track_2));
+        assert!(mixer.solo_track().is_none());
+
+        mixer.set_solo_track(Some(track_1));
+        assert_eq!(mixer.solo_track().unwrap(), track_1);
+        mixer.set_solo_track(None);
+        assert_eq!(mixer.solo_track(), None);
+
+        assert_eq!(mixer.track_output(track_1), Normal::maximum());
+        assert_eq!(mixer.track_output(track_2), Normal::maximum());
+
+        mixer.set_track_output(track_2, Normal::from(0.5));
+        assert_eq!(mixer.track_output(track_1), Normal::maximum());
+        assert_eq!(mixer.track_output(track_2), Normal::from(0.5));
     }
 }

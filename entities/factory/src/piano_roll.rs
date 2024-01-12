@@ -3,10 +3,10 @@
 use ensnare_core::prelude::*;
 use ensnare_cores_egui::piano_roll::piano_roll;
 use ensnare_entity::prelude::*;
-use ensnare_proc_macros::{IsEntity, IsEntity2, Metadata};
+use ensnare_proc_macros::{IsEntity2, Metadata};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, IsEntity, Metadata, IsEntity2, Serialize, Deserialize)]
+#[derive(Debug, Metadata, IsEntity2, Serialize, Deserialize)]
 #[entity2(
     TransformsAudio,
     GeneratesStereoSample,

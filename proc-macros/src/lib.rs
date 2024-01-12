@@ -4,7 +4,7 @@
 //!
 //! PRO TIP: use `cargo expand --lib entities` to see what's being generated
 
-use entity::{parse_and_generate_entity, parse_and_generate_entity2};
+use entity::{parse_and_generate_entity2, parse_and_generate_old_entity};
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
@@ -48,9 +48,9 @@ pub fn params_derive(input: TokenStream) -> TokenStream {
 /// - `"instrument"`: provides scaffolding for the `IsInstrument` trait
 /// - `"timeline"`: indicates that this entity should be rendered in the track
 /// timeline, rather than in its own detail view.
-#[proc_macro_derive(IsEntity, attributes(entity))]
+#[proc_macro_derive(IsOldEntity, attributes(old_entity))]
 pub fn entity_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity(input)
+    parse_and_generate_old_entity(input)
 }
 
 /// Derives helper methods to access Entity2 traits.

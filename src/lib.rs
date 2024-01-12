@@ -8,14 +8,10 @@ pub mod arrangement {
     //! Organization of musical elements.
 
     pub use ensnare_core::time::Transport;
-    pub use ensnare_orchestration::{
-        orchestration::{Orchestrator, OrchestratorHelper},
-        traits::Orchestrates,
-    };
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{Orchestrator, OrchestratorHelper, Transport};
+        pub use super::Transport;
     }
 }
 
@@ -222,15 +218,13 @@ pub mod traits {
     //! Common behaviors of system components.
     pub use ensnare_core::traits::*;
     pub use ensnare_entity::traits::*;
-    pub use ensnare_orchestration::traits::*;
 
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
             Configurable, ControlEventsFn, Controllable, Controls, Displays, EntityBounds,
             Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
-            IsController, IsEffect, IsInstrument, MidiMessagesFn, Orchestrates, Sequences,
-            Serializable, Ticks, WorkEvent,
+            MidiMessagesFn, Sequences, Serializable, Ticks, WorkEvent,
         };
     }
 }

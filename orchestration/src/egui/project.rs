@@ -5,11 +5,11 @@ use super::{
     signal_chain::SignalChainItem,
     track::{make_title_bar_galley, title_bar, TrackInfo},
 };
-use crate::{orchestration::Orchestrator, track::TrackWidgetAction, traits::Orchestrates};
+use crate::track::TrackWidgetAction;
 use eframe::{egui::Widget, epaint::Galley};
 use ensnare_core::prelude::*;
 use ensnare_cores_egui::widgets::timeline::legend;
-use ensnare_entity::{factory::EntityKey, traits::EntityBounds};
+use ensnare_entity::factory::EntityKey;
 use ensnare_new_stuff::project::Project;
 use std::sync::Arc;
 use strum_macros::Display;
@@ -140,37 +140,6 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
 impl<'a> ProjectWidget<'a> {
     fn new(project: &'a mut Project, action: &'a mut Option<ProjectAction>) -> Self {
         Self { project, action }
-    }
-}
-
-/// Wraps an [OrchestratorWidget] as a [Widget](eframe::egui::Widget).
-pub fn orchestrator<'a, E: EntityBounds>(
-    orchestrator: &'a mut Orchestrator<E>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OrchestratorWidget::new(orchestrator).ui(ui)
-}
-
-/// An egui component that draws an [Orchestrator].
-#[derive(Debug)]
-struct OrchestratorWidget<'a, E: EntityBounds> {
-    orchestrator: &'a mut Orchestrator<E>,
-}
-impl<'a, E: EntityBounds> eframe::egui::Widget for OrchestratorWidget<'a, E> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label(format!(
-            "There are {} tracks",
-            self.orchestrator.track_uids().len()
-        ));
-        let add_track_button_response = ui.button("Add Track");
-        if add_track_button_response.clicked() {
-            let _ = self.orchestrator.create_track(None);
-        }
-        add_track_button_response
-    }
-}
-impl<'a, E: EntityBounds> OrchestratorWidget<'a, E> {
-    pub fn new(orchestrator: &'a mut Orchestrator<E>) -> Self {
-        Self { orchestrator }
     }
 }
 

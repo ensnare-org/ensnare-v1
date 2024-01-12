@@ -26,7 +26,7 @@ enum Attributes {
 // for an intriguing bit of code. Came from
 // https://users.rust-lang.org/t/is-implementing-a-derive-macro-for-converting-nested-structs-to-flat-structs-possible/65839/3
 
-pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
+pub(crate) fn parse_and_generate_old_entity(input: TokenStream) -> TokenStream {
     TokenStream::from({
         let input = parse_macro_input!(input as DeriveInput);
         let generics = &input.generics;
@@ -199,7 +199,7 @@ pub(crate) fn parse_and_generate_entity2(input: TokenStream) -> TokenStream {
 
         let parsed_attrs = parse_attrs_2(&input.attrs);
         let mut skip_inner = false;
-        let mut top_level_trait_names = parsed_attrs.iter().fold(Vec::default(), |mut v, a| {
+        let top_level_trait_names = parsed_attrs.iter().fold(Vec::default(), |mut v, a| {
             match a {
                 Attributes2::Configurable => {
                     v.push(quote! {#core_crate::traits::Configurable});
@@ -243,7 +243,7 @@ pub(crate) fn parse_and_generate_entity2(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             #[typetag::serde]
-            impl #generics #entity_crate::traits::Entity2 for #struct_name #ty_generics {
+            impl #generics #entity_crate::traits::Entity for #struct_name #ty_generics {
                 fn as_handles_midi_mut(&mut self) -> Option<&mut dyn HandlesMidi> {
                     Some(#as_handles_midi_mut_impl)
                 }

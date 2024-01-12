@@ -97,16 +97,22 @@ impl Project {
             pub fn move_entity(&mut self, uid: Uid, new_track_uid: Option<TrackUid>, new_position: Option<usize>)-> Result<()>;
             pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
             pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
-        }
-        to self.orchestrator.entity_repo {
-            pub fn mint_entity_uid(&self) -> Uid;
-        }
-        to self.orchestrator.track_repo {
-            pub fn mint_track_uid(&self) -> TrackUid;
-        }
-        to self.orchestrator.bus_station {
+
+            pub fn get_humidity(&self, uid: &Uid) -> Normal;
+            pub fn set_humidity(&mut self, uid: Uid, humidity: Normal);
+
+            pub fn track_output(&mut self, track_uid: TrackUid) -> Normal;
+            pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal);
+            pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool);
+            pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
+            pub fn solo_track(&self) -> Option<TrackUid>;
+            pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
+
             pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
             pub fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
+
+            pub fn mint_entity_uid(&self) -> Uid;
+            pub fn mint_track_uid(&self) -> TrackUid;
         }
         to self.composer {
             pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
@@ -791,6 +797,57 @@ mod tests {
         let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * -1.0);
         samples.iter().enumerate().for_each(|(index,s)| {
             assert_eq!(*s ,expected_sample, "With a 50% send to an aux with a negating effect, we should see the original 0.5 plus a negation of 50% of 0.5 = 0.250, but at sample #{index} we got {:?}", s);
+        });
+    }
+
+    #[test]
+    fn mixer_works() {
+        const EXPECTED_LEVEL: ParameterType = ensnare_cores::TestAudioSource::MEDIUM;
+        let mut project = Project::default();
+        let track_1_uid = project.new_midi_track().unwrap();
+        let track_2_uid = project.new_midi_track().unwrap();
+
+        let _ = project.add_entity(
+            track_1_uid,
+            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            None,
+        );
+        let _ = project.add_entity(
+            track_2_uid,
+            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            None,
+        );
+
+        let mut samples = [StereoSample::SILENCE; 4];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.5 + 0.5);
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "Two tracks each with a 0.5 output should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
+        });
+
+        project.set_track_output(track_1_uid, Normal::from(0.5));
+        let mut samples = [StereoSample::SILENCE; 4];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5);
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "Setting one track's output to 50% should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
+        });
+
+        project.set_solo_track(Some(track_1_uid));
+        let mut samples = [StereoSample::SILENCE; 4];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.5 * 0.5);
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "Soloing Track #1 (which is set to 50%) should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
+        });
+
+        project.set_solo_track(None);
+        project.mute_track(track_1_uid, true);
+        let mut samples = [StereoSample::SILENCE; 4];
+        project.generate_frames(&mut samples);
+        let expected_sample = StereoSample::from(0.5);
+        samples.iter().enumerate().for_each(|(index, s)| {
+            assert_eq!(*s, expected_sample, "Muting Track #1 and ending solo should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
         });
     }
 }

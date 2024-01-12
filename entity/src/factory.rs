@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::traits::{Entity2, EntityBounds};
+use crate::traits::EntityBounds;
 use anyhow::anyhow;
 use derive_more::Display;
 use ensnare_core::{
@@ -34,23 +34,6 @@ impl From<String> for EntityKey {
 }
 
 pub type EntityFactoryFn<E> = fn(Uid) -> Box<E>;
-
-// /// The one and only EntityFactory. Access it with `EntityFactory::global()`.
-// static FACTORY: OnceCell<EntityFactory<dyn EntityBounds>> = OnceCell::new();
-// impl EntityFactory<dyn EntityBounds> {
-//     /// Provides the one and only [EntityFactory].
-//     pub fn global() -> &'static Self {
-//         FACTORY
-//             .get()
-//             .expect("EntityFactory has not been initialized")
-//     }
-
-//     /// Sets the singleton [EntityFactory].
-//     pub fn initialize(mut entity_factory: Self) -> Result<(), Self> {
-//         entity_factory.complete_registration();
-//         FACTORY.set(entity_factory)
-//     }
-// }
 
 /// [EntityFactory] accepts [EntityKey]s and creates instruments, controllers,
 /// and effects. It makes sure every entity has a proper [Uid].
@@ -147,7 +130,7 @@ pub trait ReturnsHandlesMidi {
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
 /// all its entities as a single [Entity].
 #[derive(Debug)]
-pub struct EntityStore<E: Entity2 + ?Sized> {
+pub struct EntityStore<E: EntityBounds + ?Sized> {
     sample_rate: SampleRate,
     tempo: Tempo,
     entities: HashMap<Uid, Box<E>>,
@@ -156,7 +139,7 @@ pub struct EntityStore<E: Entity2 + ?Sized> {
     // to implement.
     time_range: TimeRange,
 }
-impl<E: Entity2 + ?Sized> Default for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> Default for EntityStore<E> {
     fn default() -> Self {
         Self {
             sample_rate: Default::default(),
@@ -166,7 +149,7 @@ impl<E: Entity2 + ?Sized> Default for EntityStore<E> {
         }
     }
 }
-impl<E: Entity2 + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
     fn get_handles_midi_mut(&mut self, uid: &Uid) -> Option<&mut dyn HandlesMidi> {
         if let Some(e) = self.entities.get_mut(uid) {
             e.as_handles_midi_mut()
@@ -175,7 +158,7 @@ impl<E: Entity2 + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
         }
     }
 }
-impl<E: Entity2 + ?Sized> EntityStore<E> {
+impl<E: EntityBounds + ?Sized> EntityStore<E> {
     /// Adds an [Entity] to the store.
     pub fn add(&mut self, mut entity: Box<E>, uid: Uid) -> anyhow::Result<()> {
         if uid.0 == 0 {
@@ -248,7 +231,7 @@ impl<E: Entity2 + ?Sized> EntityStore<E> {
         self.entities.contains_key(uid)
     }
 }
-impl<E: Entity2 + ?Sized> Ticks for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> Ticks for EntityStore<E> {
     fn tick(&mut self, tick_count: usize) {
         self.iter_mut().for_each(|t| {
             // if let Some(t) = t.as_instrument_mut() {
@@ -257,7 +240,7 @@ impl<E: Entity2 + ?Sized> Ticks for EntityStore<E> {
         });
     }
 }
-impl<E: Entity2 + ?Sized> Configurable for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> Configurable for EntityStore<E> {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -286,7 +269,7 @@ impl<E: Entity2 + ?Sized> Configurable for EntityStore<E> {
         });
     }
 }
-impl<E: Entity2 + ?Sized> Controls for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> Controls for EntityStore<E> {
     fn time_range(&self) -> Option<TimeRange> {
         if self.is_performing() {
             Some(self.time_range.clone())
@@ -354,7 +337,7 @@ impl<E: Entity2 + ?Sized> Controls for EntityStore<E> {
         })
     }
 }
-impl<E: Entity2 + ?Sized> ControlsAsProxy for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> ControlsAsProxy for EntityStore<E> {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             // if let Some(entity) = entity.as_controller_mut() {
@@ -365,12 +348,12 @@ impl<E: Entity2 + ?Sized> ControlsAsProxy for EntityStore<E> {
         });
     }
 }
-impl<E: Entity2 + ?Sized> Serializable for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> Serializable for EntityStore<E> {
     fn after_deser(&mut self) {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
-impl<E: Entity2 + ?Sized> PartialEq for EntityStore<E> {
+impl<E: EntityBounds + ?Sized> PartialEq for EntityStore<E> {
     fn eq(&self, other: &Self) -> bool {
         self.time_range == other.time_range && self.tempo == other.tempo && {
             self.entities.len() == other.entities.len() && {

@@ -107,16 +107,3 @@ fn exercise_instrument_or_effect(_key: &EntityKey, entity: &mut Box<dyn EntityBo
         .iter_mut()
         .for_each(|s| *s = entity.transform_audio(*s));
 }
-
-fn validate_extreme_tempo_and_time_signature(_key: &EntityKey, _e: &mut dyn IsController) {}
-
-fn validate_effect(_e: &mut dyn IsEffect) {}
-
-fn validate_instrument(_e: &mut dyn IsInstrument) {}
-
-fn validate_controller(e: &mut dyn IsController) {
-    assert!(
-        !e.is_performing(),
-        "A new Controller should not be performing"
-    );
-}
