@@ -28,10 +28,7 @@ use ensnare_core::{
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores::{
-    toys::{ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams},
-    NoteSequencerBuilder,
-};
+use ensnare_cores::{toys::ToyControllerParams, NoteSequencerBuilder};
 use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget, widgets::audio::FrequencyDomain,

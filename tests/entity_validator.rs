@@ -54,7 +54,7 @@ fn validate_configurable(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     }
 }
 
-fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
+fn validate_entity_type(_key: &EntityKey, _entity: &mut Box<dyn EntityBounds>) {
     // TODO: this is obsolete at the moment because we've decided that there
     // aren't any entity types -- everyone implements everything, even if they
     // don't actually do anything for a particular trait method.
@@ -79,31 +79,4 @@ fn validate_entity_type(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
     //     is_something,
     //     "Entity {key} is neither a controller, nor an instrument, nor an effect!"
     // );
-}
-
-fn validate_extreme_sample_rates(key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
-    entity.update_sample_rate(SampleRate(1));
-    exercise_instrument_or_effect(key, entity);
-    entity.update_sample_rate(SampleRate(7));
-    exercise_instrument_or_effect(key, entity);
-    entity.update_sample_rate(SampleRate(441));
-    exercise_instrument_or_effect(key, entity);
-    entity.update_sample_rate(SampleRate(1024 * 1024));
-    exercise_instrument_or_effect(key, entity);
-    entity.update_sample_rate(SampleRate(1024 * 1024 * 1024));
-    exercise_instrument_or_effect(key, entity);
-}
-
-// This doesn't assert anything. We are looking to make sure the entity doesn't
-// blow up with weird sample rates.
-fn exercise_instrument_or_effect(_key: &EntityKey, entity: &mut Box<dyn EntityBounds>) {
-    let mut buffer = [StereoSample::SILENCE; 64];
-    entity.generate_batch_values(&mut buffer);
-    buffer.iter_mut().for_each(|s| {
-        entity.tick(1);
-        *s = entity.value();
-    });
-    buffer
-        .iter_mut()
-        .for_each(|s| *s = entity.transform_audio(*s));
 }

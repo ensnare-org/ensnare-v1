@@ -97,7 +97,7 @@ impl Default for UidFactory<Uid> {
     }
 }
 
-/// Identifies a [Track].
+/// Identifies a track.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TrackUid(pub usize);
 impl Default for TrackUid {

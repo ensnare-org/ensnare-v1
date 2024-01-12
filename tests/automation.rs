@@ -146,7 +146,7 @@ fn demo_control_trips() {
     let entity = factory
         .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
         .unwrap();
-    let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
+    let _pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
     let synth_uid = project.add_entity(track_uid, entity, None).unwrap();
     assert!(project
         .set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))
@@ -176,7 +176,7 @@ fn demo_control_trips() {
         )
         .build()
         .unwrap();
-    let trip_params = ControlTripParams::default();
+    let _trip_params = ControlTripParams::default();
 
     #[cfg(fixme)]
     {

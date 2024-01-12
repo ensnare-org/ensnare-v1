@@ -33,9 +33,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{Read, Write},
-    ops::DerefMut,
-    path::PathBuf,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
 };
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -183,7 +181,7 @@ impl SettingsPanel {
     /// Creates a new [SettingsPanel].
     pub fn new_with(settings: Settings) -> Self {
         let midi_service = MidiService::new_with(&settings.midi_settings);
-        let midi_service_sender = midi_service.sender().clone();
+        let _midi_service_sender = midi_service.sender().clone();
         Self {
             settings,
             audio_service: AudioService::new(),
@@ -759,7 +757,7 @@ impl MiniDaw {
         ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
     }
 
-    fn show_center(&mut self, ui: &mut eframe::egui::Ui, is_control_only_down: bool) {
+    fn show_center(&mut self, ui: &mut eframe::egui::Ui, _is_control_only_down: bool) {
         ScrollArea::vertical().show(ui, |ui| {
             // self.orchestrator_panel
             //     .set_control_only_down(is_control_only_down);
@@ -775,10 +773,10 @@ impl MiniDaw {
         });
     }
 
-    fn update_window_title(&mut self, frame: &mut eframe::Frame) {
+    fn update_window_title(&mut self, _frame: &mut eframe::Frame) {
         // TODO: it seems like the window remembers its title, so this isn't
         // something we should be doing on every frame.
-        let full_title = format!(
+        let _full_title = format!(
             "{} - {}",
             Self::APP_NAME,
             <ProjectTitle as Into<String>>::into(self.title.clone())
