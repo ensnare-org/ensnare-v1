@@ -139,7 +139,7 @@ print(
 code = ""
 for ac in accepted_colors:
     code += ac["name"] + ",\r\n"
-print(f"<pre>enum EnumName {{\r\n{code}}}</pre>")
+print(f"<pre>enum PatternColorScheme {{\r\n{code}}}</pre>")
 
 print(
     "<html><head><style>body {font: 16px Helvetica Neue, sans-serif;} td {padding: 4px} .dark {color: white} .light {color: black}</style></head><body><table>")
@@ -153,13 +153,13 @@ for ac in accepted_colors:
     darkness = ac["darkness"]
     if darkness < 150:
         css_class = "dark"
-        is_dark = "true"
+        is_dark = "WHITE"
     else:
         css_class = "light"
-        is_dark = "false"
+        is_dark = "BLACK"
     print(
         f"<tr><td class=\"{css_class}\" style=\"background-color:#{rgb};\">{name}: {rgb}</td></tr>")
-    code += f"EnumName::{name} => ({r}, {g}, {b}, {is_dark}),\r\n"
+    code += f"PatternColorScheme::{name} => (Color32::{is_dark}, Color32::from_rgb({r}, {g}, {b})),\r\n"
 print(f"</table><pre>{code}</pre>")
 
 print(f"</body></html>")

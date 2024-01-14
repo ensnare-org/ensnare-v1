@@ -7,6 +7,7 @@ use derive_builder::Builder;
 use ensnare_proc_macros::Params;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
+use strum_macros::{EnumCount, FromRepr};
 
 pub mod prelude {
     pub use super::{Note, Pattern, PatternBuilder, PatternUid};
@@ -107,6 +108,43 @@ impl Into<Vec<MidiEvent>> for Note {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]
+pub enum PatternColorScheme {
+    Red,
+    Vermilion,
+    Orange,
+    Amber,
+    Yellow,
+    Lime,
+    Chartreuse,
+    Ddahal,
+    Green,
+    Erin,
+    Spring,
+    Gashyanta,
+    Cyan,
+    Capri,
+    Azure,
+    Cerulean,
+    Blue,
+    Volta,
+    Violet,
+    Llew,
+    Magenta,
+    Cerise,
+    Rose,
+    Crimson,
+    #[default]
+    Gray1,
+    Gray2,
+    Gray3,
+    Gray4,
+    Gray5,
+    Gray6,
+    Gray7,
+    Gray8,
+}
+
 /// A [Pattern] contains a musical sequence that is suitable for
 /// pattern-based composition. It is a series of [Note]s and a
 /// [TimeSignature]. All the notes should fit into the pattern's duration, and
@@ -132,6 +170,9 @@ pub struct Pattern {
     /// specify any ordering restrictions.
     #[builder(default, setter(each(name = "note", into)))]
     pub notes: Vec<Note>,
+
+    #[builder(default)]
+    pub color_scheme: PatternColorScheme,
     // TODO: Nobody is writing to this. I haven't implemented selection
     // operations on notes yet.
     //     // #[builder(setter(skip))]
@@ -207,7 +248,7 @@ impl Default for Pattern {
             time_signature: TimeSignature::default(),
             duration: Default::default(),
             notes: Default::default(),
-            // note_selection_set: Default::default(),
+            color_scheme: PatternColorScheme::default(),
         };
         r.after_deser();
         r
@@ -222,11 +263,9 @@ impl Add<MusicalTime> for Pattern {
     type Output = Self;
 
     fn add(self, rhs: MusicalTime) -> Self::Output {
-        Self {
-            time_signature: self.time_signature,
-            duration: self.duration,
-            notes: self.notes.iter().map(|note| note.clone() + rhs).collect(),
-        }
+        let mut r = self.clone();
+        r.notes = self.notes.iter().map(|note| note.clone() + rhs).collect();
+        r
     }
 }
 impl Into<Vec<MidiEvent>> for Pattern {
@@ -359,6 +398,10 @@ impl Pattern {
     /// is currently defined.
     pub fn notes(&self) -> &[Note] {
         self.notes.as_ref()
+    }
+
+    pub fn colors(&self) -> Option<(u8, u8)> {
+        None
     }
 }
 

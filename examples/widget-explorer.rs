@@ -12,7 +12,7 @@ use eframe::{
         Style, Ui, Widget,
     },
     emath::Align,
-    epaint::{vec2, Galley},
+    epaint::{vec2, Color32, Galley},
     CreationContext,
 };
 use ensnare::{
@@ -324,7 +324,14 @@ impl PatternIconSettings {
                 ui,
                 Id::new("pattern icon"),
                 DragSource::Pattern(PatternUid(99)),
-                |ui| ui.add(pattern::icon(self.duration, &self.notes, self.is_selected)),
+                |ui| {
+                    ui.add(pattern::icon(
+                        self.duration,
+                        &self.notes,
+                        (Color32::WHITE, Color32::BLACK),
+                        self.is_selected,
+                    ))
+                },
             );
         }
     }

@@ -12,14 +12,14 @@ use ensnare_core::{
 };
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumCount as EnumCountMacro, FromRepr};
+use strum_macros::{EnumCount, FromRepr};
 
 #[derive(
     Clone,
     Copy,
     Debug,
     Default,
-    EnumCountMacro,
+    EnumCount,
     FromRepr,
     PartialEq,
     serde::Deserialize,

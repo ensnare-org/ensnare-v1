@@ -4,7 +4,7 @@
 
 use anyhow::{anyhow, Result};
 use ensnare_core::{
-    piano_roll::{Pattern, PatternBuilder, PatternUid},
+    piano_roll::{Pattern, PatternBuilder, PatternColorScheme, PatternUid},
     prelude::*,
     selection_set::SelectionSet,
     traits::Sequences,
@@ -64,8 +64,13 @@ pub struct Composer {
 impl Composer {
     // TODO temp
     pub fn insert_16_random_patterns(&mut self) {
-        (0..16).for_each(|_| {
-            let _ = self.add_pattern(PatternBuilder::default().random().build().unwrap(), None);
+        (0..16).for_each(|i| {
+            let pattern = PatternBuilder::default()
+                .random()
+                .color_scheme(PatternColorScheme::from_repr(i).unwrap())
+                .build()
+                .unwrap();
+            let _ = self.add_pattern(pattern, None);
         });
     }
 

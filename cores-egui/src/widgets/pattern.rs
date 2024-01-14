@@ -7,7 +7,7 @@ use eframe::{
 };
 use ensnare_core::{
     midi::MidiNote,
-    piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
+    piano_roll::{Note, Pattern, PatternBuilder, PatternColorScheme, PatternUid},
     prelude::*,
     selection_set::SelectionSet,
 };
@@ -28,14 +28,16 @@ pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
 pub fn icon(
     duration: MusicalTime,
     notes: &[Note],
+    colors: (Color32, Color32),
     is_selected: bool,
 ) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| {
-        Icon::new()
+        let r = Icon::new()
             .duration(duration)
             .notes(notes)
-            .is_selected(is_selected)
-            .ui(ui)
+            .colors(colors.0, colors.1)
+            .is_selected(is_selected);
+        r.ui(ui)
     }
 }
 
@@ -67,21 +69,27 @@ pub fn carousel<'a>(
 struct Icon<'a> {
     duration: MusicalTime,
     notes: &'a [Note],
+    colors: (Color32, Color32),
     is_selected: bool,
 }
 impl<'a> Icon<'a> {
     /// Creates a new [Icon].
-    fn new() -> Self {
+    pub fn new() -> Self {
         Default::default()
     }
     /// Sets the duration of the pattern implied by the notes.
-    fn duration(mut self, duration: MusicalTime) -> Self {
+    pub fn duration(mut self, duration: MusicalTime) -> Self {
         self.duration = duration;
         self
     }
     /// Sets the sequence of [Note]s that determine the icon's appearance.
-    fn notes(mut self, notes: &'a [Note]) -> Self {
+    pub fn notes(mut self, notes: &'a [Note]) -> Self {
         self.notes = notes;
+        self
+    }
+    /// Sets the colors of the icon.
+    pub fn colors(mut self, foreground: Color32, background: Color32) -> Self {
+        self.colors = (foreground, background);
         self
     }
     /// Sets whether this widget is selected in the UI.
@@ -103,14 +111,10 @@ impl<'a> eframe::egui::Widget for Icon<'a> {
 
         if self.is_selected {
             ui.painter()
-                .rect(rect, visuals.rounding, visuals.bg_fill, visuals.fg_stroke);
+                .rect(rect, visuals.rounding, self.colors.1, visuals.fg_stroke);
         } else {
-            ui.painter().rect(
-                rect,
-                visuals.rounding,
-                visuals.weak_bg_fill,
-                visuals.bg_stroke,
-            );
+            ui.painter()
+                .rect(rect, visuals.rounding, self.colors.1, visuals.bg_stroke);
         }
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
@@ -119,6 +123,10 @@ impl<'a> eframe::egui::Widget for Icon<'a> {
             ),
             rect,
         );
+        let note_stroke = Stroke {
+            width: visuals.fg_stroke.width,
+            color: self.colors.0,
+        };
         for note in self.notes {
             let key = note.key as f32;
             let p1 = to_screen * eframe::epaint::pos2(note.range.0.start.total_parts() as f32, key);
@@ -129,7 +137,7 @@ impl<'a> eframe::egui::Widget for Icon<'a> {
             if p1.x == p2.x {
                 p2.x += 1.0;
             }
-            ui.painter().line_segment([p1, p2], visuals.fg_stroke);
+            ui.painter().line_segment([p1, p2], note_stroke);
         }
         response
     }
@@ -156,6 +164,48 @@ impl eframe::egui::Widget for DraggableIcon {
         ui.add_sized(desired_size, ImageButton::new(icon))
 
         // response
+    }
+}
+
+struct PatternColorSchemeConverter {}
+impl PatternColorSchemeConverter {
+    fn to_color32(color_scheme: &PatternColorScheme) -> (Color32, Color32) {
+        match color_scheme {
+            // https://www.rapidtables.com/web/color/RGB_Color.html
+            // https://www.sttmedia.com/colornames
+            PatternColorScheme::Red => (Color32::BLACK, Color32::from_rgb(255, 153, 153)),
+            PatternColorScheme::Vermilion => (Color32::BLACK, Color32::from_rgb(255, 178, 153)),
+            PatternColorScheme::Orange => (Color32::BLACK, Color32::from_rgb(255, 204, 153)),
+            PatternColorScheme::Amber => (Color32::BLACK, Color32::from_rgb(255, 229, 153)),
+            PatternColorScheme::Yellow => (Color32::BLACK, Color32::from_rgb(254, 255, 153)),
+            PatternColorScheme::Lime => (Color32::BLACK, Color32::from_rgb(229, 255, 153)),
+            PatternColorScheme::Chartreuse => (Color32::BLACK, Color32::from_rgb(204, 255, 153)),
+            PatternColorScheme::Ddahal => (Color32::BLACK, Color32::from_rgb(178, 255, 153)),
+            PatternColorScheme::Green => (Color32::BLACK, Color32::from_rgb(153, 255, 153)),
+            PatternColorScheme::Erin => (Color32::BLACK, Color32::from_rgb(153, 255, 178)),
+            PatternColorScheme::Spring => (Color32::BLACK, Color32::from_rgb(153, 255, 204)),
+            PatternColorScheme::Gashyanta => (Color32::BLACK, Color32::from_rgb(153, 255, 229)),
+            PatternColorScheme::Cyan => (Color32::BLACK, Color32::from_rgb(153, 254, 255)),
+            PatternColorScheme::Capri => (Color32::BLACK, Color32::from_rgb(153, 229, 255)),
+            PatternColorScheme::Azure => (Color32::BLACK, Color32::from_rgb(153, 203, 255)),
+            PatternColorScheme::Cerulean => (Color32::BLACK, Color32::from_rgb(153, 178, 255)),
+            PatternColorScheme::Blue => (Color32::BLACK, Color32::from_rgb(153, 153, 255)),
+            PatternColorScheme::Volta => (Color32::BLACK, Color32::from_rgb(178, 153, 255)),
+            PatternColorScheme::Violet => (Color32::BLACK, Color32::from_rgb(203, 153, 255)),
+            PatternColorScheme::Llew => (Color32::BLACK, Color32::from_rgb(229, 153, 255)),
+            PatternColorScheme::Magenta => (Color32::BLACK, Color32::from_rgb(255, 153, 254)),
+            PatternColorScheme::Cerise => (Color32::BLACK, Color32::from_rgb(255, 153, 229)),
+            PatternColorScheme::Rose => (Color32::BLACK, Color32::from_rgb(255, 153, 204)),
+            PatternColorScheme::Crimson => (Color32::BLACK, Color32::from_rgb(255, 153, 178)),
+            PatternColorScheme::Gray1 => (Color32::WHITE, Color32::from_rgb(0, 0, 0)),
+            PatternColorScheme::Gray2 => (Color32::WHITE, Color32::from_rgb(32, 32, 32)),
+            PatternColorScheme::Gray3 => (Color32::WHITE, Color32::from_rgb(64, 64, 64)),
+            PatternColorScheme::Gray4 => (Color32::WHITE, Color32::from_rgb(96, 96, 96)),
+            PatternColorScheme::Gray5 => (Color32::WHITE, Color32::from_rgb(128, 128, 128)),
+            PatternColorScheme::Gray6 => (Color32::BLACK, Color32::from_rgb(160, 160, 160)),
+            PatternColorScheme::Gray7 => (Color32::BLACK, Color32::from_rgb(192, 192, 192)),
+            PatternColorScheme::Gray8 => (Color32::BLACK, Color32::from_rgb(224, 224, 224)),
+        }
     }
 }
 
@@ -190,10 +240,13 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
                 ui.vertical(|ui| {
                     ui.set_max_width(icon_width);
                     if let Some(pattern) = self.uids_to_patterns.get(pattern_uid) {
+                        let colors: (Color32, Color32) =
+                            PatternColorSchemeConverter::to_color32(&pattern.color_scheme);
                         if ui
                             .add(icon(
                                 pattern.duration(),
                                 pattern.notes(),
+                                colors,
                                 self.selection_set.contains(pattern_uid),
                             ))
                             .clicked()

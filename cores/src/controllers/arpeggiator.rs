@@ -4,7 +4,7 @@ use super::sequencers::NoteSequencer;
 use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
 use ensnare_proc_macros::Params;
 use std::option::Option;
-use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, IntoStaticStr};
+use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
 #[derive(
     Clone,
@@ -12,7 +12,7 @@ use strum_macros::{Display, EnumCount as EnumCountMacro, EnumIter, FromRepr, Int
     Debug,
     Default,
     Display,
-    EnumCountMacro,
+    EnumCount,
     EnumIter,
     FromRepr,
     IntoStaticStr,
