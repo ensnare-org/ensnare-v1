@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 //! The `pocket-calculator` example is a simple groovebox. It demonstrates using
-//! the `ensnare` crate without an [Orchestrator].
+//! the `ensnare` crate without a [Project].
 
 use anyhow::anyhow;
 use calculator::Calculator;

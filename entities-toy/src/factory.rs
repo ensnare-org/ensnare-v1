@@ -1,9 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare_cores::toys::{
-    ToyControllerParams, ToyEffectParams, ToyInstrumentParams, ToySynthParams,
-};
+use ensnare_cores::toys::ToyControllerParams;
 use ensnare_entity::{prelude::*, traits::EntityBounds};
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very

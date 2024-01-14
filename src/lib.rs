@@ -44,9 +44,6 @@ pub mod control {
     //! by [ControlName] or [ControlIndex], which are discoverable through the
     //! [Controllable](crate::traits::Controllable) trait.
     //!
-    //! [ControlRouter] manages the relationships between controllers and
-    //! controlled entities.
-    //!
     //! All values that pass through the control subsystem are normalized to
     //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for
     //! all applicable types in the system.
@@ -83,19 +80,11 @@ pub mod entities {
     //! generates MIDI messages of its own, which makes it act like a
     //! controller.
     //!
-    //! Every [Entity](crate::traits::Entity) must implement one of the `Is`
-    //! traits: [IsController](crate::traits::IsController),
-    //! [IsEffect](crate::traits::IsEffect),
-    //! [IsInstrument](crate::traits::IsInstrument) (or one of the hybrids of
-    //! these traits).
-
     pub use ensnare_core::uid::{EntityUidFactory, TrackUidFactory};
     pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
 
     pub mod controllers {
-        //! Controllers implement the
-        //! [IsController](crate::traits::IsController) trait, which means that
-        //! they control other devices. An example of a controller is a
+        //! Controllers control other devices. An example of a controller is a
         //! [PatternSequencer], which replays patterns of MIDI messages.
         //!
         //! Generally, controllers produce only control signals, and not audio.
@@ -107,18 +96,14 @@ pub mod entities {
         pub use ensnare_entities::controllers::*;
     }
     pub mod effects {
-        //! Effects implement the [IsEffect](crate::traits::IsEffect) trait,
-        //! which means that they transform audio. They don't produce their own
-        //! audio, and while they don't produce control signals, most of them do
-        //! respond to controls. Examples of effects are [Compressor] and
-        //! [Reverb].
+        //! Effects transform audio. They don't produce their own audio, and
+        //! while they don't produce control signals, most of them do respond to
+        //! controls. Examples of effects are [Compressor] and [Reverb].
         pub use ensnare_entities::effects::*;
     }
 
     pub mod instruments {
-        //! Instruments play sounds. They implement the
-        //! [IsInstrument](crate::traits::IsInstrument) trait, which means that
-        //! they respond to MIDI and produce
+        //! Instruments play sounds. They respond to MIDI and produce
         //! [StereoSamples](crate::types::StereoSample). Examples of instruments
         //! are [Sampler] and [WelshSynth].
         pub use ensnare_entities::instruments::*;

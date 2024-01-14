@@ -6,11 +6,11 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, RectShape, Rounding, Stroke},
 };
+use ensnare_core::prelude::*;
 use ensnare_core::{
     generators::Waveform,
     types::{FrequencyHz, FrequencyRange},
 };
-use ensnare_core::{prelude::*, rng::Rng};
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
 

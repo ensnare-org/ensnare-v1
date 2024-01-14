@@ -96,7 +96,6 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     };
                     ui.add(track_widget(
                         &track_info,
-                        &mut self.project.orchestrator,
                         &mut self.project.composer,
                         &mut self.project.view_state,
                         &mut action,

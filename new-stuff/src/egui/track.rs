@@ -3,7 +3,7 @@
 use super::cursor::cursor;
 use super::signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction};
 use crate::egui::grid::grid;
-use crate::{parts::Orchestrator, project::ProjectViewState};
+use crate::project::ProjectViewState;
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -114,13 +114,12 @@ pub enum TrackWidgetAction {
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
 pub fn track_widget<'a>(
     track_info: &'a TrackInfo<'a>,
-    orchestrator: &'a mut Orchestrator,
     composer: &'a mut Composer,
     view_state: &'a mut ProjectViewState,
     action: &'a mut Option<TrackWidgetAction>,
 ) -> impl Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        TrackWidget::new(track_info, orchestrator, composer, view_state, action).ui(ui)
+        TrackWidget::new(track_info, composer, view_state, action).ui(ui)
     }
 }
 
@@ -128,7 +127,6 @@ pub fn track_widget<'a>(
 #[derive(Debug)]
 struct TrackWidget<'a> {
     track_info: &'a TrackInfo<'a>,
-    orchestrator: &'a mut Orchestrator,
     composer: &'a mut Composer,
     view_state: &'a mut ProjectViewState,
 
@@ -140,14 +138,12 @@ impl<'a> TrackWidget<'a> {
 
     pub fn new(
         track_info: &'a TrackInfo<'a>,
-        orchestrator: &'a mut Orchestrator,
         composer: &'a mut Composer,
         view_state: &'a mut ProjectViewState,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
         Self {
             track_info,
-            orchestrator,
             composer,
             view_state,
             action,

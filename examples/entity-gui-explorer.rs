@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 //! The `entity-gui-explorer` example is a sandbox for developing the GUI part
-//! of Ensnare [Entities](Entity).
+//! of Ensnare entities.
 
 use anyhow::anyhow;
 use eframe::{
