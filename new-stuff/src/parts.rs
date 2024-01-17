@@ -849,7 +849,7 @@ mod tests {
     use ensnare_core::time::TransportBuilder;
     use ensnare_cores::TestEffectNegatesInput;
     use ensnare_entities::instruments::TestInstrument;
-    use ensnare_proc_macros::{Control, IsEntity2, Metadata};
+    use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use more_asserts::assert_gt;
     use std::sync::{Arc, RwLock};
 
@@ -982,8 +982,8 @@ mod tests {
         );
     }
 
-    #[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-    #[entity2(
+    #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[entity(
         Configurable,
         Controls,
         Displays,
@@ -1140,8 +1140,8 @@ mod tests {
         // TODO: finish this
     }
 
-    #[derive(Debug, Control, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-    #[entity2(
+    #[derive(Debug, Control, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[entity(
         Configurable,
         Controls,
         Displays,

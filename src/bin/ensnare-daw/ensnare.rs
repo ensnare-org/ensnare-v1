@@ -401,7 +401,11 @@ impl Ensnare {
                         physical_key,
                     } => {
                         if !repeat && !modifiers.any() {
-                            self.send_to_project(ProjectServiceInput::KeyEvent(*key, *pressed, *physical_key));
+                            self.send_to_project(ProjectServiceInput::KeyEvent(
+                                *key,
+                                *pressed,
+                                *physical_key,
+                            ));
                         }
                     }
                     Event::MouseWheel {

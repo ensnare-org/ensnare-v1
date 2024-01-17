@@ -563,13 +563,13 @@ mod tests {
         instruments::{TestAudioSource, TestInstrumentCountsMidiMessages},
     };
     use ensnare_entities_toy::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
-    use ensnare_proc_macros::{IsEntity2, Metadata};
+    use ensnare_proc_macros::{IsEntity, Metadata};
 
     trait TestEntity: EntityBounds {}
 
-    /// An [IsEntity2] that sends one Control event each time work() is called.
-    #[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-    #[entity2(
+    /// An [IsEntity] that sends one Control event each time work() is called.
+    #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[entity(
         Configurable,
         Controllable,
         Displays,

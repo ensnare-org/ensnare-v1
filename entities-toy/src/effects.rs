@@ -4,7 +4,7 @@ use ensnare_core::prelude::*;
 use ensnare_egui_widgets::drag_normal;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity2, Metadata,
+    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 
@@ -15,12 +15,12 @@ use serde::{Deserialize, Serialize};
     InnerControllable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(HandlesMidi, GeneratesStereoSample, Ticks, Controls)]
+#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls)]
 pub struct ToyEffect {
     uid: Uid,
     #[serde(skip)]

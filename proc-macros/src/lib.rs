@@ -4,7 +4,7 @@
 //!
 //! PRO TIP: use `cargo expand --lib entities` to see what's being generated
 
-use entity::{parse_and_generate_entity2, parse_and_generate_old_entity};
+use entity::parse_and_generate_entity;
 use proc_macro::TokenStream;
 use proc_macro_crate::crate_name;
 use quote::{format_ident, quote};
@@ -15,7 +15,6 @@ mod control;
 mod entity;
 mod inner;
 mod metadata;
-mod params;
 
 /// The `Metadata` macro derives the boilerplate necessary for the `HasMetadata`
 /// trait. If a device needs to interoperate with Orchestrator, then it needs to
@@ -25,45 +24,16 @@ pub fn metadata_derive(input: TokenStream) -> TokenStream {
     metadata::impl_metadata(input)
 }
 
-/// The [Params] macro generates helper structs that are useful for handing
-/// around bundles of arguments. If you have a struct Foo, then this macro
-/// generates a FooParams struct containing all the fields annotated #[params].
-/// It automatically converts fields whose types are #[derive(Params)] to Params
-/// structs as well. So a `#[derive(Params)] struct Foo` with `#[params] bar:
-/// Bar` will generate `struct FooParams` with `bar: BarParams`. It tries to
-/// handle primitives automatically. If you have a type that doesn't need its
-/// own XxxParams struct (e.g., a NewType(u32)), then you should annotate with
-/// #[params(leaf=true)], and it will be treated as a primitive.
-//#[proc_macro_derive(Params, attributes(params))]
-// pub fn params_derive(input: TokenStream) -> TokenStream {
-//     params::impl_params_derive(input, &make_primitives())
-// }
-
 /// Derives helper methods to access Entity traits.
 ///
 /// Available struct-level attributes:
 ///
-/// - `"controller"`: provides scaffolding for the `IsController` trait
-/// - `"effect"`: provides scaffolding for the `IsEffect` trait
-/// - `"instrument"`: provides scaffolding for the `IsInstrument` trait
-/// - `"timeline"`: indicates that this entity should be rendered in the track
-/// timeline, rather than in its own detail view.
-#[proc_macro_derive(IsOldEntity, attributes(old_entity))]
-pub fn entity_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_old_entity(input)
-}
-
-/// Derives helper methods to access Entity2 traits.
-///
-/// Available struct-level attributes:
-///
 /// - `"skip_inner"`: Do not delegate trait methods to a field named "inner".
-/// - `(various)`: implements an empty trait having the same name as the
-///   snake-case attribute. For example, `"handles_midi"` implements an empty
-///   [HandlesMidi] trait.
-#[proc_macro_derive(IsEntity2, attributes(entity2))]
-pub fn entity2_derive(input: TokenStream) -> TokenStream {
-    parse_and_generate_entity2(input)
+/// - `(various)`: implements an empty trait. For example, `HandlesMidi`
+///   implements an empty [HandlesMidi] trait.
+#[proc_macro_derive(IsEntity, attributes(entity))]
+pub fn entity_derive(input: TokenStream) -> TokenStream {
+    parse_and_generate_entity(input)
 }
 
 /// field types that don't recurse further for #[derive(Control)] and
@@ -112,13 +82,6 @@ fn make_primitives() -> HashSet<Ident> {
 #[proc_macro_derive(Control, attributes(control))]
 pub fn derive_control(input: TokenStream) -> TokenStream {
     control::impl_derive_control(input, &make_primitives())
-}
-
-/// The [ParamBindings] macro derives the code that associates an implementer of
-/// [MakesParams] (specific to the ensnare-daw project) with its parameters.
-#[proc_macro_derive(ParamBindings)]
-pub fn derive_param_bindings(input: TokenStream) -> TokenStream {
-    params::impl_derive_bindings(input)
 }
 
 /// Derives code that delegates the implementation of the [Configurable] trait

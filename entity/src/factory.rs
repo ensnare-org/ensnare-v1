@@ -375,7 +375,7 @@ mod tests {
     use super::EntityStore;
     use crate::traits::EntityBounds;
     use ensnare_core::prelude::*;
-    use ensnare_proc_macros::{Control, IsEntity2, Metadata};
+    use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use serde::{Deserialize, Serialize};
 
     mod cores {
@@ -397,8 +397,8 @@ mod tests {
         }
     }
 
-    #[derive(Control, Debug, Default, Metadata, PartialEq, Serialize, Deserialize, IsEntity2)]
-    #[entity2(
+    #[derive(Control, Debug, Default, Metadata, PartialEq, Serialize, Deserialize, IsEntity)]
+    #[entity(
         Controls,
         Displays,
         HandlesMidi,

@@ -1,12 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{IsEntity2, Metadata};
+use ensnare_proc_macros::{IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 
-/// The smallest possible [IsEntity2].
-#[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(
+/// The smallest possible [IsEntity].
+#[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controllable,
     Controls,

@@ -4,7 +4,7 @@ use eframe::egui::Slider;
 use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity2, Metadata,
+    InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 pub mod filter;
@@ -16,12 +16,12 @@ pub mod filter;
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 pub struct Bitcrusher {
     uid: Uid,
     #[serde(skip)]
@@ -54,12 +54,12 @@ impl Bitcrusher {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 
 pub struct Chorus {
     uid: Uid,
@@ -87,12 +87,12 @@ impl Chorus {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 
 pub struct Compressor {
     uid: Uid,
@@ -162,12 +162,12 @@ impl Compressor {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 
 pub struct Gain {
     uid: Uid,
@@ -205,12 +205,12 @@ impl Gain {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 
 pub struct Limiter {
     uid: Uid,
@@ -252,9 +252,9 @@ impl Limiter {
 }
 
 #[derive(
-    Debug, Default, InnerControllable, InnerEffect, IsEntity2, Metadata, Serialize, Deserialize,
+    Debug, Default, InnerControllable, InnerEffect, IsEntity, Metadata, Serialize, Deserialize,
 )]
-#[entity2(
+#[entity(
     Configurable,
     Controls,
     GeneratesStereoSample,
@@ -290,12 +290,12 @@ impl Mixer {
     InnerConfigurable,
     InnerEffect,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 
 pub struct Reverb {
     uid: Uid,

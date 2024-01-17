@@ -1,14 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{InnerInstrument, IsEntity2, Metadata};
+use ensnare_proc_macros::{InnerInstrument, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-/// The smallest possible [IsEntity2].
-#[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(SkipInner)]
-#[entity2(
+/// The smallest possible [IsEntity].
+#[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(SkipInner)]
+#[entity(
     Controllable,
     Controls,
     Displays,
@@ -52,8 +52,8 @@ impl Generates<StereoSample> for TestInstrument {
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
-#[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(
+#[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controllable,
     Controls,
@@ -63,7 +63,7 @@ impl Generates<StereoSample> for TestInstrument {
     Ticks,
     TransformsAudio
 )]
-#[entity2("skip_inner", "controls")]
+#[entity("skip_inner", "controls")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
     #[serde(skip)]
@@ -96,8 +96,8 @@ impl TestInstrumentCountsMidiMessages {
     }
 }
 
-#[derive(Debug, Default, InnerInstrument, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(
+#[derive(Debug, Default, InnerInstrument, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controllable,
     Controls,
@@ -106,7 +106,7 @@ impl TestInstrumentCountsMidiMessages {
     SkipInner,
     TransformsAudio
 )]
-#[entity2(SkipInner, HandlesMidi)]
+#[entity(SkipInner, HandlesMidi)]
 pub struct TestAudioSource {
     uid: Uid,
     inner: ensnare_cores::TestAudioSource,

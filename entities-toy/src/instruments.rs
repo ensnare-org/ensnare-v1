@@ -10,7 +10,7 @@ use ensnare_egui_widgets::{envelope, oscillator};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
-    IsEntity2, Metadata,
+    IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,11 +23,11 @@ use serde::{Deserialize, Serialize};
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
 )]
-#[entity2(Controls, TransformsAudio)]
+#[entity(Controls, TransformsAudio)]
 pub struct ToyInstrument {
     uid: Uid,
     inner: ensnare_cores::toys::ToyInstrument,
@@ -52,12 +52,12 @@ impl ToyInstrument {
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct ToySynth {
     uid: Uid,
     inner: ensnare_cores::toys::ToySynth,

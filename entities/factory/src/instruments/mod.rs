@@ -11,15 +11,15 @@ use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
-    InnerSerializable, IsEntity2, Metadata,
+    InnerSerializable, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(
-    Debug, InnerControllable, InnerConfigurable, IsEntity2, Metadata, Serialize, Deserialize,
+    Debug, InnerControllable, InnerConfigurable, IsEntity, Metadata, Serialize, Deserialize,
 )]
-#[entity2(
+#[entity(
     Controls,
     GeneratesStereoSample,
     HandlesMidi,
@@ -54,12 +54,12 @@ impl Drumkit {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controls, TransformsAudio)]
+#[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
     #[serde(skip)]
@@ -105,11 +105,11 @@ impl FmSynth {
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
+#[entity(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
     #[serde(skip)]
@@ -141,11 +141,11 @@ impl Sampler {
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
 )]
-#[entity2(Controls, TransformsAudio)]
+#[entity(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
     inner: ensnare_cores::WelshSynth,

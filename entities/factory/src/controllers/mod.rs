@@ -11,7 +11,7 @@ use ensnare_cores_egui::controllers::{
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
-    InnerTransformsAudio, IsEntity2, Metadata,
+    InnerTransformsAudio, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
@@ -21,10 +21,8 @@ pub enum SequencerInput {
     AddPattern(PatternUid, MusicalTime),
 }
 
-#[derive(
-    Debug, Default, Control, InnerHandlesMidi, IsEntity2, Metadata, Serialize, Deserialize,
-)]
-#[entity2(
+#[derive(Debug, Default, Control, InnerHandlesMidi, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controls,
     GeneratesStereoSample,
@@ -51,8 +49,8 @@ impl Arpeggiator {
     }
 }
 
-#[derive(Debug, Default, InnerControls, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(
+#[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controllable,
     GeneratesStereoSample,
@@ -109,12 +107,12 @@ impl Sequences for PatternSequencer {
     InnerConfigurable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(Controllable, GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(Controllable, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct LivePatternSequencer {
     uid: Uid,
     #[serde(skip)]
@@ -200,8 +198,8 @@ impl Controls for LivePatternSequencer {
     }
 }
 
-#[derive(Debug, Default, InnerControls, IsEntity2, Metadata, Serialize, Deserialize)]
-#[entity2(
+#[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
+#[entity(
     Configurable,
     Controllable,
     GeneratesStereoSample,
@@ -240,12 +238,12 @@ impl NoteSequencer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(TransformsAudio, GeneratesStereoSample, Ticks, Controllable)]
+#[entity(TransformsAudio, GeneratesStereoSample, Ticks, Controllable)]
 pub struct ThinSequencer {
     uid: Uid,
     #[serde(skip)]
@@ -293,12 +291,12 @@ impl ThinSequencer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct LfoController {
     uid: Uid,
     #[serde(skip)]
@@ -333,12 +331,12 @@ impl Displays for LfoController {
     InnerHandlesMidi,
     InnerSerializable,
     InnerTransformsAudio,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks)]
+#[entity(GeneratesStereoSample, Ticks)]
 pub struct SignalPassthroughController {
     uid: Uid,
     #[serde(skip)]
@@ -376,12 +374,12 @@ impl SignalPassthroughController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
     #[serde(skip)]
@@ -404,12 +402,12 @@ impl Timer {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,
     #[serde(skip)]

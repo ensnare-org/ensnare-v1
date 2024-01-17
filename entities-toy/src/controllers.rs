@@ -5,7 +5,7 @@ use ensnare_core::prelude::*;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
-    IsEntity2, Metadata,
+    IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
     InnerControllable,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
@@ -57,12 +57,12 @@ impl ToyController {
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
-    IsEntity2,
+    IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity2(
+#[entity(
     Controllable,
     Displays,
     GeneratesStereoSample,
