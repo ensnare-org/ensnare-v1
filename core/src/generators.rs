@@ -471,25 +471,15 @@ enum State {
 //     }
 // }
 
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
-pub struct Envelope {
-    #[control]
-    attack: Normal,
-    #[control]
-    decay: Normal,
-    #[control]
-    sustain: Normal,
-    #[control]
-    release: Normal,
-
+#[derive(Debug)]
+pub struct EnvelopeEphemerals {
     sample_rate: SampleRate,
     state: State,
-    was_reset: bool,
+    handled_first_tick: bool,
 
     ticks: usize,
     time: Seconds,
 
-    #[serde(skip)]
     uncorrected_amplitude: KahanSum<f64>,
     corrected_amplitude: f64,
     delta: f64,
@@ -512,6 +502,44 @@ pub struct Envelope {
     concave_b: f64,
     concave_c: f64,
 }
+impl Default for EnvelopeEphemerals {
+    fn default() -> Self {
+        Self {
+            sample_rate: Default::default(),
+            state: Default::default(),
+            handled_first_tick: Default::default(),
+            ticks: Default::default(),
+            time: Default::default(),
+            uncorrected_amplitude: Default::default(),
+            corrected_amplitude: Default::default(),
+            delta: Default::default(),
+            amplitude_target: Default::default(),
+            time_target: Default::default(),
+            amplitude_was_set: Default::default(),
+            convex_a: Default::default(),
+            convex_b: Default::default(),
+            convex_c: Default::default(),
+            concave_a: Default::default(),
+            concave_b: Default::default(),
+            concave_c: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
+pub struct Envelope {
+    #[control]
+    attack: Normal,
+    #[control]
+    decay: Normal,
+    #[control]
+    sustain: Normal,
+    #[control]
+    release: Normal,
+
+    #[serde(skip)]
+    e: EnvelopeEphemerals,
+}
 impl GeneratesEnvelope for Envelope {
     fn trigger_attack(&mut self) {
         self.set_state(State::Attack);
@@ -523,12 +551,12 @@ impl GeneratesEnvelope for Envelope {
         self.set_state(State::Shutdown);
     }
     fn is_idle(&self) -> bool {
-        matches!(self.state, State::Idle)
+        matches!(self.e.state, State::Idle)
     }
 }
 impl Generates<Normal> for Envelope {
     fn value(&self) -> Normal {
-        Normal::new(self.corrected_amplitude)
+        Normal::new(self.e.corrected_amplitude)
     }
 
     fn generate_batch_values(&mut self, values: &mut [Normal]) {
@@ -543,12 +571,12 @@ impl Generates<Normal> for Envelope {
 }
 impl Configurable for Envelope {
     fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
+        self.e.sample_rate
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
-        self.was_reset = true;
+        self.e.sample_rate = sample_rate;
+        self.e.handled_first_tick = false;
     }
 }
 impl Ticks for Envelope {
@@ -556,24 +584,24 @@ impl Ticks for Envelope {
         // TODO: same comment as above about not yet taking advantage of
         // batching
         for _ in 0..tick_count {
-            let pre_update_amplitude = self.uncorrected_amplitude.sum();
-            if self.was_reset {
-                self.was_reset = false;
+            let pre_update_amplitude = self.e.uncorrected_amplitude.sum();
+            if !self.e.handled_first_tick {
+                self.e.handled_first_tick = true;
             } else {
-                self.ticks += 1;
+                self.e.ticks += 1;
                 self.update_amplitude();
             }
-            self.time = Seconds(self.ticks as f64 / self.sample_rate.0 as f64);
+            self.e.time = Seconds(self.e.ticks as f64 / self.e.sample_rate.0 as f64);
 
             self.handle_state();
 
-            let linear_amplitude = if self.amplitude_was_set {
-                self.amplitude_was_set = false;
+            let linear_amplitude = if self.e.amplitude_was_set {
+                self.e.amplitude_was_set = false;
                 pre_update_amplitude
             } else {
-                self.uncorrected_amplitude.sum()
+                self.e.uncorrected_amplitude.sum()
             };
-            self.corrected_amplitude = match self.state {
+            self.e.corrected_amplitude = match self.e.state {
                 State::Attack => self.transform_linear_to_convex(linear_amplitude),
                 State::Decay | State::Release => self.transform_linear_to_concave(linear_amplitude),
                 _ => linear_amplitude,
@@ -591,23 +619,7 @@ impl Envelope {
             decay,
             sustain,
             release,
-            sample_rate: Default::default(),
-            state: State::Idle,
-            was_reset: true,
-            ticks: Default::default(),
-            time: Default::default(),
-            uncorrected_amplitude: Default::default(),
-            corrected_amplitude: 0.0,
-            delta: Default::default(),
-            amplitude_target: Default::default(),
-            time_target: Default::default(),
-            amplitude_was_set: Default::default(),
-            convex_a: Default::default(),
-            convex_b: Default::default(),
-            convex_c: Default::default(),
-            concave_a: Default::default(),
-            concave_b: Default::default(),
-            concave_c: Default::default(),
+            e: Default::default(),
         }
     }
 
@@ -624,11 +636,11 @@ impl Envelope {
     }
 
     fn update_amplitude(&mut self) {
-        self.uncorrected_amplitude += self.delta;
+        self.e.uncorrected_amplitude += self.e.delta;
     }
 
     fn handle_state(&mut self) {
-        let (next_state, awaiting_target) = match self.state {
+        let (next_state, awaiting_target) = match self.e.state {
             State::Idle => (State::Idle, false),
             State::Attack => (State::Decay, true),
             State::Decay => (State::Sustain, true),
@@ -643,11 +655,11 @@ impl Envelope {
 
     fn has_reached_target(&mut self) -> bool {
         #[allow(clippy::if_same_then_else)]
-        let has_hit_target = if self.delta == 0.0 {
+        let has_hit_target = if self.e.delta == 0.0 {
             // This is probably a degenerate case, but we don't want to be stuck
             // forever in the current state.
             true
-        } else if self.time_target.0 != 0.0 && self.time >= self.time_target {
+        } else if self.e.time_target.0 != 0.0 && self.e.time >= self.e.time_target {
             // If we have a time target and we've hit it, then we're done even
             // if the amplitude isn't quite there yet.
             true
@@ -655,7 +667,8 @@ impl Envelope {
             // Is the difference between the current value and the target
             // smaller than the delta? This is a fancy way of saying we're as
             // close as we're going to get without overshooting the next time.
-            (self.uncorrected_amplitude.sum() - self.amplitude_target).abs() < self.delta.abs()
+            (self.e.uncorrected_amplitude.sum() - self.e.amplitude_target).abs()
+                < self.e.delta.abs()
         };
 
         if has_hit_target {
@@ -663,7 +676,7 @@ impl Envelope {
             // don't want to set self.amplitude_was_set here because this is
             // happening after the update, so we'll already be returning the
             // amplitude snapshotted at the right time.
-            self.uncorrected_amplitude = KahanSum::new_with_value(self.amplitude_target);
+            self.e.uncorrected_amplitude = KahanSum::new_with_value(self.e.amplitude_target);
         }
         has_hit_target
     }
@@ -676,28 +689,29 @@ impl Envelope {
     fn set_state(&mut self, new_state: State) {
         match new_state {
             State::Idle => {
-                self.state = State::Idle;
-                self.uncorrected_amplitude = Default::default();
-                self.delta = 0.0;
+                self.e.state = State::Idle;
+                self.e.uncorrected_amplitude = Default::default();
+                self.e.delta = 0.0;
             }
             State::Attack => {
                 if self.attack == Normal::minimum() {
                     self.set_explicit_amplitude(Normal::maximum());
                     self.set_state(State::Decay);
                 } else {
-                    self.state = State::Attack;
+                    self.e.state = State::Attack;
                     let target_amplitude = Normal::maximum().0;
                     self.set_target(Normal::maximum(), self.attack, false, false);
-                    let current_amplitude = self.uncorrected_amplitude.sum();
+                    let current_amplitude = self.e.uncorrected_amplitude.sum();
 
-                    (self.convex_a, self.convex_b, self.convex_c) = Self::calculate_coefficients(
-                        current_amplitude,
-                        current_amplitude,
-                        (target_amplitude - current_amplitude) / 2.0 + current_amplitude,
-                        (target_amplitude - current_amplitude) / 1.5 + current_amplitude,
-                        target_amplitude,
-                        target_amplitude,
-                    );
+                    (self.e.convex_a, self.e.convex_b, self.e.convex_c) =
+                        Self::calculate_coefficients(
+                            current_amplitude,
+                            current_amplitude,
+                            (target_amplitude - current_amplitude) / 2.0 + current_amplitude,
+                            (target_amplitude - current_amplitude) / 1.5 + current_amplitude,
+                            target_amplitude,
+                            target_amplitude,
+                        );
                 }
             }
             State::Decay => {
@@ -705,22 +719,23 @@ impl Envelope {
                     self.set_explicit_amplitude(self.sustain);
                     self.set_state(State::Sustain);
                 } else {
-                    self.state = State::Decay;
+                    self.e.state = State::Decay;
                     let target_amplitude = self.sustain.0;
                     self.set_target(self.sustain, self.decay, true, false);
-                    let current_amplitude = self.uncorrected_amplitude.sum();
-                    (self.concave_a, self.concave_b, self.concave_c) = Self::calculate_coefficients(
-                        current_amplitude,
-                        current_amplitude,
-                        (current_amplitude - target_amplitude) / 2.0 + target_amplitude,
-                        (current_amplitude - target_amplitude) / 3.0 + target_amplitude,
-                        target_amplitude,
-                        target_amplitude,
-                    );
+                    let current_amplitude = self.e.uncorrected_amplitude.sum();
+                    (self.e.concave_a, self.e.concave_b, self.e.concave_c) =
+                        Self::calculate_coefficients(
+                            current_amplitude,
+                            current_amplitude,
+                            (current_amplitude - target_amplitude) / 2.0 + target_amplitude,
+                            (current_amplitude - target_amplitude) / 3.0 + target_amplitude,
+                            target_amplitude,
+                            target_amplitude,
+                        );
                 }
             }
             State::Sustain => {
-                self.state = State::Sustain;
+                self.e.state = State::Sustain;
                 self.set_target(self.sustain, Normal::maximum(), false, false);
             }
             State::Release => {
@@ -728,22 +743,23 @@ impl Envelope {
                     self.set_explicit_amplitude(Normal::maximum());
                     self.set_state(State::Idle);
                 } else {
-                    self.state = State::Release;
+                    self.e.state = State::Release;
                     let target_amplitude = 0.0;
                     self.set_target(Normal::minimum(), self.release, true, false);
-                    let current_amplitude = self.uncorrected_amplitude.sum();
-                    (self.concave_a, self.concave_b, self.concave_c) = Self::calculate_coefficients(
-                        current_amplitude,
-                        current_amplitude,
-                        (current_amplitude - target_amplitude) / 2.0 + target_amplitude,
-                        (current_amplitude - target_amplitude) / 3.0 + target_amplitude,
-                        target_amplitude,
-                        target_amplitude,
-                    );
+                    let current_amplitude = self.e.uncorrected_amplitude.sum();
+                    (self.e.concave_a, self.e.concave_b, self.e.concave_c) =
+                        Self::calculate_coefficients(
+                            current_amplitude,
+                            current_amplitude,
+                            (current_amplitude - target_amplitude) / 2.0 + target_amplitude,
+                            (current_amplitude - target_amplitude) / 3.0 + target_amplitude,
+                            target_amplitude,
+                            target_amplitude,
+                        );
                 }
             }
             State::Shutdown => {
-                self.state = State::Shutdown;
+                self.e.state = State::Shutdown;
                 self.set_target(
                     Normal::minimum(),
                     Envelope::from_seconds_to_normal(Seconds(1.0 / 1000.0)),
@@ -755,8 +771,8 @@ impl Envelope {
     }
 
     fn set_explicit_amplitude(&mut self, amplitude: Normal) {
-        self.uncorrected_amplitude = KahanSum::new_with_value(amplitude.0);
-        self.amplitude_was_set = true;
+        self.e.uncorrected_amplitude = KahanSum::new_with_value(amplitude.0);
+        self.e.amplitude_was_set = true;
     }
 
     fn set_target(
@@ -766,27 +782,28 @@ impl Envelope {
         calculate_for_full_amplitude_range: bool,
         fast_reaction: bool,
     ) {
-        self.amplitude_target = target_amplitude.into();
+        self.e.amplitude_target = target_amplitude.into();
         if duration != Normal::maximum() {
             let fast_reaction_extra_frame = if fast_reaction { 1.0 } else { 0.0 };
             let range = if calculate_for_full_amplitude_range {
                 -1.0
             } else {
-                self.amplitude_target - self.uncorrected_amplitude.sum()
+                self.e.amplitude_target - self.e.uncorrected_amplitude.sum()
             };
             let duration_seconds = Self::from_normal_to_seconds(duration);
-            self.time_target = self.time + duration_seconds;
-            self.delta = if duration != Normal::minimum() {
-                range / (duration_seconds.0 * self.sample_rate.0 as f64 + fast_reaction_extra_frame)
+            self.e.time_target = self.e.time + duration_seconds;
+            self.e.delta = if duration != Normal::minimum() {
+                range
+                    / (duration_seconds.0 * self.e.sample_rate.0 as f64 + fast_reaction_extra_frame)
             } else {
                 0.0
             };
             if fast_reaction {
-                self.uncorrected_amplitude += self.delta;
+                self.e.uncorrected_amplitude += self.e.delta;
             }
         } else {
-            self.time_target = Seconds::infinite();
-            self.delta = 0.0;
+            self.e.time_target = Seconds::infinite();
+            self.e.delta = 0.0;
         }
     }
 
@@ -825,10 +842,10 @@ impl Envelope {
     }
 
     fn transform_linear_to_convex(&self, linear_value: f64) -> f64 {
-        self.convex_c * linear_value.powi(2) + self.convex_b * linear_value + self.convex_a
+        self.e.convex_c * linear_value.powi(2) + self.e.convex_b * linear_value + self.e.convex_a
     }
     fn transform_linear_to_concave(&self, linear_value: f64) -> f64 {
-        self.concave_c * linear_value.powi(2) + self.concave_b * linear_value + self.concave_a
+        self.e.concave_c * linear_value.powi(2) + self.e.concave_b * linear_value + self.e.concave_a
     }
 
     pub fn attack(&self) -> Normal {
@@ -863,17 +880,6 @@ impl Envelope {
         self.release = release;
     }
 
-    // // TODO: experimental, not sure if this is the right pattern. It is
-    // // basically a from_params() that's meant to allow changes without
-    // // disrupting everything, which probably means it won't be the kind of thing
-    // // a macro can generate.
-    // pub fn update_from_params(&mut self, params: &EnvelopeParams) {
-    //     self.set_attack(params.attack());
-    //     self.set_decay(params.decay());
-    //     self.set_sustain(params.sustain());
-    //     self.set_release(params.release());
-    // }
-
     /// The current value of the envelope generator. Note that this value is
     /// often not the one you want if you really care about getting the
     /// amplitude at specific interesting time points in the envelope's
@@ -885,12 +891,12 @@ impl Envelope {
     /// updating for the time slice.
     #[allow(dead_code)]
     fn debug_amplitude(&self) -> Normal {
-        Normal::new(self.uncorrected_amplitude.sum())
+        Normal::new(self.e.uncorrected_amplitude.sum())
     }
 
     #[allow(dead_code)]
     fn debug_state(&self) -> &State {
-        &self.state
+        &self.e.state
     }
 
     #[allow(dead_code)]
@@ -2067,13 +2073,13 @@ mod tests {
             amplitudes[0].0,
             (Normal::MAX - Normal::MIN) / 2.0,
             "At sample rate {}, shutdown state should take two samples to go from 1.0 to 0.0, but when we checked it's {}.",
-            e.sample_rate, amplitudes[0].0
+            e.sample_rate(), amplitudes[0].0
         );
         assert_eq!(
             amplitudes[1].0,
             Normal::MIN,
             "At sample rate {}, shutdown state should reach 0.0 within two samples.",
-            e.sample_rate
+            e.sample_rate()
         );
     }
 

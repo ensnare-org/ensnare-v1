@@ -122,9 +122,9 @@ impl Ticks for FmVoice {
 }
 impl FmVoice {
     pub fn new_with(
-        carrier_oscillator: &Oscillator,
+        carrier: &Oscillator,
         carrier_envelope: &Envelope,
-        modulator_oscillator: &Oscillator,
+        modulator: &Oscillator,
         modulator_envelope: &Envelope,
         depth: Normal,
         ratio: Ratio,
@@ -132,9 +132,9 @@ impl FmVoice {
         dca: &Dca,
     ) -> Self {
         Self {
-            carrier: carrier_oscillator.make_another(),
+            carrier: carrier.make_another(),
             carrier_envelope: carrier_envelope.make_another(),
-            modulator: modulator_oscillator.make_another(),
+            modulator: modulator.make_another(),
             modulator_envelope: modulator_envelope.make_another(),
             depth,
             ratio,
@@ -205,6 +205,18 @@ impl FmVoice {
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct FmSynth {
     #[control]
+    pub carrier: Oscillator,
+
+    #[control]
+    pub carrier_envelope: Envelope,
+
+    #[control]
+    pub modulator: Oscillator,
+
+    #[control]
+    pub modulator_envelope: Envelope,
+
+    #[control]
     depth: Normal,
 
     #[control]
@@ -212,12 +224,6 @@ pub struct FmSynth {
 
     #[control]
     beta: ParameterType,
-
-    #[control]
-    pub carrier_envelope: Envelope,
-
-    #[control]
-    pub modulator_envelope: Envelope,
 
     #[control]
     pub dca: Dca,
@@ -234,7 +240,22 @@ impl Generates<StereoSample> for FmSynth {
         self.inner.generate_batch_values(values);
     }
 }
-impl Serializable for FmSynth {}
+impl Serializable for FmSynth {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {
+        self.inner = Synthesizer::<FmVoice>::new_with(Box::new(Self::make_voice_store(
+            &self.carrier,
+            &self.carrier_envelope,
+            &self.modulator,
+            &self.modulator_envelope,
+            self.depth,
+            self.ratio,
+            self.beta,
+            &self.dca,
+        )))
+    }
+}
 impl Configurable for FmSynth {
     delegate! {
         to self.inner {
@@ -277,30 +298,53 @@ impl FmSynth {
         beta: ParameterType,
         dca: Dca,
     ) -> Self {
-        // let prototype_voice = ;
-        const VOICE_CAPACITY: usize = 8;
-        let voice_store = StealingVoiceStore::<FmVoice>::new_with_voice(VOICE_CAPACITY, || {
-            FmVoice::new_with(
-                &carrier_oscillator,
-                &carrier_envelope,
-                &modulator_oscillator,
-                &modulator_envelope,
-                depth,
-                ratio,
-                beta,
-                &dca,
-            )
-        });
-
-        Self {
-            inner: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
+        let voice_store = Self::make_voice_store(
+            &carrier_oscillator,
+            &carrier_envelope,
+            &modulator_oscillator,
+            &modulator_envelope,
             depth,
             ratio,
             beta,
+            &dca,
+        );
+
+        Self {
             carrier_envelope,
+            carrier: carrier_oscillator,
             modulator_envelope,
+            modulator: modulator_oscillator,
+            depth,
+            ratio,
+            beta,
             dca,
+            inner: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
         }
+    }
+
+    fn make_voice_store(
+        carrier_oscillator: &Oscillator,
+        carrier_envelope: &Envelope,
+        modulator_oscillator: &Oscillator,
+        modulator_envelope: &Envelope,
+        depth: Normal,
+        ratio: Ratio,
+        beta: f64,
+        dca: &Dca,
+    ) -> StealingVoiceStore<FmVoice> {
+        const VOICE_CAPACITY: usize = 8;
+        StealingVoiceStore::<FmVoice>::new_with_voice(VOICE_CAPACITY, || {
+            FmVoice::new_with(
+                carrier_oscillator,
+                carrier_envelope,
+                modulator_oscillator,
+                modulator_envelope,
+                depth,
+                ratio,
+                beta,
+                dca,
+            )
+        })
     }
 
     pub fn set_depth(&mut self, depth: Normal) {
@@ -330,10 +374,22 @@ impl FmSynth {
         self.beta
     }
 
+    pub fn notify_change_carrier(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.carrier.update_from_prototype(&self.carrier);
+        });
+    }
+
     pub fn notify_change_carrier_envelope(&mut self) {
         self.inner.voices_mut().for_each(|v| {
             v.carrier_envelope
                 .update_from_prototype(&self.carrier_envelope);
+        });
+    }
+
+    pub fn notify_change_modulator(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.modulator.update_from_prototype(&self.modulator);
         });
     }
 
