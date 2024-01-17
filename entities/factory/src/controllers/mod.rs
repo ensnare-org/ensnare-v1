@@ -2,13 +2,8 @@
 
 use crossbeam_channel::Sender;
 use delegate::delegate;
-use ensnare_core::{
-    controllers::{TimerParams, TriggerParams},
-    prelude::*,
-};
-use ensnare_cores::{
-    ArpeggiatorParams, Composer, LfoControllerParams, SignalPassthroughControllerParams,
-};
+use ensnare_core::{generators::Oscillator, prelude::*};
+use ensnare_cores::Composer;
 use ensnare_cores_egui::controllers::{
     arpeggiator, lfo_controller, live_pattern_sequencer_widget, note_sequencer_widget,
     pattern_sequencer_widget,
@@ -48,10 +43,10 @@ impl Displays for Arpeggiator {
     }
 }
 impl Arpeggiator {
-    pub fn new_with(uid: Uid, params: &ArpeggiatorParams) -> Self {
+    pub fn new_with(uid: Uid, bpm: Tempo) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Arpeggiator::new_with(&params, MidiChannel::default()),
+            inner: ensnare_cores::Arpeggiator::new_with(bpm, MidiChannel::default()),
         }
     }
 }
@@ -310,21 +305,21 @@ pub struct LfoController {
     inner: ensnare_cores::LfoController,
 }
 impl LfoController {
-    pub fn new_with(uid: Uid, params: &LfoControllerParams) -> Self {
+    pub fn new_with(uid: Uid, oscillator: Oscillator) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::LfoController::new_with(params),
+            inner: ensnare_cores::LfoController::new_with(oscillator),
         }
     }
 }
 impl Displays for LfoController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut waveform = self.inner.waveform;
-        let mut frequency = self.inner.frequency;
-        let response = ui.add(lfo_controller(&mut waveform, &mut frequency));
+        let response = ui.add(lfo_controller(
+            &mut self.inner.oscillator.waveform,
+            &mut self.inner.oscillator.frequency,
+        ));
         if response.changed() {
-            self.inner.set_waveform(waveform);
-            self.inner.set_frequency(frequency);
+            self.inner.notify_change_oscillator();
         }
         response
     }
@@ -352,7 +347,7 @@ pub struct SignalPassthroughController {
 impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
     #[allow(unused_variables)]
-    pub fn new_with(uid: Uid, params: &SignalPassthroughControllerParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
             inner: ensnare_cores::controllers::SignalPassthroughController::new(),
@@ -394,10 +389,10 @@ pub struct Timer {
 }
 impl Displays for Timer {}
 impl Timer {
-    pub fn new_with(uid: Uid, params: &TimerParams) -> Self {
+    pub fn new_with(uid: Uid, duration: MusicalTime) -> Self {
         Self {
             uid,
-            inner: ensnare_core::controllers::Timer::new_with(params),
+            inner: ensnare_core::controllers::Timer::new_with(duration),
         }
     }
 }
@@ -422,10 +417,14 @@ pub struct Trigger {
 }
 impl Displays for Trigger {}
 impl Trigger {
-    pub fn new_with(uid: Uid, params: &TriggerParams) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        timer: ensnare_core::controllers::Timer,
+        value: ControlValue,
+    ) -> Self {
         Self {
             uid,
-            inner: ensnare_core::controllers::Trigger::new_with(params),
+            inner: ensnare_core::controllers::Trigger::new_with(timer, value),
         }
     }
 }

@@ -1,11 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::egui::Slider;
-use ensnare_core::prelude::*;
-use ensnare_cores::{
-    BitcrusherParams, ChorusParams, CompressorParams, GainParams, LimiterParams, MixerParams,
-    ReverbParams,
-};
+use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity2, Metadata,
@@ -43,10 +39,10 @@ impl Displays for Bitcrusher {
     }
 }
 impl Bitcrusher {
-    pub fn new_with(uid: Uid, params: &BitcrusherParams) -> Self {
+    pub fn new_with(uid: Uid, bits: u8) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Bitcrusher::new_with(&params),
+            inner: ensnare_cores::Bitcrusher::new_with(bits),
         }
     }
 }
@@ -76,10 +72,10 @@ impl Displays for Chorus {
     }
 }
 impl Chorus {
-    pub fn new_with(uid: Uid, params: &ChorusParams) -> Self {
+    pub fn new_with(uid: Uid, voices: usize, delay: Seconds) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Chorus::new_with(&params),
+            inner: ensnare_cores::Chorus::new_with(voices, delay),
         }
     }
 }
@@ -106,9 +102,9 @@ pub struct Compressor {
 impl Displays for Compressor {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut threshold = self.inner.threshold().0;
-        let mut ratio = self.inner.ratio();
-        let mut attack = self.inner.attack();
-        let mut release = self.inner.release();
+        let mut ratio = self.inner.ratio().0;
+        let mut attack = self.inner.attack().0;
+        let mut release = self.inner.release().0;
         let threshold_response = ui.add(
             Slider::new(&mut threshold, Normal::range())
                 .fixed_decimals(2)
@@ -118,12 +114,12 @@ impl Displays for Compressor {
             self.inner.set_threshold(threshold.into());
         };
         let ratio_response = ui.add(
-            Slider::new(&mut ratio, Normal::range())
+            Slider::new(&mut ratio, 0.05..=2.0)
                 .fixed_decimals(2)
                 .text("Ratio"),
         );
         if ratio_response.changed() {
-            self.inner.set_ratio(ratio);
+            self.inner.set_ratio(ratio.into());
         };
         let attack_response = ui.add(
             Slider::new(&mut attack, Normal::range())
@@ -131,7 +127,7 @@ impl Displays for Compressor {
                 .text("Attack"),
         );
         if attack_response.changed() {
-            self.inner.set_attack(attack);
+            self.inner.set_attack(attack.into());
         };
         let release_response = ui.add(
             Slider::new(&mut release, Normal::range())
@@ -139,16 +135,22 @@ impl Displays for Compressor {
                 .text("Release"),
         );
         if release_response.changed() {
-            self.inner.set_release(release);
+            self.inner.set_release(release.into());
         };
         threshold_response | ratio_response | attack_response | release_response
     }
 }
 impl Compressor {
-    pub fn new_with(uid: Uid, params: &CompressorParams) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        threshold: Normal,
+        ratio: Ratio,
+        attack: Normal,
+        release: Normal,
+    ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Compressor::new_with(&params),
+            inner: ensnare_cores::Compressor::new_with(threshold, ratio, attack, release),
         }
     }
 }
@@ -188,10 +190,10 @@ impl Displays for Gain {
     }
 }
 impl Gain {
-    pub fn new_with(uid: Uid, params: &GainParams) -> Self {
+    pub fn new_with(uid: Uid, ceiling: Normal) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Gain::new_with(&params),
+            inner: ensnare_cores::Gain::new_with(ceiling),
         }
     }
 }
@@ -241,10 +243,10 @@ impl Displays for Limiter {
     }
 }
 impl Limiter {
-    pub fn new_with(uid: Uid, params: &LimiterParams) -> Self {
+    pub fn new_with(uid: Uid, minimum: Normal, maximum: Normal) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Limiter::new_with(&params),
+            inner: ensnare_cores::Limiter::new_with(minimum, maximum),
         }
     }
 }
@@ -273,10 +275,10 @@ impl Displays for Mixer {
     }
 }
 impl Mixer {
-    pub fn new_with(uid: Uid, params: &MixerParams) -> Self {
+    pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Mixer::new_with(&params),
+            inner: ensnare_cores::Mixer::new(),
         }
     }
 }
@@ -306,10 +308,10 @@ impl Displays for Reverb {
     }
 }
 impl Reverb {
-    pub fn new_with(uid: Uid, params: &ReverbParams) -> Self {
+    pub fn new_with(uid: Uid, attenuation: Normal, seconds: Seconds) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Reverb::new_with(&params),
+            inner: ensnare_cores::Reverb::new_with(attenuation, seconds),
         }
     }
 }

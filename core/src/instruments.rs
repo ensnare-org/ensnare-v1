@@ -100,6 +100,14 @@ impl<V: IsStereoSampleVoice> Synthesizer<V> {
         }
     }
 
+    pub fn voice_count(&self) -> usize {
+        if let Some(vs) = self.voice_store.as_ref() {
+            vs.voice_count()
+        } else {
+            0
+        }
+    }
+
     pub fn set_pitch_bend(&mut self, pitch_bend: f32) {
         self.pitch_bend = pitch_bend;
     }

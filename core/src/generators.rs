@@ -3,9 +3,9 @@
 use crate::{
     prelude::*,
     time::Seconds,
-    traits::{prelude::*, GeneratesEnvelope},
+    traits::{prelude::*, CanPrototype, GeneratesEnvelope},
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
@@ -74,16 +74,6 @@ impl From<Waveform> for ControlValue {
     }
 }
 
-impl OscillatorParams {
-    pub fn default_with_waveform(waveform: Waveform) -> Self {
-        Self {
-            waveform,
-            frequency: FrequencyHz::from(440.0),
-            ..Default::default()
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct OscillatorEphemerals {
     /// working variables to generate semi-deterministic noise.
@@ -139,37 +129,31 @@ impl Default for OscillatorEphemerals {
     }
 }
 
-#[derive(Debug, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Control, Serialize, Deserialize)]
 pub struct Oscillator {
     #[control]
-    #[params]
     pub waveform: Waveform,
 
     /// Hertz. Any positive number. 440 = A4
     #[control]
-    #[params]
-    frequency: FrequencyHz,
+    pub frequency: FrequencyHz,
 
     /// if not zero, then ignores the `frequency` field and uses this one
     /// instead. TODO: Option<>
     #[control]
-    #[params]
     fixed_frequency: Option<FrequencyHz>,
 
     /// Designed for pitch correction at construction time.
     #[control]
-    #[params]
     frequency_tune: Ratio,
 
     /// [-1, 1] is typical range, with -1 halving the frequency, and 1 doubling
     /// it. Designed for LFOs.
     #[control]
-    #[params]
     frequency_modulation: BipolarNormal,
 
     /// A factor applied to the root frequency. It is used for FM synthesis.
     #[control]
-    #[params]
     linear_frequency_modulation: ParameterType,
 
     #[serde(skip)]
@@ -234,16 +218,34 @@ impl Ticks for Oscillator {
     }
 }
 impl Oscillator {
-    pub fn new_with(params: &OscillatorParams) -> Self {
+    pub fn new_with(
+        waveform: Waveform,
+        frequency: FrequencyHz,
+        frequency_tune: Ratio,
+        frequency_modulation: BipolarNormal,
+    ) -> Self {
         Self {
-            waveform: params.waveform(),
-            frequency: params.frequency(),
+            waveform,
+            frequency,
             // TODO https://github.com/sowbug/groove/issues/135
             // fixed_frequency: params.fixed_frequency(),
-            frequency_tune: params.frequency_tune(),
-            frequency_modulation: params.frequency_modulation(),
+            frequency_tune,
+            frequency_modulation,
             ..Default::default()
         }
+    }
+
+    pub fn new_with_waveform(waveform: Waveform) -> Self {
+        Self::new_with(
+            waveform,
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        )
+    }
+
+    pub fn new_with_waveform_and_frequency(waveform: Waveform, frequency: FrequencyHz) -> Self {
+        Self::new_with(waveform, frequency, Default::default(), Default::default())
     }
 
     fn adjusted_frequency(&self) -> FrequencyHz {
@@ -428,6 +430,15 @@ impl Oscillator {
         self.frequency_tune
     }
 }
+impl CanPrototype for Oscillator {
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
+        self.set_waveform(prototype.waveform());
+        self.set_frequency(prototype.frequency());
+        self.set_frequency_tune(prototype.frequency_tune());
+        self.set_frequency_modulation(prototype.frequency_modulation());
+        self
+    }
+}
 
 // TODO: see https://corrode.dev/blog/enums/ and mull over it
 #[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -441,38 +452,34 @@ enum State {
     Shutdown,
 }
 
-impl EnvelopeParams {
-    pub fn new_with(attack: Normal, decay: Normal, sustain: Normal, release: Normal) -> Self {
-        Self {
-            attack,
-            decay,
-            sustain,
-            release,
-        }
-    }
+// impl EnvelopeParams {
+//     pub fn new_with(attack: Normal, decay: Normal, sustain: Normal, release: Normal) -> Self {
+//         Self {
+//             attack,
+//             decay,
+//             sustain,
+//             release,
+//         }
+//     }
 
-    // The #[control] #[params] macro system doesn't currently let us override derived
-    // Default, and I wasn't sure whether it was right to default Normal to 1.0,
-    // so I'm creating a custom default method. I think that only test/toy code
-    // would rely on defaults for an envelope.
-    pub fn safe_default() -> Self {
-        Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
-    }
-}
+//     // The #[control] #[params] macro system doesn't currently let us override derived
+//     // Default, and I wasn't sure whether it was right to default Normal to 1.0,
+//     // so I'm creating a custom default method. I think that only test/toy code
+//     // would rely on defaults for an envelope.
+//     pub fn safe_default() -> Self {
+//         Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
+//     }
+// }
 
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Envelope {
     #[control]
-    #[params]
     attack: Normal,
     #[control]
-    #[params]
     decay: Normal,
     #[control]
-    #[params]
     sustain: Normal,
     #[control]
-    #[params]
     release: Normal,
 
     sample_rate: SampleRate,
@@ -578,12 +585,12 @@ impl Envelope {
     pub const MIN_SECONDS: f64 = 0.0;
     pub const MAX_SECONDS: f64 = 30.0;
 
-    pub fn new_with(params: &EnvelopeParams) -> Self {
+    pub fn new_with(attack: Normal, decay: Normal, sustain: Normal, release: Normal) -> Self {
         Self {
-            attack: params.attack(),
-            decay: params.decay(),
-            sustain: params.sustain(),
-            release: params.release(),
+            attack,
+            decay,
+            sustain,
+            release,
             sample_rate: Default::default(),
             state: State::Idle,
             was_reset: true,
@@ -602,6 +609,10 @@ impl Envelope {
             concave_b: Default::default(),
             concave_c: Default::default(),
         }
+    }
+
+    pub fn safe_default() -> Self {
+        Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
     }
 
     pub fn from_seconds_to_normal(seconds: Seconds) -> Normal {
@@ -852,16 +863,16 @@ impl Envelope {
         self.release = release;
     }
 
-    // TODO: experimental, not sure if this is the right pattern. It is
-    // basically a from_params() that's meant to allow changes without
-    // disrupting everything, which probably means it won't be the kind of thing
-    // a macro can generate.
-    pub fn update_from_params(&mut self, params: &EnvelopeParams) {
-        self.set_attack(params.attack());
-        self.set_decay(params.decay());
-        self.set_sustain(params.sustain());
-        self.set_release(params.release());
-    }
+    // // TODO: experimental, not sure if this is the right pattern. It is
+    // // basically a from_params() that's meant to allow changes without
+    // // disrupting everything, which probably means it won't be the kind of thing
+    // // a macro can generate.
+    // pub fn update_from_params(&mut self, params: &EnvelopeParams) {
+    //     self.set_attack(params.attack());
+    //     self.set_decay(params.decay());
+    //     self.set_sustain(params.sustain());
+    //     self.set_release(params.release());
+    // }
 
     /// The current value of the envelope generator. Note that this value is
     /// often not the one you want if you really care about getting the
@@ -885,6 +896,20 @@ impl Envelope {
     #[allow(dead_code)]
     pub(crate) fn debug_is_shutting_down(&self) -> bool {
         matches!(self.debug_state(), State::Shutdown)
+    }
+}
+impl CanPrototype for Envelope {
+    fn make_another(&self) -> Self {
+        let mut r = Self::default();
+        r.update_from_prototype(self);
+        r
+    }
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
+        self.set_attack(prototype.attack());
+        self.set_decay(prototype.decay());
+        self.set_sustain(prototype.sustain());
+        self.set_release(prototype.release());
+        self
     }
 }
 
@@ -1110,19 +1135,24 @@ mod tests {
     }
 
     fn create_oscillator(waveform: Waveform, tune: Ratio, note: MidiNote) -> Oscillator {
-        let mut oscillator = Oscillator::new_with(&OscillatorParams {
+        let mut oscillator = Oscillator::new_with(
             waveform,
-            frequency: FrequencyHz::from(note),
-            ..Default::default()
-        });
+            FrequencyHz::from(note),
+            Ratio::default(),
+            BipolarNormal::default(),
+        );
         oscillator.set_frequency_tune(tune);
         oscillator
     }
 
     #[test]
     fn oscillator_pola() {
-        let mut oscillator =
-            Oscillator::new_with(&OscillatorParams::default_with_waveform(Waveform::Sine));
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Sine,
+            FrequencyHz::from(440.0),
+            Ratio::default(),
+            BipolarNormal::default(),
+        );
 
         // we'll get a few samples in case the oscillator happens to start at
         // zero
@@ -1137,11 +1167,12 @@ mod tests {
     fn square_wave_is_correct_amplitude() {
         const SAMPLE_RATE: SampleRate = SampleRate::new(63949); // Prime number
         const FREQUENCY: FrequencyHz = FrequencyHz(499.0);
-        let mut oscillator = Oscillator::new_with(&OscillatorParams {
-            waveform: Waveform::Square,
-            frequency: FREQUENCY,
-            ..Default::default()
-        });
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Square,
+            FREQUENCY,
+            Ratio::default(),
+            BipolarNormal::default(),
+        );
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         // Below Nyquist limit
@@ -1160,11 +1191,12 @@ mod tests {
         // numbers so that we don't have to deal with edge cases.
         const SAMPLE_RATE: SampleRate = SampleRate::new(65536);
         const FREQUENCY: FrequencyHz = FrequencyHz(128.0);
-        let mut oscillator = Oscillator::new_with(&OscillatorParams {
-            waveform: Waveform::Square,
-            frequency: FREQUENCY,
-            ..Default::default()
-        });
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Square,
+            FREQUENCY,
+            Default::default(),
+            Default::default(),
+        );
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         let mut n_pos = 0;
@@ -1198,11 +1230,12 @@ mod tests {
     fn square_wave_shape_is_accurate() {
         const SAMPLE_RATE: SampleRate = SampleRate::new(65536);
         const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
-        let mut oscillator = Oscillator::new_with(&OscillatorParams {
-            waveform: Waveform::Square,
-            frequency: FREQUENCY,
-            ..Default::default()
-        });
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Square,
+            FREQUENCY,
+            Default::default(),
+            Default::default(),
+        );
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         oscillator.tick(1);
@@ -1248,11 +1281,12 @@ mod tests {
     #[test]
     fn sine_wave_is_balanced() {
         const FREQUENCY: FrequencyHz = FrequencyHz(1.0);
-        let mut oscillator = Oscillator::new_with(&OscillatorParams {
-            waveform: Waveform::Sine,
-            frequency: FREQUENCY,
-            ..Default::default()
-        });
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Sine,
+            FREQUENCY,
+            Default::default(),
+            Default::default(),
+        );
         oscillator.update_sample_rate(SampleRate::DEFAULT);
 
         let mut n_pos = 0;
@@ -1332,11 +1366,12 @@ mod tests {
             (20000.0, "20000Hz"),
         ];
         for test_case in test_cases {
-            let mut osc = Oscillator::new_with(&OscillatorParams {
-                waveform: Waveform::Square,
-                frequency: test_case.0.into(),
-                ..Default::default()
-            });
+            let mut osc = Oscillator::new_with(
+                Waveform::Square,
+                test_case.0.into(),
+                Default::default(),
+                Default::default(),
+            );
             let samples = render_signal_as_audio_source(&mut osc, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
@@ -1364,11 +1399,12 @@ mod tests {
     #[test]
     fn sine_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(&OscillatorParams {
-                waveform: Waveform::Sine,
-                frequency: test_case.0.into(),
-                ..Default::default()
-            });
+            let mut osc = Oscillator::new_with(
+                Waveform::Sine,
+                test_case.0.into(),
+                Default::default(),
+                Default::default(),
+            );
             let samples = render_signal_as_audio_source(&mut osc, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
@@ -1386,11 +1422,12 @@ mod tests {
     #[test]
     fn sawtooth_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(&OscillatorParams {
-                waveform: Waveform::Sawtooth,
-                frequency: test_case.0.into(),
-                ..Default::default()
-            });
+            let mut osc = Oscillator::new_with(
+                Waveform::Sawtooth,
+                test_case.0.into(),
+                Default::default(),
+                Default::default(),
+            );
             let samples = render_signal_as_audio_source(&mut osc, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
@@ -1408,11 +1445,12 @@ mod tests {
     #[test]
     fn triangle_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(&OscillatorParams {
-                waveform: Waveform::Triangle,
-                frequency: test_case.0.into(),
-                ..Default::default()
-            });
+            let mut osc = Oscillator::new_with(
+                Waveform::Triangle,
+                test_case.0.into(),
+                Default::default(),
+                Default::default(),
+            );
             let samples = render_signal_as_audio_source(&mut osc, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
@@ -1467,8 +1505,12 @@ mod tests {
 
     #[test]
     fn oscillator_cycle_restarts_on_time() {
-        let mut oscillator =
-            Oscillator::new_with(&OscillatorParams::default_with_waveform(Waveform::Sine));
+        let mut oscillator = Oscillator::new_with(
+            Waveform::Sine,
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        );
         const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
         oscillator.set_frequency(FREQUENCY);
         oscillator.update_sample_rate(SampleRate::DEFAULT);
@@ -1545,12 +1587,8 @@ mod tests {
     fn get_ge_trait_stuff() -> (Transport, impl GeneratesEnvelope) {
         let mut transport = Transport::default();
         transport.play();
-        let envelope = Envelope::new_with(&EnvelopeParams::new_with(
-            (0.1).into(),
-            (0.2).into(),
-            Normal::new(0.8),
-            (0.3).into(),
-        ));
+        let envelope =
+            Envelope::new_with((0.1).into(), (0.2).into(), Normal::new(0.8), (0.3).into());
         (transport, envelope)
     }
 
@@ -1638,8 +1676,7 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.2));
         const SUSTAIN: Normal = Normal::new_const(0.8);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.3));
-        let mut envelope =
-            Envelope::new_with(&EnvelopeParams::new_with(attack, decay, SUSTAIN, release));
+        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
 
         // An even sample rate means we can easily calculate how much time was spent in each state.
         transport.update_sample_rate(SampleRate::from(100));
@@ -1714,8 +1751,7 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.2));
         const SUSTAIN: Normal = Normal::new_const(0.8);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.3));
-        let mut envelope =
-            Envelope::new_with(&EnvelopeParams::new_with(attack, decay, SUSTAIN, release));
+        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
 
         envelope.trigger_attack();
         envelope.tick(1);
@@ -1792,8 +1828,7 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(5.22));
         const SUSTAIN: Normal = Normal::new_const(0.25);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.5));
-        let mut envelope =
-            Envelope::new_with(&EnvelopeParams::new_with(attack, decay, SUSTAIN, release));
+        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
 
         transport.update_sample_rate(SampleRate::DEFAULT);
         envelope.update_sample_rate(SampleRate::DEFAULT);
@@ -1907,8 +1942,7 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.8));
         let sustain = Normal::new_const(0.5);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.4));
-        let mut envelope =
-            Envelope::new_with(&EnvelopeParams::new_with(ATTACK, decay, sustain, release));
+        let mut envelope = Envelope::new_with(ATTACK, decay, sustain, release);
 
         transport.update_sample_rate(SampleRate::DEFAULT);
         envelope.update_sample_rate(SampleRate::DEFAULT);
@@ -1974,12 +2008,12 @@ mod tests {
 
     #[test]
     fn envelope_amplitude_batching() {
-        let mut e = Envelope::new_with(&EnvelopeParams::new_with(
+        let mut e = Envelope::new_with(
             Envelope::from_seconds_to_normal(Seconds(0.1)),
             Envelope::from_seconds_to_normal(Seconds(0.2)),
             Normal::new(0.5),
             Envelope::from_seconds_to_normal(Seconds(0.3)),
-        ));
+        );
 
         // Initialize the buffer with a nonsense value so we know it got
         // overwritten by the method we're about to call.
@@ -2009,12 +2043,12 @@ mod tests {
 
     #[test]
     fn envelope_shutdown_state() {
-        let mut e = Envelope::new_with(&EnvelopeParams::new_with(
+        let mut e = Envelope::new_with(
             Normal::minimum(),
             Normal::minimum(),
             Normal::maximum(),
             Envelope::from_seconds_to_normal(Seconds(0.5)),
-        ));
+        );
         e.update_sample_rate(SampleRate::from(2000));
 
         // With sample rate 1000, each sample is 0.5 millisecond.
@@ -2055,12 +2089,12 @@ mod tests {
     // away.
     #[test]
     fn sustain_full() {
-        let mut e = Envelope::new_with(&EnvelopeParams::new_with(
+        let mut e = Envelope::new_with(
             Normal::minimum(),
             Envelope::from_seconds_to_normal(Seconds(0.67)),
             Normal::maximum(),
             Envelope::from_seconds_to_normal(Seconds(0.5)),
-        ));
+        );
         e.update_sample_rate(SampleRate::from(44100));
         assert_eq!(e.value().0, 0.0);
         e.tick(1);

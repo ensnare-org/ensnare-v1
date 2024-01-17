@@ -34,10 +34,10 @@ pub fn metadata_derive(input: TokenStream) -> TokenStream {
 /// handle primitives automatically. If you have a type that doesn't need its
 /// own XxxParams struct (e.g., a NewType(u32)), then you should annotate with
 /// #[params(leaf=true)], and it will be treated as a primitive.
-#[proc_macro_derive(Params, attributes(params))]
-pub fn params_derive(input: TokenStream) -> TokenStream {
-    params::impl_params_derive(input, &make_primitives())
-}
+//#[proc_macro_derive(Params, attributes(params))]
+// pub fn params_derive(input: TokenStream) -> TokenStream {
+//     params::impl_params_derive(input, &make_primitives())
+// }
 
 /// Derives helper methods to access Entity traits.
 ///
@@ -78,6 +78,7 @@ fn make_primitives() -> HashSet<Ident> {
         "ParameterType",
         "Ratio",
         "SampleRate",
+        "Seconds",
         "String",
         "Tempo",
         "VoiceCount",

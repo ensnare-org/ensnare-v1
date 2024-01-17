@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    control::{ControlStepBuilder, ControlTripBuilder, ControlTripParams, ControlTripPath},
-    cores::LfoControllerParams,
+    control::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
     entities::{
         controllers::{LfoController, PatternSequencer},
         toys::ToySynth,
@@ -74,10 +73,7 @@ fn demo_automation() {
                 track_uid,
                 Box::new(LfoController::new_with(
                     Uid::default(),
-                    &LfoControllerParams {
-                        frequency: FrequencyHz(2.0),
-                        waveform: Waveform::Sine,
-                    },
+                    Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz(2.0)),
                 )),
                 None,
             )
@@ -176,7 +172,6 @@ fn demo_control_trips() {
         )
         .build()
         .unwrap();
-    let _trip_params = ControlTripParams::default();
 
     #[cfg(fixme)]
     {

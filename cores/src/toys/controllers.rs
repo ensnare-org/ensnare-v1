@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
 enum TestControllerAction {
     Nothing,
@@ -11,7 +11,7 @@ enum TestControllerAction {
 
 /// An [IsEntity] that emits a MIDI note-on event on each beat, and a note-off
 /// event on each half-beat.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct ToyController {
     pub midi_channel_out: MidiChannel,
     pub is_enabled: bool,
@@ -88,7 +88,7 @@ impl ToyController {
     // might mean that WorkEvent::Midi's channel parameter would be Option<>.
     // There are devices like sequencers that might be smart enough to send to
     // multiple channels, in which case the channel parameter would be used.
-    pub fn new_with(_params: &ToyControllerParams, midi_channel_out: MidiChannel) -> Self {
+    pub fn new_with(midi_channel_out: MidiChannel) -> Self {
         Self {
             midi_channel_out,
             ..Default::default()
@@ -111,7 +111,7 @@ impl ToyController {
     }
 }
 
-#[derive(Debug, Default, Params)]
+#[derive(Debug, Default)]
 pub struct ToyControllerAlwaysSendsMidiMessage {
     midi_note: u8,
     is_performing: bool,

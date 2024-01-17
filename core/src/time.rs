@@ -7,7 +7,7 @@ use crate::{
 use anyhow::{anyhow, Error};
 use derive_builder::Builder;
 use derive_more::Display;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -203,22 +203,10 @@ impl Default for TimeSignature {
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 units.
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Eq,
-    Hash,
-    Ord,
-    Params,
-    PartialEq,
-    PartialOrd,
-    Serialize,
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct MusicalTime {
     /// A unit is 1/65536 of a beat.
-    #[params]
     units: usize,
 }
 
@@ -506,6 +494,16 @@ impl From<f32> for Seconds {
         Self(value as f64)
     }
 }
+impl From<Seconds> for f64 {
+    fn from(value: Seconds) -> Self {
+        value.0
+    }
+}
+impl From<Seconds> for f32 {
+    fn from(value: Seconds) -> Self {
+        value.0 as f32
+    }
+}
 impl Add<f64> for Seconds {
     type Output = Seconds;
 
@@ -514,10 +512,38 @@ impl Add<f64> for Seconds {
     }
 }
 impl Add<Seconds> for Seconds {
-    type Output = Seconds;
+    type Output = Self;
 
     fn add(self, rhs: Seconds) -> Self::Output {
-        Seconds(self.0 + rhs.0)
+        Self(self.0 + rhs.0)
+    }
+}
+impl Div<Seconds> for Seconds {
+    type Output = Self;
+
+    fn div(self, rhs: Seconds) -> Self::Output {
+        Self(self.0 / rhs.0)
+    }
+}
+impl Mul<f64> for Seconds {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+impl Div<f64> for Seconds {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Self(self.0 / rhs)
+    }
+}
+impl Div<usize> for Seconds {
+    type Output = Self;
+
+    fn div(self, rhs: usize) -> Self::Output {
+        Self(self.0 / rhs as f64)
     }
 }
 
@@ -565,6 +591,16 @@ impl From<usize> for SampleRate {
 impl From<SampleRate> for u32 {
     fn from(value: SampleRate) -> Self {
         value.0 as u32
+    }
+}
+impl Mul<Seconds> for SampleRate {
+    type Output = SampleRate;
+
+    // TODO: written in a fugue state, not sure it makes sense. Context is
+    // (sample rate x seconds) = buffer size. It works for that case, but I'm
+    // not sure it generally works.
+    fn mul(self, rhs: Seconds) -> Self::Output {
+        Self((self.0 as f64 * rhs.0) as usize)
     }
 }
 
@@ -1075,5 +1111,13 @@ mod tests {
             // without first calling skip_to_start().
             transport.skip_to_start();
         }
+    }
+
+    #[test]
+    fn sample_rate_math() {
+        let sample_rate = SampleRate::from(44100);
+        let seconds = Seconds::from(2.0);
+
+        assert_eq!(usize::from(sample_rate * seconds), 88200);
     }
 }

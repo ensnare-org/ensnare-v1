@@ -2,7 +2,7 @@
 
 use super::sequencers::NoteSequencer;
 use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
-use ensnare_proc_macros::Params;
+
 use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
@@ -32,16 +32,14 @@ pub enum ArpeggioMode {
 /// order." You can also think of it as a hybrid MIDI instrument and MIDI
 /// controller; you play it with MIDI, but instead of producing audio, it
 /// produces more MIDI.
-#[derive(Debug, Default, Params)]
+#[derive(Debug, Default)]
 pub struct Arpeggiator {
     midi_channel_out: MidiChannel,
     sequencer: NoteSequencer,
     is_sequencer_enabled: bool,
 
-    #[params]
-    pub bpm: ParameterType,
+    pub bpm: Tempo,
 
-    #[params(leaf = true)]
     pub mode: ArpeggioMode,
 
     // A poor-man's semaphore that allows note-off events to overlap with the
@@ -139,9 +137,9 @@ impl HandlesMidi for Arpeggiator {
     }
 }
 impl Arpeggiator {
-    pub fn new_with(params: &ArpeggiatorParams, midi_channel_out: MidiChannel) -> Self {
+    pub fn new_with(bpm: Tempo, midi_channel_out: MidiChannel) -> Self {
         Self {
-            bpm: params.bpm,
+            bpm,
             midi_channel_out,
             ..Default::default()
         }
@@ -171,11 +169,11 @@ impl Arpeggiator {
         }
     }
 
-    pub fn bpm(&self) -> f64 {
+    pub fn bpm(&self) -> Tempo {
         self.bpm
     }
 
-    pub fn set_bpm(&mut self, bpm: ParameterType) {
+    pub fn set_bpm(&mut self, bpm: Tempo) {
         self.bpm = bpm;
     }
 

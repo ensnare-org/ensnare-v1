@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
 // TODO: I don't think Mixer needs to exist.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct Mixer {}
 impl TransformsAudio for Mixer {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
@@ -16,7 +16,7 @@ impl TransformsAudio for Mixer {
     }
 }
 impl Mixer {
-    pub fn new_with(_params: &MixerParams) -> Self {
+    pub fn new() -> Self {
         Self {
             ..Default::default()
         }

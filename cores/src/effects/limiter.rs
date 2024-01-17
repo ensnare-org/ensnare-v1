@@ -1,15 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct Limiter {
     #[control]
-    #[params]
     minimum: Normal,
     #[control]
-    #[params]
     maximum: Normal,
 }
 impl Default for Limiter {
@@ -29,10 +27,10 @@ impl TransformsAudio for Limiter {
     }
 }
 impl Limiter {
-    pub fn new_with(params: &LimiterParams) -> Self {
+    pub fn new_with(minimum: Normal, maximum: Normal) -> Self {
         Self {
-            minimum: params.minimum(),
-            maximum: params.maximum(),
+            minimum,
+            maximum,
             ..Default::default()
         }
     }
@@ -111,10 +109,7 @@ mod tests {
 
     #[test]
     fn limiter_bias() {
-        let mut limiter = Limiter::new_with(&LimiterParams {
-            minimum: 0.2.into(),
-            maximum: 0.8.into(),
-        });
+        let mut limiter = Limiter::new_with(0.2.into(), 0.8.into());
         assert_eq!(
             limiter.transform_channel(0, Sample::from(0.1)),
             Sample::from(0.2),

@@ -1,13 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Gain {
     #[control]
-    #[params]
     ceiling: Normal,
 }
 impl Serializable for Gain {}
@@ -18,10 +17,8 @@ impl TransformsAudio for Gain {
     }
 }
 impl Gain {
-    pub fn new_with(params: &GainParams) -> Self {
-        Self {
-            ceiling: params.ceiling,
-        }
+    pub fn new_with(ceiling: Normal) -> Self {
+        Self { ceiling }
     }
 
     pub fn ceiling(&self) -> Normal {
@@ -40,9 +37,7 @@ mod tests {
 
     #[test]
     fn gain_mainline() {
-        let mut gain = Gain::new_with(&GainParams {
-            ceiling: Normal::new(0.5),
-        });
+        let mut gain = Gain::new_with(Normal::new(0.5));
         assert_eq!(
             gain.transform_audio(TestAudioSource::new_with(TestAudioSource::LOUD).value()),
             StereoSample::from(0.5)

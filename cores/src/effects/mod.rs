@@ -1,18 +1,15 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 pub use {
-    bitcrusher::{Bitcrusher, BitcrusherParams},
-    chorus::{Chorus, ChorusParams},
-    compressor::{Compressor, CompressorParams},
-    delay::{Delay, DelayParams, RecirculatingDelayLine},
-    filter::{
-        BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db,
-        BiQuadFilterLowPass24dbParams,
-    },
-    gain::{Gain, GainParams},
-    limiter::{Limiter, LimiterParams},
-    mixer::{Mixer, MixerParams},
-    reverb::{Reverb, ReverbParams},
+    bitcrusher::Bitcrusher,
+    chorus::Chorus,
+    compressor::Compressor,
+    delay::{Delay, RecirculatingDelayLine},
+    filter::{BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db},
+    gain::Gain,
+    limiter::Limiter,
+    mixer::Mixer,
+    reverb::Reverb,
     test::*,
 };
 

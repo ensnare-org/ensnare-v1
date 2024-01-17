@@ -380,10 +380,9 @@ mod tests {
 
     mod cores {
         use ensnare_core::{time::SampleRate, traits::Configurable};
-        use ensnare_proc_macros::Params;
         use serde::{Deserialize, Serialize};
 
-        #[derive(Debug, Default, Params, PartialEq, Serialize, Deserialize)]
+        #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
         pub(super) struct ExampleEntity {
             pub sample_rate: SampleRate,
         }

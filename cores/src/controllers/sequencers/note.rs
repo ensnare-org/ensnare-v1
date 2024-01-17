@@ -3,7 +3,7 @@
 use super::midi::MidiSequencer;
 use derive_builder::Builder;
 use ensnare_core::{piano_roll::Note, prelude::*, rng::Rng, traits::Sequences};
-use ensnare_proc_macros::{InnerConfigurable, Params};
+use ensnare_proc_macros::InnerConfigurable;
 
 impl NoteSequencerBuilder {
     /// Builds the [NoteSequencer].
@@ -33,7 +33,7 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(Debug, Default, Params, Builder, InnerConfigurable)]
+#[derive(Debug, Default, Builder, InnerConfigurable)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
     #[builder(setter(skip))]

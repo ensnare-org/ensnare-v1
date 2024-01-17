@@ -1,17 +1,15 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_core::{prelude::*, traits::CanPrototype};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Debug, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Control, Serialize, Deserialize)]
 pub struct BiQuadFilterLowPass24db {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     passband_ripple: ParameterType,
 
     #[serde(skip)]
@@ -50,10 +48,10 @@ impl TransformsAudio for BiQuadFilterLowPass24db {
     }
 }
 impl BiQuadFilterLowPass24db {
-    pub fn new_with(params: &BiQuadFilterLowPass24dbParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, passband_ripple: ParameterType) -> Self {
         let mut r = Self {
-            cutoff: params.cutoff(),
-            passband_ripple: params.passband_ripple(),
+            cutoff,
+            passband_ripple,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowPass24dbChannel::default(),
@@ -87,14 +85,17 @@ impl BiQuadFilterLowPass24db {
             self.update_coefficients();
         }
     }
-
-    // TODO: (see Envelope's method and comments) -- this looks wasteful because
-    // it could compute coefficients twice in a single transaction, but the use
-    // case (egui change notifications) calls for only one thing changing at a
-    // time.
-    pub fn update_from_params(&mut self, params: &BiQuadFilterLowPass24dbParams) {
-        self.set_cutoff(params.cutoff());
-        self.set_passband_ripple(params.passband_ripple());
+}
+impl CanPrototype for BiQuadFilterLowPass24db {
+    fn make_another(&self) -> Self {
+        let mut r = Self::default();
+        r.update_from_prototype(self);
+        r
+    }
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
+        self.set_cutoff(prototype.cutoff());
+        self.set_passband_ripple(prototype.passband_ripple());
+        self
     }
 }
 
@@ -163,13 +164,11 @@ impl BiQuadFilterLowPass24dbChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterLowPass12db {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     q: ParameterType,
 
     sample_rate: SampleRate,
@@ -193,10 +192,10 @@ impl TransformsAudio for BiQuadFilterLowPass12db {
 }
 impl BiQuadFilterLowPass12db {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterLowPass12dbParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            q: params.q(),
+            cutoff,
+            q,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowPass12dbChannel::default(),
@@ -260,13 +259,11 @@ impl BiQuadFilterLowPass12dbChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterHighPass {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     q: ParameterType,
 
     sample_rate: SampleRate,
@@ -290,10 +287,10 @@ impl TransformsAudio for BiQuadFilterHighPass {
 }
 impl BiQuadFilterHighPass {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterHighPassParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         let mut r = Self {
-            cutoff: params.cutoff(),
-            q: params.q(),
+            cutoff,
+            q,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterHighPassChannel::default(),
@@ -359,13 +356,11 @@ impl BiQuadFilterHighPassChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterAllPass {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     q: ParameterType,
 
     sample_rate: SampleRate,
@@ -388,10 +383,10 @@ impl TransformsAudio for BiQuadFilterAllPass {
     }
 }
 impl BiQuadFilterAllPass {
-    pub fn new_with(params: &BiQuadFilterAllPassParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            q: params.q(),
+            cutoff,
+            q,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterAllPassChannel::default(),
@@ -454,13 +449,11 @@ impl BiQuadFilterAllPassChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterBandPass {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
     sample_rate: SampleRate,
@@ -483,10 +476,10 @@ impl TransformsAudio for BiQuadFilterBandPass {
     }
 }
 impl BiQuadFilterBandPass {
-    pub fn new_with(params: &BiQuadFilterBandPassParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            bandwidth: params.bandwidth(),
+            cutoff,
+            bandwidth,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterBandPassChannel::default(),
@@ -549,13 +542,11 @@ impl BiQuadFilterBandPassChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterBandStop {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
     sample_rate: SampleRate,
@@ -579,10 +570,10 @@ impl TransformsAudio for BiQuadFilterBandStop {
 }
 impl BiQuadFilterBandStop {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterBandStopParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            bandwidth: params.bandwidth(),
+            cutoff,
+            bandwidth,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterBandStopChannel::default(),
@@ -646,16 +637,14 @@ impl BiQuadFilterBandStopChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterPeakingEq {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
 
     // I didn't know what to call this. RBJ says "...except for peakingEQ in
     // which A*Q is the classic EE Q." I think Q is close enough to get the gist.
     #[control]
-    #[params]
     q: ParameterType,
 
     sample_rate: SampleRate,
@@ -679,10 +668,10 @@ impl TransformsAudio for BiQuadFilterPeakingEq {
 }
 impl BiQuadFilterPeakingEq {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterPeakingEqParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         let mut r = Self {
-            cutoff: params.cutoff(),
-            q: params.q(),
+            cutoff,
+            q,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterPeakingEqChannel::default(),
@@ -752,13 +741,11 @@ impl BiQuadFilterPeakingEqChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterLowShelf {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     db_gain: ParameterType,
 
     sample_rate: SampleRate,
@@ -782,10 +769,10 @@ impl TransformsAudio for BiQuadFilterLowShelf {
 }
 impl BiQuadFilterLowShelf {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterLowShelfParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            db_gain: params.db_gain(),
+            cutoff,
+            db_gain,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowShelfChannel::default(),
@@ -850,13 +837,11 @@ impl BiQuadFilterLowShelfChannel {
     }
 }
 
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterHighShelf {
     #[control]
-    #[params]
     cutoff: FrequencyHz,
     #[control]
-    #[params]
     db_gain: ParameterType,
 
     sample_rate: SampleRate,
@@ -880,10 +865,10 @@ impl TransformsAudio for BiQuadFilterHighShelf {
 }
 impl BiQuadFilterHighShelf {
     #[allow(dead_code)]
-    pub fn new_with(params: &BiQuadFilterHighShelfParams) -> Self {
+    pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
         Self {
-            cutoff: params.cutoff(),
-            db_gain: params.db_gain(),
+            cutoff,
+            db_gain,
             sample_rate: Default::default(),
             channels: [
                 BiQuadFilterHighShelfChannel::default(),
@@ -950,7 +935,7 @@ impl BiQuadFilterHighShelfChannel {
 
 /// This filter does nothing, expensively. It exists for debugging. I might
 /// delete it later.
-#[derive(Debug, Control, Params)]
+#[derive(Debug, Control)]
 pub struct BiQuadFilterNone {
     sample_rate: SampleRate,
 
@@ -972,7 +957,7 @@ impl TransformsAudio for BiQuadFilterNone {
 }
 impl BiQuadFilterNone {
     #[allow(dead_code)]
-    pub fn new_with(_: BiQuadFilterNoneParams) -> Self {
+    pub fn new() -> Self {
         Self {
             sample_rate: Default::default(),
             channels: [BiQuadFilter::default(), BiQuadFilter::default()],

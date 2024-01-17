@@ -1,131 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use delegate::delegate;
 use ensnare_core::{
-    generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+    generators::{Envelope, Oscillator},
     instruments::Synthesizer,
-    modulators::{Dca, DcaParams},
+    modulators::Dca,
     prelude::*,
-    traits::GeneratesEnvelope,
+    traits::{CanPrototype, GeneratesEnvelope},
     voices::{VoiceCount, VoiceStore},
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
-
-/// Implements a very small, but complete, synthesizer.
-#[derive(Control, Debug, Default, Params, Serialize, Deserialize)]
-pub struct ToySynth {
-    #[params]
-    voice_count: VoiceCount,
-
-    #[control]
-    #[params]
-    pub waveform: Waveform,
-
-    #[control]
-    #[params]
-    pub envelope: Envelope,
-
-    #[control]
-    #[params]
-    dca: Dca,
-
-    #[serde(skip)]
-    pub inner: Synthesizer<ToyVoice>,
-
-    max_signal: Normal,
-}
-impl Serializable for ToySynth {}
-impl Generates<StereoSample> for ToySynth {
-    fn value(&self) -> StereoSample {
-        self.inner.value()
-    }
-
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        // TODO: temp hack to avoid the pain of figuring out how deal with
-        // Synthesizer sharing a single DCA across voices.
-        for voice in self.inner.voices_mut() {
-            voice.dca.set_pan(self.dca.pan());
-        }
-        self.inner.generate_batch_values(values);
-        self.update_max();
-    }
-}
-impl HandlesMidi for ToySynth {
-    fn handle_midi_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
-    ) {
-        self.inner
-            .handle_midi_message(channel, message, midi_messages_fn)
-    }
-}
-impl Ticks for ToySynth {
-    fn tick(&mut self, tick_count: usize) {
-        self.inner.tick(tick_count);
-
-        self.update_max();
-    }
-}
-impl Configurable for ToySynth {
-    fn sample_rate(&self) -> SampleRate {
-        self.inner.sample_rate()
-    }
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner.update_sample_rate(sample_rate)
-    }
-}
-impl ToySynth {
-    pub fn new_with(params: &ToySynthParams) -> Self {
-        let voice_store = VoiceStore::<ToyVoice>::new_with_voice(params.voice_count(), || {
-            ToyVoice::new_with(params.waveform(), &params.envelope)
-        });
-        Self {
-            voice_count: params.voice_count(),
-            waveform: params.waveform(),
-            envelope: Envelope::new_with(&params.envelope),
-            dca: Dca::new_with(&params.dca),
-            inner: Synthesizer::<ToyVoice>::new_with(Box::new(voice_store)),
-            max_signal: Normal::minimum(),
-        }
-    }
-
-    fn update_max(&mut self) {
-        let value = Normal::from(Sample::from(self.value()).0);
-        if value > self.max_signal {
-            self.max_signal = value;
-        }
-    }
-
-    pub fn degrade_max(&mut self, factor: f64) {
-        self.max_signal *= factor;
-    }
-
-    pub fn voice_count(&self) -> VoiceCount {
-        self.voice_count
-    }
-
-    pub fn set_voice_count(&mut self, voice_count: VoiceCount) {
-        self.voice_count = voice_count;
-    }
-
-    pub fn waveform(&self) -> Waveform {
-        self.waveform
-    }
-
-    pub fn set_waveform(&mut self, waveform: Waveform) {
-        self.waveform = waveform;
-    }
-
-    pub fn envelope(&self) -> &Envelope {
-        &self.envelope
-    }
-
-    pub fn set_envelope(&mut self, envelope: Envelope) {
-        self.envelope = envelope;
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct ToyVoice {
@@ -168,9 +53,9 @@ impl Ticks for ToyVoice {
     fn tick(&mut self, tick_count: usize) {
         self.oscillator.tick(tick_count);
         self.envelope.tick(tick_count);
-        self.value = self.dca.transform_audio_to_stereo(
-            (self.oscillator.value().0 * self.envelope.value().0).into(),
-        );
+        self.value = self
+            .dca
+            .transform_audio_to_stereo((self.oscillator.value() * self.envelope.value()).into());
     }
 }
 impl Configurable for ToyVoice {
@@ -184,12 +69,162 @@ impl Configurable for ToyVoice {
     }
 }
 impl ToyVoice {
-    fn new_with(waveform: Waveform, envelope: &EnvelopeParams) -> Self {
+    fn new_with(oscillator: &Oscillator, envelope: &Envelope, dca: &Dca) -> Self {
         Self {
-            oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(waveform)),
-            envelope: Envelope::new_with(envelope),
-            dca: Dca::default(),
+            oscillator: oscillator.make_another(),
+            envelope: envelope.make_another(),
+            dca: dca.make_another(),
             value: Default::default(),
         }
+    }
+}
+
+/// Implements a small but complete synthesizer.
+#[derive(Control, Debug, Serialize, Deserialize)]
+pub struct ToySynth {
+    voice_count: VoiceCount,
+
+    #[control]
+    pub oscillator: Oscillator,
+
+    #[control]
+    pub envelope: Envelope,
+
+    #[control]
+    dca: Dca,
+
+    #[serde(skip)]
+    pub inner: Synthesizer<ToyVoice>,
+}
+impl Serializable for ToySynth {}
+impl Generates<StereoSample> for ToySynth {
+    delegate! {
+        to self.inner {
+            fn value(&self) -> StereoSample;
+            fn generate_batch_values(&mut self, values: &mut [StereoSample]);
+        }
+    }
+}
+impl HandlesMidi for ToySynth {
+    delegate! {
+        to self.inner {
+            fn handle_midi_message(
+                &mut self,
+                channel: MidiChannel,
+                message: MidiMessage,
+                midi_messages_fn: &mut MidiMessagesFn,
+            );
+        }
+    }
+}
+impl Ticks for ToySynth {
+    delegate! {
+        to self.inner {
+            fn tick(&mut self, tick_count: usize);
+        }
+    }
+}
+impl Configurable for ToySynth {
+    delegate! {
+        to self.inner {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+        }
+    }
+}
+impl ToySynth {
+    pub fn new_with(oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
+        let voice_store = VoiceStore::<ToyVoice>::new_with_voice(VoiceCount::default(), || {
+            ToyVoice::new_with(&oscillator, &envelope, &dca)
+        });
+        Self {
+            voice_count: Default::default(),
+            oscillator,
+            envelope,
+            dca,
+            inner: Synthesizer::<ToyVoice>::new_with(Box::new(voice_store)),
+        }
+    }
+
+    pub fn voice_count(&self) -> VoiceCount {
+        self.voice_count
+    }
+
+    pub fn set_voice_count(&mut self, voice_count: VoiceCount) {
+        self.voice_count = voice_count;
+    }
+
+    pub fn oscillator(&self) -> &Oscillator {
+        &self.oscillator
+    }
+
+    pub fn notify_change_oscillator(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.oscillator.update_from_prototype(&self.oscillator);
+        });
+    }
+
+    pub fn envelope(&self) -> &Envelope {
+        &self.envelope
+    }
+
+    pub fn notify_change_envelope(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.envelope.update_from_prototype(&self.envelope);
+        });
+    }
+
+    pub fn dca(&self) -> &Dca {
+        &self.dca
+    }
+
+    pub fn notify_change_dca(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.dca.update_from_prototype(&self.dca);
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toy_synth_control() {
+        let mut synth = ToySynth::new_with(
+            Oscillator::new_with_waveform(ensnare_core::generators::Waveform::Sine),
+            Envelope::safe_default(),
+            Dca::default(),
+        );
+
+        assert_eq!(
+            synth.inner.voice_count(),
+            VoiceCount::default().0,
+            "New synth should have some voices"
+        );
+
+        synth.inner.voices().for_each(|v| {
+            assert_eq!(
+                v.dca.gain(),
+                synth.dca().gain(),
+                "Master DCA gain is same as all voice DCA gain"
+            );
+        });
+
+        let param_index = synth.control_index_for_name("dca-gain").unwrap();
+        assert_ne!(
+            synth.dca().gain().0,
+            0.22,
+            "we're about to set DCA gain to something different from its current value"
+        );
+        synth.control_set_param_by_index(param_index, ControlValue(0.22));
+        assert_eq!(synth.dca().gain().0, 0.22);
+        synth.inner.voices().for_each(|v| {
+            assert_eq!(
+                synth.dca().gain(),
+                v.dca.gain(),
+                "all voices update gain after setting master"
+            );
+        });
     }
 }

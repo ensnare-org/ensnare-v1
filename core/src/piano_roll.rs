@@ -4,7 +4,6 @@ use super::rng::Rng;
 use crate::{prelude::*, selection_set::SelectionSet};
 use anyhow::anyhow;
 use derive_builder::Builder;
-use ensnare_proc_macros::Params;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 use strum_macros::{EnumCount, FromRepr};
@@ -406,7 +405,7 @@ impl Pattern {
 }
 
 /// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Default, Params, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct PianoRoll {
     uid_factory: PatternUidFactory,
     pub uids_to_patterns: HashMap<PatternUid, Pattern>,

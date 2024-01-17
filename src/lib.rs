@@ -51,8 +51,7 @@ pub mod control {
     pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
 
     pub use ensnare_core::controllers::{
-        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripParams,
-        ControlTripPath,
+        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
     };
 
     /// The most commonly used imports.
@@ -63,7 +62,6 @@ pub mod control {
 
 pub mod cores {
     //! The core business logic that powers musical instruments.
-    pub use ensnare_core::controllers::{TimerParams, TriggerParams};
     pub use ensnare_cores::{controllers::*, effects::*, instruments::*, toys::*};
 }
 
@@ -128,9 +126,7 @@ pub mod entities {
 pub mod generators {
     //! Signal generators. These are some of the building blocks of many digital
     //! instruments. Examples are envelopes and oscillators.
-    pub use ensnare_core::generators::{
-        Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform,
-    };
+    pub use ensnare_core::generators::{Envelope, Oscillator, Waveform};
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -164,7 +160,7 @@ pub mod modulators {
     //! Infrastructure for transforming audio. An example is [Dca], or the
     //! digitally-controlled amplifier, which many instruments use to control
     //! signal amplitude and stereo position.
-    pub use ensnare_core::modulators::{Dca, DcaParams};
+    pub use ensnare_core::modulators::Dca;
 }
 
 pub mod synthesizer {

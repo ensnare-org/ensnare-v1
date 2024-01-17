@@ -1,9 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::*;
-use ensnare_cores::toys::ToyInstrumentParams;
+use ensnare_core::{
+    generators::{Envelope, Oscillator},
+    modulators::Dca,
+    prelude::*,
+};
 use ensnare_cores_egui::modulators::dca;
-use ensnare_egui_widgets::{envelope, oscillator, waveform};
+use ensnare_egui_widgets::{envelope, oscillator};
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
@@ -38,14 +41,13 @@ impl ToyInstrument {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyInstrument::new_with(&ToyInstrumentParams::default()),
+            inner: ensnare_cores::toys::ToyInstrument::new(),
         }
     }
 }
 
 #[derive(
     Debug,
-    Default,
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
@@ -61,47 +63,34 @@ pub struct ToySynth {
     inner: ensnare_cores::toys::ToySynth,
 }
 impl ToySynth {
-    fn ui_waveform(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(waveform(&mut self.inner.waveform));
+    fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let response = ui.add(oscillator(&mut self.inner.oscillator));
         if response.changed() {
-            self.inner
-                .inner
-                .voices_mut()
-                .for_each(|v| v.oscillator.set_waveform(self.inner.waveform));
+            // make sure everyone knows
         }
         response
     }
 
     fn ui_envelope(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui
-            .scope(|ui| {
-                let response = ui.add(envelope(&mut self.inner.envelope));
-                response
-            })
-            .inner;
+        let response = ui.add(envelope(&mut self.inner.envelope));
         if response.changed() {
-            self.inner.inner.voices_mut().for_each(|v| {
-                v.envelope.set_attack(self.inner.envelope.attack());
-                v.envelope.set_decay(self.inner.envelope.decay());
-                v.envelope.set_sustain(self.inner.envelope.sustain());
-                v.envelope.set_release(self.inner.envelope.release());
-            });
+            // make sure everyone knows
         }
         response
     }
-    pub fn new_with(uid: Uid) -> Self {
+    pub fn new_with(uid: Uid, oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
         Self {
             uid,
-            ..Default::default()
+            inner: ensnare_cores::toys::ToySynth::new_with(oscillator, envelope, dca),
         }
     }
 }
 impl Displays for ToySynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
-            let waveform_response = self.ui_waveform(ui);
+            let oscillator_response = self.ui_oscillator(ui);
             let envelope_response = self.ui_envelope(ui);
-            waveform_response | envelope_response
+            oscillator_response | envelope_response
         })
         .inner
     }

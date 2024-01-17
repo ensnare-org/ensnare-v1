@@ -1,29 +1,24 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use crate::{prelude::*, traits::CanPrototype};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// The Digitally Controller Amplifier (DCA) handles gain and pan for many kinds
 /// of synths.
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Dca {
     #[control]
-    #[params]
     gain: Normal,
 
     #[control]
-    #[params]
     pan: BipolarNormal,
 }
 impl Dca {
-    pub fn new_with(params: &DcaParams) -> Self {
-        Self {
-            gain: params.gain(),
-            pan: params.pan(),
-        }
+    pub fn new_with(gain: Normal, pan: BipolarNormal) -> Self {
+        Self { gain, pan }
     }
 
     pub fn transform_audio_to_stereo(&mut self, input_sample: Sample) -> StereoSample {
@@ -52,10 +47,12 @@ impl Dca {
     pub fn set_pan(&mut self, pan: BipolarNormal) {
         self.pan = pan;
     }
-
-    pub fn update_from_params(&mut self, params: &DcaParams) {
-        self.set_gain(params.gain());
-        self.set_pan(params.pan());
+}
+impl CanPrototype for Dca {
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
+        self.set_gain(prototype.gain());
+        self.set_pan(prototype.pan());
+        self
     }
 }
 
@@ -65,7 +62,7 @@ mod tests {
 
     #[test]
     fn dca_mainline() {
-        let mut dca = Dca::new_with(&&DcaParams::default());
+        let mut dca = Dca::new_with(Normal::default(), BipolarNormal::default());
         const VALUE_IN: Sample = Sample(0.5);
         const VALUE: Sample = Sample(0.5);
         assert_eq!(

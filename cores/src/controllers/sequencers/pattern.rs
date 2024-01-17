@@ -10,7 +10,7 @@ use ensnare_core::{
     prelude::*,
     traits::Sequences,
 };
-use ensnare_proc_macros::Params;
+
 use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
@@ -40,7 +40,7 @@ impl PatternSequencerBuilder {
 ///
 /// This sequencer is nice for certain test cases, but I don't think it's useful
 /// in a production environment. [LivePatternSequencer] is better.
-#[derive(Debug, Default, Builder, Params, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Builder, Serialize, Deserialize, PartialEq)]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
     #[builder(setter(skip))]
@@ -134,7 +134,7 @@ pub struct LivePatternArrangement {
     range: Range<MusicalTime>,
 }
 
-#[derive(Debug, Default, Params)]
+#[derive(Debug, Default)]
 pub struct LivePatternSequencer {
     arrangements: Vec<LivePatternArrangement>,
 

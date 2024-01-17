@@ -1,8 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::prelude::*;
+use crate::time::Seconds;
 use derive_more::Display;
-use std::ops::Add;
+use std::ops::{Add, Mul};
 
 pub mod prelude {
     pub use super::{ControlIndex, ControlName, ControlValue};
@@ -39,6 +40,13 @@ pub struct ControlValue(pub f64);
 impl ControlValue {
     pub const MIN: Self = Self(0.0);
     pub const MAX: Self = Self(1.0);
+}
+impl Mul<f64> for ControlValue {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs)
+    }
 }
 impl From<Normal> for ControlValue {
     fn from(value: Normal) -> Self {
@@ -149,6 +157,16 @@ impl From<StereoSample> for ControlValue {
 impl From<Sample> for ControlValue {
     fn from(value: Sample) -> Self {
         Self(value.0)
+    }
+}
+impl From<Seconds> for ControlValue {
+    fn from(value: Seconds) -> Self {
+        Self(value.0 / 30.0)
+    }
+}
+impl From<ControlValue> for Seconds {
+    fn from(value: ControlValue) -> Self {
+        Self(value.0 * 30.0)
     }
 }
 

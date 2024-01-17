@@ -55,14 +55,8 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui
-                    .add(oscillator(&mut self.inner.voice.oscillator_1))
-                    .changed()
-                {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.oscillator_1
-                            .set_waveform(self.inner.voice.oscillator_1.waveform())
-                    })
+                if ui.add(oscillator(&mut self.inner.oscillator_1)).changed() {
+                    self.inner.notify_change_oscillator_1();
                 }
             })
             .header_response;
@@ -70,14 +64,8 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui
-                    .add(oscillator(&mut self.inner.voice.oscillator_2))
-                    .changed()
-                {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.oscillator_2
-                            .set_waveform(self.inner.voice.oscillator_2.waveform())
-                    })
+                if ui.add(oscillator(&mut self.inner.oscillator_2)).changed() {
+                    self.inner.notify_change_oscillator_2();
                 }
             })
             .header_response;
@@ -92,9 +80,7 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
                 if ui.add(dca(&mut self.inner.dca, self.uid)).changed() {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.dca.update_from_params(&self.inner.dca.to_params());
-                    })
+                    self.inner.notify_change_dca();
                 }
             })
             .header_response;
@@ -102,14 +88,8 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui
-                    .add(envelope(&mut self.inner.voice.amp_envelope))
-                    .changed()
-                {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.amp_envelope_mut()
-                            .update_from_params(&self.inner.voice.amp_envelope.to_params());
-                    })
+                if ui.add(envelope(&mut self.inner.amp_envelope)).changed() {
+                    self.inner.notify_change_amp_envelope();
                 }
             })
             .header_response;
@@ -117,17 +97,14 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let filter_changed = ui
-                    .add(bi_quad_filter_low_pass_24db(&mut self.inner.voice.filter))
-                    .changed();
-                let filter_envelope_changed = ui
-                    .add(envelope(&mut self.inner.voice.filter_envelope))
-                    .changed();
-                if filter_changed || filter_envelope_changed {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.filter_mut()
-                            .update_from_params(&self.inner.voice.filter.to_params());
-                    })
+                if ui
+                    .add(bi_quad_filter_low_pass_24db(&mut self.inner.filter))
+                    .changed()
+                {
+                    self.inner.notify_change_filter();
+                }
+                if ui.add(envelope(&mut self.inner.filter_envelope)).changed() {
+                    self.inner.notify_change_filter_envelope();
                 }
             })
             .header_response;

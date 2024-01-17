@@ -1,26 +1,29 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use delegate::delegate;
 use ensnare_core::{
-    generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+    generators::{Envelope, Oscillator},
     instruments::Synthesizer,
-    modulators::{Dca, DcaParams},
+    modulators::Dca,
     prelude::*,
-    traits::GeneratesEnvelope,
+    traits::{CanPrototype, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
 #[derive(Debug, Default)]
 pub struct FmVoice {
     sample: StereoSample,
     carrier: Oscillator,
+    carrier_envelope: Envelope,
     modulator: Oscillator,
+    modulator_envelope: Envelope,
 
-    /// modulator_depth 0.0 means no modulation; 1.0 means maximum
-    modulator_depth: Normal,
+    /// depth 0.0 means no modulation; 1.0 means maximum
+    depth: Normal,
 
-    /// modulator_frequency is based on carrier frequency and modulator_ratio
-    modulator_ratio: Ratio,
+    /// modulator frequency is based on carrier frequency and modulator_ratio
+    ratio: Ratio,
 
     /// Ranges from 0.0 to very high.
     ///
@@ -29,10 +32,8 @@ pub struct FmVoice {
     /// - 1.0: audible change
     /// - 10.0: dramatic change,
     /// - 100.0: extreme.
-    modulator_beta: ParameterType,
+    beta: ParameterType,
 
-    carrier_envelope: Envelope,
-    modulator_envelope: Envelope,
     dca: Dca,
 
     note_on_key: u7,
@@ -97,9 +98,9 @@ impl Ticks for FmVoice {
         for _ in 0..tick_count {
             if self.is_playing() {
                 let modulator_magnitude =
-                    self.modulator.value() * self.modulator_envelope.value() * self.modulator_depth;
+                    self.modulator.value() * self.modulator_envelope.value() * self.depth;
                 self.carrier
-                    .set_linear_frequency_modulation(modulator_magnitude.0 * self.modulator_beta);
+                    .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
                 r = self.carrier.value() * self.carrier_envelope.value();
                 self.carrier_envelope.tick(tick_count);
                 self.modulator_envelope.tick(tick_count);
@@ -119,23 +120,26 @@ impl Ticks for FmVoice {
     }
 }
 impl FmVoice {
-    pub fn new_with(params: &FmSynthParams) -> Self {
+    pub fn new_with(
+        carrier_oscillator: &Oscillator,
+        carrier_envelope: &Envelope,
+        modulator_oscillator: &Oscillator,
+        modulator_envelope: &Envelope,
+        depth: Normal,
+        ratio: Ratio,
+        beta: ParameterType,
+        dca: &Dca,
+    ) -> Self {
         Self {
-            sample_rate: Default::default(),
-            sample: Default::default(),
-            carrier: Oscillator::new_with(&OscillatorParams::default_with_waveform(Waveform::Sine)),
-            modulator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
-                Waveform::Sine,
-            )),
-            modulator_depth: params.depth,
-            modulator_ratio: params.ratio,
-            modulator_beta: params.beta,
-            carrier_envelope: Envelope::new_with(&params.carrier_envelope),
-            modulator_envelope: Envelope::new_with(&params.modulator_envelope),
-            dca: Dca::new_with(&params.dca),
-            note_on_key: Default::default(),
-            note_on_velocity: Default::default(),
-            steal_is_underway: Default::default(),
+            carrier: carrier_oscillator.make_another(),
+            carrier_envelope: carrier_envelope.make_another(),
+            modulator: modulator_oscillator.make_another(),
+            modulator_envelope: modulator_envelope.make_another(),
+            depth,
+            ratio,
+            beta,
+            dca: dca.make_another(),
+            ..Default::default()
         }
     }
 
@@ -151,32 +155,31 @@ impl FmVoice {
 
     fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
         self.carrier.set_frequency(frequency_hz);
-        self.modulator
-            .set_frequency(frequency_hz * self.modulator_ratio);
+        self.modulator.set_frequency(frequency_hz * self.ratio);
     }
 
-    pub fn set_modulator_depth(&mut self, modulator_depth: Normal) {
-        self.modulator_depth = modulator_depth;
+    pub fn depth(&self) -> Normal {
+        self.depth
     }
 
-    pub fn set_modulator_ratio(&mut self, modulator_ratio: Ratio) {
-        self.modulator_ratio = modulator_ratio;
+    pub fn ratio(&self) -> Ratio {
+        self.ratio
     }
 
-    pub fn set_modulator_beta(&mut self, modulator_beta: ParameterType) {
-        self.modulator_beta = modulator_beta;
+    pub fn beta(&self) -> f64 {
+        self.beta
     }
 
-    pub fn modulator_depth(&self) -> Normal {
-        self.modulator_depth
+    pub fn set_depth(&mut self, depth: Normal) {
+        self.depth = depth;
     }
 
-    pub fn modulator_ratio(&self) -> Ratio {
-        self.modulator_ratio
+    pub fn set_ratio(&mut self, ratio: Ratio) {
+        self.ratio = ratio;
     }
 
-    pub fn modulator_beta(&self) -> f64 {
-        self.modulator_beta
+    pub fn set_beta(&mut self, beta: ParameterType) {
+        self.beta = beta;
     }
 
     // TODO: we'll have to be smarter about subbing in a new envelope, possibly
@@ -198,122 +201,119 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct FmSynth {
     #[control]
-    #[params]
     depth: Normal,
 
     #[control]
-    #[params]
     ratio: Ratio,
 
     #[control]
-    #[params]
     beta: ParameterType,
 
     #[control]
-    #[params]
     pub carrier_envelope: Envelope,
 
     #[control]
-    #[params]
     pub modulator_envelope: Envelope,
 
     #[control]
-    #[params]
     pub dca: Dca,
 
-    pub inner_synth: Synthesizer<FmVoice>,
+    pub inner: Synthesizer<FmVoice>,
 }
 impl Generates<StereoSample> for FmSynth {
     fn value(&self) -> StereoSample {
-        self.inner_synth.value()
+        self.inner.value()
     }
 
     fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate_batch_values(values);
+        self.inner.generate_batch_values(values);
     }
 }
 impl Serializable for FmSynth {}
 impl Configurable for FmSynth {
-    fn sample_rate(&self) -> SampleRate {
-        self.inner_synth.sample_rate()
-    }
-
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner_synth.update_sample_rate(sample_rate)
-    }
-
-    fn tempo(&self) -> Tempo {
-        self.inner_synth.tempo()
-    }
-
-    fn update_tempo(&mut self, tempo: Tempo) {
-        self.inner_synth.update_tempo(tempo)
-    }
-
-    fn time_signature(&self) -> TimeSignature {
-        self.inner_synth.time_signature()
-    }
-
-    fn update_time_signature(&mut self, time_signature: TimeSignature) {
-        self.inner_synth.update_time_signature(time_signature)
+    delegate! {
+        to self.inner {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Ticks for FmSynth {
-    fn tick(&mut self, tick_count: usize) {
-        self.inner_synth.tick(tick_count);
+    delegate! {
+        to self.inner {
+            fn tick(&mut self, tick_count: usize);
+        }
     }
 }
 impl HandlesMidi for FmSynth {
-    fn handle_midi_message(
-        &mut self,
-        channel: MidiChannel,
-        message: MidiMessage,
-        midi_messages_fn: &mut MidiMessagesFn,
-    ) {
-        self.inner_synth
-            .handle_midi_message(channel, message, midi_messages_fn)
+    delegate! {
+        to self.inner {
+            fn handle_midi_message(
+                &mut self,
+                channel: MidiChannel,
+                message: MidiMessage,
+                midi_messages_fn: &mut MidiMessagesFn,
+            );
+        }
     }
 }
 impl FmSynth {
-    pub fn new_with(params: &FmSynthParams) -> Self {
+    pub fn new_with(
+        carrier_oscillator: Oscillator,
+        carrier_envelope: Envelope,
+        modulator_oscillator: Oscillator,
+        modulator_envelope: Envelope,
+        depth: Normal,
+        ratio: Ratio,
+        beta: ParameterType,
+        dca: Dca,
+    ) -> Self {
+        // let prototype_voice = ;
         const VOICE_CAPACITY: usize = 8;
         let voice_store = StealingVoiceStore::<FmVoice>::new_with_voice(VOICE_CAPACITY, || {
-            FmVoice::new_with(params)
+            FmVoice::new_with(
+                &carrier_oscillator,
+                &carrier_envelope,
+                &modulator_oscillator,
+                &modulator_envelope,
+                depth,
+                ratio,
+                beta,
+                &dca,
+            )
         });
 
         Self {
-            inner_synth: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
-            depth: params.depth(),
-            ratio: params.ratio(),
-            beta: params.beta(),
-            carrier_envelope: Envelope::new_with(&params.carrier_envelope),
-            modulator_envelope: Envelope::new_with(&params.modulator_envelope),
-            dca: Dca::new_with(&params.dca),
+            inner: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
+            depth,
+            ratio,
+            beta,
+            carrier_envelope,
+            modulator_envelope,
+            dca,
         }
     }
 
     pub fn set_depth(&mut self, depth: Normal) {
         self.depth = depth;
-        self.inner_synth
-            .voices_mut()
-            .for_each(|v| v.set_modulator_depth(depth));
+        self.inner.voices_mut().for_each(|v| v.set_depth(depth));
     }
 
     pub fn set_ratio(&mut self, ratio: Ratio) {
         self.ratio = ratio;
-        self.inner_synth
-            .voices_mut()
-            .for_each(|v| v.set_modulator_ratio(ratio));
+        self.inner.voices_mut().for_each(|v| v.set_ratio(ratio));
     }
 
     pub fn set_beta(&mut self, beta: ParameterType) {
         self.beta = beta;
-        self.inner_synth
-            .voices_mut()
-            .for_each(|v| v.set_modulator_beta(beta));
+        self.inner.voices_mut().for_each(|v| v.set_beta(beta));
     }
 
     pub fn depth(&self) -> Normal {
@@ -328,32 +328,37 @@ impl FmSynth {
         self.beta
     }
 
-    // TODO: replace with update_from_params() or whatever that turns out to be
-    pub fn set_carrier_envelope(&mut self, carrier_envelope: Envelope) {
-        self.carrier_envelope = carrier_envelope;
-        self.inner_synth.voices_mut().for_each(|v| {
-            v.set_carrier_envelope(Envelope::new_with(&self.carrier_envelope.to_params()))
+    pub fn notify_change_carrier_envelope(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.carrier_envelope
+                .update_from_prototype(&self.carrier_envelope);
         });
     }
 
-    pub fn set_modulator_envelope(&mut self, modulator_envelope: Envelope) {
-        self.modulator_envelope = modulator_envelope;
-        self.inner_synth.voices_mut().for_each(|v| {
-            v.set_modulator_envelope(Envelope::new_with(&self.modulator_envelope.to_params()))
+    pub fn notify_change_modulator_envelope(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.modulator_envelope
+                .update_from_prototype(&self.modulator_envelope);
         });
     }
 
     pub fn set_gain(&mut self, gain: Normal) {
         self.dca.set_gain(gain);
-        self.inner_synth.voices_mut().for_each(|v| v.set_gain(gain));
+        self.inner.voices_mut().for_each(|v| v.set_gain(gain));
     }
 
     pub fn set_pan(&mut self, pan: BipolarNormal) {
         self.dca.set_pan(pan);
-        self.inner_synth.voices_mut().for_each(|v| v.set_pan(pan));
+        self.inner.voices_mut().for_each(|v| v.set_pan(pan));
     }
 
     pub fn dca(&self) -> &Dca {
         &self.dca
+    }
+
+    pub fn notify_change_dca(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.dca.update_from_prototype(&self.dca);
+        });
     }
 }

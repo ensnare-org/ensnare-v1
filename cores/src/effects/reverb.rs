@@ -2,23 +2,21 @@
 
 use super::delay::{AllPassDelayLine, Delays};
 use crate::RecirculatingDelayLine;
-use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_core::{prelude::*, time::Seconds};
+use ensnare_proc_macros::Control;
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct Reverb {
     sample_rate: SampleRate,
 
     /// How much the effect should attenuate the input.
     #[control]
-    #[params]
     attenuation: Normal,
 
     #[control]
-    #[params]
-    seconds: ParameterType,
+    seconds: Seconds,
 
     channels: [ReverbChannel; 2],
 }
@@ -40,16 +38,16 @@ impl TransformsAudio for Reverb {
     }
 }
 impl Reverb {
-    pub fn new_with(params: &ReverbParams) -> Self {
+    pub fn new_with(attenuation: Normal, seconds: Seconds) -> Self {
         // Thanks to https://basicsynth.com/ (page 133 of paperback) for
         // constants.
         Self {
             sample_rate: Default::default(),
-            attenuation: params.attenuation(),
-            seconds: params.seconds(),
+            attenuation,
+            seconds,
             channels: [
-                ReverbChannel::new_with(params),
-                ReverbChannel::new_with(params),
+                ReverbChannel::new_with(attenuation, seconds),
+                ReverbChannel::new_with(attenuation, seconds),
             ],
         }
     }
@@ -65,11 +63,11 @@ impl Reverb {
             .for_each(|c| c.set_attenuation(attenuation));
     }
 
-    pub fn seconds(&self) -> f64 {
+    pub fn seconds(&self) -> Seconds {
         self.seconds
     }
 
-    pub fn set_seconds(&mut self, seconds: ParameterType) {
+    pub fn set_seconds(&mut self, seconds: Seconds) {
         self.seconds = seconds;
         self.channels
             .iter_mut()
@@ -107,12 +105,12 @@ impl Configurable for ReverbChannel {
     }
 }
 impl ReverbChannel {
-    pub fn new_with(params: &ReverbParams) -> Self {
+    pub fn new_with(attenuation: Normal, seconds: Seconds) -> Self {
         // Thanks to https://basicsynth.com/ (page 133 of paperback) for
         // constants.
         Self {
-            attenuation: params.attenuation(),
-            recirc_delay_lines: Self::instantiate_recirc_delay_lines(params.seconds()),
+            attenuation,
+            recirc_delay_lines: Self::instantiate_recirc_delay_lines(seconds),
             allpass_delay_lines: Self::instantiate_allpass_delay_lines(),
         }
     }
@@ -121,32 +119,32 @@ impl ReverbChannel {
         self.attenuation = attenuation;
     }
 
-    fn set_seconds(&mut self, seconds: ParameterType) {
+    fn set_seconds(&mut self, seconds: Seconds) {
         self.recirc_delay_lines = Self::instantiate_recirc_delay_lines(seconds);
     }
 
-    fn instantiate_recirc_delay_lines(seconds: ParameterType) -> Vec<RecirculatingDelayLine> {
+    fn instantiate_recirc_delay_lines(seconds: Seconds) -> Vec<RecirculatingDelayLine> {
         vec![
             RecirculatingDelayLine::new_with(
-                0.0297,
+                0.0297.into(),
                 seconds,
                 Normal::from(0.001),
                 Normal::from(1.0),
             ),
             RecirculatingDelayLine::new_with(
-                0.0371,
+                0.0371.into(),
                 seconds,
                 Normal::from(0.001),
                 Normal::from(1.0),
             ),
             RecirculatingDelayLine::new_with(
-                0.0411,
+                0.0411.into(),
                 seconds,
                 Normal::from(0.001),
                 Normal::from(1.0),
             ),
             RecirculatingDelayLine::new_with(
-                0.0437,
+                0.0437.into(),
                 seconds,
                 Normal::from(0.001),
                 Normal::from(1.0),
@@ -156,8 +154,18 @@ impl ReverbChannel {
 
     fn instantiate_allpass_delay_lines() -> Vec<AllPassDelayLine> {
         vec![
-            AllPassDelayLine::new_with(0.09683, 0.0050, Normal::from(0.001), Normal::from(1.0)),
-            AllPassDelayLine::new_with(0.03292, 0.0017, Normal::from(0.001), Normal::from(1.0)),
+            AllPassDelayLine::new_with(
+                0.09683.into(),
+                0.0050.into(),
+                Normal::from(0.001),
+                Normal::from(1.0),
+            ),
+            AllPassDelayLine::new_with(
+                0.03292.into(),
+                0.0017.into(),
+                Normal::from(0.001),
+                Normal::from(1.0),
+            ),
         ]
     }
 }
@@ -175,10 +183,7 @@ mod tests {
         // to 0.5 seconds, we start getting back nonzero samples (first
         // 0.47767496) at samples: 29079, seconds: 0.65938777. This doesn't look
         // wrong, but I couldn't have predicted that exact number.
-        let mut fx = Reverb::new_with(&ReverbParams {
-            attenuation: Normal::from(0.9),
-            seconds: 0.5,
-        });
+        let mut fx = Reverb::new_with(Normal::from(0.9), 0.5.into());
         fx.update_sample_rate(SampleRate::DEFAULT);
         assert_eq!(fx.transform_channel(0, Sample::from(0.8)), Sample::SILENCE);
         let mut s = Sample::default();

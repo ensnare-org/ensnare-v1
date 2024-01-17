@@ -1,12 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-pub use controllers::{
-    ToyController, ToyControllerAlwaysSendsMidiMessage, ToyControllerAlwaysSendsMidiMessageParams,
-    ToyControllerParams,
-};
-pub use effects::{ToyEffect, ToyEffectParams};
-pub use instruments::{ToyInstrument, ToyInstrumentParams};
-pub use synth::{ToySynth, ToySynthParams};
+pub use controllers::{ToyController, ToyControllerAlwaysSendsMidiMessage};
+pub use effects::ToyEffect;
+pub use instruments::ToyInstrument;
+pub use synth::ToySynth;
 
 mod controllers;
 mod effects;

@@ -9,12 +9,11 @@ use ensnare_core::{
     utils::Paths,
     voices::VoicePerNoteStore,
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};
 
-#[derive(Control, Default, Params)]
+#[derive(Control, Default)]
 pub struct Drumkit {
-    #[params]
     name: String,
 
     #[allow(dead_code)]
@@ -123,10 +122,10 @@ impl Drumkit {
         }
     }
 
-    pub fn new_with(params: &DrumkitParams, paths: &Paths) -> Self {
+    pub fn new_with(name: &str, paths: &Paths) -> Self {
         // TODO: we're hardcoding samples/. Figure out a way to use the
         // system.
-        Self::new_from_files(paths, params.name.as_ref())
+        Self::new_from_files(paths, name)
     }
 
     pub fn name(&self) -> &str {

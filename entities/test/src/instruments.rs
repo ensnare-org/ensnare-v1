@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{InnerInstrument, IsEntity2, Metadata, Params};
+use ensnare_proc_macros::{InnerInstrument, IsEntity2, Metadata};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
@@ -52,7 +52,7 @@ impl Generates<StereoSample> for TestInstrument {
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
-#[derive(Debug, Default, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, IsEntity2, Metadata, Serialize, Deserialize)]
 #[entity2(
     Configurable,
     Controllable,
@@ -96,7 +96,7 @@ impl TestInstrumentCountsMidiMessages {
     }
 }
 
-#[derive(Debug, Default, InnerInstrument, IsEntity2, Metadata, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, InnerInstrument, IsEntity2, Metadata, Serialize, Deserialize)]
 #[entity2(
     Configurable,
     Controllable,

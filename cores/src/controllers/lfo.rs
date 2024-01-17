@@ -1,22 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    generators::{Oscillator, OscillatorParams, Waveform},
-    prelude::*,
-};
-use ensnare_proc_macros::{Control, Params};
+use ensnare_core::{generators::Oscillator, prelude::*};
+use ensnare_proc_macros::Control;
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct LfoController {
     #[control]
-    #[params]
-    pub waveform: Waveform,
-    #[control]
-    #[params]
-    pub frequency: FrequencyHz,
-
-    oscillator: Oscillator,
+    pub oscillator: Oscillator,
 
     is_performing: bool,
 
@@ -89,15 +80,9 @@ impl Controls for LfoController {
 }
 impl HandlesMidi for LfoController {}
 impl LfoController {
-    pub fn new_with(params: &LfoControllerParams) -> Self {
+    pub fn new_with(oscillator: Oscillator) -> Self {
         Self {
-            oscillator: Oscillator::new_with(&OscillatorParams {
-                waveform: params.waveform,
-                frequency: params.frequency,
-                ..Default::default()
-            }),
-            waveform: params.waveform(),
-            frequency: params.frequency(),
+            oscillator,
             is_performing: false,
 
             time_range: Default::default(),
@@ -105,25 +90,9 @@ impl LfoController {
         }
     }
 
+    pub fn notify_change_oscillator(&mut self) {}
+
     pub const fn frequency_range() -> std::ops::RangeInclusive<ParameterType> {
         0.0..=100.0
-    }
-
-    pub fn waveform(&self) -> Waveform {
-        self.waveform
-    }
-
-    pub fn set_waveform(&mut self, waveform: Waveform) {
-        self.waveform = waveform;
-        self.oscillator.set_waveform(waveform);
-    }
-
-    pub fn frequency(&self) -> FrequencyHz {
-        self.frequency
-    }
-
-    pub fn set_frequency(&mut self, frequency: FrequencyHz) {
-        self.frequency = frequency;
-        self.oscillator.set_frequency(frequency);
     }
 }

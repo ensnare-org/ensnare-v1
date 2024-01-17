@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_cores::toys::ToyEffectParams;
 use ensnare_egui_widgets::drag_normal;
 use ensnare_entity::traits::Displays;
 use ensnare_proc_macros::{
@@ -33,10 +32,10 @@ impl Displays for ToyEffect {
     }
 }
 impl ToyEffect {
-    pub fn new_with(uid: Uid) -> Self {
+    pub fn new_with(uid: Uid, magnitude: Normal) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyEffect::new_with(&ToyEffectParams::default()),
+            inner: ensnare_cores::toys::ToyEffect::new_with(magnitude),
         }
     }
 }

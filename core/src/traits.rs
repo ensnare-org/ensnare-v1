@@ -471,6 +471,16 @@ pub trait Sequences: Controls + std::fmt::Debug {
     fn clear(&mut self);
 }
 
+pub trait CanPrototype: std::fmt::Debug + Default {
+    fn make_another(&self) -> Self {
+        let mut r = Self::default();
+        r.update_from_prototype(self);
+        r
+    }
+
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self;
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Ticks;

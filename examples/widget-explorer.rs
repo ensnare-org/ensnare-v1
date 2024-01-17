@@ -21,11 +21,12 @@ use ensnare::{
     ui::{widgets::pattern, DragSource, DropTarget},
 };
 use ensnare_core::{
+    modulators::Dca,
     rng::Rng,
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores::{toys::ToyControllerParams, NoteSequencerBuilder};
+use ensnare_cores::NoteSequencerBuilder;
 use ensnare_cores_egui::{
     controllers::note_sequencer_widget, piano_roll::piano_roll,
     prelude::live_pattern_sequencer_widget,
@@ -415,7 +416,12 @@ impl Default for ToySynthSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy_synth: ToySynth::new_with(Uid::default()),
+            toy_synth: ToySynth::new_with(
+                Uid::default(),
+                Oscillator::default(),
+                Envelope::safe_default(),
+                Dca::default(),
+            ),
         }
     }
 }
@@ -443,7 +449,7 @@ impl Default for ToyControllerSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyController::new_with(Uid::default(), &ToyControllerParams::default()),
+            toy: ToyController::new_with(Uid::default()),
         }
     }
 }
@@ -471,7 +477,7 @@ impl Default for ToyEffectSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            toy: ToyEffect::new_with(Uid::default()),
+            toy: ToyEffect::new_with(Uid::default(), Normal::from(0.8)),
         }
     }
 }

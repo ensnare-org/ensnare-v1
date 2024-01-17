@@ -7,7 +7,7 @@ use ensnare_core::{
     instruments::Synthesizer,
     modulators::Dca,
     prelude::*,
-    traits::GeneratesEnvelope,
+    traits::{CanPrototype, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
 use ensnare_proc_macros::Control;
@@ -34,34 +34,34 @@ pub enum LfoRouting {
     FilterCutoff,
 }
 
-#[derive(Control, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct WelshVoice {
-    #[control]
+    //#[control]
     pub oscillator_1: Oscillator,
-    #[control]
+    //#[control]
     pub oscillator_2: Oscillator,
-    #[control]
+    //#[control]
     pub oscillator_2_sync: bool,
-    #[control]
+    //#[control]
     pub oscillator_mix: Normal, // 1.0 = entirely osc 0, 0.0 = entirely osc 1.
-    #[control]
+    //#[control]
     pub amp_envelope: Envelope,
-    #[control]
+    //#[control]
     pub dca: Dca,
 
-    #[control]
+    //#[control]
     pub lfo: Oscillator,
     pub lfo_routing: LfoRouting,
-    #[control]
+    //#[control]
     pub lfo_depth: Normal,
 
-    #[control]
+    //#[control]
     pub filter: BiQuadFilterLowPass24db,
-    #[control]
+    //#[control]
     pub filter_cutoff_start: Normal,
-    #[control]
+    //#[control]
     pub filter_cutoff_end: Normal,
-    #[control]
+    //#[control]
     pub filter_envelope: Envelope,
 
     #[serde(skip)]
@@ -204,6 +204,43 @@ impl Ticks for WelshVoice {
     }
 }
 impl WelshVoice {
+    pub fn new_with(
+        oscillator_1: &Oscillator,
+        oscillator_2: &Oscillator,
+        oscillator_2_sync: bool,
+        oscillator_mix: Normal,
+        amp_envelope: &Envelope,
+        dca: &Dca,
+        lfo: &Oscillator,
+        lfo_routing: LfoRouting,
+        lfo_depth: Normal,
+        filter: &BiQuadFilterLowPass24db,
+        filter_cutoff_start: Normal,
+        filter_cutoff_end: Normal,
+        filter_envelope: &Envelope,
+    ) -> Self {
+        Self {
+            oscillator_1: oscillator_1.make_another(),
+            oscillator_2: oscillator_2.make_another(),
+            oscillator_2_sync,
+            oscillator_mix,
+            amp_envelope: amp_envelope.make_another(),
+            dca: dca.make_another(),
+            lfo: lfo.make_another(),
+            lfo_routing,
+            lfo_depth,
+            filter: filter.make_another(),
+            filter_cutoff_start,
+            filter_cutoff_end,
+            filter_envelope: filter_envelope.make_another(),
+            note_on_key: Default::default(),
+            note_on_velocity: Default::default(),
+            steal_is_underway: Default::default(),
+            sample: Default::default(),
+            ticks: Default::default(),
+        }
+    }
+
     fn tick_envelopes(&mut self) -> (Normal, Normal) {
         if self.is_playing() {
             self.amp_envelope.tick(1);
@@ -291,28 +328,110 @@ impl WelshVoice {
 #[derive(Debug, Control, Deserialize, Serialize)]
 pub struct WelshSynth {
     #[control]
-    pub voice: WelshVoice,
-
+    pub oscillator_1: Oscillator,
+    #[control]
+    pub oscillator_2: Oscillator,
+    #[control]
+    pub oscillator_2_sync: bool,
+    #[control]
+    pub oscillator_mix: Normal, // 1.0 = entirely osc 0, 0.0 = entirely osc 1.
+    #[control]
+    pub amp_envelope: Envelope,
     #[control]
     pub dca: Dca,
+
+    #[control]
+    pub lfo: Oscillator,
+    pub lfo_routing: LfoRouting,
+    #[control]
+    pub lfo_depth: Normal,
+
+    #[control]
+    pub filter: BiQuadFilterLowPass24db,
+    #[control]
+    pub filter_cutoff_start: Normal,
+    #[control]
+    pub filter_cutoff_end: Normal,
+    #[control]
+    pub filter_envelope: Envelope,
 
     #[serde(skip)]
     pub inner_synth: Synthesizer<WelshVoice>,
 }
-impl Default for WelshSynth {
-    fn default() -> Self {
-        const VOICE_CAPACITY: usize = 8;
-        let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
-            WelshVoice::default()
-        });
+impl WelshSynth {
+    const VOICE_CAPACITY: usize = 8;
+
+    pub fn new_with(
+        oscillator_1: Oscillator,
+        oscillator_2: Oscillator,
+        oscillator_2_sync: bool,
+        oscillator_mix: Normal,
+        amp_envelope: Envelope,
+        dca: Dca,
+        lfo: Oscillator,
+        lfo_routing: LfoRouting,
+        lfo_depth: Normal,
+        filter: BiQuadFilterLowPass24db,
+        filter_cutoff_start: Normal,
+        filter_cutoff_end: Normal,
+        filter_envelope: Envelope,
+    ) -> Self {
+        let voice_store =
+            StealingVoiceStore::<WelshVoice>::new_with_voice(Self::VOICE_CAPACITY, || {
+                WelshVoice::new_with(
+                    &oscillator_1,
+                    &oscillator_2,
+                    oscillator_2_sync,
+                    oscillator_mix,
+                    &amp_envelope,
+                    &dca,
+                    &lfo,
+                    lfo_routing,
+                    lfo_depth,
+                    &filter,
+                    filter_cutoff_start,
+                    filter_cutoff_end,
+                    &filter_envelope,
+                )
+            });
         Self {
             inner_synth: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
-            voice: WelshVoice::default(),
-            dca: Dca::default(),
+            oscillator_1,
+            oscillator_2,
+            oscillator_2_sync,
+            oscillator_mix,
+            amp_envelope,
+            dca,
+            lfo,
+            lfo_routing,
+            lfo_depth,
+            filter,
+            filter_cutoff_start,
+            filter_cutoff_end,
+            filter_envelope,
         }
     }
-}
 
+    fn new_voice_store(&self) -> StealingVoiceStore<WelshVoice> {
+        StealingVoiceStore::<WelshVoice>::new_with_voice(Self::VOICE_CAPACITY, || {
+            WelshVoice::new_with(
+                &self.oscillator_1,
+                &self.oscillator_2,
+                self.oscillator_2_sync,
+                self.oscillator_mix,
+                &self.amp_envelope,
+                &self.dca,
+                &self.lfo,
+                self.lfo_routing,
+                self.lfo_depth,
+                &self.filter,
+                self.filter_cutoff_start,
+                self.filter_cutoff_end,
+                &self.filter_envelope,
+            )
+        })
+    }
+}
 impl Generates<StereoSample> for WelshSynth {
     fn value(&self) -> StereoSample {
         self.inner_synth.value()
@@ -326,11 +445,7 @@ impl Serializable for WelshSynth {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        const VOICE_CAPACITY: usize = 8;
-        let voice_store = StealingVoiceStore::<WelshVoice>::new_with_voice(VOICE_CAPACITY, || {
-            self.voice.clone_fresh()
-        });
-        self.inner_synth = Synthesizer::<WelshVoice>::new_with(Box::new(voice_store));
+        self.inner_synth = Synthesizer::<WelshVoice>::new_with(Box::new(self.new_voice_store()));
     }
 }
 impl Configurable for WelshSynth {
@@ -379,40 +494,34 @@ impl WelshSynth {
         //        self.preset.name.as_str()
     }
 
-    // pub fn gain(&self) -> Normal {
-    //     self.inner_synth.gain()
-    // }
+    pub fn notify_change_oscillator_1(&mut self) {}
+    pub fn notify_change_oscillator_2(&mut self) {}
+    pub fn notify_change_oscillator_mix(&mut self) {}
+    pub fn notify_change_amp_envelope(&mut self) {}
+    pub fn notify_change_dca(&mut self) {}
+    pub fn notify_change_lfo(&mut self) {}
+    pub fn notify_change_filter(&mut self) {}
+    pub fn notify_change_filter_envelope(&mut self) {}
 
-    // pub fn set_gain(&mut self, gain: Normal) {
-    //     // This seems like a lot of duplication, but I think it's OK. The outer
-    //     // synth handles automation. The inner synth needs a single source of
-    //     // gain/pan, and the inner synth can't propagate to the voices because
-    //     // (1) it doesn't actually know whether the voice handles those things,
-    //     // and (2) I'm not sure we want to codify whether gain/pan are per-voice
-    //     // or per-synth, meaning that the propagation is better placed in the
-    //     // outer synth.
-    //     //
-    //     // All that said, I'm still getting used to composition over
-    //     // inheritance. It feels weird for the concrete case to be at the top.
-    //     // Maybe this is all just fine.
-    //     self.gain = gain;
-    //     self.dca.set_gain(gain);
-    //     self.inner_synth.set_gain(gain);
-    //     self.inner_synth.voices_mut().for_each(|v| v.set_gain(gain));
-    //     self.inner_synth.set_gain(gain);
-    // }
+    pub fn set_oscillator_2_sync(&mut self, oscillator_2_sync: bool) {
+        self.oscillator_2_sync = oscillator_2_sync;
+    }
 
-    // pub fn pan(&self) -> BipolarNormal {
-    //     self.inner_synth.pan()
-    // }
+    pub fn set_oscillator_mix(&mut self, oscillator_mix: Normal) {
+        self.oscillator_mix = oscillator_mix;
+    }
 
-    // pub fn set_pan(&mut self, pan: BipolarNormal) {
-    //     self.pan = pan;
-    //     self.dca.set_pan(pan);
-    //     self.inner_synth.set_pan(pan);
-    //     self.inner_synth.voices_mut().for_each(|v| v.set_pan(pan));
-    //     self.inner_synth.set_pan(pan);
-    // }
+    pub fn set_lfo_depth(&mut self, lfo_depth: Normal) {
+        self.lfo_depth = lfo_depth;
+    }
+
+    pub fn set_filter_cutoff_start(&mut self, filter_cutoff_start: Normal) {
+        self.filter_cutoff_start = filter_cutoff_start;
+    }
+
+    pub fn set_filter_cutoff_end(&mut self, filter_cutoff_end: Normal) {
+        self.filter_cutoff_end = filter_cutoff_end;
+    }
 }
 
 #[cfg(test)]

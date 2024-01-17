@@ -1,7 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{prelude::*, utils::Paths};
-use ensnare_cores::{DrumkitParams, FmSynthParams, SamplerParams};
+use ensnare_core::{
+    generators::{Envelope, Oscillator},
+    modulators::Dca,
+    prelude::*,
+    utils::Paths,
+};
+use ensnare_cores::LfoRouting;
 use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
@@ -9,6 +14,7 @@ use ensnare_proc_macros::{
     InnerSerializable, IsEntity2, Metadata,
 };
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(
     Debug, InnerControllable, InnerConfigurable, IsEntity2, Metadata, Serialize, Deserialize,
@@ -33,10 +39,10 @@ impl Displays for Drumkit {
     }
 }
 impl Drumkit {
-    pub fn new_with(uid: Uid, params: &DrumkitParams, paths: &Paths) -> Self {
+    pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Drumkit::new_with(&params, paths),
+            inner: ensnare_cores::Drumkit::new_with(name, paths),
         }
     }
 }
@@ -65,10 +71,29 @@ impl Displays for FmSynth {
     }
 }
 impl FmSynth {
-    pub fn new_with(uid: Uid, params: &FmSynthParams) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        carrier_oscillator: Oscillator,
+        carrier_envelope: Envelope,
+        modulator_oscillator: Oscillator,
+        modulator_envelope: Envelope,
+        depth: Normal,
+        ratio: Ratio,
+        beta: ParameterType,
+        dca: Dca,
+    ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::FmSynth::new_with(params),
+            inner: ensnare_cores::FmSynth::new_with(
+                carrier_oscillator,
+                carrier_envelope,
+                modulator_oscillator,
+                modulator_envelope,
+                depth,
+                ratio,
+                beta,
+                dca,
+            ),
         }
     }
 }
@@ -96,10 +121,10 @@ impl Displays for Sampler {
     }
 }
 impl Sampler {
-    pub fn new_with(uid: Uid, params: &SamplerParams) -> Self {
+    pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Sampler::new_with(&params),
+            inner: ensnare_cores::Sampler::new_with(path, root),
         }
     }
 
@@ -131,10 +156,39 @@ impl Displays for WelshSynth {
     }
 }
 impl WelshSynth {
-    pub fn new_with(uid: Uid) -> Self {
+    pub fn new_with(
+        uid: Uid,
+        oscillator_1: Oscillator,
+        oscillator_2: Oscillator,
+        oscillator_2_sync: bool,
+        oscillator_mix: Normal,
+        amp_envelope: Envelope,
+        dca: Dca,
+        lfo: Oscillator,
+        lfo_routing: LfoRouting,
+        lfo_depth: Normal,
+        filter: ensnare_cores::BiQuadFilterLowPass24db,
+        filter_cutoff_start: Normal,
+        filter_cutoff_end: Normal,
+        filter_envelope: Envelope,
+    ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::WelshSynth::default(),
+            inner: ensnare_cores::WelshSynth::new_with(
+                oscillator_1,
+                oscillator_2,
+                oscillator_2_sync,
+                oscillator_mix,
+                amp_envelope,
+                dca,
+                lfo,
+                lfo_routing,
+                lfo_depth,
+                filter,
+                filter_cutoff_start,
+                filter_cutoff_end,
+                filter_envelope,
+            ),
         }
     }
 }

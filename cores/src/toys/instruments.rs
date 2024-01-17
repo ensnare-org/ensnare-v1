@@ -1,11 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    generators::{Oscillator, OscillatorParams, Waveform},
-    modulators::{Dca, DcaParams},
-    prelude::*,
-};
-use ensnare_proc_macros::{Control, Params};
+use ensnare_core::{generators::Oscillator, modulators::Dca, prelude::*};
+use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
@@ -26,12 +22,11 @@ pub struct ToyInstrumentEphemerals {
 /// An [IsInstrument](ensnare::traits::IsInstrument) that uses a default
 /// [Oscillator] to produce sound. Its "envelope" is just a boolean that
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
-#[derive(Debug, Default, Control, Params, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct ToyInstrument {
     pub oscillator: Oscillator,
 
     #[control]
-    #[params]
     pub dca: Dca,
 
     #[serde(skip)]
@@ -95,12 +90,10 @@ impl HandlesMidi for ToyInstrument {
 }
 impl Serializable for ToyInstrument {}
 impl ToyInstrument {
-    pub fn new_with(params: &ToyInstrumentParams) -> Self {
+    pub fn new() -> Self {
         Self {
-            oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
-                Waveform::Sine,
-            )),
-            dca: Dca::new_with(&params.dca),
+            oscillator: Oscillator::default(),
+            dca: Dca::default(),
             e: Default::default(),
         }
     }
@@ -111,4 +104,6 @@ impl ToyInstrument {
     pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
         &self.e.received_midi_message_count
     }
+
+    pub fn notify_change_dca(&mut self) {}
 }

@@ -19,7 +19,7 @@ use std::collections::HashMap;
     serde::Deserialize,
     serde::Serialize,
 )]
-pub struct VoiceCount(usize);
+pub struct VoiceCount(pub usize);
 impl Default for VoiceCount {
     fn default() -> Self {
         Self(8)
@@ -351,7 +351,7 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
 pub(crate) mod tests {
     use super::*;
     use crate::{
-        generators::{Envelope, EnvelopeParams, Oscillator, OscillatorParams, Waveform},
+        generators::{Envelope, Oscillator, Waveform},
         traits::GeneratesEnvelope,
     };
     use float_cmp::approx_eq;
@@ -442,15 +442,18 @@ pub(crate) mod tests {
         pub(crate) fn new() -> Self {
             Self {
                 sample_rate: Default::default(),
-                oscillator: Oscillator::new_with(&OscillatorParams::default_with_waveform(
+                oscillator: Oscillator::new_with(
                     Waveform::Sine,
-                )),
-                envelope: Envelope::new_with(&EnvelopeParams {
-                    attack: Normal::minimum(),
-                    decay: Normal::minimum(),
-                    sustain: Normal::maximum(),
-                    release: Normal::minimum(),
-                }),
+                    FrequencyHz(440.0),
+                    Ratio::default(),
+                    BipolarNormal::default(),
+                ),
+                envelope: Envelope::new_with(
+                    Normal::minimum(),
+                    Normal::minimum(),
+                    Normal::maximum(),
+                    Normal::minimum(),
+                ),
                 sample: Default::default(),
                 note_on_key: Default::default(),
                 note_on_velocity: Default::default(),

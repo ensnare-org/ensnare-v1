@@ -3,10 +3,10 @@
 use crate::{Composer, LivePatternSequencer};
 use delegate::delegate;
 use ensnare_core::{piano_roll::PatternUid, prelude::*, traits::Sequences};
-use ensnare_proc_macros::{InnerConfigurable, InnerHandlesMidi, InnerSerializable, Params};
+use ensnare_proc_macros::{InnerConfigurable, InnerHandlesMidi, InnerSerializable};
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Default, Params, InnerConfigurable, InnerHandlesMidi, InnerSerializable)]
+#[derive(Debug, Default, InnerConfigurable, InnerHandlesMidi, InnerSerializable)]
 pub struct ThinSequencer {
     composer: Arc<RwLock<Composer>>,
     repo_serial: usize,

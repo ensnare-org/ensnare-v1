@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_core::generators::Envelope;
 use ensnare_egui_widgets::envelope;
 
 /// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
@@ -54,11 +53,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
                 if ui.add(envelope(&mut self.inner.carrier_envelope)).changed() {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.set_carrier_envelope(Envelope::new_with(
-                            &self.inner.carrier_envelope.to_params(),
-                        ));
-                    });
+                    self.inner.notify_change_carrier_envelope();
                 }
             });
 
@@ -70,11 +65,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
                     .add(envelope(&mut self.inner.modulator_envelope))
                     .changed()
                 {
-                    self.inner.inner_synth.voices_mut().for_each(|v| {
-                        v.set_modulator_envelope(Envelope::new_with(
-                            &self.inner.modulator_envelope.to_params(),
-                        ));
-                    });
+                    self.inner.notify_change_modulator_envelope();
                 }
             });
 

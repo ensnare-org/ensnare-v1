@@ -1,7 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare_cores::toys::ToyControllerParams;
+use ensnare_core::{
+    generators::{Envelope, Oscillator},
+    modulators::Dca,
+};
 use ensnare_entity::{prelude::*, traits::EntityBounds};
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very
@@ -15,19 +18,21 @@ impl ToyEntities {
         mut factory: EntityFactory<dyn EntityBounds>,
     ) -> EntityFactory<dyn EntityBounds> {
         factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
-            Box::new(ToySynth::new_with(uid))
+            Box::new(ToySynth::new_with(
+                uid,
+                Oscillator::new_with_waveform(ensnare_core::generators::Waveform::Triangle),
+                Envelope::safe_default(),
+                Dca::default(),
+            ))
         });
         factory.register_entity(EntityKey::from(ToyInstrument::ENTITY_KEY), |uid| {
             Box::new(ToyInstrument::new_with(uid))
         });
         factory.register_entity(EntityKey::from(ToyController::ENTITY_KEY), |uid| {
-            Box::new(ToyController::new_with(
-                uid,
-                &ToyControllerParams::default(),
-            ))
+            Box::new(ToyController::new_with(uid))
         });
         factory.register_entity(EntityKey::from(ToyEffect::ENTITY_KEY), |uid| {
-            Box::new(ToyEffect::new_with(uid))
+            Box::new(ToyEffect::new_with(uid, 0.8.into()))
         });
 
         factory

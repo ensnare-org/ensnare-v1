@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 pub use {
-    drumkit::{Drumkit, DrumkitParams},
-    fm::{FmSynth, FmSynthParams},
-    sampler::{Sampler, SamplerParams, SamplerVoice},
+    drumkit::Drumkit,
+    fm::FmSynth,
+    sampler::{Sampler, SamplerVoice},
     test::TestAudioSource,
-    welsh::{WelshSynth, WelshVoice},
+    welsh::{LfoRouting, WelshSynth, WelshVoice},
 };
 
 mod drumkit;

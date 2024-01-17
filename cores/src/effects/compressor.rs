@@ -1,14 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct Compressor {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
     /// corresponds to quietest, and 1.0 corresponds to 0dB.
     #[control]
-    #[params]
     threshold: Normal,
 
     /// How much to compress the audio above the threshold. For example, 2:1
@@ -18,20 +17,17 @@ pub struct Compressor {
     /// compression, and 0.0 is infinite compression (the output remains a
     /// constant amplitude no matter what).
     #[control]
-    #[params]
-    ratio: ParameterType,
+    ratio: Ratio,
 
     /// How soon the compressor activates after the level exceeds the threshold.
-    /// Time in seconds.
+    /// Expressed as a [Normal] that is scaled to an amount of time.
     #[control]
-    #[params]
-    attack: ParameterType,
+    attack: Normal,
 
     /// How soon the compressor deactivates after the level drops below the
-    /// threshold. Time in seconds.
+    /// Expressed as a [Normal] that is scaled to an amount of time.
     #[control]
-    #[params]
-    release: ParameterType,
+    release: Normal,
 
     // TODO
     #[allow(dead_code)]
@@ -57,12 +53,12 @@ impl TransformsAudio for Compressor {
 }
 impl Configurable for Compressor {}
 impl Compressor {
-    pub fn new_with(params: &CompressorParams) -> Self {
+    pub fn new_with(threshold: Normal, ratio: Ratio, attack: Normal, release: Normal) -> Self {
         Self {
-            threshold: params.threshold(),
-            ratio: params.ratio(),
-            attack: params.attack(),
-            release: params.release(),
+            threshold,
+            ratio,
+            attack,
+            release,
             ..Default::default()
         }
     }
@@ -71,31 +67,31 @@ impl Compressor {
         self.threshold
     }
 
-    pub fn ratio(&self) -> f64 {
-        self.ratio
-    }
-
-    pub fn attack(&self) -> f64 {
-        self.attack
-    }
-
-    pub fn release(&self) -> f64 {
-        self.release
-    }
-
     pub fn set_threshold(&mut self, threshold: Normal) {
         self.threshold = threshold;
     }
 
-    pub fn set_ratio(&mut self, ratio: ParameterType) {
+    pub fn ratio(&self) -> Ratio {
+        self.ratio
+    }
+
+    pub fn set_ratio(&mut self, ratio: Ratio) {
         self.ratio = ratio;
     }
 
-    pub fn set_attack(&mut self, attack: ParameterType) {
+    pub fn attack(&self) -> Normal {
+        self.attack
+    }
+
+    pub fn set_attack(&mut self, attack: Normal) {
         self.attack = attack;
     }
 
-    pub fn set_release(&mut self, release: ParameterType) {
+    pub fn release(&self) -> Normal {
+        self.release
+    }
+
+    pub fn set_release(&mut self, release: Normal) {
         self.release = release;
     }
 }
@@ -107,12 +103,7 @@ mod tests {
     #[test]
     fn basic_compressor() {
         const THRESHOLD: SampleType = 0.25;
-        let mut fx = Compressor::new_with(&CompressorParams {
-            threshold: Normal::from(THRESHOLD),
-            ratio: 0.5,
-            attack: 0.0,
-            release: 0.0,
-        });
+        let mut fx = Compressor::new_with(THRESHOLD.into(), 0.5.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from((0.35 - THRESHOLD) * 0.5 + THRESHOLD)
@@ -121,12 +112,7 @@ mod tests {
 
     #[test]
     fn nothing_compressor() {
-        let mut fx = Compressor::new_with(&CompressorParams {
-            threshold: Normal::from(0.25),
-            ratio: 1.0,
-            attack: 0.0,
-            release: 0.0,
-        });
+        let mut fx = Compressor::new_with(0.25.into(), 1.0.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35f32)),
             Sample::from(0.35f32)
@@ -135,12 +121,7 @@ mod tests {
 
     #[test]
     fn infinite_compressor() {
-        let mut fx = Compressor::new_with(&CompressorParams {
-            threshold: Normal::from(0.25),
-            ratio: 0.0,
-            attack: 0.0,
-            release: 0.0,
-        });
+        let mut fx = Compressor::new_with(0.25.into(), 0.0.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from(0.25)

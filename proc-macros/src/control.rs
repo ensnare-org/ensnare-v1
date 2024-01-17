@@ -157,9 +157,10 @@ pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident
             } else {
                 let field_index_name = index_const_id(ident);
                 let name_const = name_const_id(ident);
+                let notify_const = format_ident!("notify_change_{}", ident);
                 id_bodies.push(quote! { Some(format!("{}-{}", Self::#name_const, self.#ident.control_name_for_index(#core_crate::control::ControlIndex(index.0 - Self::#field_index_name)).unwrap()))});
                 setter_bodies
-                    .push(quote! {self.#ident.control_set_param_by_index(#core_crate::control::ControlIndex(index.0 - Self::#field_index_name), value);});
+                    .push(quote! {self.#ident.control_set_param_by_index(#core_crate::control::ControlIndex(index.0 - Self::#field_index_name), value); self.#notify_const(); });
             }
         });
         let control_name_for_index_body = quote! {

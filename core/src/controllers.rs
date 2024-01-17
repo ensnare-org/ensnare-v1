@@ -2,14 +2,13 @@
 
 use crate::{prelude::*, rng::Rng};
 use derive_builder::Builder;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
 /// [Timer] runs for a specified amount of time, then indicates that it's done.
 /// It is useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct Timer {
-    #[params]
     duration: MusicalTime,
     is_performing: bool,
     is_finished: bool,
@@ -18,9 +17,9 @@ pub struct Timer {
 impl Serializable for Timer {}
 #[allow(missing_docs)]
 impl Timer {
-    pub fn new_with(params: &TimerParams) -> Self {
+    pub fn new_with(duration: MusicalTime) -> Self {
         Self {
-            duration: params.duration,
+            duration,
             ..Default::default()
         }
     }
@@ -72,12 +71,10 @@ impl Controls for Timer {
 
 // TODO: needs tests!
 /// [Trigger] issues a control signal after a specified amount of time.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct Trigger {
-    #[params]
     timer: Timer,
 
-    #[params]
     pub value: ControlValue,
 
     has_triggered: bool,
@@ -129,10 +126,10 @@ impl Configurable for Trigger {
 }
 impl HandlesMidi for Trigger {}
 impl Trigger {
-    pub fn new_with(params: &TriggerParams) -> Self {
+    pub fn new_with(timer: Timer, value: ControlValue) -> Self {
         Self {
-            timer: Timer::new_with(&params.timer),
-            value: params.value,
+            timer,
+            value,
             has_triggered: Default::default(),
             is_performing: Default::default(),
         }
@@ -252,7 +249,7 @@ impl ControlTripEphemerals {
 /// A trip consists of [ControlStep]s ordered by time. Each step specifies a
 /// point in time, a [ControlValue], and a [ControlPath] that indicates how to
 /// progress from the current [ControlStep] to the next one.
-#[derive(Clone, Debug, Default, Builder, Params)]
+#[derive(Clone, Debug, Default, Builder)]
 pub struct ControlTrip {
     /// The [ControlStep]s that make up this trip. They must be in ascending
     /// time order. TODO: enforce that.
@@ -263,7 +260,7 @@ pub struct ControlTrip {
     e: ControlTripEphemerals,
 }
 impl ControlTrip {
-    pub fn new_with(_params: &ControlTripParams) -> Self {
+    pub fn new() -> Self {
         Self {
             steps: Default::default(),
             e: Default::default(),
@@ -449,13 +446,10 @@ mod tests {
     #[test]
     fn instantiate_trigger() {
         let ts = TimeSignature::default();
-        let params = TriggerParams {
-            timer: TimerParams {
-                duration: MusicalTime::new_with_bars(&ts, 1),
-            },
-            value: ControlValue::from(0.5),
-        };
-        let mut trigger = Trigger::new_with(&params);
+        let mut trigger = Trigger::new_with(
+            Timer::new_with(MusicalTime::new_with_bars(&ts, 1)),
+            ControlValue::from(0.5),
+        );
         trigger.update_sample_rate(SampleRate::DEFAULT);
         trigger.play();
 

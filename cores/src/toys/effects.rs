@@ -1,14 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 
 /// An effect that applies a negative gain.
-#[derive(Debug, Default, Control, Params)]
+#[derive(Debug, Default, Control)]
 pub struct ToyEffect {
     /// The [ToyEffect] transformation is signal * -magnitude.
     #[control]
-    #[params]
     pub magnitude: Normal,
 
     sample_rate: SampleRate,
@@ -16,9 +15,9 @@ pub struct ToyEffect {
     time_signature: TimeSignature,
 }
 impl ToyEffect {
-    pub fn new_with(params: &ToyEffectParams) -> Self {
+    pub fn new_with(magnitude: Normal) -> Self {
         Self {
-            magnitude: params.magnitude,
+            magnitude,
             ..Default::default()
         }
     }

@@ -7,9 +7,15 @@ use ensnare_core::{
     utils::Paths,
     voices::{VoiceCount, VoiceStore},
 };
-use ensnare_proc_macros::{Control, Params};
+use ensnare_proc_macros::Control;
 use hound::WavReader;
-use std::{fs::File, io::BufReader, path::Path, sync::Arc};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 #[derive(Debug, Default)]
 pub struct SamplerVoice {
@@ -103,23 +109,23 @@ impl SamplerVoice {
     }
 }
 
-#[derive(Control, Default, Params)]
+#[derive(Control, Default, Serialize, Deserialize)]
 pub struct Sampler {
-    #[params]
-    filename: String,
+    path: PathBuf,
 
     #[control]
-    #[params]
     root: FrequencyHz,
 
+    #[serde(skip)]
     calculated_root: FrequencyHz,
 
+    #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
 impl std::fmt::Debug for Sampler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Sampler")
-            .field("filename", &self.filename)
+            .field("filename", &self.path)
             .field("root", &self.root)
             .field("calculated_root", &self.calculated_root)
             .finish()
@@ -159,7 +165,7 @@ impl Configurable for Sampler {
 }
 impl Sampler {
     pub fn load(&mut self, paths: &Paths) -> anyhow::Result<()> {
-        let path = paths.build_sample(&Vec::default(), Path::new(&self.filename));
+        let path = paths.build_sample(&Vec::default(), Path::new(&self.path));
         let file = paths.search_and_open(path.as_path())?;
         let samples = Self::read_samples_from_file(&file)?;
         let samples = Arc::new(samples);
@@ -184,21 +190,17 @@ impl Sampler {
         Ok(())
     }
 
-    pub fn new_with(params: &SamplerParams) -> Self {
+    pub fn new_with(path: PathBuf, root: Option<FrequencyHz>) -> Self {
         let samples = Arc::new(Vec::default());
-        let calculated_root = if params.root().0 > 0.0 {
-            params.root
-        } else {
-            FrequencyHz::from(440.0)
-        };
+        let calculated_root = root.unwrap_or_default();
         Self {
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
                 VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
                     SamplerVoice::new_with_samples(Arc::clone(&samples), calculated_root)
                 }),
             )),
-            filename: params.filename().to_string(),
-            root: params.root(),
+            path,
+            root: calculated_root,
             calculated_root,
         }
     }
@@ -332,12 +334,12 @@ impl Sampler {
         self.calculated_root = calculated_root;
     }
 
-    pub fn filename(&self) -> &str {
-        self.filename.as_ref()
+    pub fn path(&self) -> &PathBuf {
+        &self.path
     }
 
-    pub fn set_filename(&mut self, filename: String) {
-        self.filename = filename;
+    pub fn set_path(&mut self, path: PathBuf) {
+        self.path = path;
     }
 }
 
@@ -356,10 +358,7 @@ mod tests {
     #[test]
     fn loading() {
         let paths = paths_with_test_data_dir();
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "stereo-pluck.wav".to_string(),
-            root: 0.0.into(),
-        });
+        let mut sampler = Sampler::new_with(PathBuf::from("stereo-pluck.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(sampler.calculated_root(), FrequencyHz::from(440.0));
     }
@@ -393,10 +392,7 @@ mod tests {
     #[ignore = "riff_io crate is disabled, so we can't read root frequencies from files"]
     fn loading_with_root_frequency() {
         let paths = paths_with_test_data_dir();
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "riff-acidized.wav".to_string(),
-            root: 0.0.into(),
-        });
+        let mut sampler = Sampler::new_with(PathBuf::from("riff-acidized.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         eprintln!("calculated {} ", sampler.calculated_root());
         assert_eq!(
@@ -405,10 +401,7 @@ mod tests {
             "acidized WAV should produce sample with embedded root note"
         );
 
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "riff-acidized.wav".to_string(),
-            root: 123.0.into(),
-        });
+        let mut sampler = Sampler::new_with(PathBuf::from("riff-acidized.wav"), Some(123.0.into()));
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
@@ -416,10 +409,8 @@ mod tests {
             "specified parameter should override acidized WAV's embedded root note"
         );
 
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "riff-not-acidized.wav".to_string(),
-            root: 123.0.into(),
-        });
+        let mut sampler =
+            Sampler::new_with(PathBuf::from("riff-not-acidized.wav"), Some(123.0.into()));
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
@@ -427,10 +418,7 @@ mod tests {
             "specified parameter should be used for non-acidized WAV"
         );
 
-        let mut sampler = Sampler::new_with(&SamplerParams {
-            filename: "riff-not-acidized.wav".to_string(),
-            root: 0.0.into(),
-        });
+        let mut sampler = Sampler::new_with(PathBuf::from("riff-not-acidized.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
