@@ -10,6 +10,7 @@ use ensnare_core::{
     voices::StealingVoiceStore,
 };
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
 pub struct FmVoice {
@@ -201,7 +202,7 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct FmSynth {
     #[control]
     depth: Normal,
@@ -221,6 +222,7 @@ pub struct FmSynth {
     #[control]
     pub dca: Dca,
 
+    #[serde(skip)]
     pub inner: Synthesizer<FmVoice>,
 }
 impl Generates<StereoSample> for FmSynth {

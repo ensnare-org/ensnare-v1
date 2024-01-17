@@ -4,13 +4,12 @@ use super::delay::{AllPassDelayLine, Delays};
 use crate::RecirculatingDelayLine;
 use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Reverb {
-    sample_rate: SampleRate,
-
     /// How much the effect should attenuate the input.
     #[control]
     attenuation: Normal,
@@ -18,9 +17,22 @@ pub struct Reverb {
     #[control]
     seconds: Seconds,
 
+    #[serde(skip)]
+    sample_rate: SampleRate,
+
+    #[serde(skip)]
     channels: [ReverbChannel; 2],
 }
-impl Serializable for Reverb {}
+impl Serializable for Reverb {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {
+        self.channels = [
+            ReverbChannel::new_with(self.attenuation, self.seconds),
+            ReverbChannel::new_with(self.attenuation, self.seconds),
+        ];
+    }
+}
 impl Configurable for Reverb {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
@@ -41,15 +53,13 @@ impl Reverb {
     pub fn new_with(attenuation: Normal, seconds: Seconds) -> Self {
         // Thanks to https://basicsynth.com/ (page 133 of paperback) for
         // constants.
-        Self {
-            sample_rate: Default::default(),
+        let mut r = Self {
             attenuation,
             seconds,
-            channels: [
-                ReverbChannel::new_with(attenuation, seconds),
-                ReverbChannel::new_with(attenuation, seconds),
-            ],
-        }
+            ..Default::default()
+        };
+        r.after_deser();
+        r
     }
 
     pub fn attenuation(&self) -> Normal {

@@ -2,17 +2,19 @@
 
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// TODO: this is a pretty lame bitcrusher. It is hardly noticeable for values
 /// below 13, and it destroys the waveform at 15. It doesn't do any simulation
 /// of sample-rate reduction, either.
-#[derive(Debug, Control)]
+#[derive(Debug, Control, Serialize, Deserialize)]
 pub struct Bitcrusher {
     /// The number of bits to preserve
     #[control]
     bits: u8,
 
     /// A cached representation of `bits` for optimization.
+    #[serde(skip)]
     c: SampleType,
 }
 impl Default for Bitcrusher {
@@ -20,7 +22,6 @@ impl Default for Bitcrusher {
         Self::new_with(8)
     }
 }
-impl Serializable for Bitcrusher {}
 impl TransformsAudio for Bitcrusher {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         const I16_SCALE: SampleType = i16::MAX as SampleType;
@@ -58,6 +59,13 @@ impl Bitcrusher {
 
     pub fn bits_range() -> std::ops::RangeInclusive<u8> {
         0..=16
+    }
+}
+impl Serializable for Bitcrusher {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {
+        self.update_c();
     }
 }
 

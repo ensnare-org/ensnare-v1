@@ -2,8 +2,9 @@
 
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Control)]
+#[derive(Debug, Control, Serialize, Deserialize)]
 pub struct Limiter {
     #[control]
     minimum: Normal,

@@ -8,7 +8,6 @@ pub use {
     filter::{BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db},
     gain::Gain,
     limiter::Limiter,
-    mixer::Mixer,
     reverb::Reverb,
     test::*,
 };
@@ -20,6 +19,5 @@ mod delay;
 mod filter;
 mod gain;
 mod limiter;
-mod mixer;
 mod reverb;
 mod test;

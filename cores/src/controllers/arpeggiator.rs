@@ -2,6 +2,7 @@
 
 use super::sequencers::NoteSequencer;
 use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
+use serde::{Deserialize, Serialize};
 
 use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
@@ -32,7 +33,7 @@ pub enum ArpeggioMode {
 /// order." You can also think of it as a hybrid MIDI instrument and MIDI
 /// controller; you play it with MIDI, but instead of producing audio, it
 /// produces more MIDI.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Arpeggiator {
     midi_channel_out: MidiChannel,
     sequencer: NoteSequencer,

@@ -149,15 +149,6 @@ impl<E: EntityBounds + ?Sized> Default for EntityStore<E> {
         }
     }
 }
-impl<E: EntityBounds + ?Sized> ReturnsHandlesMidi for EntityStore<E> {
-    fn get_handles_midi_mut(&mut self, uid: &Uid) -> Option<&mut dyn HandlesMidi> {
-        if let Some(e) = self.entities.get_mut(uid) {
-            e.as_handles_midi_mut()
-        } else {
-            None
-        }
-    }
-}
 impl<E: EntityBounds + ?Sized> EntityStore<E> {
     /// Adds an [Entity] to the store.
     pub fn add(&mut self, mut entity: Box<E>, uid: Uid) -> anyhow::Result<()> {

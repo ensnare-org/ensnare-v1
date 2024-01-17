@@ -27,10 +27,7 @@ use ensnare_core::{
     types::{TrackTitle, VisualizationQueue},
 };
 use ensnare_cores::NoteSequencerBuilder;
-use ensnare_cores_egui::{
-    controllers::note_sequencer_widget, piano_roll::piano_roll,
-    prelude::live_pattern_sequencer_widget,
-};
+use ensnare_cores_egui::{controllers::note_sequencer_widget, piano_roll::piano_roll};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
@@ -335,34 +332,6 @@ impl PatternIconSettings {
                 },
             );
         }
-    }
-}
-
-#[derive(Debug, Default)]
-struct LivePatternSequencerSettings {
-    hide: bool,
-    sequencer: ensnare_cores::LivePatternSequencer,
-    view_range: ViewRange,
-}
-impl Displays for LivePatternSequencerSettings {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.checkbox(&mut self.hide, "Hide")
-    }
-}
-impl LivePatternSequencerSettings {
-    const NAME: &'static str = "Live Pattern Sequencer";
-
-    fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        if !self.hide {
-            ui.add(live_pattern_sequencer_widget(
-                &mut self.sequencer,
-                &self.view_range,
-            ));
-        }
-    }
-
-    fn set_view_range(&mut self, view_range: &ViewRange) {
-        self.view_range = view_range.clone();
     }
 }
 
@@ -758,7 +727,6 @@ struct WidgetExplorer {
     //    track_widget: TrackSettings,
     device_palette: DevicePaletteSettings,
     // signal_chain: SignalChainSettings,
-    live_pattern_sequencer: LivePatternSequencerSettings,
     note_sequencer: NoteSequencerSettings,
     pattern_icon: PatternIconSettings,
     title_bar: TitleBarSettings,
@@ -779,7 +747,6 @@ impl WidgetExplorer {
             legend: Default::default(),
             grid: Default::default(),
             device_palette: DevicePaletteSettings::new(factory),
-            live_pattern_sequencer: Default::default(),
             note_sequencer: Default::default(),
             pattern_icon: Default::default(),
             title_bar: Default::default(),
@@ -818,9 +785,6 @@ impl WidgetExplorer {
             Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
             Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
-            Self::wrap_settings(LivePatternSequencerSettings::NAME, ui, |ui| {
-                self.live_pattern_sequencer.ui(ui)
-            });
             Self::wrap_settings(NoteSequencerSettings::NAME, ui, |ui| {
                 self.note_sequencer.ui(ui)
             });
@@ -875,8 +839,6 @@ impl WidgetExplorer {
         ScrollArea::vertical().show(ui, |ui| {
             //            self.track_widget.set_view_range(&self.legend.range);
             self.grid.set_view_range(&self.legend.range);
-            self.live_pattern_sequencer
-                .set_view_range(&self.legend.range);
             self.note_sequencer.set_view_range(&self.legend.range);
 
             ui.horizontal_top(|ui| {
@@ -903,9 +865,6 @@ impl WidgetExplorer {
             Self::wrap_item(GridSettings::NAME, ui, |ui| self.grid.show(ui));
             Self::wrap_item(PatternIconSettings::NAME, ui, |ui| {
                 self.pattern_icon.show(ui)
-            });
-            Self::wrap_item(LivePatternSequencerSettings::NAME, ui, |ui| {
-                self.live_pattern_sequencer.show(ui)
             });
             Self::wrap_item(NoteSequencerSettings::NAME, ui, |ui| {
                 self.note_sequencer.show(ui)

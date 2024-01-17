@@ -10,14 +10,16 @@ use ensnare_core::{
     voices::VoicePerNoteStore,
 };
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
-#[derive(Control, Default)]
+#[derive(Control, Default, Serialize, Deserialize)]
 pub struct Drumkit {
     name: String,
 
-    #[allow(dead_code)]
+    #[serde(skip)]
     paths: Paths,
+    #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
 impl std::fmt::Debug for Drumkit {

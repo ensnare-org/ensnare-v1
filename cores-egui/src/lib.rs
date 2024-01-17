@@ -16,11 +16,7 @@ pub mod widgets;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::{
-        composer,
-        controllers::{live_pattern_sequencer_widget, trip},
-        transport::transport,
-    };
+    pub use super::{composer, controllers::trip, transport::transport};
 }
 
 pub struct Track {}

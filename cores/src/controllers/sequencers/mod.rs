@@ -2,20 +2,15 @@
 
 pub use midi::MidiSequencer;
 pub use note::{NoteSequencer, NoteSequencerBuilder};
-pub use pattern::{LivePatternSequencer, PatternSequencer, PatternSequencerBuilder};
-pub use thin::ThinSequencer;
+pub use pattern::{PatternSequencer, PatternSequencerBuilder};
 
 mod midi;
 mod note;
 mod pattern;
-mod thin;
 
 #[cfg(test)]
 pub mod tests {
-    use super::{
-        midi::MidiSequencer,
-        pattern::{LivePatternSequencer, PatternSequencer},
-    };
+    use super::{midi::MidiSequencer, pattern::PatternSequencer};
     use crate::Composer;
     use ensnare_core::{
         piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
@@ -270,14 +265,6 @@ pub mod tests {
         let mut s = PatternSequencer::default();
 
         validate_sequences_patterns_trait(&mut s);
-    }
-
-    #[test]
-    fn live_pattern_sequencer_passes_trait_validation() {
-        let composer = std::sync::Arc::new(std::sync::RwLock::new(Composer::default()));
-        let mut s = LivePatternSequencer::new_with(&composer);
-
-        validate_sequences_live_patterns_trait(composer, &mut s);
     }
 
     fn replay_messages(

@@ -2,8 +2,9 @@
 
 use ensnare_core::prelude::*;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Compressor {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
     /// corresponds to quietest, and 1.0 corresponds to 0dB.
@@ -28,10 +29,6 @@ pub struct Compressor {
     /// Expressed as a [Normal] that is scaled to an amount of time.
     #[control]
     release: Normal,
-
-    // TODO
-    #[allow(dead_code)]
-    current_gain: f32,
 }
 impl Serializable for Compressor {}
 impl TransformsAudio for Compressor {

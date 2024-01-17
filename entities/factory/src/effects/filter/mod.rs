@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 
 pub struct BiQuadFilterLowPass24db {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::BiQuadFilterLowPass24db,
 }
 impl Displays for BiQuadFilterLowPass24db {

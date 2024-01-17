@@ -2,17 +2,21 @@
 
 use ensnare_core::{generators::Oscillator, prelude::*};
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct LfoController {
     #[control]
     pub oscillator: Oscillator,
 
+    #[serde(skip)]
     is_performing: bool,
 
+    #[serde(skip)]
     time_range: TimeRange,
 
+    #[serde(skip)]
     last_frame: usize,
 }
 impl Serializable for LfoController {}

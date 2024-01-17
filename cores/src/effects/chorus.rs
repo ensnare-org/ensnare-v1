@@ -3,10 +3,11 @@
 use super::delay::{DelayLine, Delays};
 use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct Chorus {
     /// The number of voices in the chorus.
     #[control]
@@ -16,9 +17,16 @@ pub struct Chorus {
     #[control]
     delay: Seconds,
 
+    #[serde(skip)]
     delay_line: DelayLine,
 }
-impl Serializable for Chorus {}
+impl Serializable for Chorus {
+    fn before_ser(&mut self) {}
+
+    fn after_deser(&mut self) {
+        self.delay_line = DelayLine::new_with(self.delay, 1.0);
+    }
+}
 impl TransformsAudio for Chorus {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let index_offset: f64 = (self.delay / self.voices).into();
@@ -38,12 +46,13 @@ impl Configurable for Chorus {
 }
 impl Chorus {
     pub fn new_with(voices: usize, delay: Seconds) -> Self {
-        // TODO: the delay_seconds param feels like a hack
-        Self {
+        let mut r = Self {
             voices,
             delay,
-            delay_line: DelayLine::new_with(delay, 1.0),
-        }
+            delay_line: Default::default(),
+        };
+        r.after_deser();
+        r
     }
 
     pub fn voices(&self) -> usize {

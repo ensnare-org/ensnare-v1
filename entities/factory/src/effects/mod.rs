@@ -24,7 +24,6 @@ pub mod filter;
 #[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 pub struct Bitcrusher {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Bitcrusher,
 }
 impl Displays for Bitcrusher {
@@ -63,7 +62,6 @@ impl Bitcrusher {
 
 pub struct Chorus {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Chorus,
 }
 impl Displays for Chorus {
@@ -96,7 +94,6 @@ impl Chorus {
 
 pub struct Compressor {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Compressor,
 }
 impl Displays for Compressor {
@@ -171,7 +168,6 @@ impl Compressor {
 
 pub struct Gain {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Gain,
 }
 impl Displays for Gain {
@@ -214,7 +210,6 @@ impl Gain {
 
 pub struct Limiter {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Limiter,
 }
 impl Displays for Limiter {
@@ -252,38 +247,6 @@ impl Limiter {
 }
 
 #[derive(
-    Debug, Default, InnerControllable, InnerEffect, IsEntity, Metadata, Serialize, Deserialize,
-)]
-#[entity(
-    Configurable,
-    Controls,
-    GeneratesStereoSample,
-    HandlesMidi,
-    Serializable,
-    SkipInner,
-    Ticks
-)]
-
-pub struct Mixer {
-    uid: Uid,
-    #[serde(skip)]
-    inner: ensnare_cores::Mixer,
-}
-impl Displays for Mixer {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label("Coming soon!")
-    }
-}
-impl Mixer {
-    pub fn new_with(uid: Uid) -> Self {
-        Self {
-            uid,
-            inner: ensnare_cores::Mixer::new(),
-        }
-    }
-}
-
-#[derive(
     Debug,
     Default,
     InnerControllable,
@@ -299,7 +262,6 @@ impl Mixer {
 
 pub struct Reverb {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Reverb,
 }
 impl Displays for Reverb {

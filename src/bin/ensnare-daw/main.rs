@@ -2,7 +2,7 @@
 
 //! A digital audio workstation.
 
-use ::ensnare::all_entities::EnsnareEntities2;
+use ::ensnare::all_entities::EnsnareEntities;
 use anyhow::anyhow;
 use eframe::egui::ViewportBuilder;
 use eframe::{
@@ -118,7 +118,7 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let factory = EnsnareEntities2::register(EntityFactory::default()).finalize();
+    let factory = EnsnareEntities::register(EntityFactory::default()).finalize();
 
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         panic!("Couldn't set DragDropManager once_cell");

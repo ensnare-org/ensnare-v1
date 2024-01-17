@@ -81,19 +81,11 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
             }
             v
         });
-        let as_handles_midi_mut_impl = if skip_inner {
-            quote! { self }
-        } else {
-            quote! { &mut self.inner }
-        };
 
         let quote = quote! {
             #[automatically_derived]
             #[typetag::serde]
             impl #generics #entity_crate::traits::Entity for #struct_name #ty_generics {
-                fn as_handles_midi_mut(&mut self) -> Option<&mut dyn HandlesMidi> {
-                    Some(#as_handles_midi_mut_impl)
-                }
             }
             #[typetag::serde]
             impl #generics #entity_crate::traits::EntityBounds for #struct_name #ty_generics {}

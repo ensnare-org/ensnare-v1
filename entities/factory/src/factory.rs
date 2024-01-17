@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use crate::{
     controllers::{Arpeggiator, LfoController, SignalPassthroughController, Timer, Trigger},
     effects::{
-        filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Mixer,
-        Reverb,
+        filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
     },
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
 };
@@ -74,7 +73,6 @@ impl BuiltInEntities {
             Box::new(Gain::new_with(uid, Normal::from(0.5)))
         });
         factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |_uid| Box::<Limiter>::default());
-        factory.register_entity_with_str_key(Mixer::ENTITY_KEY, |_uid| Box::<Mixer>::default());
         // TODO: this is lazy. It's too hard right now to adjust parameters within
         // code, so I'm creating a special instrument with the parameters I want.
         factory.register_entity_with_str_key("mute", |uid| {

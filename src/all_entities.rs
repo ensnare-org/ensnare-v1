@@ -3,26 +3,23 @@
 //! This module assembles all the available entities so that an application can
 //! use them.
 
-use std::path::PathBuf;
-
-use ensnare_core::modulators::Dca;
-
 use crate::{
     entities::{
         controllers::{Arpeggiator, LfoController, SignalPassthroughController},
         effects::{
-            filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Mixer,
-            Reverb,
+            filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
         },
         instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
         EntityFactory,
     },
     prelude::*,
 };
+use ensnare_core::modulators::Dca;
+use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.
-pub struct EnsnareEntities2 {}
-impl EnsnareEntities2 {
+pub struct EnsnareEntities {}
+impl EnsnareEntities {
     /// Registers all the entities in this collection.
     pub fn register(
         mut factory: EntityFactory<dyn EntityBounds>,
@@ -77,7 +74,6 @@ impl EnsnareEntities2 {
             Box::new(Gain::new_with(uid, Normal::from(0.5)))
         });
         factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |_uid| Box::<Limiter>::default());
-        factory.register_entity_with_str_key(Mixer::ENTITY_KEY, |_uid| Box::<Mixer>::default());
         // TODO: this is lazy. It's too hard right now to adjust parameters within
         // code, so I'm creating a special instrument with the parameters I want.
         factory.register_entity_with_str_key("mute", |uid| {

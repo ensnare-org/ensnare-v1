@@ -30,7 +30,6 @@ use std::path::PathBuf;
 
 pub struct Drumkit {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Drumkit,
 }
 impl Displays for Drumkit {
@@ -62,7 +61,6 @@ impl Drumkit {
 #[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::FmSynth,
 }
 impl Displays for FmSynth {
@@ -112,7 +110,6 @@ impl FmSynth {
 #[entity(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
-    #[serde(skip)]
     inner: ensnare_cores::Sampler,
 }
 impl Displays for Sampler {

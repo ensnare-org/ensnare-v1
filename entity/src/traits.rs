@@ -21,15 +21,6 @@ pub trait Entity:
     + Send
     + Sync
 {
-    fn as_handles_midi_mut(&mut self) -> Option<&mut dyn HandlesMidi> {
-        None
-    }
-    fn as_transforms_audio_mut(&mut self) -> Option<&mut dyn TransformsAudio> {
-        None
-    }
-    fn displays_in_timeline(&self) -> bool {
-        false
-    }
 }
 #[typetag::serde(tag = "type")]
 pub trait EntityBounds: Entity {}
