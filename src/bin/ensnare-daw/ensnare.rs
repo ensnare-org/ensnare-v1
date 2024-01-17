@@ -220,7 +220,7 @@ impl Ensnare {
                                 title.to_string(),
                             ));
 
-                            if let Some(load_path) = project.load_path.as_ref() {
+                            if let Some(load_path) = project.load_path() {
                                 self.toasts.add(Toast {
                                     kind: egui_toast::ToastKind::Success,
                                     text: format!(

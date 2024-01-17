@@ -163,10 +163,10 @@ impl ProjectService {
                         project.write().unwrap().advance_arrangement_view_mode();
                     }
                     ProjectServiceInput::AudioQueue(queue) => {
-                        project.write().unwrap().audio_queue = Some(queue);
+                        project.write().unwrap().e.audio_queue = Some(queue);
                     }
                     ProjectServiceInput::VisualizationQueue(queue) => {
-                        project.write().unwrap().visualization_queue = Some(queue)
+                        project.write().unwrap().e.visualization_queue = Some(queue)
                     }
                     ProjectServiceInput::NeedsAudio(count) => {
                         project.write().unwrap().fill_audio_queue(count);

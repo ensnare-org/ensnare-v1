@@ -76,11 +76,30 @@ pub struct ProjectViewState {
     pub cursor: Option<MusicalTime>,
 }
 
+#[derive(Debug, Default)]
+pub struct ProjectEphemerals {
+    /// Whether the project has finished a performance.
+    is_finished: bool,
+
+    /// If present, then this is the path that was used to load this project
+    /// from disk.
+    pub load_path: Option<PathBuf>,
+
+    pub audio_queue: Option<AudioQueue>,
+
+    /// A non-owned VecDeque that acts as a ring buffer of the most recent
+    /// generated audio frames.
+    pub visualization_queue: Option<VisualizationQueue>,
+}
+
 /// A musical piece. Also knows how to render the piece to digital audio.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Project {
+    #[serde(default)]
     pub title: ProjectTitle,
+    #[serde(default)]
     pub track_titles: HashMap<TrackUid, TrackTitle>,
+    #[serde(default)]
     pub track_color_schemes: HashMap<TrackUid, ColorScheme>,
 
     pub transport: Transport,
@@ -92,20 +111,7 @@ pub struct Project {
     pub view_state: ProjectViewState,
 
     #[serde(skip)]
-    is_finished: bool,
-
-    /// If present, then this is the path that was used to load this project
-    /// from disk.
-    #[serde(skip)]
-    pub load_path: Option<PathBuf>,
-
-    #[serde(skip)]
-    pub audio_queue: Option<AudioQueue>,
-
-    /// A non-owned VecDeque that acts as a ring buffer of the most recent
-    /// generated audio frames.
-    #[serde(skip)]
-    pub visualization_queue: Option<VisualizationQueue>,
+    pub e: ProjectEphemerals,
 }
 impl Project {
     /// The fixed [Uid] for the project's Orchestrator.
@@ -257,14 +263,14 @@ impl Project {
         let time_range = self.transport.advance(frames.len());
         self.update_time_range(&time_range);
         self.work(&mut |_| {});
-        if self.is_finished {
+        if self.e.is_finished {
             self.stop();
         }
         self.generate_batch_values(frames);
     }
 
     fn update_is_finished(&mut self) {
-        self.is_finished = self.composer.is_finished() && self.orchestrator.is_finished();
+        self.e.is_finished = self.composer.is_finished() && self.orchestrator.is_finished();
     }
 
     pub fn export_to_wav(&mut self, path: PathBuf) -> anyhow::Result<()> {
@@ -306,7 +312,7 @@ impl Project {
             let buffer_slice = &mut buffer[0..to_generate];
             buffer_slice.fill(StereoSample::SILENCE);
             self.generate_frames(buffer_slice);
-            if let Some(audio_queue) = self.audio_queue.as_ref() {
+            if let Some(audio_queue) = self.e.audio_queue.as_ref() {
                 buffer_slice.iter().for_each(|s| {
                     if let Some(_old_element) = audio_queue.force_push(*s) {
                         eprintln!("overrun! requested {count} frames");
@@ -316,7 +322,7 @@ impl Project {
                     }
                 });
             }
-            if let Some(queue) = self.visualization_queue.as_ref() {
+            if let Some(queue) = self.e.visualization_queue.as_ref() {
                 if let Ok(mut queue) = queue.0.write() {
                     buffer_slice.iter().for_each(|s| {
                         let mono_sample: Sample = (*s).into();
@@ -345,7 +351,7 @@ impl Project {
     pub fn load(path: PathBuf) -> anyhow::Result<Self> {
         let json = std::fs::read_to_string(&path)?;
         let mut project = serde_json::from_str::<Self>(&json)?;
-        project.load_path = Some(path);
+        project.e.load_path = Some(path);
         project.after_deser();
         Ok(project)
     }
@@ -354,7 +360,7 @@ impl Project {
         let save_path = {
             if let Some(path) = path.as_ref() {
                 path.clone()
-            } else if let Some(path) = self.load_path.as_ref() {
+            } else if let Some(path) = self.e.load_path.as_ref() {
                 path.clone()
             } else {
                 PathBuf::from("ensnare-project.json")
@@ -367,7 +373,7 @@ impl Project {
     }
 
     pub fn load_path(&self) -> Option<&PathBuf> {
-        self.load_path.as_ref()
+        self.e.load_path.as_ref()
     }
 
     pub fn ui(&mut self, ui: &mut eframe::egui::Ui, action: &mut Option<ProjectAction>) {
@@ -415,11 +421,11 @@ impl Project {
     }
 
     pub fn set_up_successor(&self, new_project: &mut Self) {
-        if let Some(queue) = self.audio_queue.as_ref() {
-            new_project.audio_queue = Some(Arc::clone(queue));
+        if let Some(queue) = self.e.audio_queue.as_ref() {
+            new_project.e.audio_queue = Some(Arc::clone(queue));
         }
-        if let Some(queue) = self.visualization_queue.as_ref() {
-            new_project.visualization_queue = Some(queue.clone());
+        if let Some(queue) = self.e.visualization_queue.as_ref() {
+            new_project.e.visualization_queue = Some(queue.clone());
         }
     }
 
@@ -465,7 +471,7 @@ impl Configurable for Project {
 }
 impl Controls for Project {
     fn is_finished(&self) -> bool {
-        self.is_finished
+        self.e.is_finished
     }
 
     fn play(&mut self) {
