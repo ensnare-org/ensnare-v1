@@ -30,7 +30,7 @@ pub enum ProjectServiceInput {
     TrackAddEntity(TrackUid, EntityKey),
     PatternArrange(TrackUid, PatternUid, MusicalTime),
     LinkControl(Uid, Uid, ControlIndex),
-    KeyEvent(Key, bool),
+    KeyEvent(Key, bool, Option<Key>),
     NextTimelineDisplayer,
     AudioQueue(AudioQueue),
     VisualizationQueue(VisualizationQueue),
@@ -148,7 +148,7 @@ impl ProjectService {
                     ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
                         let _ = project.write().unwrap().link(source_uid, target_uid, index);
                     }
-                    ProjectServiceInput::KeyEvent(key, pressed) => {
+                    ProjectServiceInput::KeyEvent(key, pressed, _physical_key) => {
                         if let Some(message) = key_handler.handle_key(&key, pressed) {
                             project.write().unwrap().handle_midi_message(
                                 MidiChannel::default(),

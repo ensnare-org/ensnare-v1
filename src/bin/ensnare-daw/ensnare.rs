@@ -398,9 +398,10 @@ impl Ensnare {
                         modifiers,
                         key,
                         pressed,
+                        physical_key,
                     } => {
                         if !repeat && !modifiers.any() {
-                            self.send_to_project(ProjectServiceInput::KeyEvent(*key, *pressed));
+                            self.send_to_project(ProjectServiceInput::KeyEvent(*key, *pressed, *physical_key));
                         }
                     }
                     Event::MouseWheel {

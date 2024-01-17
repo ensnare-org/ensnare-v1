@@ -81,6 +81,7 @@ impl eframe::egui::Widget for TitleBar {
                             underline: Stroke::default(),
                             override_text_color: None,
                             angle: 2.0 * PI * 0.75,
+                            fallback_color: Color32::YELLOW,
                         });
                         painter.add(t);
                     }
