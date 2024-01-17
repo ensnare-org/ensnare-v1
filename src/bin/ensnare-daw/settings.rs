@@ -20,6 +20,7 @@ use std::{
 
 /// Global preferences.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub(crate) struct Settings {
     pub(crate) audio_settings: AudioSettings,
     pub(crate) midi_settings: Arc<std::sync::RwLock<MidiSettings>>,

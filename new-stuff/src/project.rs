@@ -31,6 +31,7 @@ pub mod prelude {
 
 /// A user-visible project title.
 #[derive(Clone, Debug, derive_more::Display, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProjectTitle(String);
 impl Default for ProjectTitle {
     fn default() -> Self {
@@ -49,6 +50,7 @@ impl From<&str> for ProjectTitle {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ArrangementViewMode {
     #[default]
     Composition,
@@ -65,6 +67,7 @@ pub enum ArrangementViewMode {
 /// the project dirty when those change. Then they'll be saved only along with
 /// substantial changes.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProjectViewState {
     // The part of the project to show in the UI.
     pub view_range: ViewRange,
@@ -94,6 +97,7 @@ pub struct ProjectEphemerals {
 
 /// A musical piece. Also knows how to render the piece to digital audio.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Project {
     #[serde(default)]
     pub title: ProjectTitle,
@@ -581,6 +585,7 @@ mod tests {
 
     /// An [IsEntity] that sends one Control event each time work() is called.
     #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
     #[entity(
         Configurable,
         Controllable,

@@ -23,6 +23,7 @@ pub mod prelude {
 
 /// Beats per minute.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Tempo(pub ParameterType);
 impl Default for Tempo {
     fn default() -> Self {
@@ -129,6 +130,7 @@ impl BeatValue {
 /// beats/second = 60/120 seconds/beat), and a measure takes four beats (4
 /// beats/measure * 1/2 seconds/beat = 4/2 seconds/measure).
 #[derive(Clone, Control, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TimeSignature {
     /// The number of beats in a measure.
     #[control]
@@ -451,6 +453,7 @@ impl Sub<Self> for MusicalTime {
 /// A [ViewRange] indicates a musical time range. It's used to determine what
 /// the UI should show when it's rendering something in a timeline.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ViewRange(pub std::ops::Range<MusicalTime>);
 impl Default for ViewRange {
     fn default() -> Self {
@@ -461,6 +464,7 @@ impl Default for ViewRange {
 /// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
 /// determine which time slice to handle during [Controls::work()].
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TimeRange(pub std::ops::Range<MusicalTime>);
 impl TimeRange {
     pub fn new_with_start_and_end(start: MusicalTime, end: MusicalTime) -> Self {
@@ -471,9 +475,8 @@ impl TimeRange {
     }
 }
 
-#[derive(
-    Clone, Copy, Debug, Default, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Seconds(pub f64);
 impl Seconds {
     pub fn zero() -> Seconds {
@@ -549,6 +552,7 @@ impl Div<usize> for Seconds {
 
 /// Samples per second. Always a positive integer; cannot be zero.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SampleRate(pub usize);
 #[allow(missing_docs)]
 impl SampleRate {
@@ -620,6 +624,7 @@ pub struct TransportEphemerals {
 /// [Transport] is the global clock. It keeps track of the current position in
 /// the song, and how time should advance.
 #[derive(Clone, Control, Debug, Default, Builder, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Transport {
     /// The current global time signature.
     #[builder(default)]

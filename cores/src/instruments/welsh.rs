@@ -34,7 +34,7 @@ pub enum LfoRouting {
     FilterCutoff,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
 pub struct WelshVoice {
     //#[control]
     pub oscillator_1: Oscillator,
@@ -64,16 +64,11 @@ pub struct WelshVoice {
     //#[control]
     pub filter_envelope: Envelope,
 
-    #[serde(skip)]
     note_on_key: u7,
-    #[serde(skip)]
     note_on_velocity: u7,
-    #[serde(skip)]
     steal_is_underway: bool,
 
-    #[serde(skip)]
     sample: StereoSample,
-    #[serde(skip)]
     ticks: usize,
 }
 impl IsStereoSampleVoice for WelshVoice {}
@@ -326,6 +321,7 @@ impl WelshVoice {
 /// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
 #[derive(Debug, Control, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct WelshSynth {
     #[control]
     pub oscillator_1: Oscillator,

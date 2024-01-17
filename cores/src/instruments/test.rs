@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Produces a constant audio signal. Used for ensuring that a known signal
 /// value gets all the way through the pipeline.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TestAudioSource {
     // This should be a Normal, but we use this audio source for testing
     // edge conditions. Thus we need to let it go out of range.

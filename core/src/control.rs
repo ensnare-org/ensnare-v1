@@ -3,6 +3,7 @@
 use super::prelude::*;
 use crate::time::Seconds;
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul};
 
 pub mod prelude {
@@ -16,9 +17,8 @@ pub struct ControlName(pub String);
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Display, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ControlIndex(pub usize);
 impl Add<usize> for ControlIndex {
     type Output = Self;
@@ -34,7 +34,8 @@ impl From<usize> for ControlIndex {
 }
 
 /// A standardized value range (0..=1.0) for Controls/Controllable traits.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Display, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Display, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ControlValue(pub f64);
 #[allow(missing_docs)]
 impl ControlValue {

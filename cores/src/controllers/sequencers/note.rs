@@ -35,6 +35,7 @@ impl NoteSequencerBuilder {
 }
 
 #[derive(Debug, Default, Builder, InnerConfigurable, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
     #[builder(setter(skip))]

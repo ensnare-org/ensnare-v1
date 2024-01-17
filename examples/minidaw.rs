@@ -43,6 +43,7 @@ use std::{
 };
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 struct Settings {
     audio_settings: AudioSettings,
     midi_settings: Arc<RwLock<MidiSettings>>,
@@ -587,7 +588,7 @@ impl MiniDaw {
         if let Ok(m) = self.project_service.receiver().try_recv() {
             match m {
                 ProjectServiceEvent::Loaded(_) => todo!(),
-                ProjectServiceEvent::LoadFailed(_) => todo!(),
+                ProjectServiceEvent::LoadFailed(_, _) => todo!(),
                 ProjectServiceEvent::Saved(_) => todo!(),
                 ProjectServiceEvent::SaveFailed(_) => todo!(),
                 ProjectServiceEvent::TitleChanged(_) => todo!(),

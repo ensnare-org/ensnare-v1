@@ -7,6 +7,7 @@ use ensnare_proc_macros::{IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Metadata, IsEntity, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     TransformsAudio,
     GeneratesStereoSample,

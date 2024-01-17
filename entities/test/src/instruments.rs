@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 /// The smallest possible [IsEntity].
 #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
-#[entity(SkipInner)]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     Controllable,
     Controls,
@@ -63,7 +63,7 @@ impl Generates<StereoSample> for TestInstrument {
     Ticks,
     TransformsAudio
 )]
-#[entity("skip_inner", "controls")]
+#[serde(rename_all = "kebab-case")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
     #[serde(skip)]
@@ -102,11 +102,12 @@ impl TestInstrumentCountsMidiMessages {
     Controllable,
     Controls,
     Displays,
+    HandlesMidi,
     Serializable,
     SkipInner,
     TransformsAudio
 )]
-#[entity(SkipInner, HandlesMidi)]
+#[serde(rename_all = "kebab-case")]
 pub struct TestAudioSource {
     uid: Uid,
     inner: ensnare_cores::TestAudioSource,

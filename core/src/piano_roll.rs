@@ -15,6 +15,7 @@ pub mod prelude {
 #[derive(
     Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct PatternUid(pub usize);
 impl IsUid for PatternUid {
     fn as_usize(&self) -> usize {
@@ -48,6 +49,7 @@ impl Default for UidFactory<PatternUid> {
 /// is more or less assumed to be a MIDI key value), and when (start/end) it's
 /// supposed to play, relative to time zero.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
@@ -112,6 +114,7 @@ impl Into<Vec<MidiEvent>> for Note {
 /// the duration should be a round multiple of the length implied by the time
 /// signature.
 #[derive(Clone, Debug, Builder, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct Pattern {
     /// The pattern's [TimeSignature].

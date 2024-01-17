@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Uses an internal LFO as a control source.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct LfoController {
     #[control]
     pub oscillator: Oscillator,

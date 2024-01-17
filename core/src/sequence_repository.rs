@@ -11,6 +11,7 @@ use std::{collections::HashMap, fmt::Display, ops::Deref, sync::atomic::AtomicUs
 
 /// Identifies a [Sequence].
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SequenceUid(pub usize);
 impl IsUid for SequenceUid {
     fn as_usize(&self) -> usize {
@@ -41,6 +42,7 @@ impl Default for UidFactory<SequenceUid> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Sequence {
     Pattern(PatternUid),
     Note(Vec<Note>),
@@ -48,6 +50,7 @@ pub enum Sequence {
 
 /// [SequenceRepository] stores data that sequencers turn into MIDI events.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SequenceRepository {
     uid_factory: SequenceUidFactory,
     pub sequences: HashMap<SequenceUid, (TrackUid, MusicalTime, Box<Sequence>)>,
@@ -137,6 +140,7 @@ impl SequenceRepository {
 
 /// A serializable representation of a track's arrangements.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 #[allow(missing_docs)]
 pub struct ArrangementInfo {
     pub track_uid: TrackUid,
@@ -145,6 +149,7 @@ pub struct ArrangementInfo {
 
 /// A serializable representation of an arrangement.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 #[allow(missing_docs)]
 pub struct ArrangedSequenceInfo {
     pub sequence_uid: SequenceUid,

@@ -33,6 +33,7 @@ pub trait IsUid: Eq + Hash + Clone + From<usize> {
     Serialize,
     derive_more::Display,
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct Uid(pub usize);
 impl IsUid for Uid {
     fn as_usize(&self) -> usize {
@@ -47,6 +48,7 @@ impl From<usize> for Uid {
 
 /// Generates unique [Uid]s.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct UidFactory<U: IsUid> {
     pub(crate) next_uid_value: AtomicUsize,
     #[serde(skip)]
@@ -99,6 +101,7 @@ impl Default for UidFactory<Uid> {
 
 /// Identifies a track.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TrackUid(pub usize);
 impl Default for TrackUid {
     fn default() -> Self {

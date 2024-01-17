@@ -5,6 +5,7 @@ use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Compressor {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
     /// corresponds to quietest, and 1.0 corresponds to 0dB.

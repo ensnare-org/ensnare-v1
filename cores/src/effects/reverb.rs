@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Reverb {
     /// How much the effect should attenuate the input.
     #[control]

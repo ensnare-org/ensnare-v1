@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Dca {
     #[control]
     gain: Normal,

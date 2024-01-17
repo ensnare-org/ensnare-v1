@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
 /// [Synthesizer] provides the smallest possible functional core of a
@@ -11,7 +13,8 @@ use crate::prelude::*;
 ///
 /// [Synthesizer] exists so that this crate's synthesizer voices can be used in
 /// other projects without needing all the other crates.
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Synthesizer<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
 

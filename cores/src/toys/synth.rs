@@ -81,6 +81,7 @@ impl ToyVoice {
 
 /// Implements a small but complete synthesizer.
 #[derive(Control, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ToySynth {
     voice_count: VoiceCount,
 

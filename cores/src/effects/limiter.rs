@@ -5,6 +5,7 @@ use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Limiter {
     #[control]
     minimum: Normal,

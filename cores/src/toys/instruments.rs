@@ -23,6 +23,7 @@ pub struct ToyInstrumentEphemerals {
 /// [Oscillator] to produce sound. Its "envelope" is just a boolean that
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ToyInstrument {
     pub oscillator: Oscillator,
 

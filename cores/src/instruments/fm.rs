@@ -203,6 +203,7 @@ impl FmVoice {
 }
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct FmSynth {
     #[control]
     pub carrier: Oscillator,

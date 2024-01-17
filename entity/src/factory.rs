@@ -16,6 +16,7 @@ use std::{
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct EntityKey(String);
 impl From<&String> for EntityKey {
     fn from(value: &String) -> Self {
@@ -374,6 +375,7 @@ mod tests {
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+        #[serde(rename_all = "kebab-case")]
         pub(super) struct ExampleEntity {
             pub sample_rate: SampleRate,
         }
@@ -398,6 +400,7 @@ mod tests {
         Ticks,
         TransformsAudio
     )]
+    #[serde(rename_all = "kebab-case")]
     struct ExampleEntity {
         pub uid: Uid,
         inner: cores::ExampleEntity,

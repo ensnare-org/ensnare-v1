@@ -34,6 +34,7 @@ pub enum ArpeggioMode {
 /// controller; you play it with MIDI, but instead of producing audio, it
 /// produces more MIDI.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Arpeggiator {
     midi_channel_out: MidiChannel,
     sequencer: NoteSequencer,

@@ -110,6 +110,7 @@ impl SamplerVoice {
 }
 
 #[derive(Control, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Sampler {
     path: PathBuf,
 

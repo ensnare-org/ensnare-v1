@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// The smallest possible [IsEntity].
 #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     Configurable,
     Controllable,

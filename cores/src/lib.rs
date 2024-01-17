@@ -27,6 +27,7 @@ pub mod toys;
 /// whether it differs from the one that we're currently reporting. If it does,
 /// then they should update it and deal with the change.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ModSerial(pub usize);
 impl Default for ModSerial {
     // We start at something other than usize::default() so that
@@ -53,6 +54,7 @@ pub struct ComposerEphemerals {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Composer {
     pattern_uid_factory: UidFactory<PatternUid>,
     pub patterns: HashMap<PatternUid, Pattern>,

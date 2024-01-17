@@ -17,6 +17,7 @@ pub enum SequencerInput {
 }
 
 #[derive(Debug, Default, Control, InnerHandlesMidi, IsEntity, Metadata, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     Configurable,
     Controls,
@@ -44,6 +45,7 @@ impl Arpeggiator {
 }
 
 #[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     Configurable,
     Controllable,
@@ -204,6 +206,7 @@ mod obsolete {
     TransformsAudio,
     SkipInner
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct NoteSequencer {
     uid: Uid,
     #[serde(skip)]
@@ -238,6 +241,7 @@ impl NoteSequencer {
     Serialize,
     Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct LfoController {
     uid: Uid,
@@ -277,6 +281,7 @@ impl Displays for LfoController {
     Serialize,
     Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 #[entity(GeneratesStereoSample, Ticks)]
 pub struct SignalPassthroughController {
     uid: Uid,
@@ -319,6 +324,7 @@ impl SignalPassthroughController {
     Serialize,
     Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
@@ -346,6 +352,7 @@ impl Timer {
     Serialize,
     Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,

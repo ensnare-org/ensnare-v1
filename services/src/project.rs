@@ -41,7 +41,7 @@ pub enum ProjectServiceInput {
 pub enum ProjectServiceEvent {
     // The supplied Project is for the recipient to keep. No need to Arc::clone().
     Loaded(Arc<RwLock<Project>>),
-    LoadFailed(Error),
+    LoadFailed(PathBuf, Error),
     Saved(PathBuf),
     SaveFailed(Error),
     TitleChanged(String),
@@ -84,14 +84,14 @@ impl ProjectService {
                     ProjectServiceInput::New => {
                         todo!()
                     }
-                    ProjectServiceInput::Load(path) => match Project::load(path) {
+                    ProjectServiceInput::Load(path) => match Project::load(path.clone()) {
                         Ok(mut new_project) => {
                             project.read().unwrap().set_up_successor(&mut new_project);
                             project = Arc::new(RwLock::new(new_project));
                             Self::notify_new_project(&event_sender, &project);
                         }
                         Err(e) => {
-                            let _ = event_sender.send(ProjectServiceEvent::LoadFailed(e));
+                            let _ = event_sender.send(ProjectServiceEvent::LoadFailed(path, e));
                         }
                     },
                     ProjectServiceInput::Save(path) => {

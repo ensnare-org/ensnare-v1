@@ -24,9 +24,10 @@ use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
     FromRepr,
     IntoStaticStr,
     PartialEq,
-    serde::Serialize,
-    serde::Deserialize,
+    Serialize,
+    Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 pub enum Waveform {
     None,
     #[default]
@@ -130,6 +131,7 @@ impl Default for OscillatorEphemerals {
 }
 
 #[derive(Debug, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Oscillator {
     #[control]
     pub waveform: Waveform,
@@ -441,7 +443,8 @@ impl CanPrototype for Oscillator {
 }
 
 // TODO: see https://corrode.dev/blog/enums/ and mull over it
-#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 enum State {
     #[default]
     Idle,
@@ -451,25 +454,6 @@ enum State {
     Release,
     Shutdown,
 }
-
-// impl EnvelopeParams {
-//     pub fn new_with(attack: Normal, decay: Normal, sustain: Normal, release: Normal) -> Self {
-//         Self {
-//             attack,
-//             decay,
-//             sustain,
-//             release,
-//         }
-//     }
-
-//     // The #[control] #[params] macro system doesn't currently let us override derived
-//     // Default, and I wasn't sure whether it was right to default Normal to 1.0,
-//     // so I'm creating a custom default method. I think that only test/toy code
-//     // would rely on defaults for an envelope.
-//     pub fn safe_default() -> Self {
-//         Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
-//     }
-// }
 
 #[derive(Debug)]
 pub struct EnvelopeEphemerals {
@@ -527,6 +511,7 @@ impl Default for EnvelopeEphemerals {
 }
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Envelope {
     #[control]
     attack: Normal,
@@ -1020,6 +1005,7 @@ impl SteppedEnvelope {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum SignalStepType {
     // Remains at the value for the entire time.
     #[default]
@@ -1039,6 +1025,7 @@ pub enum SignalStepType {
 // rewriting it in 2024 as an excuse to apply a year+ of Rust experience to the
 // problem.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SignalStep {
     pub value: Range<Normal>,
     pub time: Range<MusicalTime>,
@@ -1046,6 +1033,7 @@ pub struct SignalStep {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SignalPath {
     pub steps: Vec<SignalStep>,
 }
@@ -1065,6 +1053,7 @@ pub struct SignalPath {
     Serialize,
     derive_more::Display,
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct PathUid(pub usize);
 impl IsUid for PathUid {
     fn as_usize(&self) -> usize {

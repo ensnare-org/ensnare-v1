@@ -274,7 +274,8 @@ impl Mul<Normal> for StereoSample {
 /// values, etc., -- and somewhat OK at pure math. But we might decide to clamp
 /// (heh) down on out-of-bounds conditions later on, so if you want to do math,
 /// prefer f64 sourced from [RangedF64] rather than [RangedF64] itself.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct RangedF64<const LOWER: i8, const UPPER: i8>(pub f64);
 #[allow(missing_docs)]
 impl<const LOWER: i8, const UPPER: i8> RangedF64<LOWER, UPPER> {
@@ -511,7 +512,8 @@ impl From<BipolarNormal> for f32 {
 /// to 192KHz (2x for sampling a 96KHz signal).
 ///
 /// Eventually we might impose a non-negative restriction on this type.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct FrequencyHz(pub ParameterType);
 #[allow(missing_docs)]
 impl FrequencyHz {
@@ -668,7 +670,8 @@ impl FrequencyRange {
 /// 1.0:2.0 = a x 0.5).
 ///
 /// Negative ratios are meaningless for current use cases.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Ratio(pub ParameterType);
 impl Default for Ratio {
     fn default() -> Self {
@@ -781,6 +784,7 @@ impl<T> Default for ChannelPair<T> {
 
 /// Newtype for track title string.
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TrackTitle(pub String);
 impl Default for TrackTitle {
     fn default() -> Self {
@@ -794,6 +798,7 @@ impl From<&str> for TrackTitle {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Arrangement {
     pub pattern_uid: PatternUid,
     pub position: MusicalTime,
@@ -801,6 +806,7 @@ pub struct Arrangement {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]
+#[serde(rename_all = "kebab-case")]
 pub enum ColorScheme {
     Red,
     Vermilion,

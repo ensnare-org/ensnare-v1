@@ -19,6 +19,7 @@ use std::path::PathBuf;
 #[derive(
     Debug, InnerControllable, InnerConfigurable, IsEntity, Metadata, Serialize, Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 #[entity(
     Controls,
     GeneratesStereoSample,

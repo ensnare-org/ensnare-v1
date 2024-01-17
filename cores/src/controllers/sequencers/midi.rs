@@ -11,6 +11,7 @@ use ensnare_core::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct MidiSequencer {
     #[serde(skip)]
     events: Vec<(MidiChannel, MidiEvent)>,

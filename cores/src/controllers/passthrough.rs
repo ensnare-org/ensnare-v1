@@ -4,6 +4,7 @@ use ensnare_core::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum SignalPassthroughType {
     #[default]
     /// Maps -1.0..=1.0 to 0.0..=1.0. Min amplitude becomes 0.0, silence becomes
@@ -23,6 +24,7 @@ pub enum SignalPassthroughType {
 /// configuration. Uses the standard Sample::from(StereoSample) methodology of
 /// averaging the two channels to create a single signal.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SignalPassthroughController {
     passthrough_type: SignalPassthroughType,
 

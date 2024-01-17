@@ -15,7 +15,7 @@ use std::{
 };
 
 #[derive(Serialize, Deserialize)]
-#[serde(remote = "MidiPortDescriptor")]
+#[serde(remote = "MidiPortDescriptor", rename_all = "kebab-case")]
 struct MidiPortDescriptorDef {
     pub index: usize,
     pub name: String,

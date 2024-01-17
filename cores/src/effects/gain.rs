@@ -5,6 +5,7 @@ use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Gain {
     #[control]
     ceiling: Normal,

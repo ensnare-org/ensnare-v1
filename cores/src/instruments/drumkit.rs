@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
 #[derive(Control, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Drumkit {
     name: String,
 

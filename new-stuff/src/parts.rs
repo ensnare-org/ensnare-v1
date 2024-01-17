@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Orchestrator {
     pub track_repo: TrackRepository,
     pub entity_repo: EntityRepository,
@@ -252,6 +253,7 @@ impl Serializable for Orchestrator {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TrackRepository {
     uid_factory: UidFactory<TrackUid>,
     uids: Vec<TrackUid>,
@@ -300,6 +302,7 @@ impl Serializable for TrackRepository {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct EntityRepository {
     uid_factory: UidFactory<Uid>,
     pub entities: HashMap<Uid, Box<dyn EntityBounds>>,
@@ -534,6 +537,7 @@ impl Serializable for EntityRepository {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Automator {
     pub controllables: HashMap<Uid, Vec<ControlLink>>,
 
@@ -643,6 +647,7 @@ impl Controls for Automator {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct MidiRouter {
     pub midi_receivers: HashMap<MidiChannel, Vec<Uid>>,
 }
@@ -705,6 +710,7 @@ impl Serializable for MidiRouter {
 
 /// A [BusRoute] represents a signal connection between two tracks.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BusRoute {
     /// The [TrackUid] of the receiving track.
     pub aux_track_uid: TrackUid,
@@ -715,6 +721,7 @@ pub struct BusRoute {
 /// A [BusStation] manages how signals move between tracks and aux tracks. These
 /// collections of signals are sometimes called buses.
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BusStation {
     routes: HashMap<TrackUid, Vec<BusRoute>>,
 }
@@ -760,6 +767,7 @@ impl BusStation {
 
 /// Controls the wet/dry mix of arranged effects.
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Humidifier {
     uid_to_humidity: HashMap<Uid, Normal>,
 }
@@ -809,6 +817,7 @@ impl Humidifier {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Mixer {
     track_output: HashMap<TrackUid, Normal>,
     track_mute: HashMap<TrackUid, bool>,
@@ -983,6 +992,7 @@ mod tests {
     }
 
     #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
     #[entity(
         Configurable,
         Controls,
@@ -1141,6 +1151,7 @@ mod tests {
     }
 
     #[derive(Debug, Control, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
     #[entity(
         Configurable,
         Controls,

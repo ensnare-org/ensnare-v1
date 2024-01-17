@@ -237,7 +237,15 @@ impl Ensnare {
                         }
                         self.project = Some(new_project);
                     }
-                    ProjectServiceEvent::LoadFailed(e) => todo!("{e:?}"),
+                    ProjectServiceEvent::LoadFailed(path, e) => {
+                        self.toasts.add(Toast {
+                            kind: egui_toast::ToastKind::Error,
+                            text: format!("Error loading from {path:?}: {e:?}").into(),
+                            options: ToastOptions::default()
+                                .duration_in_seconds(5.0)
+                                .show_progress(false),
+                        });
+                    }
                     ProjectServiceEvent::Saved(save_path) => {
                         // TODO: this should happen only if the save operation was
                         // explicit. Autosaves should be invisible.

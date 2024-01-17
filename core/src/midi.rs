@@ -21,6 +21,7 @@ pub mod prelude {
 #[derive(
     Clone, Copy, Debug, Default, DeriveDisplay, PartialEq, Eq, Hash, Serialize, Deserialize,
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct MidiChannel(pub u8);
 #[allow(missing_docs)]
 impl MidiChannel {

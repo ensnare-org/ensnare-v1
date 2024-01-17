@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
 #[derive(Debug, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BiQuadFilterLowPass24db {
     #[control]
     cutoff: FrequencyHz,

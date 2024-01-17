@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
     Ticks,
     TransformsAudio
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct TestEffect {
     uid: Uid,
 }
@@ -40,6 +41,7 @@ impl TestEffect {
     SkipInner,
     Ticks
 )]
+#[serde(rename_all = "kebab-case")]
 pub struct TestEffectNegatesInput {
     uid: Uid,
     inner: ensnare_cores::TestEffectNegatesInput,

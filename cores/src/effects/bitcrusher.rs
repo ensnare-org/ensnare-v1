@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 /// below 13, and it destroys the waveform at 15. It doesn't do any simulation
 /// of sample-rate reduction, either.
 #[derive(Debug, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Bitcrusher {
     /// The number of bits to preserve
     #[control]
