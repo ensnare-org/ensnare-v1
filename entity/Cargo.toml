@@ -11,7 +11,7 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
 derive_more = "0.99.17"
-eframe = "0.24"
+eframe = "0.25"
 ensnare-core = { path = "../core" }
 ensnare-proc-macros = { path = "../proc-macros" }
 serde = { version = "1.0.193", features = ["derive"] }

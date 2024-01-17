@@ -10,7 +10,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.75"
-delegate = "0.10.0"
+delegate = "0.12"
 ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
 ensnare-entity = { path = "../../entity" }

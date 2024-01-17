@@ -13,7 +13,7 @@ anyhow = "1.0.75"
 cpal = "0.15.2"
 crossbeam = "0.8.3"
 crossbeam-channel = "0.5.8"
-eframe = "0.24"
+eframe = "0.25"
 ensnare-core = { path = "../core" }
 ensnare-cores-egui = { path = "../cores-egui" }
 ensnare-egui-widgets = { path = "../egui-widgets" }

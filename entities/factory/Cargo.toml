@@ -11,8 +11,8 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
-delegate = "0.10.0"
-eframe = "0.24"
+delegate = "0.12"
+eframe = "0.25"
 ensnare-core = { path = "../../core" }
 ensnare-cores = { path = "../../cores" }
 ensnare-cores-egui = { path = "../../cores-egui" }

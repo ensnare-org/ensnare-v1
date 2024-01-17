@@ -10,7 +10,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.75"
-eframe = "0.24"
+eframe = "0.25"
 ensnare-core = { path = "../core" }
 oorandom = "11.1.3"
 spectrum-analyzer = "1.5.0"

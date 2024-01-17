@@ -16,11 +16,11 @@ version = "0.0.2"
 [dependencies]
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
-delegate = "0.10.0"
+delegate = "0.12"
 derive_more = "0.99.17"
-eframe = "0.24"
-egui-toast = { git = "https://github.com/urholaukkarinen/egui-toast/" }
-egui_extras = { version = "0.24", features = ["all_loaders"] }
+eframe = "0.25"
+egui-toast = "0.11"
+egui_extras = { version = "0.25", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
 ensnare-cores = { path = "cores" }
 ensnare-drag-drop = { path = "drag-drop" }
