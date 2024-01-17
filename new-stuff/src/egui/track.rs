@@ -14,13 +14,16 @@ use eframe::{
 };
 use ensnare_core::piano_roll::Note;
 use ensnare_core::time::TimeRange;
+use ensnare_core::types::ColorScheme;
 use ensnare_core::{
     time::{MusicalTime, ViewRange},
     types::TrackTitle,
     uid::{TrackUid, Uid},
 };
 use ensnare_cores::Composer;
+use ensnare_cores_egui::ColorSchemeConverter;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use std::ops::Range;
 use std::{f32::consts::PI, sync::Arc};
 use strum_macros::Display;
 
@@ -103,6 +106,7 @@ pub struct TrackInfo<'a> {
     pub track_uid: TrackUid,
     pub signal_items: &'a [SignalChainItem],
     pub title_font_galley: Option<Arc<Galley>>,
+    pub color_scheme: ColorScheme,
 }
 
 #[derive(Debug, Display)]
@@ -241,6 +245,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                                 self.track_info.track_uid,
                                                 self.composer,
                                                 &self.view_state.view_range,
+                                                self.track_info.color_scheme,
                                             ));
                                         });
                                     });
@@ -335,8 +340,11 @@ pub fn track_arrangement<'a>(
     track_uid: TrackUid,
     composer: &'a mut Composer,
     view_range: &'a ViewRange,
+    color_scheme: ColorScheme,
 ) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| TrackArrangement::new(track_uid, composer, view_range).ui(ui)
+    move |ui: &mut eframe::egui::Ui| {
+        TrackArrangement::new(track_uid, composer, view_range, color_scheme).ui(ui)
+    }
 }
 
 /// An egui widget that draws a track arrangement overlaid in the track view.
@@ -345,6 +353,7 @@ struct TrackArrangement<'a> {
     track_uid: TrackUid,
     composer: &'a mut Composer,
     view_range: &'a ViewRange,
+    color_scheme: ColorScheme,
 }
 impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -356,6 +365,9 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
             let local_space_rect = Rect::from_x_y_ranges(x_range_f32, y_range);
             let to_screen = RectTransform::from_to(local_space_rect, response.rect);
             let from_screen = to_screen.inverse();
+
+            let (track_foreground_color, track_background_color) =
+                ColorSchemeConverter::to_color32(self.color_scheme);
 
             // Check whether we edited the sequence
             if response.clicked() {
@@ -386,11 +398,18 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
 
             // Generate all the pattern note shapes
             if let Some(arrangements) = self.composer.tracks_to_arrangements.get(&self.track_uid) {
-                let pattern_shapes: Vec<Shape> =
-                    arrangements
-                        .iter()
-                        .fold(Vec::default(), |mut v, arrangement| {
+                let (pattern_backgrounds, pattern_shapes): (Vec<Shape>, Vec<Shape>) =
+                    arrangements.iter().fold(
+                        (Vec::default(), Vec::default()),
+                        |(mut background_v, mut shape_v), arrangement| {
                             if let Some(pattern) = self.composer.pattern(arrangement.pattern_uid) {
+                                background_v.push(Self::background_for_arrangement(
+                                    &to_screen,
+                                    &visuals,
+                                    track_background_color,
+                                    arrangement.position
+                                        ..(arrangement.position + arrangement.duration),
+                                ));
                                 pattern.notes().iter().for_each(|note| {
                                     let note = Note {
                                         key: note.key,
@@ -399,14 +418,21 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
                                                 ..(note.range.0.end + arrangement.position),
                                         ),
                                     };
-                                    v.push(Self::shape_for_note(&to_screen, &visuals, &note));
+                                    shape_v.push(Self::shape_for_note(
+                                        &to_screen,
+                                        &visuals,
+                                        track_foreground_color,
+                                        &note,
+                                    ));
                                 });
                             }
-                            v
-                        });
+                            (background_v, shape_v)
+                        },
+                    );
 
                 // Paint all the shapes
-                //            painter.extend(note_shapes);
+                // painter.extend(note_shapes);
+                painter.extend(pattern_backgrounds);
                 painter.extend(pattern_shapes);
             }
 
@@ -416,21 +442,51 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
     }
 }
 impl<'a> TrackArrangement<'a> {
-    fn new(track_uid: TrackUid, composer: &'a mut Composer, view_range: &'a ViewRange) -> Self {
+    fn new(
+        track_uid: TrackUid,
+        composer: &'a mut Composer,
+        view_range: &'a ViewRange,
+        color_scheme: ColorScheme,
+    ) -> Self {
         Self {
             track_uid,
             composer,
             view_range,
+            color_scheme,
         }
     }
 
-    fn shape_for_note(to_screen: &RectTransform, visuals: &WidgetVisuals, note: &Note) -> Shape {
+    fn shape_for_note(
+        to_screen: &RectTransform,
+        visuals: &WidgetVisuals,
+        foreground_color: Color32,
+        note: &Note,
+    ) -> Shape {
         let a = to_screen * pos2(note.range.0.start.total_units() as f32, note.key as f32);
         let b = to_screen * pos2(note.range.0.end.total_units() as f32, note.key as f32);
         Shape::Rect(RectShape::new(
             Rect::from_two_pos(a, b),
             visuals.rounding,
-            visuals.bg_fill,
+            foreground_color,
+            Stroke {
+                color: foreground_color,
+                width: visuals.fg_stroke.width,
+            },
+        ))
+    }
+
+    fn background_for_arrangement(
+        to_screen: &RectTransform,
+        visuals: &WidgetVisuals,
+        background_color: Color32,
+        time_range: Range<MusicalTime>,
+    ) -> Shape {
+        let upper_left = to_screen * pos2(time_range.start.total_units() as f32, 0.0);
+        let bottom_right = to_screen * pos2(time_range.end.total_units() as f32, 127.0);
+        Shape::Rect(RectShape::new(
+            Rect::from_two_pos(upper_left, bottom_right),
+            visuals.rounding,
+            background_color,
             visuals.fg_stroke,
         ))
     }

@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::ColorSchemeConverter;
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},
     emath::RectTransform,
@@ -7,7 +8,7 @@ use eframe::{
 };
 use ensnare_core::{
     midi::MidiNote,
-    piano_roll::{Note, Pattern, PatternBuilder, PatternColorScheme, PatternUid},
+    piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
     prelude::*,
     selection_set::SelectionSet,
 };
@@ -167,48 +168,6 @@ impl eframe::egui::Widget for DraggableIcon {
     }
 }
 
-struct PatternColorSchemeConverter {}
-impl PatternColorSchemeConverter {
-    fn to_color32(color_scheme: &PatternColorScheme) -> (Color32, Color32) {
-        match color_scheme {
-            // https://www.rapidtables.com/web/color/RGB_Color.html
-            // https://www.sttmedia.com/colornames
-            PatternColorScheme::Red => (Color32::BLACK, Color32::from_rgb(255, 153, 153)),
-            PatternColorScheme::Vermilion => (Color32::BLACK, Color32::from_rgb(255, 178, 153)),
-            PatternColorScheme::Orange => (Color32::BLACK, Color32::from_rgb(255, 204, 153)),
-            PatternColorScheme::Amber => (Color32::BLACK, Color32::from_rgb(255, 229, 153)),
-            PatternColorScheme::Yellow => (Color32::BLACK, Color32::from_rgb(254, 255, 153)),
-            PatternColorScheme::Lime => (Color32::BLACK, Color32::from_rgb(229, 255, 153)),
-            PatternColorScheme::Chartreuse => (Color32::BLACK, Color32::from_rgb(204, 255, 153)),
-            PatternColorScheme::Ddahal => (Color32::BLACK, Color32::from_rgb(178, 255, 153)),
-            PatternColorScheme::Green => (Color32::BLACK, Color32::from_rgb(153, 255, 153)),
-            PatternColorScheme::Erin => (Color32::BLACK, Color32::from_rgb(153, 255, 178)),
-            PatternColorScheme::Spring => (Color32::BLACK, Color32::from_rgb(153, 255, 204)),
-            PatternColorScheme::Gashyanta => (Color32::BLACK, Color32::from_rgb(153, 255, 229)),
-            PatternColorScheme::Cyan => (Color32::BLACK, Color32::from_rgb(153, 254, 255)),
-            PatternColorScheme::Capri => (Color32::BLACK, Color32::from_rgb(153, 229, 255)),
-            PatternColorScheme::Azure => (Color32::BLACK, Color32::from_rgb(153, 203, 255)),
-            PatternColorScheme::Cerulean => (Color32::BLACK, Color32::from_rgb(153, 178, 255)),
-            PatternColorScheme::Blue => (Color32::BLACK, Color32::from_rgb(153, 153, 255)),
-            PatternColorScheme::Volta => (Color32::BLACK, Color32::from_rgb(178, 153, 255)),
-            PatternColorScheme::Violet => (Color32::BLACK, Color32::from_rgb(203, 153, 255)),
-            PatternColorScheme::Llew => (Color32::BLACK, Color32::from_rgb(229, 153, 255)),
-            PatternColorScheme::Magenta => (Color32::BLACK, Color32::from_rgb(255, 153, 254)),
-            PatternColorScheme::Cerise => (Color32::BLACK, Color32::from_rgb(255, 153, 229)),
-            PatternColorScheme::Rose => (Color32::BLACK, Color32::from_rgb(255, 153, 204)),
-            PatternColorScheme::Crimson => (Color32::BLACK, Color32::from_rgb(255, 153, 178)),
-            PatternColorScheme::Gray1 => (Color32::WHITE, Color32::from_rgb(0, 0, 0)),
-            PatternColorScheme::Gray2 => (Color32::WHITE, Color32::from_rgb(32, 32, 32)),
-            PatternColorScheme::Gray3 => (Color32::WHITE, Color32::from_rgb(64, 64, 64)),
-            PatternColorScheme::Gray4 => (Color32::WHITE, Color32::from_rgb(96, 96, 96)),
-            PatternColorScheme::Gray5 => (Color32::WHITE, Color32::from_rgb(128, 128, 128)),
-            PatternColorScheme::Gray6 => (Color32::BLACK, Color32::from_rgb(160, 160, 160)),
-            PatternColorScheme::Gray7 => (Color32::BLACK, Color32::from_rgb(192, 192, 192)),
-            PatternColorScheme::Gray8 => (Color32::BLACK, Color32::from_rgb(224, 224, 224)),
-        }
-    }
-}
-
 /// Displays a row of selectable icons, each with a drag source.
 #[derive(Debug)]
 struct Carousel<'a> {
@@ -241,7 +200,7 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
                     ui.set_max_width(icon_width);
                     if let Some(pattern) = self.uids_to_patterns.get(pattern_uid) {
                         let colors: (Color32, Color32) =
-                            PatternColorSchemeConverter::to_color32(&pattern.color_scheme);
+                            ColorSchemeConverter::to_color32(pattern.color_scheme);
                         if ui
                             .add(icon(
                                 pattern.duration(),

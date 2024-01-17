@@ -64,6 +64,12 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     } else {
                         None
                     };
+                    let color_scheme = self
+                        .project
+                        .track_color_schemes
+                        .get(&track_uid)
+                        .cloned()
+                        .unwrap_or_default();
 
                     // TODO: this feels cacheable.
                     let signal_items: Vec<SignalChainItem> = {
@@ -93,6 +99,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         track_uid,
                         signal_items: &signal_items,
                         title_font_galley: font_galley,
+                        color_scheme,
                     };
                     ui.add(track_widget(
                         &track_info,

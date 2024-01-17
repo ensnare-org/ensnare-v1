@@ -18,6 +18,7 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, RangeInclusive, Sub},
     sync::{Arc, RwLock},
 };
+use strum_macros::{EnumCount, FromRepr};
 
 pub mod prelude {
     pub use super::{
@@ -796,6 +797,44 @@ impl From<&str> for TrackTitle {
 pub struct Arrangement {
     pub pattern_uid: PatternUid,
     pub position: MusicalTime,
+    pub duration: MusicalTime,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]
+pub enum ColorScheme {
+    Red,
+    Vermilion,
+    Orange,
+    Amber,
+    Yellow,
+    Lime,
+    Chartreuse,
+    Ddahal,
+    Green,
+    Erin,
+    Spring,
+    Gashyanta,
+    Cyan,
+    Capri,
+    Azure,
+    Cerulean,
+    Blue,
+    Volta,
+    Violet,
+    Llew,
+    Magenta,
+    Cerise,
+    Rose,
+    Crimson,
+    #[default]
+    Gray1,
+    Gray2,
+    Gray3,
+    Gray4,
+    Gray5,
+    Gray6,
+    Gray7,
+    Gray8,
 }
 
 #[cfg(test)]

@@ -16,7 +16,7 @@ use ensnare_core::{
     selection_set::SelectionSet,
     time::Transport,
     traits::ControlsAsProxy,
-    types::{AudioQueue, TrackTitle, VisualizationQueue},
+    types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
 use ensnare_cores::Composer;
 use ensnare_cores_egui::composer;
@@ -81,6 +81,7 @@ pub struct ProjectViewState {
 pub struct Project {
     pub title: ProjectTitle,
     pub track_titles: HashMap<TrackUid, TrackTitle>,
+    pub track_color_schemes: HashMap<TrackUid, ColorScheme>,
 
     pub transport: Transport,
     pub orchestrator: Orchestrator,
@@ -177,10 +178,15 @@ impl Project {
             return Err(anyhow!("Must be invoked on an empty project."));
         }
 
-        self.new_midi_track()?;
-        self.new_midi_track()?;
-        self.new_audio_track()?;
-        self.new_aux_track()?;
+        let t1 = self.new_midi_track()?;
+        let t2 = self.new_midi_track()?;
+        let t3 = self.new_audio_track()?;
+        let t4 = self.new_aux_track()?;
+
+        self.track_color_schemes.insert(t1, ColorScheme::Amber);
+        self.track_color_schemes.insert(t2, ColorScheme::Chartreuse);
+        self.track_color_schemes.insert(t3, ColorScheme::Red);
+        self.track_color_schemes.insert(t4, ColorScheme::Violet);
 
         Ok(())
     }

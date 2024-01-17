@@ -4,10 +4,11 @@
 
 use anyhow::{anyhow, Result};
 use ensnare_core::{
-    piano_roll::{Pattern, PatternBuilder, PatternColorScheme, PatternUid},
+    piano_roll::{Pattern, PatternBuilder, PatternUid},
     prelude::*,
     selection_set::SelectionSet,
     traits::Sequences,
+    types::ColorScheme,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -67,7 +68,7 @@ impl Composer {
         (0..16).for_each(|i| {
             let pattern = PatternBuilder::default()
                 .random()
-                .color_scheme(PatternColorScheme::from_repr(i).unwrap())
+                .color_scheme(ColorScheme::from_repr(i).unwrap())
                 .build()
                 .unwrap();
             let _ = self.add_pattern(pattern, None);
@@ -123,6 +124,7 @@ impl Composer {
                 .push(Arrangement {
                     pattern_uid,
                     position,
+                    duration: pattern.duration(),
                 });
 
             let sequencer = self.e.tracks_to_sequencers.entry(track_uid).or_default();
@@ -139,12 +141,15 @@ impl Composer {
         position: MusicalTime,
     ) {
         if let Some(arrangements) = self.tracks_to_arrangements.get_mut(&track_uid) {
-            let arrangement = Arrangement {
-                pattern_uid: pattern_uid,
-                position,
-            };
-            arrangements.retain(|a| *a != arrangement);
-            self.replay_arrangements();
+            if let Some(pattern) = self.patterns.get(&pattern_uid) {
+                let arrangement = Arrangement {
+                    pattern_uid,
+                    position,
+                    duration: pattern.duration(),
+                };
+                arrangements.retain(|a| *a != arrangement);
+                self.replay_arrangements();
+            }
         }
     }
 
