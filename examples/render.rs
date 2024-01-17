@@ -33,7 +33,8 @@ fn main() -> anyhow::Result<()> {
                 Ok(mut project) => {
                     eprintln!(
                         "Successfully read {} from {}",
-                        project.title, input_filename
+                        project.title.clone().unwrap_or_default(),
+                        input_filename
                     );
                     project.after_deser();
                     if args.wav {

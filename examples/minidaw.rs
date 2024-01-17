@@ -397,7 +397,7 @@ struct MiniDaw {
     project_service: ProjectService,
     project: Option<Arc<RwLock<Project>>>,
     track_titles: HashMap<TrackUid, TrackTitle>,
-    title: ProjectTitle,
+    title: Option<ProjectTitle>,
     track_frontmost_uids: HashMap<TrackUid, Uid>,
 
     menu_bar: MenuBar,
@@ -595,59 +595,7 @@ impl MiniDaw {
                 ProjectServiceEvent::IsPerformingChanged(_) => todo!(),
                 ProjectServiceEvent::Quit => {
                     // Good to know, but no need to do anything.
-                } // OrchestratorEvent::Tempo(_tempo) => {
-                  //     // This is (usually) an acknowledgement that Orchestrator
-                  //     // got our request to change, so we don't need to do
-                  //     // anything.
-                  // }
-                  // OrchestratorEvent::Quit => {
-                  //     eprintln!("OrchestratorEvent::Quit")
-                  // }
-                  // OrchestratorEvent::Loaded(path, _) => {
-                  //     // TODO - it's unclear whether this event should still know
-                  //     // about the project title, since it now belongs to Project
-                  //     // rather than Orchestrator.
-                  //     self.toasts.add(Toast {
-                  //         kind: egui_toast::ToastKind::Success,
-                  //         text: format!(
-                  //             "Loaded {} from {}",
-                  //             <ProjectTitle as Into<String>>::into(self.title.clone()),
-                  //             path.display()
-                  //         )
-                  //         .into(),
-                  //         options: ToastOptions::default()
-                  //             .duration_in_seconds(2.0)
-                  //             .show_progress(false),
-                  //     });
-                  // }
-                  // OrchestratorEvent::LoadError(path, error) => {
-                  //     self.toasts.add(Toast {
-                  //         kind: egui_toast::ToastKind::Error,
-                  //         text: format!("Error loading {}: {}", path.display(), error).into(),
-                  //         options: ToastOptions::default().duration_in_seconds(5.0),
-                  //     });
-                  // }
-                  // OrchestratorEvent::Saved(path) => {
-                  //     // TODO: this should happen only if the save operation was
-                  //     // explicit. Autosaves should be invisible.
-                  //     self.toasts.add(Toast {
-                  //         kind: egui_toast::ToastKind::Success,
-                  //         text: format!("Saved to {}", path.display()).into(),
-                  //         options: ToastOptions::default()
-                  //             .duration_in_seconds(1.0)
-                  //             .show_progress(false),
-                  //     });
-                  // }
-                  // OrchestratorEvent::SaveError(path, error) => {
-                  //     self.toasts.add(Toast {
-                  //         kind: egui_toast::ToastKind::Error,
-                  //         text: format!("Error saving {}: {}", path.display(), error).into(),
-                  //         options: ToastOptions::default().duration_in_seconds(5.0),
-                  //     });
-                  // }
-                  // OrchestratorEvent::New => {
-                  //     // No special UI needed for this.
-                  // }
+                }
             }
             true
         } else {
@@ -780,17 +728,6 @@ impl MiniDaw {
         });
     }
 
-    fn update_window_title(&mut self, _frame: &mut eframe::Frame) {
-        // TODO: it seems like the window remembers its title, so this isn't
-        // something we should be doing on every frame.
-        let _full_title = format!(
-            "{} - {}",
-            Self::APP_NAME,
-            <ProjectTitle as Into<String>>::into(self.title.clone())
-        );
-        // 0.24        frame.set_window_title(&full_title);
-    }
-
     fn show_settings_panel(&mut self, ctx: &Context) {
         let mut is_settings_open = self.settings_panel.is_open();
         egui::Window::new("Settings")
@@ -816,7 +753,6 @@ impl MiniDaw {
 impl eframe::App for MiniDaw {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.handle_message_channels();
-        self.update_window_title(frame);
 
         let mut is_control_only_down = false;
         ctx.input(|i| {

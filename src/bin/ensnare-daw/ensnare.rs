@@ -211,7 +211,7 @@ impl Ensnare {
                     }
                     ProjectServiceEvent::Loaded(new_project) => {
                         if let Ok(project) = new_project.read() {
-                            let title = project.title.clone();
+                            let title = project.title.clone().unwrap_or_default();
 
                             // TODO: this duplicates TitleChanged. Should
                             // the service be in charge of sending that

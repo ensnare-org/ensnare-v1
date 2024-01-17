@@ -100,7 +100,7 @@ pub struct ProjectEphemerals {
 #[serde(rename_all = "kebab-case")]
 pub struct Project {
     #[serde(default)]
-    pub title: ProjectTitle,
+    pub title: Option<ProjectTitle>,
     #[serde(default)]
     pub track_titles: HashMap<TrackUid, TrackTitle>,
     #[serde(default)]
