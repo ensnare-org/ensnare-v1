@@ -8,6 +8,7 @@ use ensnare::{
     },
     prelude::*,
 };
+use ensnare_cores::Composer;
 use ensnare_entities::BuiltInEntities;
 
 #[test]
@@ -16,23 +17,23 @@ fn edit_song() {
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut project = Project::default();
-    let mut piano_roll = PianoRoll::default();
+    let mut composer = Composer::default();
 
     // Create two MIDI tracks.
     let rhythm_track_uid = project.create_track(None).unwrap();
     let lead_track_uid = project.create_track(None).unwrap();
 
     // Prepare the rhythm track first. Create a rhythm pattern, add it to the
-    // PianoRoll, and then manipulate it. If we were really doing this in Rust
+    // Composer, and then manipulate it. If we were really doing this in Rust
     // code, it would be simpler to create, manipulate, and then add, rather
-    // than create, add, and manipulate, because PianoRoll takes ownership. But
-    // in a DAW, we expect that PianoRoll's GUI will do the pattern
+    // than create, add, and manipulate, because Composer takes ownership. But
+    // in a DAW, we expect that Composer's GUI will do the pattern
     // manipulation, so we're modeling that flow. This requires a bit of scoping
     // to satisfy the borrow checker.
     let drum_pattern = PatternBuilder::default().build().unwrap();
-    let drum_pattern_uid = piano_roll.insert(drum_pattern).unwrap();
+    let drum_pattern_uid = composer.add_pattern(drum_pattern, None).unwrap();
     let drum_pattern = {
-        let drum_pattern = piano_roll.get_pattern_mut(&drum_pattern_uid).unwrap();
+        let drum_pattern = composer.pattern_mut(drum_pattern_uid).unwrap();
 
         let mut note = Note {
             key: 60,
@@ -104,7 +105,7 @@ fn edit_song() {
         )
         .build()
         .unwrap();
-    let _ = piano_roll.insert(lead_pattern.clone());
+    let _ = composer.add_pattern(lead_pattern.clone(), None);
 
     let welsh_synth_uid = project
         .add_entity(

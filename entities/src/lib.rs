@@ -18,12 +18,6 @@ pub mod instruments {
     pub use ensnare_entities_test::instruments::*;
 }
 
-// TODO: would be helpful to move these into a special group to indicate that
-// they generally aren't supposed to be instantiated by end users.
-pub mod piano_roll {
-    pub use ensnare_entities_factory::piano_roll::PianoRoll;
-}
-
 pub use ensnare_entities_factory::BuiltInEntities;
 #[cfg(feature = "test")]
 pub use ensnare_entities_test::register_test_entities;

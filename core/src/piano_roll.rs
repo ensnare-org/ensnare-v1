@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::rng::Rng;
-use crate::{prelude::*, selection_set::SelectionSet, types::ColorScheme};
+use crate::{prelude::*, types::ColorScheme};
 use anyhow::anyhow;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Add, sync::atomic::AtomicUsize};
+use std::{fmt::Display, ops::Add, sync::atomic::AtomicUsize};
 
 pub mod prelude {
     pub use super::{Note, Pattern, PatternBuilder, PatternUid};
@@ -366,115 +366,6 @@ impl Pattern {
 
     pub fn colors(&self) -> Option<(u8, u8)> {
         None
-    }
-}
-
-/// [PianoRoll] manages all [Pattern]s.
-#[derive(Debug, Default, PartialEq)]
-pub struct PianoRoll {
-    uid_factory: PatternUidFactory,
-    pub uids_to_patterns: HashMap<PatternUid, Pattern>,
-    pub ordered_pattern_uids: Vec<PatternUid>,
-    pub pattern_selection_set: SelectionSet<PatternUid>,
-}
-impl PianoRoll {
-    // For development. TODO remove
-    pub fn insert_16_random_patterns(&mut self) {
-        (0..16).for_each(|_| {
-            let _ = self.insert(PatternBuilder::default().random().build().unwrap());
-        });
-    }
-
-    /// Adds a [Pattern] using a factory-generated [PatternUid]. Returns the new
-    /// [PatternUid].
-    pub fn insert(&mut self, pattern: Pattern) -> anyhow::Result<PatternUid> {
-        self.insert_with_uid(pattern, self.uid_factory.mint_next())
-    }
-
-    /// Adds a [Pattern] using the supplied [PatternUid]. Returns the
-    /// [PatternUid].
-    pub fn insert_with_uid(
-        &mut self,
-        pattern: Pattern,
-        uid: PatternUid,
-    ) -> anyhow::Result<PatternUid> {
-        if self.uids_to_patterns.contains_key(&uid) {
-            return Err(anyhow!("Conflicting pattern Uid {uid} {pattern:?}"));
-        }
-        self.uid_factory.notify_externally_minted_uid(uid);
-        self.uids_to_patterns.insert(uid, pattern);
-        self.ordered_pattern_uids.push(uid);
-        Ok(uid)
-    }
-
-    /// Removes the [Pattern] having the given [PatternUid], if any.
-    pub fn remove(&mut self, pattern_uid: &PatternUid) {
-        self.uids_to_patterns.remove(pattern_uid);
-        self.ordered_pattern_uids.retain(|uid| uid != pattern_uid);
-    }
-
-    /// Returns a reference to the specified [Pattern].
-    pub fn get_pattern(&self, pattern_uid: &PatternUid) -> Option<&Pattern> {
-        self.uids_to_patterns.get(pattern_uid)
-    }
-
-    /// Returns a mutable reference to the specified [Pattern].
-    pub fn get_pattern_mut(&mut self, pattern_uid: &PatternUid) -> Option<&mut Pattern> {
-        self.uids_to_patterns.get_mut(pattern_uid)
-    }
-}
-
-// TODO: move back to tests mod when everything is integrated
-impl PianoRoll {
-    /// For testing only; adds simple patterns.
-    pub fn populate_pattern(&mut self, pattern_number: usize) -> (PatternUid, usize, MusicalTime) {
-        let pattern = match pattern_number {
-            0 => PatternBuilder::default()
-                .notes(vec![
-                    Note::new_with_midi_note(
-                        MidiNote::C4,
-                        MusicalTime::TIME_ZERO,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                    Note::new_with_midi_note(
-                        MidiNote::D4,
-                        MusicalTime::TIME_END_OF_FIRST_BEAT,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                    Note::new_with_midi_note(
-                        MidiNote::E4,
-                        MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                ])
-                .build(),
-            1 => PatternBuilder::default()
-                .notes(vec![
-                    Note::new_with_midi_note(
-                        MidiNote::C5,
-                        MusicalTime::TIME_ZERO,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                    Note::new_with_midi_note(
-                        MidiNote::D5,
-                        MusicalTime::TIME_END_OF_FIRST_BEAT,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                    Note::new_with_midi_note(
-                        MidiNote::E5,
-                        MusicalTime::TIME_END_OF_FIRST_BEAT * 2,
-                        MusicalTime::DURATION_WHOLE,
-                    ),
-                ])
-                .build(),
-            _ => panic!(),
-        }
-        .unwrap();
-
-        // Optimize this. I dare you.
-        let len = pattern.notes().len();
-        let duration = pattern.duration();
-        (self.insert(pattern).unwrap(), len, duration)
     }
 }
 

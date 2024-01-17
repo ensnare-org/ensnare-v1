@@ -15,7 +15,7 @@ pub fn timeline_icon_strip<'a>(
 #[derive(Debug)]
 pub enum TimelineIconStripAction {
     NextTimelineView,
-    ShowPianoRoll,
+    ShowComposer,
 }
 
 /// An egui widget that displays an icon strip that goes above the timeline view.
@@ -53,7 +53,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
                 ))
                 .on_hover_text("Show Piano Roll");
             if piano_roll_response.clicked() {
-                *self.action = Some(TimelineIconStripAction::ShowPianoRoll);
+                *self.action = Some(TimelineIconStripAction::ShowComposer);
             }
 
             next_response | piano_roll_response

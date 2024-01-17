@@ -19,13 +19,13 @@ pub mod composition {
     //! Creation of musical elements.
 
     pub use ensnare_core::{
-        piano_roll::{Note, Pattern, PatternBuilder, PatternUid, PianoRoll},
+        piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
         sequence_repository::{Sequence, SequenceRepository, SequenceUid},
     };
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{Note, PatternBuilder, PatternUid, PianoRoll};
+        pub use super::{Note, PatternBuilder, PatternUid};
     }
 }
 
@@ -231,7 +231,7 @@ pub mod ui {
     //! Components that provide and coordinate the user interface.
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_cores_egui::{piano_roll::piano_roll, prelude::*, widgets::pattern};
+        pub use ensnare_cores_egui::{prelude::*, widgets::pattern};
         pub use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
         pub use ensnare_services::{
             audio_settings, control_bar_widget, midi_settings, ControlBarAction,

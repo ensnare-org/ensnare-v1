@@ -3,8 +3,6 @@
 //! The `widget-explorer` example is a sandbox for developing egui Ensnare
 //! widgets.
 
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use eframe::{
     egui::{
@@ -12,13 +10,13 @@ use eframe::{
         Style, Ui, Widget,
     },
     emath::Align,
-    epaint::{vec2, Color32, Galley},
+    epaint::{vec2, Galley},
     CreationContext,
 };
 use ensnare::{
     app_version,
     prelude::*,
-    ui::{widgets::pattern, DragSource, DropTarget},
+    ui::{DragSource, DropTarget},
 };
 use ensnare_core::{
     modulators::Dca,
@@ -26,12 +24,13 @@ use ensnare_core::{
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores::NoteSequencerBuilder;
-use ensnare_cores_egui::{controllers::note_sequencer_widget, piano_roll::piano_roll};
+use ensnare_cores::{Composer, NoteSequencerBuilder};
+use ensnare_cores_egui::controllers::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar};
+use std::sync::Arc;
 
 #[derive(Debug)]
 struct LegendSettings {
@@ -273,69 +272,6 @@ impl Displays for GridSettings {
 }
 
 #[derive(Debug)]
-struct PatternIconSettings {
-    hide: bool,
-    duration: MusicalTime,
-    notes: Vec<Note>,
-    is_selected: bool,
-}
-impl Default for PatternIconSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            duration: MusicalTime::new_with_beats(4),
-            notes: vec![
-                Self::note(
-                    MidiNote::C4,
-                    MusicalTime::START,
-                    MusicalTime::DURATION_WHOLE,
-                ),
-                Self::note(
-                    MidiNote::G4,
-                    MusicalTime::START + MusicalTime::DURATION_WHOLE,
-                    MusicalTime::DURATION_WHOLE,
-                ),
-            ],
-            is_selected: Default::default(),
-        }
-    }
-}
-impl Displays for PatternIconSettings {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.checkbox(&mut self.hide, "Hide Pattern Icon")
-            | ui.checkbox(&mut self.is_selected, "Show selected")
-    }
-}
-impl PatternIconSettings {
-    const NAME: &'static str = "Pattern Icon";
-    fn note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Note {
-        Note {
-            key: key as u8,
-            range: TimeRange(start..start + duration),
-        }
-    }
-
-    fn show(&mut self, ui: &mut eframe::egui::Ui) {
-        // Pattern Icon
-        if !self.hide {
-            DragDropManager::drag_source(
-                ui,
-                Id::new("pattern icon"),
-                DragSource::Pattern(PatternUid(99)),
-                |ui| {
-                    ui.add(pattern::icon(
-                        self.duration,
-                        &self.notes,
-                        (Color32::WHITE, Color32::BLACK),
-                        self.is_selected,
-                    ))
-                },
-            );
-        }
-    }
-}
-
-#[derive(Debug)]
 struct NoteSequencerSettings {
     hide: bool,
     sequencer: ensnare_cores::NoteSequencer,
@@ -526,21 +462,21 @@ impl TitleBarSettings {
 }
 
 #[derive(Debug, Default)]
-struct PianoRollSettings {
+struct ComposerSettings {
     hide: bool,
-    piano_roll: PianoRoll,
+    composer: Composer,
 }
-impl Displays for PianoRollSettings {
+impl Displays for ComposerSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
-impl PianoRollSettings {
-    const NAME: &'static str = "Piano Roll";
+impl ComposerSettings {
+    const NAME: &'static str = "Composer";
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(piano_roll(&mut self.piano_roll));
+            ui.add(composer(&mut self.composer));
         }
     }
 }
@@ -728,9 +664,8 @@ struct WidgetExplorer {
     device_palette: DevicePaletteSettings,
     // signal_chain: SignalChainSettings,
     note_sequencer: NoteSequencerSettings,
-    pattern_icon: PatternIconSettings,
     title_bar: TitleBarSettings,
-    piano_roll: PianoRollSettings,
+    composer: ComposerSettings,
     wiggler: WigglerSettings,
     time_domain: TimeDomainSettings,
     frequency_domain: FrequencyDomainSettings,
@@ -748,9 +683,8 @@ impl WidgetExplorer {
             grid: Default::default(),
             device_palette: DevicePaletteSettings::new(factory),
             note_sequencer: Default::default(),
-            pattern_icon: Default::default(),
             title_bar: Default::default(),
-            piano_roll: Default::default(),
+            composer: Default::default(),
             wiggler: Default::default(),
             time_domain: Default::default(),
             frequency_domain: Default::default(),
@@ -782,9 +716,8 @@ impl WidgetExplorer {
                 self.device_palette.ui(ui)
             });
             // Self::wrap_settings(SignalChainSettings::NAME, ui, |ui| self.signal_chain.ui(ui));
-            Self::wrap_settings(PianoRollSettings::NAME, ui, |ui| self.piano_roll.ui(ui));
+            Self::wrap_settings(ComposerSettings::NAME, ui, |ui| self.composer.ui(ui));
             Self::wrap_settings(GridSettings::NAME, ui, |ui| self.grid.ui(ui));
-            Self::wrap_settings(PatternIconSettings::NAME, ui, |ui| self.pattern_icon.ui(ui));
             Self::wrap_settings(NoteSequencerSettings::NAME, ui, |ui| {
                 self.note_sequencer.ui(ui)
             });
@@ -860,12 +793,9 @@ impl WidgetExplorer {
             // Self::wrap_item(SignalChainSettings::NAME, ui, |ui| {
             //     self.signal_chain.show(ui)
             // });
-            Self::wrap_item(PianoRollSettings::NAME, ui, |ui| self.piano_roll.show(ui));
+            Self::wrap_item(ComposerSettings::NAME, ui, |ui| self.composer.show(ui));
 
             Self::wrap_item(GridSettings::NAME, ui, |ui| self.grid.show(ui));
-            Self::wrap_item(PatternIconSettings::NAME, ui, |ui| {
-                self.pattern_icon.show(ui)
-            });
             Self::wrap_item(NoteSequencerSettings::NAME, ui, |ui| {
                 self.note_sequencer.show(ui)
             });

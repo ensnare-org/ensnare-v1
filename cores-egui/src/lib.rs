@@ -14,7 +14,6 @@ pub mod controllers;
 pub mod effects;
 pub mod instruments;
 pub mod modulators;
-pub mod piano_roll;
 pub mod transport;
 pub mod widgets;
 
@@ -39,7 +38,7 @@ impl Track {
     }
 }
 
-/// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
+/// Wraps a [ComposerWidget] as a [Widget](eframe::egui::Widget).
 pub fn composer<'a>(inner: &'a mut ensnare_cores::Composer) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| ComposerWidget::new(inner).ui(ui)
 }

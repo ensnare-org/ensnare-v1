@@ -1,9 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{
-        controllers::PatternSequencer, effects::Reverb, instruments::Drumkit, toys::ToySynth,
-    },
+    entities::{effects::Reverb, instruments::Drumkit, toys::ToySynth},
     prelude::*,
 };
 use ensnare_entities::BuiltInEntities;
@@ -17,42 +15,41 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
     // Rest
     const RR: u8 = 255;
 
-    // Add the drum pattern to the PianoRoll.
+    // Add the drum pattern to the Composer.
     // We need to scope piano_roll to satisfy the borrow checker.
-    let drum_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
-                35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
-            ],
+    let drum_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
+                        35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, 35, RR, RR, RR, //
+                    ],
+                    None,
+                )
+                .note_sequence(
+                    vec![
+                        RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
+                        RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
+                    ],
+                    None,
+                )
+                .note_sequence(
+                    vec![
+                        // Bug: if we do note on every 16th, we get only the first one
+                        42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
+                        42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .note_sequence(
-            vec![
-                RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
-                RR, RR, RR, RR, 39, RR, RR, RR, RR, RR, RR, RR, 39, RR, RR, RR, //
-            ],
-            None,
-        )
-        .note_sequence(
-            vec![
-                // Bug: if we do note on every 16th, we get only the first one
-                42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
-                42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, 42, RR, //
-            ],
-            None,
-        )
-        .build()
         .unwrap();
 
-    // Arrange the drum pattern in a new MIDI track's Sequencer.
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(MidiChannel(10), &drum_pattern, MusicalTime::START)
-        .is_ok());
-    assert!(project
-        .add_entity(track_uid, Box::new(sequencer), None)
-        .is_ok());
+    // Arrange the drum pattern in the MIDI track.
+    let _ = project.arrange_pattern(track_uid, drum_pattern_uid, MusicalTime::START);
 
     // Add the drumkit instrument to the track.
     let drumkit_uid = project
@@ -89,26 +86,26 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
     // Rest
     const RR: u8 = 255;
 
-    // Add the lead pattern to the PianoRoll.
-    let scale_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                60, RR, 62, RR, 64, RR, 65, RR, 67, RR, 69, RR, 71, RR, 72, RR, //
-                72, RR, 71, RR, 69, RR, 67, RR, 65, RR, 64, RR, 62, RR, 60, RR, //
-            ],
+    // Add the lead pattern to the Composer.
+    let scale_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        60, RR, 62, RR, 64, RR, 65, RR, 67, RR, 69, RR, 71, RR, 72, RR, //
+                        72, RR, 71, RR, 69, RR, 67, RR, 65, RR, 64, RR, 62, RR, 60, RR, //
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
 
-    // Arrange the lead pattern in a new MIDI track's Sequencer.
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(MidiChannel::default(), &scale_pattern, MusicalTime::START)
-        .is_ok());
-
+    // Arrange the lead pattern.
     assert!(project
-        .add_entity(track_uid, Box::new(sequencer), None)
+        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern.

@@ -9,6 +9,7 @@ use ensnare::{
     generators::Waveform,
     prelude::*,
 };
+use ensnare_cores::Composer;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -21,12 +22,12 @@ fn demo_automation() {
 
     project.update_tempo(Tempo(128.0));
 
-    let mut piano_roll = PianoRoll::default();
+    let mut composer = Composer::default();
 
-    // Add the lead pattern to the PianoRoll.
+    // Add the lead pattern.
     let scale_pattern_uid = {
-        piano_roll
-            .insert(
+        composer
+            .add_pattern(
                 PatternBuilder::default()
                     .note_sequence(
                         vec![
@@ -36,6 +37,7 @@ fn demo_automation() {
                     )
                     .build()
                     .unwrap(),
+                None,
             )
             .unwrap()
     };
@@ -43,7 +45,7 @@ fn demo_automation() {
     // Arrange the lead pattern in the sequencer.
     let track_uid = project.create_track(None).unwrap();
     let mut sequencer = PatternSequencer::default();
-    let pattern = piano_roll.get_pattern(&scale_pattern_uid).unwrap().clone();
+    let pattern = composer.pattern(scale_pattern_uid).unwrap().clone();
     assert!(sequencer
         .record(MidiChannel::default(), &pattern.clone(), MusicalTime::START)
         .is_ok());

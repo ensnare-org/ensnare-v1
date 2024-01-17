@@ -384,8 +384,8 @@ impl Project {
         let _ = ui.add(project_widget(self, action));
     }
 
-    pub fn ui_piano_roll(&mut self, ui: &mut eframe::egui::Ui, is_visible: &mut bool) {
-        eframe::egui::Window::new("Piano Roll")
+    pub fn ui_composer(&mut self, ui: &mut eframe::egui::Ui, is_visible: &mut bool) {
+        eframe::egui::Window::new("Composer")
             .open(is_visible)
             .default_width(ui.available_width())
             .anchor(

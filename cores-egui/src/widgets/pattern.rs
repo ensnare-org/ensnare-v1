@@ -26,7 +26,7 @@ pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
     ensnare_core::midi::MidiNote::MIN as u8..=ensnare_core::midi::MidiNote::MAX as u8;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
-pub fn icon(
+fn icon(
     duration: MusicalTime,
     notes: &[Note],
     colors: (Color32, Color32),
@@ -43,7 +43,7 @@ pub fn icon(
 }
 
 /// Wraps a [DraggableIcon] as a [Widget](eframe::egui::Widget).
-pub fn draggable_icon() -> impl eframe::egui::Widget {
+fn draggable_icon() -> impl eframe::egui::Widget {
     move |ui: &mut eframe::egui::Ui| DraggableIcon::new().ui(ui)
 }
 
@@ -53,7 +53,7 @@ pub fn grid(duration: MusicalTime) -> impl eframe::egui::Widget {
 }
 
 /// Wraps a [Carousel] as a [Widget](eframe::egui::Widget).
-pub fn carousel<'a>(
+pub(crate) fn carousel<'a>(
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
@@ -227,12 +227,10 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
     }
 }
 
-/// An egui widget that draws a grid in
-/// [PianoRoll](crate::mini::piano_roll::PianoRoll)'s pattern-editing view.
+/// An egui widget that draws a grid in the pattern-editing view.
 #[derive(Debug, Default)]
 struct Grid {
-    /// The extent of the [Pattern](crate::mini::piano_roll::Pattern) to be
-    /// edited.
+    /// The extent of the pattern to be edited.
     duration: MusicalTime,
 }
 impl Grid {

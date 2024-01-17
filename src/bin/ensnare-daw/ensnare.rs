@@ -34,7 +34,7 @@ use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction, 
 
 #[derive(Debug, Default)]
 pub(super) struct RenderingState {
-    pub(super) is_piano_roll_visible: bool,
+    pub(super) is_composer_visible: bool,
     pub(super) is_settings_panel_open: bool,
     pub(super) is_detail_open: bool,
     pub(super) detail_uid: Option<Uid>,
@@ -354,9 +354,9 @@ impl Ensnare {
                 TimelineIconStripAction::NextTimelineView => {
                     self.send_to_project(ProjectServiceInput::NextTimelineDisplayer);
                 }
-                TimelineIconStripAction::ShowPianoRoll => {
-                    self.rendering_state.is_piano_roll_visible =
-                        !self.rendering_state.is_piano_roll_visible;
+                TimelineIconStripAction::ShowComposer => {
+                    self.rendering_state.is_composer_visible =
+                        !self.rendering_state.is_composer_visible;
                 }
             }
         }
@@ -364,7 +364,7 @@ impl Ensnare {
         if let Some(project) = self.project.as_mut() {
             if let Ok(mut project) = project.write() {
                 project.view_state.cursor = Some(project.transport.current_time());
-                project.ui_piano_roll(ui, &mut self.rendering_state.is_piano_roll_visible);
+                project.ui_composer(ui, &mut self.rendering_state.is_composer_visible);
                 project.ui_detail(
                     ui,
                     self.rendering_state.detail_uid,

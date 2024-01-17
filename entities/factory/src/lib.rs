@@ -6,7 +6,6 @@ pub mod controllers;
 pub mod effects;
 pub mod factory;
 pub mod instruments;
-pub mod piano_roll;
 
 pub use factory::BuiltInEntities;
 
