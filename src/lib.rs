@@ -203,8 +203,8 @@ pub mod traits {
     pub mod prelude {
         pub use super::{
             Configurable, ControlEventsFn, Controllable, Controls, Displays, EntityBounds,
-            Generates, GeneratesToInternalBuffer, HandlesMidi, HasMetadata, HasSettings,
-            MidiMessagesFn, Sequences, Serializable, Ticks, WorkEvent,
+            Generates, HandlesMidi, HasMetadata, HasSettings, MidiMessagesFn, Sequences,
+            Serializable, Ticks, WorkEvent,
         };
     }
 }

@@ -76,10 +76,9 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
         self.sample
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         for value in values {
-            self.tick(1);
-            *value = self.value();
+            *value = self.get_next_value();
         }
     }
 }
@@ -191,10 +190,9 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
         self.sample
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         for v in values {
-            self.tick(1);
-            *v = self.value();
+            *v = self.get_next_value();
         }
     }
 }
@@ -294,10 +292,9 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
     }
 
     #[allow(unused_variables)]
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         for value in values {
-            self.tick(1);
-            *value = self.value();
+            *value = self.get_next_value();
         }
     }
 }
@@ -401,10 +398,9 @@ pub(crate) mod tests {
             self.sample
         }
 
-        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-            for sample in values {
-                self.tick(1);
-                *sample = self.value();
+        fn generate(&mut self, values: &mut [StereoSample]) {
+            for value in values {
+                *value = self.get_next_value();
             }
         }
     }

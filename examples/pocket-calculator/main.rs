@@ -60,7 +60,7 @@ impl eframe::App for CalculatorApp {
 
                                 calculator.update_time_range(&range);
                                 calculator.work(&mut |_| {});
-                                calculator.generate_batch_values(&mut buffer);
+                                calculator.generate(&mut buffer);
                                 if let Some(queue) = self.audio_queue.as_ref() {
                                     buffer.iter().for_each(|s| {
                                         let _ = queue.force_push(*s);

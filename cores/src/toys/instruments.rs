@@ -38,10 +38,9 @@ impl Generates<StereoSample> for ToyInstrument {
         self.e.sample
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         for value in values {
-            self.tick(1);
-            *value = self.value();
+            *value = self.get_next_value();
         }
     }
 }

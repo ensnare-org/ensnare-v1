@@ -627,8 +627,8 @@ impl Generates<StereoSample> for Calculator {
         self.e.inner_synth.value()
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.e.inner_synth.generate_batch_values(values);
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.e.inner_synth.generate(values);
     }
 }
 impl Default for Calculator {

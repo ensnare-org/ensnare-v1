@@ -179,10 +179,9 @@ impl Generates<BipolarNormal> for Oscillator {
         self.e.signal
     }
 
-    fn generate_batch_values(&mut self, values: &mut [BipolarNormal]) {
+    fn generate(&mut self, values: &mut [BipolarNormal]) {
         for v in values {
-            self.tick(1);
-            *v = self.value();
+            *v = self.get_next_value();
         }
     }
 }
@@ -544,13 +543,12 @@ impl Generates<Normal> for Envelope {
         Normal::new(self.e.corrected_amplitude)
     }
 
-    fn generate_batch_values(&mut self, values: &mut [Normal]) {
+    fn generate(&mut self, values: &mut [Normal]) {
         // TODO: this is probably no more efficient than calling amplitude()
         // individually, but for now we're just getting the interface right.
         // Later we'll take advantage of it.
         for v in values {
-            self.tick(1);
-            *v = self.value();
+            *v = self.get_next_value();
         }
     }
 }
@@ -1152,7 +1150,7 @@ mod tests {
         // we'll get a few samples in case the oscillator happens to start at
         // zero
         let mut values = [BipolarNormal::default(); 3];
-        oscillator.generate_batch_values(&mut values);
+        oscillator.generate(&mut values);
         assert_ne!(0.0, values[1].0, "Default Oscillator should not be silent");
     }
 
@@ -1174,8 +1172,7 @@ mod tests {
         assert_lt!(FREQUENCY, FrequencyHz((SAMPLE_RATE.0 / 2) as f64));
 
         for _ in 0..SAMPLE_RATE.0 {
-            oscillator.tick(1);
-            let f = oscillator.value().0;
+            let f = oscillator.get_next_value().0;
             assert_eq!(f, f.signum());
         }
     }
@@ -1199,8 +1196,7 @@ mod tests {
         let mut last_sample = 1.0;
         let mut transitions = 0;
         for _ in 0..SAMPLE_RATE.0 {
-            oscillator.tick(1);
-            let f = oscillator.value().0;
+            let f = oscillator.get_next_value().0;
             if f == 1.0 {
                 n_pos += 1;
             } else if f == -1.0 {
@@ -1233,9 +1229,8 @@ mod tests {
         );
         oscillator.update_sample_rate(SAMPLE_RATE);
 
-        oscillator.tick(1);
         assert_eq!(
-            oscillator.value().0,
+            oscillator.get_next_value().0,
             1.0,
             "the first sample of a square wave should be 1.0"
         );
@@ -1252,12 +1247,9 @@ mod tests {
         // exploding, so I might end up deleting that part of the test.
         oscillator.tick(SAMPLE_RATE.0 / 4 - 2);
         assert_eq!(oscillator.value().0, 1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, 1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, -1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, -1.0);
+        assert_eq!(oscillator.get_next_value().0, 1.0);
+        assert_eq!(oscillator.get_next_value().0, -1.0);
+        assert_eq!(oscillator.get_next_value().0, -1.0);
 
         // Then should transition back to 1.0 at the first sample of the second
         // cycle.
@@ -1265,12 +1257,9 @@ mod tests {
         // As noted above, we're using clock.set_samples() here.
         oscillator.debug_tick_until(SAMPLE_RATE.0 / 2 - 2);
         assert_eq!(oscillator.value().0, -1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, -1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, 1.0);
-        oscillator.tick(1);
-        assert_eq!(oscillator.value().0, 1.0);
+        assert_eq!(oscillator.get_next_value().0, -1.0);
+        assert_eq!(oscillator.get_next_value().0, 1.0);
+        assert_eq!(oscillator.get_next_value().0, 1.0);
     }
 
     #[test]
@@ -1288,8 +1277,7 @@ mod tests {
         let mut n_neg = 0;
         let mut n_zero = 0;
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            oscillator.tick(1);
-            let f = oscillator.value().0;
+            let f = oscillator.get_next_value().0;
             if f < -0.0000001 {
                 n_neg += 1;
             } else if f > 0.0000001 {
@@ -1311,8 +1299,7 @@ mod tests {
     ) -> Vec<Sample> {
         let mut samples = Vec::default();
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE * run_length_in_seconds {
-            source.tick(1);
-            samples.push(Sample::from(source.value().0));
+            samples.push(Sample::from(source.get_next_value().0));
         }
         samples
     }
@@ -1614,13 +1601,13 @@ mod tests {
     {
         let mut amplitude: Normal = Normal::new(0.0);
         loop {
-            envelope.tick(1);
+            let f = envelope.get_next_value();
             transport.advance(1);
             let should_continue = transport.current_time() < time_marker;
             if !should_continue {
                 break;
             }
-            amplitude = envelope.value();
+            amplitude = f;
             test(amplitude, transport);
         }
         amplitude
@@ -1881,11 +1868,11 @@ mod tests {
 
         // And hit it again.
         envelope.trigger_attack();
-        envelope.tick(1);
+        let f = envelope.get_next_value();
         let mut time_marker = transport.current_time();
         transport.advance(1);
         assert!(
-            approx_eq!(f64, envelope.value().0, Normal::maximum().0, ulps = 8),
+            approx_eq!(f64, f.0, Normal::maximum().0, ulps = 8),
             "Amplitude should reach peak upon second trigger"
         );
 
@@ -2018,7 +2005,7 @@ mod tests {
 
         // The envelope starts out in the idle state, and we haven't triggered
         // it.
-        e.generate_batch_values(&mut amplitudes);
+        e.generate(&mut amplitudes);
         amplitudes.iter().for_each(|i| {
             assert_eq!(
                 i.0,
@@ -2029,7 +2016,7 @@ mod tests {
 
         // Now trigger the envelope and see what happened.
         e.trigger_attack();
-        e.generate_batch_values(&mut amplitudes);
+        e.generate(&mut amplitudes);
         assert!(
             amplitudes.iter().any(|i| { i.0 != Normal::MIN }),
             "Once triggered, the EG should generate non-silent values"
@@ -2050,14 +2037,14 @@ mod tests {
         let mut amplitudes: [Normal; 10] = [Normal::default(); 10];
 
         e.trigger_attack();
-        e.generate_batch_values(&mut amplitudes);
+        e.generate(&mut amplitudes);
         assert!(
             amplitudes.iter().all(|s| { s.0 == Normal::MAX }),
             "After enqueueing attack, amplitude should be max"
         );
 
         e.trigger_shutdown();
-        e.generate_batch_values(&mut amplitudes);
+        e.generate(&mut amplitudes);
         assert_lt!(
             amplitudes[0].0,
             (Normal::MAX - Normal::MIN) / 2.0,
@@ -2092,12 +2079,10 @@ mod tests {
         );
         e.update_sample_rate(SampleRate::from(44100));
         assert_eq!(e.value().0, 0.0);
-        e.tick(1);
-        assert_eq!(e.value().0, 0.0);
+        assert_eq!(e.get_next_value().0, 0.0);
 
         e.trigger_attack();
-        e.tick(1);
-        assert_eq!(e.value(), Normal::maximum());
+        assert_eq!(e.get_next_value(), Normal::maximum());
     }
 
     impl SteppedEnvelopeStep {

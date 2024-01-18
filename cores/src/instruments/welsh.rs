@@ -101,7 +101,7 @@ impl Generates<StereoSample> for WelshVoice {
     fn value(&self) -> StereoSample {
         self.sample
     }
-    fn generate_batch_values(&mut self, _samples: &mut [StereoSample]) {
+    fn generate(&mut self, _samples: &mut [StereoSample]) {
         todo!()
     }
 }
@@ -433,8 +433,8 @@ impl Generates<StereoSample> for WelshSynth {
         self.inner_synth.value()
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate_batch_values(values);
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.inner_synth.generate(values);
     }
 }
 impl Serializable for WelshSynth {

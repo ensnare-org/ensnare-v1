@@ -125,7 +125,7 @@ impl ControlsAsProxy for Orchestrator {
     }
 }
 impl Generates<StereoSample> for Orchestrator {
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         let buffer_len = values.len();
         let solo_track_uid = self.solo_track();
 
@@ -147,7 +147,7 @@ impl Generates<StereoSample> for Orchestrator {
                         if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
                             entity_uids.iter().for_each(|uid| {
                                 if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
-                                    entity.generate_batch_values(&mut track_buffer);
+                                    entity.generate(&mut track_buffer);
                                     let humidity = self.humidifier.get_humidity(uid);
                                     if humidity != Normal::zero() {
                                         self.humidifier.transform_batch(
@@ -1200,7 +1200,7 @@ mod tests {
         }
 
         #[allow(unused_variables)]
-        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+        fn generate(&mut self, values: &mut [StereoSample]) {
             todo!()
         }
     }

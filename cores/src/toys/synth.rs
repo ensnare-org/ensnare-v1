@@ -45,7 +45,7 @@ impl Generates<StereoSample> for ToyVoice {
     }
 
     #[allow(unused_variables)]
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         todo!()
     }
 }
@@ -102,7 +102,7 @@ impl Generates<StereoSample> for ToySynth {
     delegate! {
         to self.inner {
             fn value(&self) -> StereoSample;
-            fn generate_batch_values(&mut self, values: &mut [StereoSample]);
+            fn generate(&mut self, values: &mut [StereoSample]);
         }
     }
 }

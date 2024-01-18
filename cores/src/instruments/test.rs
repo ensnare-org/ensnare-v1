@@ -23,7 +23,7 @@ impl Generates<StereoSample> for TestAudioSource {
         StereoSample::from(self.level)
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(self.value());
     }
 }

@@ -419,7 +419,7 @@ mod tests {
             StereoSample::default()
         }
 
-        fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+        fn generate(&mut self, values: &mut [StereoSample]) {
             values.fill(StereoSample::default())
         }
     }

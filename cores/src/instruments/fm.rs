@@ -79,7 +79,7 @@ impl Generates<StereoSample> for FmVoice {
     }
 
     #[allow(unused_variables)]
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) {
         todo!()
     }
 }
@@ -237,8 +237,8 @@ impl Generates<StereoSample> for FmSynth {
         self.inner.value()
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate_batch_values(values);
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.inner.generate(values);
     }
 }
 impl Serializable for FmSynth {

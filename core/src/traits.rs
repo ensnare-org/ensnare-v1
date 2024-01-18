@@ -17,10 +17,9 @@ use crate::{
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        Configurable, ControlEventsFn, Controllable, Controls, Generates,
-        GeneratesToInternalBuffer, HandlesMidi, HasSettings, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices, Ticks,
-        TransformsAudio, WorkEvent,
+        Configurable, ControlEventsFn, Controllable, Controls, Generates, HandlesMidi, HasSettings,
+        IsStereoSampleVoice, IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi,
+        Serializable, StoresVoices, Ticks, TransformsAudio, WorkEvent,
     };
 }
 
@@ -38,24 +37,12 @@ pub trait Generates<V: Default>: Send + std::fmt::Debug + Ticks {
     /// The batch version of value(). To deliver each value, this method will
     /// typically call tick() internally. If you don't want this, then call
     /// value() on your own.
-    fn generate_batch_values(&mut self, values: &mut [V]) {}
-}
+    fn generate(&mut self, values: &mut [V]) {}
 
-/// [GeneratesToInternalBuffer] is like [Generates], except that the implementer
-/// has its own internal buffer where it stores its values. This is useful when
-/// we're parallelizing calls and don't want the caller to have to manage a
-/// buffer for each parallel operation.
-pub trait GeneratesToInternalBuffer<V>: Send + std::fmt::Debug + Ticks {
-    /// Do whatever work is necessary to fill the internal buffer with the
-    /// specified number of values. Returns the actual number of values
-    /// generated.
-    fn generate_batch_values(&mut self, len: usize) -> usize;
-
-    /// Returns a reference to the internal buffer. The buffer size is typically
-    /// static, so it's important to pay attention to the result of
-    /// [GeneratesToInternalBuffer::generate_batch_values()] to know how many
-    /// values in the buffer are valid.
-    fn values(&self) -> &[V];
+    fn get_next_value(&mut self) -> V {
+        self.tick(1);
+        self.value()
+    }
 }
 
 /// Something that is [Controllable] exposes a set of attributes, each with a
@@ -132,7 +119,7 @@ pub trait Configurable {
 }
 
 /// A way for an [Entity] to do work corresponding to one or more frames.
-#[allow(unused_variables)]
+#[deprecated]
 pub trait Ticks: Configurable + Send + std::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.

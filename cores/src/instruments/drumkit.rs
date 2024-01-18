@@ -37,8 +37,8 @@ impl Generates<StereoSample> for Drumkit {
         self.inner_synth.value()
     }
 
-    fn generate_batch_values(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate_batch_values(values);
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.inner_synth.generate(values);
     }
 }
 impl Serializable for Drumkit {}

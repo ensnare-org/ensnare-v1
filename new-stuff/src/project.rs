@@ -270,7 +270,7 @@ impl Project {
         if self.e.is_finished {
             self.stop();
         }
-        self.generate_batch_values(frames);
+        self.generate(frames);
     }
 
     fn update_is_finished(&mut self) {
@@ -446,7 +446,7 @@ impl Project {
 impl Generates<StereoSample> for Project {
     delegate! {
         to self.orchestrator {
-            fn generate_batch_values(&mut self, values: &mut [StereoSample]);
+            fn generate(&mut self, values: &mut [StereoSample]);
         }
     }
 }
