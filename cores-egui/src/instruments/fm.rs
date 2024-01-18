@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_egui_widgets::envelope;
+use ensnare_egui_widgets::{envelope, oscillator};
 
 /// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
 pub fn fm_synth<'a>(inner: &'a mut ensnare_cores::FmSynth) -> impl eframe::egui::Widget + '_ {
@@ -48,27 +48,46 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             self.inner.set_beta(beta);
         }
 
-        CollapsingHeader::new("Carrier")
+        let carrier_response = CollapsingHeader::new("Carrier")
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui.add(envelope(&mut self.inner.carrier_envelope)).changed() {
+                let carrier_response = ui.add(oscillator(&mut self.inner.carrier));
+                if carrier_response.changed() {
+                    self.inner.notify_change_carrier();
+                }
+                let carrier_envelope_response = ui.add(envelope(&mut self.inner.carrier_envelope));
+                if carrier_envelope_response.changed() {
                     self.inner.notify_change_carrier_envelope();
                 }
-            });
+                carrier_response | carrier_envelope_response
+            })
+            .body_response;
 
-        CollapsingHeader::new("Modulator")
+        let modulator_response = CollapsingHeader::new("Modulator")
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui
-                    .add(envelope(&mut self.inner.modulator_envelope))
-                    .changed()
-                {
+                let modulator_response = ui.add(oscillator(&mut self.inner.modulator));
+                if modulator_response.changed() {
+                    self.inner.notify_change_modulator();
+                }
+                let modulator_envelope_response =
+                    ui.add(envelope(&mut self.inner.modulator_envelope));
+                if modulator_envelope_response.changed() {
                     self.inner.notify_change_modulator_envelope();
                 }
-            });
+                modulator_response | modulator_envelope_response
+            })
+            .body_response;
 
-        depth_response | ratio_response | beta_response
+        let mut response = depth_response | ratio_response | beta_response;
+        if let Some(carrier) = carrier_response {
+            response |= carrier;
+        }
+        if let Some(modulator) = modulator_response {
+            response |= modulator;
+        }
+        response
     }
 }

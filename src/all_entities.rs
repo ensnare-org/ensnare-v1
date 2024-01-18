@@ -99,12 +99,12 @@ impl EnsnareEntities {
             Box::new(FmSynth::new_with(
                 uid,
                 Oscillator::new_with_waveform(Waveform::Sine),
-                Envelope::safe_default(),
-                Oscillator::new_with_waveform(Waveform::Square),
-                Envelope::default(),
-                1.0.into(),
-                16.0.into(),
-                10.0.into(),
+                Envelope::new_with(0.0001.into(), 0.0005.into(), 0.6.into(), 0.25.into()),
+                Oscillator::new_with_waveform(Waveform::Sine),
+                Envelope::new_with(0.0001.into(), 0.0005.into(), 0.3.into(), 0.25.into()),
+                0.35.into(),
+                4.5.into(),
+                40.0.into(),
                 Dca::default(),
             ))
         });
