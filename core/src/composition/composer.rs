@@ -90,6 +90,9 @@ impl Composer {
     pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern> {
         if let Some(pattern) = self.patterns.remove(&pattern_uid) {
             self.ordered_pattern_uids.retain(|uid| pattern_uid != *uid);
+            self.tracks_to_arrangements
+                .values_mut()
+                .for_each(|v| v.retain(|a| a.pattern_uid != pattern_uid));
             Ok(pattern)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
@@ -242,5 +245,101 @@ impl Serializable for Composer {
 
     fn after_deser(&mut self) {
         self.replay_arrangements();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn composer_pattern_crud() {
+        let mut c = Composer::default();
+        assert!(
+            c.ordered_pattern_uids.is_empty(),
+            "Default Composer is empty"
+        );
+        assert!(c.patterns.is_empty());
+        assert!(c.tracks_to_arrangements.is_empty());
+
+        let pattern_1_uid = c
+            .add_pattern(
+                PatternBuilder::default()
+                    .note(Note::new_with_midi_note(
+                        MidiNote::A4,
+                        MusicalTime::START,
+                        MusicalTime::DURATION_QUARTER,
+                    ))
+                    .build()
+                    .unwrap(),
+                None,
+            )
+            .unwrap();
+        let pattern_2_uid = c
+            .add_pattern(PatternBuilder::default().build().unwrap(), None)
+            .unwrap();
+        assert_eq!(c.ordered_pattern_uids.len(), 2, "Creating patterns works");
+        assert_eq!(c.patterns.len(), 2);
+        assert!(c.tracks_to_arrangements.is_empty());
+
+        assert!(
+            c.pattern(pattern_1_uid).is_some(),
+            "Retrieving patterns works"
+        );
+        assert!(c.pattern(pattern_2_uid).is_some());
+        assert!(
+            c.pattern(PatternUid(9999999)).is_none(),
+            "Retrieving a nonexistent pattern returns None"
+        );
+
+        let track_1_uid = TrackUid(1);
+        let track_2_uid = TrackUid(2);
+        let _ = c
+            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::START)
+            .unwrap();
+        assert_eq!(
+            c.tracks_to_arrangements.len(),
+            1,
+            "Arranging patterns works"
+        );
+        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 1);
+        let _ = c
+            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 1)
+            .unwrap();
+        let _ = c
+            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 2)
+            .unwrap();
+        assert_eq!(c.tracks_to_arrangements.len(), 1);
+        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 3);
+
+        let _ = c
+            .arrange_pattern(track_2_uid, pattern_2_uid, MusicalTime::DURATION_WHOLE * 3)
+            .unwrap();
+        let _ = c
+            .arrange_pattern(track_2_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 3)
+            .unwrap();
+        assert_eq!(
+            c.tracks_to_arrangements.len(),
+            2,
+            "Arranging patterns across multiple tracks works"
+        );
+        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 3);
+        assert_eq!(c.tracks_to_arrangements.get(&track_2_uid).unwrap().len(), 2);
+
+        c.unarrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::START);
+        assert_eq!(
+            c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(),
+            2,
+            "Removing an arrangement works"
+        );
+
+        let removed_pattern = c.remove_pattern(pattern_1_uid).unwrap();
+        assert_eq!(removed_pattern.notes().len(), 1);
+        assert_eq!(
+            c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(),
+            0,
+            "Removing a pattern should also unarrange it"
+        );
+        assert_eq!(c.tracks_to_arrangements.get(&track_2_uid).unwrap().len(), 1);
     }
 }

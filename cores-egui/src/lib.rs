@@ -7,7 +7,10 @@ use eframe::{
     egui::Widget,
     epaint::{vec2, Color32},
 };
-use ensnare_core::{composition::Composer, types::ColorScheme};
+use ensnare_core::{
+    composition::{Composer, PatternBuilder},
+    types::ColorScheme,
+};
 use widgets::pattern::{self, grid};
 
 pub mod controllers;
@@ -34,12 +37,28 @@ pub struct ComposerWidget<'a> {
 impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
-            let response = ui.add(pattern::carousel(
+            let new_pattern_response = ui.button("New Pattern");
+            if new_pattern_response.clicked() {
+                let _ = self
+                    .inner
+                    .add_pattern(PatternBuilder::default().build().unwrap(), None);
+            }
+            let mut carousel_action = None;
+            let carousel_response = ui.add(pattern::carousel(
                 &self.inner.ordered_pattern_uids,
                 &self.inner.patterns,
                 &mut self.inner.e.pattern_selection_set,
-            )) | self.ui_pattern_edit(ui);
-            response
+                &mut carousel_action,
+            ));
+            if let Some(action) = carousel_action {
+                match action {
+                    pattern::CarouselAction::DeletePattern(pattern_uid) => {
+                        let _ = self.inner.remove_pattern(pattern_uid);
+                    }
+                }
+            }
+            let pattern_edit_response = self.ui_pattern_edit(ui);
+            new_pattern_response | carousel_response | pattern_edit_response
         })
         .inner
     }

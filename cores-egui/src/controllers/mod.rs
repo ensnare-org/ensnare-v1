@@ -1,9 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::{
-    egui::{style::WidgetVisuals, Sense, Widget},
+    egui::{Sense, Widget},
     emath::RectTransform,
-    epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
+    epaint::{pos2, Color32, Rect, Stroke},
 };
 use ensnare_core::{
     composition::sequencers::{NoteSequencer, PatternSequencer},

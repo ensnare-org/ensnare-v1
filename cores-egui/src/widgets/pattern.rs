@@ -52,9 +52,10 @@ pub(crate) fn carousel<'a>(
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
+    action: &'a mut Option<CarouselAction>,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| {
-        Carousel::new(pattern_uids, uids_to_patterns, selection_set).ui(ui)
+        Carousel::new(pattern_uids, uids_to_patterns, selection_set, action).ui(ui)
     }
 }
 
@@ -162,12 +163,18 @@ impl eframe::egui::Widget for DraggableIcon {
     }
 }
 
+#[derive(Debug)]
+pub enum CarouselAction {
+    DeletePattern(PatternUid),
+}
+
 /// Displays a row of selectable icons, each with a drag source.
 #[derive(Debug)]
 struct Carousel<'a> {
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
+    action: &'a mut Option<CarouselAction>,
 }
 impl<'a> Carousel<'a> {
     /// Creates a new [Carousel].
@@ -175,11 +182,13 @@ impl<'a> Carousel<'a> {
         pattern_uids: &'a [PatternUid],
         uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
         selection_set: &'a mut SelectionSet<PatternUid>,
+        action: &'a mut Option<CarouselAction>,
     ) -> Self {
         Self {
             pattern_uids,
             uids_to_patterns,
             selection_set,
+            action,
         }
     }
 }
@@ -195,15 +204,20 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
                     if let Some(pattern) = self.uids_to_patterns.get(pattern_uid) {
                         let colors: (Color32, Color32) =
                             ColorSchemeConverter::to_color32(pattern.color_scheme);
-                        if ui
+                        let icon_response = ui
                             .add(icon(
                                 pattern.duration(),
                                 pattern.notes(),
                                 colors,
                                 self.selection_set.contains(pattern_uid),
                             ))
-                            .clicked()
-                        {
+                            .context_menu(|ui| {
+                                if ui.button("Delete pattern").clicked() {
+                                    *self.action =
+                                        Some(CarouselAction::DeletePattern(*pattern_uid));
+                                }
+                            });
+                        if icon_response.clicked() {
                             self.selection_set.click(pattern_uid, false);
                         };
                     }
