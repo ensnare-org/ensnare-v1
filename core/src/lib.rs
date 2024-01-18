@@ -2,6 +2,8 @@
 
 //! Ensnare is a library for generating digital audio.
 
+/// Composer and its dependencies.
+pub mod composition;
 /// Handles automation, or real-time automatic control of one entity's
 /// parameters by another entity's output.
 pub mod control;
@@ -19,8 +21,6 @@ pub mod midi;
 pub mod midi_interface;
 /// Building blocks for signal modulation.
 pub mod modulators;
-/// Visual composition of patterns.
-pub mod piano_roll;
 /// Provides a random-number generator for debugging and testing.
 pub mod rng;
 /// A set of things that the user can select.
@@ -44,7 +44,7 @@ pub mod voices;
 pub mod prelude {
     pub use super::traits::prelude::*;
     pub use super::{
-        control::prelude::*, midi::prelude::*, piano_roll::prelude::*, time::prelude::*,
+        composition::prelude::*, control::prelude::*, midi::prelude::*, time::prelude::*,
         types::prelude::*, uid::prelude::*,
     };
 }

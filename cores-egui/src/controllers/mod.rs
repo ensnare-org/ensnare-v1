@@ -5,7 +5,12 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
 };
-use ensnare_core::{controllers::ControlTripPath, generators::Waveform, prelude::*};
+use ensnare_core::{
+    composition::sequencers::{NoteSequencer, PatternSequencer},
+    controllers::ControlTripPath,
+    generators::Waveform,
+    prelude::*,
+};
 use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode};
 use ensnare_egui_widgets::{frequency, waveform};
 use strum::IntoEnumIterator;
@@ -267,7 +272,7 @@ mod obsolete {
 }
 /// Wraps a [PatternSequencerWidget] as a [Widget](eframe::egui::Widget).
 pub fn pattern_sequencer_widget<'a>(
-    sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
+    sequencer: &'a mut PatternSequencer,
     view_range: &'a ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
@@ -276,15 +281,12 @@ pub fn pattern_sequencer_widget<'a>(
 #[derive(Debug)]
 pub struct PatternSequencerWidget<'a> {
     #[allow(dead_code)]
-    sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
+    sequencer: &'a mut PatternSequencer,
     #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> PatternSequencerWidget<'a> {
-    fn new(
-        sequencer: &'a mut ensnare_cores::controllers::PatternSequencer,
-        view_range: &'a ViewRange,
-    ) -> Self {
+    fn new(sequencer: &'a mut PatternSequencer, view_range: &'a ViewRange) -> Self {
         Self {
             sequencer,
             view_range: view_range.clone(),
@@ -299,7 +301,7 @@ impl<'a> eframe::egui::Widget for PatternSequencerWidget<'a> {
 
 /// Wraps a [NoteSequencerWidget] as a [Widget](eframe::egui::Widget).
 pub fn note_sequencer_widget<'a>(
-    sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
+    sequencer: &'a mut NoteSequencer,
     view_range: &'a ViewRange,
 ) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| NoteSequencerWidget::new(sequencer, view_range).ui(ui)
@@ -310,15 +312,12 @@ pub fn note_sequencer_widget<'a>(
 #[derive(Debug)]
 pub struct NoteSequencerWidget<'a> {
     #[allow(dead_code)]
-    sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
+    sequencer: &'a mut NoteSequencer,
     #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> NoteSequencerWidget<'a> {
-    fn new(
-        sequencer: &'a mut ensnare_cores::controllers::NoteSequencer,
-        view_range: &'a ViewRange,
-    ) -> Self {
+    fn new(sequencer: &'a mut NoteSequencer, view_range: &'a ViewRange) -> Self {
         Self {
             sequencer,
             view_range: view_range.clone(),

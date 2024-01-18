@@ -6,12 +6,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke, Vec2},
 };
-use ensnare_core::{
-    midi::MidiNote,
-    piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
-    prelude::*,
-    selection_set::SelectionSet,
-};
+use ensnare_core::{prelude::*, selection_set::SelectionSet};
 use ensnare_drag_drop::{DragDropManager, DragSource};
 use std::collections::HashMap;
 
@@ -63,8 +58,7 @@ pub(crate) fn carousel<'a>(
     }
 }
 
-/// Displays an iconic representation of a sequence of [Note]s (that might be in
-/// a [Pattern](crate::mini::piano_roll::Pattern)). Intended to be a
+/// Displays an iconic representation of a sequence of [Note]s. Intended to be a
 /// drag-and-drop source.
 #[derive(Debug, Default)]
 struct Icon<'a> {

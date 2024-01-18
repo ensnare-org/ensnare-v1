@@ -11,14 +11,12 @@ use delegate::delegate;
 use eframe::egui::Id;
 use ensnare_core::{
     generators::PathUid,
-    piano_roll::{Pattern, PatternUid},
     prelude::*,
     selection_set::SelectionSet,
     time::Transport,
     traits::ControlsAsProxy,
     types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
-use ensnare_cores::Composer;
 use ensnare_cores_egui::composer;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
@@ -394,9 +392,6 @@ impl Project {
             )
             .show(ui.ctx(), |ui| {
                 let response = ui.add(composer(&mut self.composer));
-                if response.changed() {
-                    //self.sequence_repository.write().unwrap().notify_change();
-                }
                 response
             });
     }

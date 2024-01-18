@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
+use crate::{
     midi::{MidiChannel, MidiEvent, MidiMessage},
     time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
     traits::{

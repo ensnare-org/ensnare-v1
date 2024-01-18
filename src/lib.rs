@@ -19,13 +19,13 @@ pub mod composition {
     //! Creation of musical elements.
 
     pub use ensnare_core::{
-        piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
-        sequence_repository::{Sequence, SequenceRepository, SequenceUid},
+        composition::{Composer, Note, Pattern, PatternBuilder, PatternUid},
+        sequence_repository::{Sequence, SequenceUid},
     };
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{Note, PatternBuilder, PatternUid};
+        pub use super::{Composer, Note, PatternBuilder, PatternUid};
     }
 }
 

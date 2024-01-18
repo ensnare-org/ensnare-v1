@@ -7,7 +7,7 @@ use eframe::{
     egui::Widget,
     epaint::{vec2, Color32},
 };
-use ensnare_core::types::ColorScheme;
+use ensnare_core::{composition::Composer, types::ColorScheme};
 use widgets::pattern::{self, grid};
 
 pub mod controllers;
@@ -22,30 +22,14 @@ pub mod prelude {
     pub use super::{composer, controllers::trip, transport::transport};
 }
 
-pub struct Track {}
-impl Track {
-    /// The [TitleBar] widget needs a Galley so that it can display the title
-    /// sideways. But widgets live for only a frame, so it can't cache anything.
-    /// Caller to the rescue! We generate the Galley and save it.
-    ///
-    /// TODO: when we allow title editing, we should set the galley to None so
-    /// it can be rebuilt on the next frame.
-    pub fn update_font_galley(&mut self, _ui: &mut eframe::egui::Ui) {
-        // if self.e.title_font_galley.is_none() && !self.title.0.is_empty() {
-        //     self.e.title_font_galley = Some(make_title_bar_galley(ui, &self.title));
-        // }
-        todo!()
-    }
-}
-
 /// Wraps a [ComposerWidget] as a [Widget](eframe::egui::Widget).
-pub fn composer<'a>(inner: &'a mut ensnare_cores::Composer) -> impl eframe::egui::Widget + '_ {
+pub fn composer<'a>(inner: &'a mut Composer) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| ComposerWidget::new(inner).ui(ui)
 }
 
 #[derive(Debug)]
 pub struct ComposerWidget<'a> {
-    inner: &'a mut ensnare_cores::Composer,
+    inner: &'a mut Composer,
 }
 impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -61,7 +45,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     }
 }
 impl<'a> ComposerWidget<'a> {
-    fn new(inner: &'a mut ensnare_cores::Composer) -> Self {
+    fn new(inner: &'a mut Composer) -> Self {
         Self { inner }
     }
 

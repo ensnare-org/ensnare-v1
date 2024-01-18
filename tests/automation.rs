@@ -2,14 +2,10 @@
 
 use ensnare::{
     control::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-    entities::{
-        controllers::{LfoController, PatternSequencer},
-        toys::ToySynth,
-    },
+    entities::{controllers::LfoController, toys::ToySynth},
     generators::Waveform,
     prelude::*,
 };
-use ensnare_cores::Composer;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
@@ -22,11 +18,9 @@ fn demo_automation() {
 
     project.update_tempo(Tempo(128.0));
 
-    let mut composer = Composer::default();
-
     // Add the lead pattern.
     let scale_pattern_uid = {
-        composer
+        project
             .add_pattern(
                 PatternBuilder::default()
                     .note_sequence(
@@ -44,14 +38,8 @@ fn demo_automation() {
 
     // Arrange the lead pattern in the sequencer.
     let track_uid = project.create_track(None).unwrap();
-    let mut sequencer = PatternSequencer::default();
-    let pattern = composer.pattern(scale_pattern_uid).unwrap().clone();
-    assert!(sequencer
-        .record(MidiChannel::default(), &pattern.clone(), MusicalTime::START)
-        .is_ok());
-
     assert!(project
-        .add_entity(track_uid, Box::new(sequencer), None)
+        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern.
@@ -113,30 +101,25 @@ fn demo_control_trips() {
     project.update_tempo(Tempo(128.0));
 
     // Create the lead pattern.
-    let scale_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-            ],
+    let scale_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
 
-    // Arrange the lead pattern in a sequencer.
-
-    // Add the sequencer to a new track.
+    // Arrange the lead pattern.
     let track_uid = project.create_track(None).unwrap();
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(
-            MidiChannel::default(),
-            &scale_pattern.clone(),
-            MusicalTime::START
-        )
-        .is_ok());
     assert!(project
-        .add_entity(track_uid, Box::new(sequencer), None)
+        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern. Figure how out to identify the

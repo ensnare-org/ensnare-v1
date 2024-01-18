@@ -1,8 +1,8 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::midi::MidiSequencer;
+use crate::{prelude::*, traits::Sequences};
 use derive_builder::Builder;
-use ensnare_core::{piano_roll::Pattern, prelude::*, traits::Sequences};
 use serde::{Deserialize, Serialize};
 
 impl PatternSequencerBuilder {

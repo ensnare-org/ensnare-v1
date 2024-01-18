@@ -1,9 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
-    entities::controllers::PatternSequencer, entities::effects::Gain, entities::toys::ToySynth,
-    prelude::*,
-};
+use ensnare::{entities::effects::Gain, entities::toys::ToySynth, prelude::*};
 use ensnare_entities::BuiltInEntities;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
@@ -17,26 +14,27 @@ fn demo_sidechaining() {
     let mut project = Project::default();
 
     // Add the sidechain source track.
-    let sidechain_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
-            ],
+    let sidechain_track_uid = project.create_track(None).unwrap();
+    let sidechain_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255, 35, 255, 255, 255,
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
-    let sidechain_track_uid = project.create_track(None).unwrap();
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(
-            MidiChannel::default(),
-            &sidechain_pattern,
+    assert!(project
+        .arrange_pattern(
+            sidechain_track_uid,
+            sidechain_pattern_uid,
             MusicalTime::START
         )
-        .is_ok());
-    assert!(project
-        .add_entity(sidechain_track_uid, Box::new(sequencer), None)
         .is_ok());
     let sidechain_synth_uid = project
         .add_entity(
@@ -76,20 +74,21 @@ fn demo_sidechaining() {
         .is_ok());
 
     // Add the lead track that we want to duck.
-    let lead_pattern = PatternBuilder::default()
-        .note(Note {
-            key: MidiNote::C4 as u8,
-            range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
-        })
-        .build()
-        .unwrap();
     let lead_track_uid = project.create_track(None).unwrap();
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(MidiChannel(1), &lead_pattern, MusicalTime::START)
-        .is_ok());
+    let lead_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note(Note {
+                    key: MidiNote::C4 as u8,
+                    range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
+                })
+                .build()
+                .unwrap(),
+            None,
+        )
+        .unwrap();
     assert!(project
-        .add_entity(lead_track_uid, Box::new(sequencer), None)
+        .arrange_pattern(lead_track_uid, lead_pattern_uid, MusicalTime::START)
         .is_ok());
     let lead_synth_uid = project
         .add_entity(

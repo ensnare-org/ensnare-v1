@@ -12,15 +12,10 @@ use eframe::{
         TextShape, Vec2,
     },
 };
-use ensnare_core::piano_roll::Note;
-use ensnare_core::time::TimeRange;
-use ensnare_core::types::ColorScheme;
 use ensnare_core::{
-    time::{MusicalTime, ViewRange},
-    types::TrackTitle,
-    uid::{TrackUid, Uid},
+    prelude::*,
+    types::{ColorScheme, TrackTitle},
 };
-use ensnare_cores::Composer;
 use ensnare_cores_egui::ColorSchemeConverter;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 use std::ops::Range;
@@ -102,7 +97,7 @@ impl TitleBar {
 }
 
 #[derive(Debug)]
-pub struct TrackInfo<'a> {
+pub struct TrackWidgetInfo<'a> {
     pub track_uid: TrackUid,
     pub signal_items: &'a [SignalChainItem],
     pub title_font_galley: Option<Arc<Galley>>,
@@ -118,7 +113,7 @@ pub enum TrackWidgetAction {
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
 pub fn track_widget<'a>(
-    track_info: &'a TrackInfo<'a>,
+    track_info: &'a TrackWidgetInfo<'a>,
     composer: &'a mut Composer,
     view_state: &'a mut ProjectViewState,
     action: &'a mut Option<TrackWidgetAction>,
@@ -131,7 +126,7 @@ pub fn track_widget<'a>(
 /// An egui component that draws a track.
 #[derive(Debug)]
 struct TrackWidget<'a> {
-    track_info: &'a TrackInfo<'a>,
+    track_info: &'a TrackWidgetInfo<'a>,
     composer: &'a mut Composer,
     view_state: &'a mut ProjectViewState,
 
@@ -142,7 +137,7 @@ impl<'a> TrackWidget<'a> {
     const TRACK_HEIGHT: f32 = 96.0;
 
     pub fn new(
-        track_info: &'a TrackInfo<'a>,
+        track_info: &'a TrackWidgetInfo<'a>,
         composer: &'a mut Composer,
         view_state: &'a mut ProjectViewState,
         action: &'a mut Option<TrackWidgetAction>,

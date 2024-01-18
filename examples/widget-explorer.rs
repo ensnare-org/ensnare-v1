@@ -19,12 +19,12 @@ use ensnare::{
     ui::{DragSource, DropTarget},
 };
 use ensnare_core::{
+    composition::sequencers::{NoteSequencer, NoteSequencerBuilder},
     modulators::Dca,
     rng::Rng,
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores::{Composer, NoteSequencerBuilder};
 use ensnare_cores_egui::controllers::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
@@ -274,7 +274,7 @@ impl Displays for GridSettings {
 #[derive(Debug)]
 struct NoteSequencerSettings {
     hide: bool,
-    sequencer: ensnare_cores::NoteSequencer,
+    sequencer: NoteSequencer,
     view_range: ViewRange,
 }
 impl Default for NoteSequencerSettings {

@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    midi::{u7, MidiNote},
-    piano_roll::PatternUid,
-    time::MusicalTime,
-};
+use crate::midi::{u7, MidiNote};
 use bounded_vec_deque::BoundedVecDeque;
 use crossbeam::{
     channel::{Receiver, Sender},
@@ -22,8 +18,8 @@ use strum_macros::{EnumCount, FromRepr};
 
 pub mod prelude {
     pub use super::{
-        Arrangement, BipolarNormal, ChannelPair, FrequencyHz, FrequencyRange, Normal,
-        ParameterType, Ratio, Sample, SampleType, SignalType, StereoSample, TrackTitle,
+        BipolarNormal, ChannelPair, FrequencyHz, FrequencyRange, Normal, ParameterType, Ratio,
+        Sample, SampleType, SignalType, StereoSample, TrackTitle,
     };
 }
 
@@ -797,12 +793,20 @@ impl From<&str> for TrackTitle {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+/// [ModSerial] is a simple counter that lets us inform subscribers that
+/// something has changed. Subscribers should keep a usize and compare to see
+/// whether it differs from the one that we're currently reporting. If it does,
+/// then they should update it and deal with the change.
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Arrangement {
-    pub pattern_uid: PatternUid,
-    pub position: MusicalTime,
-    pub duration: MusicalTime,
+pub struct ModSerial(pub usize);
+impl Default for ModSerial {
+    // We start at something other than usize::default() so that
+    // everyone else can use the default value and fire their update
+    // code on the first call to has_changed().
+    fn default() -> Self {
+        Self(1000)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]

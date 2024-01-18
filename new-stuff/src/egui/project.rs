@@ -3,7 +3,7 @@
 use super::{
     legend::legend,
     signal_chain::SignalChainItem,
-    track::{make_title_bar_galley, title_bar, track_widget, TrackInfo, TrackWidgetAction},
+    track::{make_title_bar_galley, title_bar, track_widget, TrackWidgetAction, TrackWidgetInfo},
 };
 use crate::project::Project;
 use eframe::{egui::Widget, epaint::Galley};
@@ -95,7 +95,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     };
 
                     let mut action = None;
-                    let track_info = TrackInfo {
+                    let track_info = TrackWidgetInfo {
                         track_uid,
                         signal_items: &signal_items,
                         title_font_galley: font_galley,

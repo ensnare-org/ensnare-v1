@@ -2,13 +2,11 @@
 
 use ensnare::{
     entities::{
-        controllers::PatternSequencer,
         effects::{Gain, Reverb},
         toys::{ToyInstrument, ToySynth},
     },
     prelude::*,
 };
-use ensnare_cores::Composer;
 use ensnare_entities::BuiltInEntities;
 
 #[test]
@@ -17,7 +15,6 @@ fn edit_song() {
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut project = Project::default();
-    let mut composer = Composer::default();
 
     // Create two MIDI tracks.
     let rhythm_track_uid = project.create_track(None).unwrap();
@@ -31,9 +28,9 @@ fn edit_song() {
     // manipulation, so we're modeling that flow. This requires a bit of scoping
     // to satisfy the borrow checker.
     let drum_pattern = PatternBuilder::default().build().unwrap();
-    let drum_pattern_uid = composer.add_pattern(drum_pattern, None).unwrap();
-    let drum_pattern = {
-        let drum_pattern = composer.pattern_mut(drum_pattern_uid).unwrap();
+    let drum_pattern_uid = project.add_pattern(drum_pattern, None).unwrap();
+    {
+        let drum_pattern = project.pattern_mut(drum_pattern_uid).unwrap();
 
         let mut note = Note {
             key: 60,
@@ -63,8 +60,7 @@ fn edit_song() {
                 MusicalTime::DURATION_SIXTEENTH,
             )
             .unwrap();
-        drum_pattern.clone()
-    };
+    }
 
     // Pattern is good; add an instrument to the track. (This should be
     // Drumkit, but there are TODO reasons why it isn't.)
@@ -82,12 +78,8 @@ fn edit_song() {
         .is_ok());
 
     // Arrange the drum pattern.
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(MidiChannel(10), &drum_pattern, MusicalTime::START)
-        .is_ok());
     assert!(project
-        .add_entity(rhythm_track_uid, Box::new(sequencer), None)
+        .arrange_pattern(rhythm_track_uid, drum_pattern_uid, MusicalTime::START)
         .is_ok());
 
     // Rest
@@ -96,16 +88,20 @@ fn edit_song() {
     // Now set up the lead track. We need a pattern; we'll whip up something
     // quickly because we already showed the editing process while making the
     // drum pattern.
-    let lead_pattern = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                60, RR, 62, RR, 64, RR, 65, RR, 67, RR, 69, RR, 71, RR, 72, RR,
-            ],
+    let lead_pattern_uid = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        60, RR, 62, RR, 64, RR, 65, RR, 67, RR, 69, RR, 71, RR, 72, RR,
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
-    let _ = composer.add_pattern(lead_pattern.clone(), None);
 
     let welsh_synth_uid = project
         .add_entity(
@@ -156,13 +152,8 @@ fn edit_song() {
     let _ = project.move_entity(lead_gain_uid, None, Some(1));
 
     // Arrange the lead pattern.
-    let mut sequencer = PatternSequencer::default();
-    assert!(sequencer
-        .record(MidiChannel::default(), &lead_pattern, MusicalTime::START)
-        .is_ok());
-
     assert!(project
-        .add_entity(lead_track_uid, Box::new(sequencer), None)
+        .arrange_pattern(lead_track_uid, lead_pattern_uid, MusicalTime::START)
         .is_ok());
 
     // https://doc.rust-lang.org/std/path/struct.PathBuf.html example

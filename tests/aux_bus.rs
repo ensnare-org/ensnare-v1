@@ -2,7 +2,6 @@
 
 use ensnare::{
     entities::{
-        controllers::PatternSequencer,
         effects::{Gain, Reverb},
         toys::ToySynth,
     },
@@ -22,33 +21,39 @@ fn aux_bus() {
     let track_uid_2 = project.create_track(None).unwrap();
     let aux_track_uid = project.create_track(None).unwrap();
 
-    let synth_pattern_1 = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
-            ],
+    let synth_pattern_uid_1 = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        60, 255, 62, 255, 64, 255, 65, 255, 67, 255, 69, 255, 71, 255, 72, 255,
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
 
-    let synth_pattern_2 = PatternBuilder::default()
-        .note_sequence(
-            vec![
-                84, 255, 83, 255, 81, 255, 79, 255, 77, 255, 76, 255, 74, 255, 72, 255,
-            ],
+    let synth_pattern_uid_2 = project
+        .add_pattern(
+            PatternBuilder::default()
+                .note_sequence(
+                    vec![
+                        84, 255, 83, 255, 81, 255, 79, 255, 77, 255, 76, 255, 74, 255, 72, 255,
+                    ],
+                    None,
+                )
+                .build()
+                .unwrap(),
             None,
         )
-        .build()
         .unwrap();
 
     let synth_uid_1 = {
-        let mut sequencer = PatternSequencer::default();
-        assert!(sequencer
-            .record(MidiChannel::default(), &synth_pattern_1, MusicalTime::START)
-            .is_ok());
         assert!(project
-            .add_entity(track_uid_1, Box::new(sequencer), None)
+            .arrange_pattern(track_uid_1, synth_pattern_uid_1, MusicalTime::START)
             .is_ok());
 
         // Even though we want the effect to be placed after the instrument in
@@ -79,12 +84,8 @@ fn aux_bus() {
         .is_ok());
 
     let synth_uid_2 = {
-        let mut sequencer = PatternSequencer::default();
-        assert!(sequencer
-            .record(MidiChannel(1), &synth_pattern_2, MusicalTime::START)
-            .is_ok());
         assert!(project
-            .add_entity(track_uid_2, Box::new(sequencer), None)
+            .arrange_pattern(track_uid_2, synth_pattern_uid_2, MusicalTime::START)
             .is_ok());
         assert!(project
             .add_entity(

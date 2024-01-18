@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::midi::MidiSequencer;
+use crate::{prelude::*, rng::Rng, traits::Sequences};
 use derive_builder::Builder;
-use ensnare_core::{piano_roll::Note, prelude::*, rng::Rng, traits::Sequences};
 use ensnare_proc_macros::InnerConfigurable;
 use serde::{Deserialize, Serialize};
 
@@ -139,7 +139,7 @@ impl Serializable for NoteSequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::controllers::sequencers::tests::validate_sequences_notes_trait;
+    use crate::composition::sequencers::tests::validate_sequences_notes_trait;
 
     #[test]
     fn note_sequencer_passes_trait_validation() {

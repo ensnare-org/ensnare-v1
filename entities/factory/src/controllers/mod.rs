@@ -44,58 +44,58 @@ impl Arpeggiator {
     }
 }
 
-#[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-#[entity(
-    Configurable,
-    Controllable,
-    GeneratesStereoSample,
-    HandlesMidi,
-    Serializable,
-    Ticks,
-    TransformsAudio,
-    SkipInner
-)]
-pub struct PatternSequencer {
-    uid: Uid,
-    inner: ensnare_cores::PatternSequencer,
-    #[serde(skip)]
-    view_range: ViewRange,
-}
-impl Displays for PatternSequencer {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(pattern_sequencer_widget(&mut self.inner, &self.view_range))
-    }
+// #[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
+// #[serde(rename_all = "kebab-case")]
+// #[entity(
+//     Configurable,
+//     Controllable,
+//     GeneratesStereoSample,
+//     HandlesMidi,
+//     Serializable,
+//     Ticks,
+//     TransformsAudio,
+//     SkipInner
+// )]
+// pub struct PatternSequencer {
+//     uid: Uid,
+//     inner: ensnare_cores::PatternSequencer,
+//     #[serde(skip)]
+//     view_range: ViewRange,
+// }
+// impl Displays for PatternSequencer {
+//     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+//         ui.add(pattern_sequencer_widget(&mut self.inner, &self.view_range))
+//     }
 
-    fn set_view_range(&mut self, view_range: &ViewRange) {
-        self.view_range = view_range.clone();
-    }
-}
-impl Sequences for PatternSequencer {
-    type MU = Pattern;
+//     fn set_view_range(&mut self, view_range: &ViewRange) {
+//         self.view_range = view_range.clone();
+//     }
+// }
+// impl Sequences for PatternSequencer {
+//     type MU = Pattern;
 
-    fn record(
-        &mut self,
-        channel: MidiChannel,
-        unit: &Self::MU,
-        position: MusicalTime,
-    ) -> anyhow::Result<()> {
-        self.inner.record(channel, unit, position)
-    }
+//     fn record(
+//         &mut self,
+//         channel: MidiChannel,
+//         unit: &Self::MU,
+//         position: MusicalTime,
+//     ) -> anyhow::Result<()> {
+//         self.inner.record(channel, unit, position)
+//     }
 
-    fn remove(
-        &mut self,
-        channel: MidiChannel,
-        unit: &Self::MU,
-        position: MusicalTime,
-    ) -> anyhow::Result<()> {
-        self.inner.remove(channel, unit, position)
-    }
+//     fn remove(
+//         &mut self,
+//         channel: MidiChannel,
+//         unit: &Self::MU,
+//         position: MusicalTime,
+//     ) -> anyhow::Result<()> {
+//         self.inner.remove(channel, unit, position)
+//     }
 
-    fn clear(&mut self) {
-        self.inner.clear()
-    }
-}
+//     fn clear(&mut self) {
+//         self.inner.clear()
+//     }
+// }
 
 #[cfg(obsolete)]
 mod obsolete {
@@ -194,37 +194,38 @@ mod obsolete {
             self.inner.is_performing()
         }
     }
-}
-#[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
-#[entity(
-    Configurable,
-    Controllable,
-    GeneratesStereoSample,
-    HandlesMidi,
-    Serializable,
-    Ticks,
-    TransformsAudio,
-    SkipInner
-)]
-#[serde(rename_all = "kebab-case")]
-pub struct NoteSequencer {
-    uid: Uid,
-    #[serde(skip)]
-    inner: ensnare_cores::NoteSequencer,
-    #[serde(skip)]
-    view_range: ViewRange,
-}
-impl Displays for NoteSequencer {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(note_sequencer_widget(&mut self.inner, &self.view_range))
+
+    #[derive(Debug, Default, InnerControls, IsEntity, Metadata, Serialize, Deserialize)]
+    #[entity(
+        Configurable,
+        Controllable,
+        GeneratesStereoSample,
+        HandlesMidi,
+        Serializable,
+        Ticks,
+        TransformsAudio,
+        SkipInner
+    )]
+    #[serde(rename_all = "kebab-case")]
+    pub struct NoteSequencer {
+        uid: Uid,
+        #[serde(skip)]
+        inner: ensnare_cores::NoteSequencer,
+        #[serde(skip)]
+        view_range: ViewRange,
     }
-}
-impl NoteSequencer {
-    pub fn new_with_inner(uid: Uid, inner: ensnare_cores::NoteSequencer) -> Self {
-        Self {
-            uid,
-            inner,
-            view_range: Default::default(),
+    impl Displays for NoteSequencer {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.add(note_sequencer_widget(&mut self.inner, &self.view_range))
+        }
+    }
+    impl NoteSequencer {
+        pub fn new_with_inner(uid: Uid, inner: ensnare_cores::NoteSequencer) -> Self {
+            Self {
+                uid,
+                inner,
+                view_range: Default::default(),
+            }
         }
     }
 }

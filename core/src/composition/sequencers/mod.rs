@@ -1,23 +1,19 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
+
+pub mod midi;
+pub mod note;
+pub mod pattern;
 
 pub use midi::MidiSequencer;
 pub use note::{NoteSequencer, NoteSequencerBuilder};
 pub use pattern::{PatternSequencer, PatternSequencerBuilder};
 
-mod midi;
-mod note;
-mod pattern;
-
 #[cfg(test)]
 pub mod tests {
-    use super::{midi::MidiSequencer, pattern::PatternSequencer};
-    use crate::Composer;
-    use ensnare_core::{
-        piano_roll::{Note, Pattern, PatternBuilder, PatternUid},
-        prelude::*,
-        traits::{Sequences, WorkEvent},
-    };
     use std::sync::{Arc, RwLock};
+
+    use super::*;
+    use crate::prelude::*;
 
     fn replay_units<MU>(
         sequences: &mut dyn Sequences<MU = MU>,

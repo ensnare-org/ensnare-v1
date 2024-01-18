@@ -4,7 +4,6 @@ use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Key;
 use ensnare_core::{
-    piano_roll::PatternUid,
     prelude::*,
     types::{AudioQueue, VisualizationQueue},
 };

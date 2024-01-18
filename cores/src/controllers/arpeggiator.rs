@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::sequencers::NoteSequencer;
-use ensnare_core::{piano_roll::Note, prelude::*, traits::Sequences};
+use ensnare_core::{composition::sequencers::NoteSequencer, prelude::*, traits::Sequences};
 use serde::{Deserialize, Serialize};
 
 use std::option::Option;

@@ -16,7 +16,6 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
     const RR: u8 = 255;
 
     // Add the drum pattern to the Composer.
-    // We need to scope piano_roll to satisfy the borrow checker.
     let drum_pattern_uid = project
         .add_pattern(
             PatternBuilder::default()

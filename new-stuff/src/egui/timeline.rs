@@ -44,7 +44,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
             if next_response.clicked() {
                 *self.action = Some(TimelineIconStripAction::NextTimelineView);
             }
-            let piano_roll_response = ui
+            let composer_response = ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
                         "../../../res/images/md-symbols/piano.png"
@@ -52,11 +52,11 @@ impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
                     .fit_to_original_size(1.0),
                 ))
                 .on_hover_text("Show Piano Roll");
-            if piano_roll_response.clicked() {
+            if composer_response.clicked() {
                 *self.action = Some(TimelineIconStripAction::ShowComposer);
             }
 
-            next_response | piano_roll_response
+            next_response | composer_response
         })
         .inner
     }
