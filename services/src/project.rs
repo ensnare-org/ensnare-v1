@@ -71,124 +71,13 @@ impl ProjectService {
     }
 
     fn spawn_thread(&self) {
-        let input_receiver = self.input_channels.receiver.clone();
-        let event_sender = self.event_channels.sender.clone();
+        let receiver = self.input_channels.receiver.clone();
+        let sender = self.event_channels.sender.clone();
         let factory = Arc::clone(&self.factory);
         std::thread::spawn(move || {
-            let mut project = Arc::new(RwLock::new(Project::new_project()));
-            let mut key_handler = KeyHandler::default();
-            while let Ok(input) = input_receiver.recv() {
-                match input {
-                    ProjectServiceInput::Init => {
-                        Self::notify_new_project(&event_sender, &project);
-                    }
-                    ProjectServiceInput::New => {
-                        todo!()
-                    }
-                    ProjectServiceInput::Load(path) => match Project::load(path.clone()) {
-                        Ok(mut new_project) => {
-                            project.read().unwrap().set_up_successor(&mut new_project);
-                            project = Arc::new(RwLock::new(new_project));
-                            Self::notify_new_project(&event_sender, &project);
-                        }
-                        Err(e) => {
-                            let _ = event_sender.send(ProjectServiceEvent::LoadFailed(path, e));
-                        }
-                    },
-                    ProjectServiceInput::Save(path) => {
-                        if let Ok(mut project) = project.write() {
-                            match project.save(path) {
-                                Ok(save_path) => {
-                                    let _ =
-                                        event_sender.send(ProjectServiceEvent::Saved(save_path));
-                                }
-                                Err(e) => {
-                                    let _ = event_sender.send(ProjectServiceEvent::SaveFailed(e));
-                                }
-                            }
-                        }
-                    }
-                    ProjectServiceInput::TempInsert16RandomPatterns => {
-                        let _ = project.write().unwrap().temp_insert_16_random_patterns();
-                    }
-                    ProjectServiceInput::Quit => {
-                        eprintln!("ProjectServiceInput::Quit");
-                        let _ = event_sender.send(ProjectServiceEvent::Quit);
-                        return;
-                    }
-                    ProjectServiceInput::SetSampleRate(sample_rate) => {
-                        project.write().unwrap().update_sample_rate(sample_rate);
-                    }
-                    ProjectServiceInput::Play => {
-                        project.write().unwrap().play();
-                        let _ = event_sender.send(ProjectServiceEvent::IsPerformingChanged(true));
-                    }
-                    ProjectServiceInput::Stop => {
-                        project.write().unwrap().stop();
-                        let _ = event_sender.send(ProjectServiceEvent::IsPerformingChanged(false));
-                    }
-                    ProjectServiceInput::TrackAddEntity(track_uid, key) => {
-                        if let Ok(mut project) = project.write() {
-                            let uid = project.mint_entity_uid();
-                            if let Some(entity) = factory.new_entity(key, uid) {
-                                let _ = project.add_entity(track_uid, entity, Some(uid));
-                                let _ = project
-                                    .set_midi_receiver_channel(uid, Some(MidiChannel::default()));
-                            } else {
-                                eprintln!("ProjectServiceInput::TrackAddEntity failed");
-                            }
-                        }
-                    }
-                    ProjectServiceInput::PatternArrange(track_uid, pattern_uid, position) => {
-                        let _ = project.write().unwrap().arrange_pattern(
-                            track_uid,
-                            pattern_uid,
-                            position,
-                        );
-                    }
-                    ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
-                        let _ = project.write().unwrap().link(source_uid, target_uid, index);
-                    }
-                    ProjectServiceInput::KeyEvent(key, pressed, _physical_key) => {
-                        if let Some(message) = key_handler.handle_key(&key, pressed) {
-                            project.write().unwrap().handle_midi_message(
-                                MidiChannel::default(),
-                                message,
-                                &mut |c, m| {
-                                    eprintln!("TODO: {c:?} {m:?}");
-                                },
-                            )
-                        }
-                    }
-                    ProjectServiceInput::NextTimelineDisplayer => {
-                        project.write().unwrap().advance_arrangement_view_mode();
-                    }
-                    ProjectServiceInput::AudioQueue(queue) => {
-                        project.write().unwrap().e.audio_queue = Some(queue);
-                    }
-                    ProjectServiceInput::VisualizationQueue(queue) => {
-                        project.write().unwrap().e.visualization_queue = Some(queue)
-                    }
-                    ProjectServiceInput::NeedsAudio(count) => {
-                        project.write().unwrap().fill_audio_queue(count);
-                    }
-                    ProjectServiceInput::Midi(channel, message) => project
-                        .write()
-                        .unwrap()
-                        .handle_midi_message(channel, message, &mut |c, m| {
-                            eprintln!("TODO: {c:?} {m:?}");
-                        }),
-                    ProjectServiceInput::RemoveEntity(uid) => {
-                        let _ = project.write().unwrap().remove_entity(uid);
-                    }
-                }
-            }
-            eprintln!("ProjectService exit");
+            let mut daemon = ProjectServiceDaemon::new_with(receiver, sender, factory);
+            daemon.execute();
         });
-    }
-
-    fn notify_new_project(sender: &Sender<ProjectServiceEvent>, project: &Arc<RwLock<Project>>) {
-        let _ = sender.send(ProjectServiceEvent::Loaded(Arc::clone(project)));
     }
 
     /// The receive side of the [ProjectServiceEvent] channel.
@@ -199,6 +88,190 @@ impl ProjectService {
     /// The sender side of the [ProjectServiceInput] channel.
     pub fn sender(&self) -> &Sender<ProjectServiceInput> {
         &self.input_channels.sender
+    }
+}
+
+struct ProjectServiceDaemon {
+    receiver: Receiver<ProjectServiceInput>,
+    sender: Sender<ProjectServiceEvent>,
+    factory: Arc<EntityFactory<dyn EntityBounds>>,
+
+    project: Arc<RwLock<Project>>,
+
+    key_handler: KeyHandler,
+    audio_queue: Option<AudioQueue>,
+    visualization_queue: Option<VisualizationQueue>,
+}
+impl ProjectServiceDaemon {
+    pub fn new_with(
+        receiver: Receiver<ProjectServiceInput>,
+        sender: Sender<ProjectServiceEvent>,
+        factory: Arc<EntityFactory<dyn EntityBounds>>,
+    ) -> Self {
+        Self {
+            receiver,
+            sender,
+            factory,
+            project: Arc::new(RwLock::new(Project::new_project())),
+            key_handler: Default::default(),
+            audio_queue: Default::default(),
+            visualization_queue: Default::default(),
+        }
+    }
+
+    fn notify_new_project(&self) {
+        let _ = self
+            .sender
+            .send(ProjectServiceEvent::Loaded(Arc::clone(&self.project)));
+    }
+
+    fn set_up_new_project(&self, new_project: &mut Project) {
+        if let Some(queue) = self.audio_queue.as_ref() {
+            new_project.e.audio_queue = Some(Arc::clone(queue));
+        } else {
+            eprintln!("asdf");
+        }
+        if let Some(queue) = self.visualization_queue.as_ref() {
+            new_project.e.visualization_queue = Some(queue.clone());
+        } else {
+            eprintln!("asdkfjjg");
+        }
+    }
+
+    fn swap_project(&mut self, mut new_project: Project) {
+        self.set_up_new_project(&mut new_project);
+        self.project = Arc::new(RwLock::new(new_project));
+        self.notify_new_project();
+    }
+
+    fn execute(&mut self) {
+        while let Ok(input) = self.receiver.recv() {
+            match input {
+                ProjectServiceInput::Init => {
+                    self.notify_new_project();
+                }
+                ProjectServiceInput::New => {
+                    // TODO: set_up_successor
+                    let new_project = Project::new_project();
+                    self.swap_project(new_project);
+                }
+                ProjectServiceInput::Load(path) => match Project::load(path.clone()) {
+                    Ok(new_project) => {
+                        self.swap_project(new_project);
+                    }
+                    Err(e) => {
+                        let _ = self.sender.send(ProjectServiceEvent::LoadFailed(path, e));
+                    }
+                },
+                ProjectServiceInput::Save(path) => {
+                    if let Ok(mut project) = self.project.write() {
+                        match project.save(path) {
+                            Ok(save_path) => {
+                                let _ = self.sender.send(ProjectServiceEvent::Saved(save_path));
+                            }
+                            Err(e) => {
+                                let _ = self.sender.send(ProjectServiceEvent::SaveFailed(e));
+                            }
+                        }
+                    }
+                }
+                ProjectServiceInput::TempInsert16RandomPatterns => {
+                    let _ = self
+                        .project
+                        .write()
+                        .unwrap()
+                        .temp_insert_16_random_patterns();
+                }
+                ProjectServiceInput::Quit => {
+                    eprintln!("ProjectServiceInput::Quit");
+                    let _ = self.sender.send(ProjectServiceEvent::Quit);
+                    return;
+                }
+                ProjectServiceInput::SetSampleRate(sample_rate) => {
+                    self.project
+                        .write()
+                        .unwrap()
+                        .update_sample_rate(sample_rate);
+                }
+                ProjectServiceInput::Play => {
+                    self.project.write().unwrap().play();
+                    let _ = self
+                        .sender
+                        .send(ProjectServiceEvent::IsPerformingChanged(true));
+                }
+                ProjectServiceInput::Stop => {
+                    self.project.write().unwrap().stop();
+                    let _ = self
+                        .sender
+                        .send(ProjectServiceEvent::IsPerformingChanged(false));
+                }
+                ProjectServiceInput::TrackAddEntity(track_uid, key) => {
+                    if let Ok(mut project) = self.project.write() {
+                        let uid = project.mint_entity_uid();
+                        if let Some(entity) = self.factory.new_entity(key, uid) {
+                            let _ = project.add_entity(track_uid, entity, Some(uid));
+                            let _ = project
+                                .set_midi_receiver_channel(uid, Some(MidiChannel::default()));
+                        } else {
+                            eprintln!("ProjectServiceInput::TrackAddEntity failed");
+                        }
+                    }
+                }
+                ProjectServiceInput::PatternArrange(track_uid, pattern_uid, position) => {
+                    let _ = self.project.write().unwrap().arrange_pattern(
+                        track_uid,
+                        pattern_uid,
+                        position,
+                    );
+                }
+                ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
+                    let _ = self
+                        .project
+                        .write()
+                        .unwrap()
+                        .link(source_uid, target_uid, index);
+                }
+                ProjectServiceInput::KeyEvent(key, pressed, _physical_key) => {
+                    if let Some(message) = self.key_handler.handle_key(&key, pressed) {
+                        self.project.write().unwrap().handle_midi_message(
+                            MidiChannel::default(),
+                            message,
+                            &mut |c, m| {
+                                eprintln!("TODO: {c:?} {m:?}");
+                            },
+                        )
+                    }
+                }
+                ProjectServiceInput::NextTimelineDisplayer => {
+                    self.project
+                        .write()
+                        .unwrap()
+                        .advance_arrangement_view_mode();
+                }
+                ProjectServiceInput::AudioQueue(queue) => {
+                    self.audio_queue = Some(Arc::clone(&queue));
+                    self.project.write().unwrap().e.audio_queue = Some(queue);
+                }
+                ProjectServiceInput::VisualizationQueue(queue) => {
+                    self.visualization_queue = Some(queue.clone());
+                    self.project.write().unwrap().e.visualization_queue = Some(queue)
+                }
+                ProjectServiceInput::NeedsAudio(count) => {
+                    self.project.write().unwrap().fill_audio_queue(count);
+                }
+                ProjectServiceInput::Midi(channel, message) => self
+                    .project
+                    .write()
+                    .unwrap()
+                    .handle_midi_message(channel, message, &mut |c, m| {
+                        eprintln!("TODO: {c:?} {m:?}");
+                    }),
+                ProjectServiceInput::RemoveEntity(uid) => {
+                    let _ = self.project.write().unwrap().remove_entity(uid);
+                }
+            }
+        }
+        eprintln!("ProjectServiceDaemon exit");
     }
 }
 

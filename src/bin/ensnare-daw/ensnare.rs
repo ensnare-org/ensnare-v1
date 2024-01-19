@@ -483,8 +483,7 @@ impl Ensnare {
     }
 
     fn handle_project_new(&mut self) {
-        todo!()
-        // self.send_to_project(ProjectServiceInput::New);
+        self.send_to_project(ProjectServiceInput::New);
     }
 
     fn handle_project_save(&mut self, path: Option<PathBuf>) {

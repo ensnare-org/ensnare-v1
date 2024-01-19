@@ -21,7 +21,7 @@ use ensnare_core::{
 use ensnare_cores_egui::composer;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf};
 
 /// The most commonly used imports.
 pub mod prelude {
@@ -422,15 +422,6 @@ impl Project {
             });
     }
 
-    pub fn set_up_successor(&self, new_project: &mut Self) {
-        if let Some(queue) = self.e.audio_queue.as_ref() {
-            new_project.e.audio_queue = Some(Arc::clone(queue));
-        }
-        if let Some(queue) = self.e.visualization_queue.as_ref() {
-            new_project.e.visualization_queue = Some(queue.clone());
-        }
-    }
-
     pub fn advance_arrangement_view_mode(&mut self) {
         // TODO: this needs to be specific to a track, or else the control path
         // uid makes no sense.
@@ -571,6 +562,8 @@ impl Serializable for Project {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use ensnare_entities::{
         effects::TestEffectNegatesInput,

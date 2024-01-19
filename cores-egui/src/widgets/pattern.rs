@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::ColorSchemeConverter;
+use crate::common::ColorSchemeConverter;
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},
     emath::RectTransform,

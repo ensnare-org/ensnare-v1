@@ -1,9 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{generators::Oscillator, prelude::*};
-use ensnare_cores_egui::controllers::{
-    arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget,
-};
+use ensnare_cores_egui::{arpeggiator, lfo_controller};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,

@@ -26,7 +26,7 @@ use ensnare_core::{
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores_egui::controllers::note_sequencer_widget;
+use ensnare_cores_egui::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
