@@ -1,13 +1,45 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{control_bar::ControlBarDisplayMode, ControlBar};
+use crate::{activity_indicator, analyze_spectrum, frequency_domain, time_domain};
 use eframe::{
     egui::{Image, ImageButton, Layout, Widget},
     epaint::vec2,
 };
-use ensnare_egui_widgets::{activity_indicator, analyze_spectrum, frequency_domain, time_domain};
+use ensnare_core::types::VisualizationQueue;
 use std::path::PathBuf;
 use strum_macros::Display;
+
+#[derive(Debug, Default)]
+pub enum ControlBarDisplayMode {
+    #[default]
+    Time,
+    Frequency,
+}
+
+/// [ControlBar] is the UI component at the top of the main window. Transport,
+/// MIDI status, etc.
+#[derive(Debug, Default)]
+pub struct ControlBar {
+    pub saw_midi_in_activity: bool,
+    pub saw_midi_out_activity: bool,
+
+    /// An owned VecDeque that acts as a ring buffer of the most recent
+    /// generated audio frames.
+    pub visualization_queue: VisualizationQueue,
+    pub display_mode: ControlBarDisplayMode,
+    pub fft_buffer: Vec<f32>,
+}
+impl ControlBar {
+    /// Tell [ControlBar] that the system just saw an incoming MIDI message.
+    pub fn tickle_midi_in(&mut self) {
+        self.saw_midi_in_activity = true;
+    }
+
+    /// Tell [ControlPanel] that the system just produced an outgoing MIDI message.
+    pub fn tickle_midi_out(&mut self) {
+        self.saw_midi_out_activity = true;
+    }
+}
 
 /// Actions the user might take via the control panel.
 #[derive(Debug, Display)]
@@ -61,7 +93,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/play_arrow.png"
+                        "../../res/images/md-symbols/play_arrow.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -73,7 +105,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/stop.png"
+                        "../../res/images/md-symbols/stop.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -86,7 +118,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/new_window.png"
+                        "../../res/images/md-symbols/new_window.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -98,7 +130,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/file_open.png"
+                        "../../res/images/md-symbols/file_open.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -112,7 +144,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/file_save.png"
+                        "../../res/images/md-symbols/file_save.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -163,7 +195,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             if ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/settings.png"
+                        "../../res/images/md-symbols/settings.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))

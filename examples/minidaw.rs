@@ -18,14 +18,7 @@ use eframe::{
     CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{
-    app_version,
-    prelude::*,
-    ui::{
-        entity_palette,
-        widgets::{audio_settings, midi_settings},
-    },
-};
+use ensnare::{app_version, prelude::*};
 use ensnare_core::{types::TrackTitle, uid::TrackUid};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
@@ -33,7 +26,6 @@ use ensnare_new_stuff::{
     egui::project_widget,
     project::{Project, ProjectTitle},
 };
-use ensnare_services::{control_bar_widget, ControlBarAction, MidiServiceInput};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,

@@ -179,7 +179,7 @@ pub mod services {
     //! [Displays](crate::traits::Displays).
 
     pub use ensnare_services::{
-        AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, ControlBar, MidiService,
+        AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, MidiService,
         MidiServiceEvent, MidiServiceInput, MidiSettings, ProjectService, ProjectServiceEvent,
         ProjectServiceInput,
     };
@@ -187,8 +187,8 @@ pub mod services {
     /// `use ensnare::systems::prelude::*;` when working with services.
     pub mod prelude {
         pub use super::{
-            AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, ControlBar,
-            MidiService, MidiServiceEvent, MidiSettings, ProjectService, ProjectServiceEvent,
+            AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, MidiService,
+            MidiServiceEvent, MidiServiceInput, MidiSettings, ProjectService, ProjectServiceEvent,
             ProjectServiceInput,
         };
     }
@@ -232,17 +232,25 @@ pub mod ui {
     pub mod widgets {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::{prelude::*, widgets::pattern};
-        pub use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
-        pub use ensnare_services::{
-            audio_settings, control_bar_widget, midi_settings, ControlBarAction,
+        pub use ensnare_egui_widgets::{
+            control_bar_widget, oblique_strategies, ControlBar, ControlBarAction,
+            ObliqueStrategiesManager,
         };
+        pub use ensnare_new_stuff::egui::*;
+        pub use ensnare_services::{audio_settings, midi_settings};
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-    pub use ensnare_new_stuff::egui::*;
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{DragDropManager, DragSource, DropTarget};
+        pub use super::{
+            widgets::{
+                audio_settings, control_bar_widget, entity_palette, midi_settings,
+                timeline_icon_strip, ControlBar, ControlBarAction, ProjectAction,
+                TimelineIconStripAction,
+            },
+            DragDropManager, DragSource, DropTarget,
+        };
     }
 }
 

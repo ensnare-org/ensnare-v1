@@ -17,20 +17,12 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{
-    app_version,
-    prelude::*,
-    ui::widgets::{oblique_strategies, ObliqueStrategiesManager},
-    ui::{entity_palette, timeline_icon_strip, ProjectAction, TimelineIconStripAction},
-};
+use ensnare::{app_version, prelude::*};
+use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
 };
-
-// TODO: clean these up. An app should need to use only the top ensnare crate,
-// and ideally it can get by with just importing prelude::*.
-use ensnare_services::{control_bar_widget, AudioServiceInput, ControlBarAction, MidiServiceInput};
 
 #[derive(Debug, Default)]
 pub(super) struct RenderingState {

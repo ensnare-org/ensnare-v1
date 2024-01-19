@@ -16,9 +16,6 @@ crossbeam-channel = "0.5.8"
 derivative = "2.2.0"
 eframe = "0.25"
 ensnare-core = { path = "../core" }
-ensnare-cores-egui = { path = "../cores-egui" }
-ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
 ensnare-new-stuff = { path = "../new-stuff" }
 serde = { version = "1.0", features = ["derive", "rc"] }
-strum_macros = "0.25.2"
