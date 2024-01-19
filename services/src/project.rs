@@ -96,7 +96,7 @@ impl ProjectService {
                         }
                     },
                     ProjectServiceInput::Save(path) => {
-                        if let Ok(project) = project.read() {
+                        if let Ok(mut project) = project.write() {
                             match project.save(path) {
                                 Ok(save_path) => {
                                     let _ =

@@ -39,10 +39,16 @@ pub struct ComposerEphemerals {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Composer {
+    #[serde(default)]
     pattern_uid_factory: UidFactory<PatternUid>,
+    #[serde(default)]
     pub patterns: HashMap<PatternUid, Pattern>,
+    #[serde(default)]
     pub ordered_pattern_uids: Vec<PatternUid>,
+    #[serde(default)]
     pub tracks_to_arrangements: HashMap<TrackUid, Vec<Arrangement>>,
+    #[serde(default)]
+    pub pattern_color_schemes: Vec<(PatternUid, ColorScheme)>,
 
     #[serde(skip)]
     pub e: ComposerEphemerals,
@@ -183,6 +189,27 @@ impl Composer {
             .values()
             .all(|s| s.is_finished());
     }
+
+    fn gather_pattern_color_schemes(&mut self) {
+        self.pattern_color_schemes =
+            self.patterns
+                .iter()
+                .fold(Vec::default(), |mut v, (pattern_uid, pattern)| {
+                    v.push((*pattern_uid, pattern.color_scheme));
+                    v
+                });
+        self.pattern_color_schemes.sort();
+    }
+
+    fn distribute_pattern_color_schemes(&mut self) {
+        self.pattern_color_schemes
+            .iter()
+            .for_each(|(pattern_uid, color_scheme)| {
+                if let Some(pattern) = self.patterns.get_mut(pattern_uid) {
+                    pattern.color_scheme = *color_scheme;
+                }
+            });
+    }
 }
 impl Controls for Composer {
     fn time_range(&self) -> Option<TimeRange> {
@@ -241,9 +268,12 @@ impl Controls for Composer {
     }
 }
 impl Serializable for Composer {
-    fn before_ser(&mut self) {}
+    fn before_ser(&mut self) {
+        self.gather_pattern_color_schemes();
+    }
 
     fn after_deser(&mut self) {
+        self.distribute_pattern_color_schemes();
         self.replay_arrangements();
     }
 }
@@ -341,5 +371,24 @@ mod tests {
             "Removing a pattern should also unarrange it"
         );
         assert_eq!(c.tracks_to_arrangements.get(&track_2_uid).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn pattern_color_schemes() {
+        let mut c = Composer::default();
+        let p = PatternBuilder::default()
+            .color_scheme(ColorScheme::Cerulean)
+            .build()
+            .unwrap();
+        let puid = c.add_pattern(p, None).unwrap();
+
+        assert!(c.pattern_color_schemes.is_empty());
+        c.before_ser();
+        assert_eq!(c.pattern_color_schemes.len(), 1);
+
+        let _ = c.remove_pattern(puid);
+        assert_eq!(c.pattern_color_schemes.len(), 1);
+        c.before_ser();
+        assert!(c.pattern_color_schemes.is_empty());
     }
 }

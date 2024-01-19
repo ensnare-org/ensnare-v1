@@ -74,6 +74,7 @@ pub struct Pattern {
     pub notes: Vec<Note>,
 
     #[builder(default)]
+    #[serde(skip)]
     pub color_scheme: ColorScheme,
 }
 impl PatternBuilder {
@@ -146,7 +147,7 @@ impl Default for Pattern {
             time_signature: TimeSignature::default(),
             duration: Default::default(),
             notes: Default::default(),
-            color_scheme: ColorScheme::default(),
+            color_scheme: Default::default(),
         };
         r.after_deser();
         r

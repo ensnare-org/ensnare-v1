@@ -800,7 +800,20 @@ pub struct ModSerial(
     #[derivative(Default(value = "1000"))] pub usize,
 );
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    EnumCount,
+    Eq,
+    FromRepr,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum ColorScheme {
     Red,

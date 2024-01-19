@@ -76,6 +76,9 @@ pub struct ProjectViewState {
 
 #[derive(Debug, Default)]
 pub struct ProjectEphemerals {
+    /// Whether the project has been saved.
+    is_clean: bool,
+
     /// Whether the project has finished a performance.
     is_finished: bool,
 
@@ -352,10 +355,11 @@ impl Project {
         let mut project = serde_json::from_str::<Self>(&json)?;
         project.e.load_path = Some(path);
         project.after_deser();
+        project.e.is_clean = true;
         Ok(project)
     }
 
-    pub fn save(&self, path: Option<PathBuf>) -> anyhow::Result<PathBuf> {
+    pub fn save(&mut self, path: Option<PathBuf>) -> anyhow::Result<PathBuf> {
         let save_path = {
             if let Some(path) = path.as_ref() {
                 path.clone()
@@ -366,8 +370,10 @@ impl Project {
             }
         };
 
+        self.before_ser();
         let json = serde_json::to_string_pretty(&self)?;
         std::fs::write(&save_path, json)?;
+        self.e.is_clean = true;
         Ok(save_path)
     }
 
