@@ -2,7 +2,6 @@
 
 //! egui logic for drawing ensnare entities.
 
-use crate::pattern::pattern;
 use eframe::{
     egui::Widget,
     epaint::{vec2, Color32},
@@ -11,7 +10,7 @@ use ensnare_core::{
     composition::{Composer, PatternBuilder},
     types::ColorScheme,
 };
-use widgets::pattern::{self, grid};
+use widgets::pattern::{self, grid, pattern_widget};
 
 pub mod controllers;
 pub mod effects;
@@ -37,12 +36,14 @@ pub struct ComposerWidget<'a> {
 impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
+            let mut response;
             let new_pattern_response = ui.button("New Pattern");
             if new_pattern_response.clicked() {
                 let _ = self
                     .inner
                     .add_pattern(PatternBuilder::default().build().unwrap(), None);
             }
+            response = new_pattern_response;
             let mut carousel_action = None;
             let carousel_response = ui.add(pattern::carousel(
                 &self.inner.ordered_pattern_uids,
@@ -57,8 +58,32 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                     }
                 }
             }
-            let pattern_edit_response = self.ui_pattern_edit(ui);
-            new_pattern_response | carousel_response | pattern_edit_response
+            response |= carousel_response;
+            if let Some(pattern_uid) = self
+                .inner
+                .e
+                .pattern_selection_set
+                .single_selection()
+                .cloned()
+            {
+                if let Some(pattern) = self.inner.pattern_mut(pattern_uid) {
+                    ui.label(format!("Time Signature: {}", pattern.time_signature()));
+                    let pattern_edit_response = {
+                        ui.set_min_height(256.0);
+                        let desired_size = vec2(ui.available_width(), 96.0);
+                        let (_id, rect) = ui.allocate_space(desired_size);
+                        ui.add_enabled_ui(false, |ui| {
+                            ui.allocate_ui_at_rect(rect, |ui| ui.add(grid(pattern.duration)))
+                                .inner
+                        });
+                        ui.allocate_ui_at_rect(rect, |ui| ui.add(pattern_widget(pattern)))
+                            .inner
+                    };
+                    response |= pattern_edit_response;
+                }
+            }
+
+            response
         })
         .inner
     }
@@ -66,28 +91,6 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
 impl<'a> ComposerWidget<'a> {
     fn new(inner: &'a mut Composer) -> Self {
         Self { inner }
-    }
-
-    fn ui_pattern_edit(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        if let Some(pattern_uid) = self.inner.e.pattern_selection_set.single_selection() {
-            ui.set_min_height(192.0);
-            if let Some(pat) = self.inner.patterns.get_mut(pattern_uid) {
-                let desired_size = vec2(ui.available_width(), 96.0);
-                let (_id, rect) = ui.allocate_space(desired_size);
-                ui.add_enabled_ui(false, |ui| {
-                    ui.allocate_ui_at_rect(rect, |ui| ui.add(grid(pat.duration)))
-                        .inner
-                });
-                return ui
-                    .allocate_ui_at_rect(rect, |ui| ui.add(pattern(pat)))
-                    .inner;
-            }
-        }
-
-        ui.set_min_height(0.0);
-        // This is here so that we can return a Response. I don't know of a
-        // better way to do it.
-        ui.add_visible_ui(false, |_| {}).response
     }
 }
 

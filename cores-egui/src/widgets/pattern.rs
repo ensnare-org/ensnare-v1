@@ -297,7 +297,7 @@ impl eframe::egui::Widget for Grid {
     }
 }
 
-pub fn pattern<'a>(inner: &'a mut Pattern) -> impl eframe::egui::Widget + 'a {
+pub fn pattern_widget<'a>(inner: &'a mut Pattern) -> impl eframe::egui::Widget + 'a {
     move |ui: &mut eframe::egui::Ui| PatternWidget::new(inner).ui(ui)
 }
 
