@@ -47,10 +47,6 @@ impl<'a> WelshWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for WelshWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        // TODO: the set_waveform() calls don't capture the whole set of things
-        // that the oscillator widget might change. We need to figure out how to
-        // update the live oscillator parameters without doing things like
-        // resetting the period.
         let mut response = CollapsingHeader::new("Oscillator 1")
             .default_open(true)
             .id_source(ui.next_auto_id())
@@ -77,11 +73,6 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             self.inner.set_oscillator_mix(oscillator_mix.into());
         }
 
-        // TODO: this doesn't get propagated to the voices, because the
-        // single DCA will be responsible for turning mono voice output to
-        // stereo.
-        //
-        // TODO: hmmm but it sure looks like we are propagating....
         response |= CollapsingHeader::new("DCA")
             .default_open(true)
             .id_source(ui.next_auto_id())
