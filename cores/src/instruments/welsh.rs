@@ -352,7 +352,7 @@ pub struct WelshSynth {
     pub filter_envelope: Envelope,
 
     #[serde(skip)]
-    pub inner_synth: Synthesizer<WelshVoice>,
+    pub inner: Synthesizer<WelshVoice>,
 }
 impl WelshSynth {
     const VOICE_CAPACITY: usize = 8;
@@ -391,7 +391,7 @@ impl WelshSynth {
                 )
             });
         Self {
-            inner_synth: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
+            inner: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
             oscillator_1,
             oscillator_2,
             oscillator_2_sync,
@@ -430,32 +430,32 @@ impl WelshSynth {
 }
 impl Generates<StereoSample> for WelshSynth {
     fn value(&self) -> StereoSample {
-        self.inner_synth.value()
+        self.inner.value()
     }
 
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate(values);
+        self.inner.generate(values);
     }
 }
 impl Serializable for WelshSynth {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        self.inner_synth = Synthesizer::<WelshVoice>::new_with(Box::new(self.new_voice_store()));
+        self.inner = Synthesizer::<WelshVoice>::new_with(Box::new(self.new_voice_store()));
     }
 }
 impl Configurable for WelshSynth {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner_synth.update_sample_rate(sample_rate);
+        self.inner.update_sample_rate(sample_rate);
     }
 
     fn sample_rate(&self) -> SampleRate {
-        self.inner_synth.sample_rate()
+        self.inner.sample_rate()
     }
 }
 impl Ticks for WelshSynth {
     fn tick(&mut self, tick_count: usize) {
-        self.inner_synth.tick(tick_count);
+        self.inner.tick(tick_count);
     }
 }
 impl HandlesMidi for WelshSynth {
@@ -479,7 +479,7 @@ impl HandlesMidi for WelshSynth {
                 // None
             }
             _ => self
-                .inner_synth
+                .inner
                 .handle_midi_message(channel, message, midi_messages_fn),
         }
     }
@@ -490,33 +490,76 @@ impl WelshSynth {
         //        self.preset.name.as_str()
     }
 
-    pub fn notify_change_oscillator_1(&mut self) {}
-    pub fn notify_change_oscillator_2(&mut self) {}
-    pub fn notify_change_oscillator_mix(&mut self) {}
-    pub fn notify_change_amp_envelope(&mut self) {}
-    pub fn notify_change_dca(&mut self) {}
-    pub fn notify_change_lfo(&mut self) {}
-    pub fn notify_change_filter(&mut self) {}
-    pub fn notify_change_filter_envelope(&mut self) {}
+    pub fn notify_change_oscillator_1(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.oscillator_1.update_from_prototype(&self.oscillator_1);
+        });
+    }
+    pub fn notify_change_oscillator_2(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.oscillator_2.update_from_prototype(&self.oscillator_2);
+        });
+    }
+    pub fn notify_change_amp_envelope(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.amp_envelope.update_from_prototype(&self.amp_envelope);
+        });
+    }
+    pub fn notify_change_dca(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.dca.update_from_prototype(&self.dca);
+        });
+    }
+    pub fn notify_change_lfo(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.lfo.update_from_prototype(&self.lfo);
+        });
+    }
+    pub fn notify_change_filter(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.filter.update_from_prototype(&self.filter);
+        });
+    }
+    pub fn notify_change_filter_envelope(&mut self) {
+        self.inner.voices_mut().for_each(|v| {
+            v.filter_envelope
+                .update_from_prototype(&self.filter_envelope);
+        });
+    }
 
     pub fn set_oscillator_2_sync(&mut self, oscillator_2_sync: bool) {
         self.oscillator_2_sync = oscillator_2_sync;
+        self.inner
+            .voices_mut()
+            .for_each(|v| v.set_oscillator_2_sync(self.oscillator_2_sync));
     }
 
     pub fn set_oscillator_mix(&mut self, oscillator_mix: Normal) {
         self.oscillator_mix = oscillator_mix;
+        self.inner
+            .voices_mut()
+            .for_each(|v| v.set_oscillator_mix(self.oscillator_mix));
     }
 
     pub fn set_lfo_depth(&mut self, lfo_depth: Normal) {
         self.lfo_depth = lfo_depth;
+        self.inner
+            .voices_mut()
+            .for_each(|v| v.set_lfo_depth(self.lfo_depth));
     }
 
     pub fn set_filter_cutoff_start(&mut self, filter_cutoff_start: Normal) {
         self.filter_cutoff_start = filter_cutoff_start;
+        self.inner
+            .voices_mut()
+            .for_each(|v| v.set_filter_cutoff_start(self.filter_cutoff_start));
     }
 
     pub fn set_filter_cutoff_end(&mut self, filter_cutoff_end: Normal) {
         self.filter_cutoff_end = filter_cutoff_end;
+        self.inner
+            .voices_mut()
+            .for_each(|v| v.set_filter_cutoff_end(self.filter_cutoff_end));
     }
 }
 

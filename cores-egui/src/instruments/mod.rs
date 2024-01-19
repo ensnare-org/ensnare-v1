@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{effects::bi_quad_filter_low_pass_24db, modulators::dca};
-use eframe::egui::{CollapsingHeader, Widget};
+use eframe::egui::{CollapsingHeader, Slider, Widget};
 use ensnare_core::prelude::*;
 use ensnare_egui_widgets::{envelope, oscillator};
 
@@ -69,6 +69,13 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 }
             })
             .header_response;
+        let mut oscillator_mix = self.inner.oscillator_mix.0;
+        if ui
+            .add(Slider::new(&mut oscillator_mix, 0.0..=1.0))
+            .changed()
+        {
+            self.inner.set_oscillator_mix(oscillator_mix.into());
+        }
 
         // TODO: this doesn't get propagated to the voices, because the
         // single DCA will be responsible for turning mono voice output to
