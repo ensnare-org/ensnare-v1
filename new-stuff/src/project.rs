@@ -8,6 +8,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
+use derivative::Derivative;
 use eframe::egui::Id;
 use ensnare_core::{
     generators::PathUid,
@@ -28,14 +29,10 @@ pub mod prelude {
 }
 
 /// A user-visible project title.
-#[derive(Clone, Debug, derive_more::Display, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Derivative, derive_more::Display, PartialEq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct ProjectTitle(String);
-impl Default for ProjectTitle {
-    fn default() -> Self {
-        Self("Untitled".to_string())
-    }
-}
+pub struct ProjectTitle(#[derivative(Default(value = "\"Untitled\".into()"))] String);
 impl From<ProjectTitle> for String {
     fn from(value: ProjectTitle) -> Self {
         value.0

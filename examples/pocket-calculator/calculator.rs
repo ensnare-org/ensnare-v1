@@ -11,6 +11,7 @@
 // - should BPM be global?
 // - a better LCD
 
+use derivative::Derivative;
 use eframe::{
     egui::{Button, Grid, Sense},
     epaint::{Color32, Stroke, Vec2},
@@ -40,8 +41,9 @@ impl From<TempoValue> for f32 {
     }
 }
 /// Percentage is a u8 that ranges from 0..=100
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct Percentage(u8);
+#[derive(Clone, Copy, Debug, Derivative, PartialEq)]
+#[derivative(Default)]
+struct Percentage(#[derivative(Default(value = "50"))] u8);
 impl From<u8> for Percentage {
     fn from(value: u8) -> Self {
         Self(value)
@@ -55,11 +57,6 @@ impl From<f32> for Percentage {
 impl From<Percentage> for f32 {
     fn from(val: Percentage) -> Self {
         (val.0 as f32) / 100.0
-    }
-}
-impl Default for Percentage {
-    fn default() -> Self {
-        Self(50)
     }
 }
 impl Percentage {
@@ -120,8 +117,10 @@ impl Chains {
 }
 
 /// [Engine] contains the musical data other than the samples.
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct Engine {
+    #[derivative(Default(value = "0.into()"))]
     swing: Percentage,
     tempo: CalculatorTempo,
     tempo_override: Option<TempoValue>,
@@ -149,31 +148,6 @@ struct Engine {
 
     // Which step we're currently playing in the pattern
     pb_step_index: u8,
-}
-impl Default for Engine {
-    fn default() -> Self {
-        Self {
-            swing: Percentage::from(0),
-            tempo: CalculatorTempo::Disco,
-            tempo_override: None,
-            a: Percentage::from(0.5),
-            b: Percentage::from(0.5),
-
-            active_pattern: 0,
-            patterns: [Pattern::default(); 16],
-            chains: Default::default(),
-
-            active_sound: 0,
-
-            state: EngineState::Idle,
-
-            solo_states: Default::default(),
-
-            pb_chain_index: Default::default(),
-            pb_pattern_index: Default::default(),
-            pb_step_index: Default::default(),
-        }
-    }
 }
 impl Engine {
     pub fn a(&self) -> &Percentage {
@@ -429,7 +403,8 @@ pub enum CalculatorTempo {
     Techno,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct CalculatorEphemerals {
     // The value passed in Controls::update_time(). The [Controls] trait assumes
     // that there is a single global clock whose value gets distributed across
@@ -445,16 +420,8 @@ struct CalculatorEphemerals {
     cursor: MusicalTime,
 
     /// Generates audio data.
+    #[derivative(Default(value = "Self::load_sampler_voices()"))]
     inner_synth: Synthesizer<SamplerVoice>,
-}
-impl Default for CalculatorEphemerals {
-    fn default() -> Self {
-        Self {
-            range: Default::default(),
-            cursor: Default::default(),
-            inner_synth: Self::load_sampler_voices(),
-        }
-    }
 }
 impl CalculatorEphemerals {
     fn load_sampler_voices() -> Synthesizer<SamplerVoice> {
@@ -509,7 +476,8 @@ impl CalculatorEphemerals {
 /// [Calculator] is the top-level musical instrument. It contains an [Engine]
 /// that has the song data, as well as a sampler synth that can generate digital
 /// audio. It draws the GUI and handles user input.
-#[derive(Control, Debug)]
+#[derive(Control, Debug, Derivative)]
+#[derivative(Default)]
 pub struct Calculator {
     /// Keeps the music data (notes, sequences, tempo).
     engine: Engine,
@@ -517,6 +485,7 @@ pub struct Calculator {
     e: CalculatorEphemerals,
 
     /// The final output volume, ranging 0..16.
+    #[derivative(Default(value = "5"))]
     volume: u8,
 
     tempo: Tempo,
@@ -629,24 +598,6 @@ impl Generates<StereoSample> for Calculator {
 
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.e.inner_synth.generate(values);
-    }
-}
-impl Default for Calculator {
-    fn default() -> Self {
-        Self {
-            engine: Default::default(),
-            e: Default::default(),
-
-            volume: 5,
-
-            tempo: Tempo::default(),
-            ui_state: Default::default(),
-            blink_counter: Default::default(),
-            is_write_enabled: Default::default(),
-            pattern_usages: Default::default(),
-            last_handled_step: Default::default(),
-            sample_rate: Default::default(),
-        }
     }
 }
 impl Calculator {
@@ -979,20 +930,14 @@ impl Pattern {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Derivative, PartialEq)]
+#[derivative(Default)]
 struct Step {
     sounds: [bool; 16],
+    #[derivative(Default(value = "[Percentage::maximum(); 16]"))]
     a: [Percentage; 16],
+    #[derivative(Default(value = "[Percentage::minimum(); 16]"))]
     b: [Percentage; 16],
-}
-impl Default for Step {
-    fn default() -> Self {
-        Self {
-            sounds: [false; 16],
-            a: [Percentage::maximum(); 16],
-            b: [Percentage::minimum(); 16],
-        }
-    }
 }
 impl Step {
     fn new_with(sounds: [bool; 16]) -> Self {

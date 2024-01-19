@@ -2,6 +2,7 @@
 
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
+use derivative::Derivative;
 use eframe::egui::Key;
 use ensnare_core::{
     prelude::*,
@@ -202,13 +203,9 @@ impl ProjectService {
 ///
 /// TODO: I looked around for a bounded integer type or crate, but all made a
 /// mountain out of this molehill-sized use case.
-#[derive(Debug)]
-struct Octave(pub u8);
-impl Default for Octave {
-    fn default() -> Self {
-        Self(5)
-    }
-}
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+struct Octave(#[derivative(Default(value = "5"))] pub u8);
 impl Octave {
     fn decrease(&mut self) {
         if self.0 > 0 {

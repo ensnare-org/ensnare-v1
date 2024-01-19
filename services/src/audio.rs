@@ -6,6 +6,7 @@ use cpal::{
 };
 use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::{Receiver, Sender};
+use derivative::Derivative;
 use ensnare_core::{prelude::*, types::AudioQueue};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,24 +19,17 @@ use std::{
 struct SampleRateDef(usize);
 
 /// Contains persistent audio settings.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct AudioSettings {
     #[serde(with = "SampleRateDef")]
     sample_rate: SampleRate,
+    #[derivative(Default(value = "2"))]
     channel_count: u16,
 
     #[serde(skip)]
     has_been_saved: bool,
-}
-impl Default for AudioSettings {
-    fn default() -> Self {
-        Self {
-            sample_rate: SampleRate::default(),
-            channel_count: 2,
-            has_been_saved: false,
-        }
-    }
 }
 impl HasSettings for AudioSettings {
     fn has_been_saved(&self) -> bool {

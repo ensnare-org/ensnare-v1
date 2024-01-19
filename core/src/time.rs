@@ -12,7 +12,7 @@ use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Mul, Range, Sub, SubAssign},
 };
 use strum_macros::{FromRepr, IntoStaticStr};
 
@@ -459,6 +459,11 @@ pub struct ViewRange(
     #[derivative(Default(value = "MusicalTime::START..MusicalTime::new_with_beats(4)"))]
     pub  std::ops::Range<MusicalTime>,
 );
+impl From<Range<MusicalTime>> for ViewRange {
+    fn from(value: Range<MusicalTime>) -> Self {
+        Self(value.start..value.end)
+    }
+}
 
 /// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
 /// determine which time slice to handle during [Controls::work()].

@@ -17,18 +17,19 @@ version = "0.0.2"
 anyhow = "1.0.75"
 crossbeam-channel = "0.5.8"
 delegate = "0.12"
+derivative = "2.2.0"
 derive_more = "0.99.17"
 eframe = "0.25"
 egui-toast = "0.11"
 egui_extras = { version = "0.25", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
 ensnare-cores = { path = "cores" }
-ensnare-drag-drop = { path = "drag-drop" }
 ensnare-cores-egui = { path = "cores-egui" }
+ensnare-drag-drop = { path = "drag-drop" }
 ensnare-egui-widgets = { path = "egui-widgets" }
-ensnare-entity = { path = "entity" }
 ensnare-entities = { path = "entities", features = ["factory"] }
 ensnare-entities-toy = { path = "entities-toy" }
+ensnare-entity = { path = "entity" }
 ensnare-new-stuff = { path = "new-stuff" }
 ensnare-proc-macros = { path = "proc-macros" }
 ensnare-services = { path = "services" }

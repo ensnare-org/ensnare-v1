@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crossbeam_channel::{Receiver, Sender};
+use derivative::Derivative;
 use ensnare_core::{
     midi_interface::{
         MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
@@ -52,7 +53,8 @@ mod opt_external_struct {
 }
 
 /// Contains persistent MIDI settings.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct MidiSettings {
     #[serde(default, with = "opt_external_struct")]
     pub(crate) selected_input: Option<MidiPortDescriptor>,
@@ -63,20 +65,11 @@ pub struct MidiSettings {
     has_been_saved: bool,
 
     #[serde(skip, default = "MidiSettings::create_last_input_instant")]
+    #[derivative(Default(value = "Self::create_last_input_instant()"))]
     last_input_instant: Arc<Mutex<Instant>>,
     #[serde(skip, default = "Instant::now")]
+    #[derivative(Default(value = "Instant::now()"))]
     last_output_instant: Instant,
-}
-impl Default for MidiSettings {
-    fn default() -> Self {
-        Self {
-            selected_input: Default::default(),
-            selected_output: Default::default(),
-            has_been_saved: Default::default(),
-            last_input_instant: Self::create_last_input_instant(),
-            last_output_instant: Instant::now(),
-        }
-    }
 }
 impl HasSettings for MidiSettings {
     fn has_been_saved(&self) -> bool {

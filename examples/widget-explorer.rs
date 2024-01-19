@@ -4,6 +4,7 @@
 //! widgets.
 
 use anyhow::anyhow;
+use derivative::Derivative;
 use eframe::{
     egui::{
         self, warn_if_debug_build, CollapsingHeader, DragValue, Id, Layout, ScrollArea, Slider,
@@ -32,9 +33,13 @@ use ensnare_entity::traits::EntityBounds;
 use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar};
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct LegendSettings {
     hide: bool,
+    #[derivative(Default(
+        value = "(MusicalTime::START..MusicalTime::new_with_beats(128)).into()"
+    ))]
     range: ViewRange,
 }
 impl LegendSettings {
@@ -43,14 +48,6 @@ impl LegendSettings {
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             ui.add(legend(&mut self.range));
-        }
-    }
-}
-impl Default for LegendSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
         }
     }
 }
@@ -74,7 +71,8 @@ impl Displays for LegendSettings {
 
 #[cfg(obsolete)]
 mod obsolete {
-    #[derive(Debug)]
+    #[derive(Debug, Derivative)]
+    #[derivative(Default)]
     struct TrackSettings {
         hide: bool,
         track: Track,
@@ -237,10 +235,17 @@ mod obsolete {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct GridSettings {
     hide: bool,
+    #[derivative(Default(
+        value = "(MusicalTime::START..MusicalTime::new_with_beats(128)).into()"
+    ))]
     range: ViewRange,
+    #[derivative(Default(
+        value = "(MusicalTime::START..MusicalTime::new_with_beats(128)).into()"
+    ))]
     view_range: ViewRange,
 }
 impl GridSettings {
@@ -256,43 +261,20 @@ impl GridSettings {
         self.view_range = view_range.clone();
     }
 }
-impl Default for GridSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
-            view_range: ViewRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
-        }
-    }
-}
 impl Displays for GridSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct NoteSequencerSettings {
     hide: bool,
+    #[derivative(Default(value = "Self::make_default_sequencer()"))]
     sequencer: NoteSequencer,
     view_range: ViewRange,
 }
-impl Default for NoteSequencerSettings {
-    fn default() -> Self {
-        let sequencer = NoteSequencerBuilder::default()
-            .random(TimeRange(
-                MusicalTime::START..MusicalTime::new_with_beats(128),
-            ))
-            .build()
-            .unwrap();
-        Self {
-            hide: Default::default(),
-            sequencer,
-            view_range: Default::default(),
-        }
-    }
-}
-
 impl Displays for NoteSequencerSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide")
@@ -310,25 +292,28 @@ impl NoteSequencerSettings {
     fn set_view_range(&mut self, view_range: &ViewRange) {
         self.view_range = view_range.clone();
     }
+
+    fn make_default_sequencer() -> NoteSequencer {
+        NoteSequencerBuilder::default()
+            .random(TimeRange(
+                MusicalTime::START..MusicalTime::new_with_beats(128),
+            ))
+            .build()
+            .unwrap()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct ToySynthSettings {
     hide: bool,
+    #[derivative(Default(value = "ToySynth::new_with(
+        Uid::default(),
+        Oscillator::default(),
+        Envelope::safe_default(),
+        Dca::default(),
+    )"))]
     toy_synth: ToySynth,
-}
-impl Default for ToySynthSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            toy_synth: ToySynth::new_with(
-                Uid::default(),
-                Oscillator::default(),
-                Envelope::safe_default(),
-                Dca::default(),
-            ),
-        }
-    }
 }
 impl Displays for ToySynthSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -345,18 +330,10 @@ impl ToySynthSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ToyControllerSettings {
     hide: bool,
     toy: ToyController,
-}
-impl Default for ToyControllerSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            toy: ToyController::new_with(Uid::default()),
-        }
-    }
 }
 impl Displays for ToyControllerSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -373,18 +350,10 @@ impl ToyControllerSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ToyEffectSettings {
     hide: bool,
     toy: ToyEffect,
-}
-impl Default for ToyEffectSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            toy: ToyEffect::new_with(Uid::default(), Normal::from(0.8)),
-        }
-    }
 }
 impl Displays for ToyEffectSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -401,18 +370,10 @@ impl ToyEffectSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ToyInstrumentSettings {
     hide: bool,
     toy: ToyInstrument,
-}
-impl Default for ToyInstrumentSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            toy: ToyInstrument::new_with(Uid::default()),
-        }
-    }
 }
 impl Displays for ToyInstrumentSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -515,24 +476,16 @@ trait RandomizesBuffer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct TimeDomainSettings {
     hide: bool,
+    #[derivative(Default(value = "128.0"))]
     max_width: f32,
+    #[derivative(Default(value = "64.0"))]
     max_height: f32,
     visualization_queue: VisualizationQueue,
     rng: Rng,
-}
-impl Default for TimeDomainSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            max_width: 128.0,
-            max_height: 64.0,
-            visualization_queue: Default::default(),
-            rng: Default::default(),
-        }
-    }
 }
 
 impl Displays for TimeDomainSettings {
@@ -569,29 +522,19 @@ impl TimeDomainSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 struct FrequencyDomainSettings {
     hide: bool,
+    #[derivative(Default(value = "128.0"))]
     max_width: f32,
+    #[derivative(Default(value = "64.0"))]
     max_height: f32,
     visualization_queue: VisualizationQueue,
     rng: Rng,
 
     fft_calc_counter: u8, // Used to test occasional recomputation of FFT
     fft_buffer: Vec<f32>,
-}
-impl Default for FrequencyDomainSettings {
-    fn default() -> Self {
-        Self {
-            hide: Default::default(),
-            max_width: 128.0,
-            max_height: 64.0,
-            visualization_queue: Default::default(),
-            rng: Default::default(),
-            fft_calc_counter: Default::default(),
-            fft_buffer: Default::default(),
-        }
-    }
 }
 impl RandomizesBuffer for FrequencyDomainSettings {
     fn visualization_queue(&self) -> &VisualizationQueue {
@@ -637,22 +580,19 @@ impl FrequencyDomainSettings {
     }
 }
 
-/// Creates 256 samples of noise.
-pub fn init_random_samples() -> [Sample; 256] {
-    let mut r = [Sample::default(); 256];
-    let mut rng = Rng::default();
-    for s in &mut r {
-        let value = rng.rand_float().fract() * 2.0 - 1.0;
-        *s = Sample::from(value);
-    }
-    r
-}
-
-#[derive(Debug)]
-struct SampleClip([Sample; 256]);
-impl Default for SampleClip {
-    fn default() -> Self {
-        Self(init_random_samples())
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+struct SampleClip(#[derivative(Default(value = "Self::init_random_samples()"))] [Sample; 256]);
+impl SampleClip {
+    /// Creates 256 samples of noise.
+    fn init_random_samples() -> [Sample; 256] {
+        let mut r = [Sample::default(); 256];
+        let mut rng = Rng::default();
+        for s in &mut r {
+            let value = rng.rand_float().fract() * 2.0 - 1.0;
+            *s = Sample::from(value);
+        }
+        r
     }
 }
 
