@@ -141,6 +141,11 @@ pub struct TimeSignature {
     #[control]
     pub bottom: usize,
 }
+impl Display for TimeSignature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{}/{}", self.top, self.bottom))
+    }
+}
 #[allow(missing_docs)]
 impl TimeSignature {
     /// C time = common time = 4/4
