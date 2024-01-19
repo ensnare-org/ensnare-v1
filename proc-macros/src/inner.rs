@@ -46,9 +46,9 @@ pub(crate) fn impl_derive_inner_controllable(input: TokenStream) -> TokenStream 
                 delegate::delegate! {
                     to self.inner {
                         fn control_index_count(&self) -> usize;
-                        fn control_index_for_name(&self, name: &'static str) -> Option<#core_crate::control::ControlIndex>;
+                        fn control_index_for_name(&self, name: &str) -> Option<#core_crate::control::ControlIndex>;
                         fn control_name_for_index(&self, index: ControlIndex) -> Option<String>;
-                        fn control_set_param_by_name(&mut self, name: &'static str, value: #core_crate::control::ControlValue);
+                        fn control_set_param_by_name(&mut self, name: &str, value: #core_crate::control::ControlValue);
                         fn control_set_param_by_index(&mut self, index: #core_crate::control::ControlIndex, value: #core_crate::control::ControlValue);
                     }
                 }

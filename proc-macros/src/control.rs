@@ -204,7 +204,7 @@ pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident
             }
         });
         let control_index_for_name_body = quote! {
-            fn control_index_for_name(&self, name: &'static str) -> Option<#core_crate::control::ControlIndex> {
+            fn control_index_for_name(&self, name: & str) -> Option<#core_crate::control::ControlIndex> {
                 match name {
                     #( #leaf_names => Some(#core_crate::control::ControlIndex(#leaf_indexes)), )*
                     _ => {
@@ -233,7 +233,7 @@ pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident
             #[automatically_derived]
             impl #generics #core_crate::traits::Controllable for #struct_name #ty_generics {
                 fn control_index_count(&self) -> usize { Self::STRUCT_SIZE }
-                fn control_set_param_by_name(&mut self, name: &'static str, value: #core_crate::control::ControlValue) {
+                fn control_set_param_by_name(&mut self, name: &str, value: #core_crate::control::ControlValue) {
                     if let Some(index) = self.control_index_for_name(name) {
                         self.control_set_param_by_index(index, value);
                     } else {
