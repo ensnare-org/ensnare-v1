@@ -451,13 +451,16 @@ impl Ensnare {
                     EntityKey::from(key),
                 ));
             }
-            ProjectAction::EntitySelected(uid, title) => {
+            ProjectAction::SelectEntity(uid, title) => {
                 // This is a view-only thing, so we can add a field in this
                 // struct and use it to decide what to display. No need to get
                 // Project involved.
                 self.rendering_state.detail_uid = Some(uid);
                 self.rendering_state.detail_title = title.clone();
                 self.rendering_state.is_detail_open = true;
+            }
+            ProjectAction::RemoveEntity(uid) => {
+                self.send_to_project(ProjectServiceInput::RemoveEntity(uid))
             }
         }
     }

@@ -21,9 +21,11 @@ pub enum ProjectAction {
     DoubleClickTrack(TrackUid),
     /// A [Track] wants a new device of type [Key].
     NewDeviceForTrack(TrackUid, EntityKey),
-    // The user selected an entity with the given uid and name. The UI should
-    // show that entity's detail view.
-    EntitySelected(Uid, String),
+    /// The user selected an entity with the given uid and name. The UI should
+    /// show that entity's detail view.
+    SelectEntity(Uid, String),
+    /// The user wants to remove an entity from a track's signal chain.
+    RemoveEntity(Uid),
 }
 
 /// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
@@ -109,8 +111,11 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                     ));
                     if let Some(action) = action {
                         match action {
-                            TrackWidgetAction::EntitySelected(uid, name) => {
-                                *self.action = Some(ProjectAction::EntitySelected(uid, name));
+                            TrackWidgetAction::SelectEntity(uid, name) => {
+                                *self.action = Some(ProjectAction::SelectEntity(uid, name));
+                            }
+                            TrackWidgetAction::RemoveEntity(uid) => {
+                                *self.action = Some(ProjectAction::RemoveEntity(uid));
                             }
                         }
                     }

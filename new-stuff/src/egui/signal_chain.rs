@@ -19,7 +19,8 @@ pub fn signal_chain_widget<'a>(
 
 #[derive(Debug, Display)]
 pub enum SignalChainWidgetAction {
-    EntitySelected(Uid, String),
+    Select(Uid, String),
+    Remove(Uid),
 }
 
 struct SignalChainWidget<'a> {
@@ -59,14 +60,16 @@ impl<'a> Widget for SignalChainWidget<'a> {
                     self.items
                         .iter()
                         .for_each(|(uid, name, is_control_source)| {
-                            if ui
+                            let item_response = ui
                                 .add(signal_item(*uid, name.clone(), *is_control_source))
-                                .clicked()
-                            {
-                                *self.action = Some(SignalChainWidgetAction::EntitySelected(
-                                    *uid,
-                                    name.clone(),
-                                ));
+                                .context_menu(|ui| {
+                                    if ui.button("Remove").clicked() {
+                                        *self.action = Some(SignalChainWidgetAction::Remove(*uid));
+                                    }
+                                });
+                            if item_response.clicked() {
+                                *self.action =
+                                    Some(SignalChainWidgetAction::Select(*uid, name.clone()));
                             }
                         });
                     let _ = DragDropManager::drop_target(ui, self.can_accept(), |ui| {

@@ -106,9 +106,11 @@ pub struct TrackWidgetInfo<'a> {
 
 #[derive(Debug, Display)]
 pub enum TrackWidgetAction {
-    // The user selected an entity with the given uid and name. The UI should
-    // show that entity's detail view.
-    EntitySelected(Uid, String),
+    /// The user selected an entity with the given uid and name. The UI should
+    /// show that entity's detail view.
+    SelectEntity(Uid, String),
+    /// The user wants to remove the specified entity from the signal chain.
+    RemoveEntity(Uid),
 }
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
@@ -308,9 +310,12 @@ impl<'a> Widget for TrackWidget<'a> {
 
                             if let Some(action) = action {
                                 match action {
-                                    SignalChainWidgetAction::EntitySelected(uid, name) => {
+                                    SignalChainWidgetAction::Select(uid, name) => {
                                         *self.action =
-                                            Some(TrackWidgetAction::EntitySelected(uid, name));
+                                            Some(TrackWidgetAction::SelectEntity(uid, name));
+                                    }
+                                    SignalChainWidgetAction::Remove(uid) => {
+                                        *self.action = Some(TrackWidgetAction::RemoveEntity(uid));
                                     }
                                 }
                             }

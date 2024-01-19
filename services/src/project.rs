@@ -28,6 +28,7 @@ pub enum ProjectServiceInput {
     TempInsert16RandomPatterns,
     Quit,
     TrackAddEntity(TrackUid, EntityKey),
+    RemoveEntity(Uid),
     PatternArrange(TrackUid, PatternUid, MusicalTime),
     LinkControl(Uid, Uid, ControlIndex),
     KeyEvent(Key, bool, Option<Key>),
@@ -177,6 +178,9 @@ impl ProjectService {
                         .handle_midi_message(channel, message, &mut |c, m| {
                             eprintln!("TODO: {c:?} {m:?}");
                         }),
+                    ProjectServiceInput::RemoveEntity(uid) => {
+                        let _ = project.write().unwrap().remove_entity(uid);
+                    }
                 }
             }
             eprintln!("ProjectService exit");
