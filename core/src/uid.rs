@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -100,14 +101,12 @@ impl Default for UidFactory<Uid> {
 }
 
 /// Identifies a track.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Copy, Clone, Debug, Derivative, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct TrackUid(pub usize);
-impl Default for TrackUid {
-    fn default() -> Self {
-        Self(1)
-    }
-}
+pub struct TrackUid(#[derivative(Default(value = "1"))] pub usize);
 impl IsUid for TrackUid {
     fn as_usize(&self) -> usize {
         self.0

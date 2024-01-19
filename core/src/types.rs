@@ -6,6 +6,7 @@ use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
 };
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
@@ -508,9 +509,10 @@ impl From<BipolarNormal> for f32 {
 /// to 192KHz (2x for sampling a 96KHz signal).
 ///
 /// Eventually we might impose a non-negative restriction on this type.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Derivative, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct FrequencyHz(pub ParameterType);
+pub struct FrequencyHz(#[derivative(Default(value = "440.0"))] pub ParameterType);
 #[allow(missing_docs)]
 impl FrequencyHz {
     pub const FREQUENCY_TO_LINEAR_BASE: ParameterType = 800.0;
@@ -540,11 +542,6 @@ impl FrequencyHz {
 
     pub fn zero() -> Self {
         FrequencyHz(0.0)
-    }
-}
-impl Default for FrequencyHz {
-    fn default() -> Self {
-        Self(440.0)
     }
 }
 impl From<f64> for FrequencyHz {
@@ -779,14 +776,10 @@ impl<T> Default for ChannelPair<T> {
 // TODO: TrackTitle is parked here because I couldn't find a better place for it.
 
 /// Newtype for track title string.
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct TrackTitle(pub String);
-impl Default for TrackTitle {
-    fn default() -> Self {
-        Self("Untitled".to_string())
-    }
-}
+pub struct TrackTitle(#[derivative(Default(value = "\"Untitled\".to_string()"))] pub String);
 impl From<&str> for TrackTitle {
     fn from(value: &str) -> Self {
         Self(value.to_string())
@@ -797,17 +790,15 @@ impl From<&str> for TrackTitle {
 /// something has changed. Subscribers should keep a usize and compare to see
 /// whether it differs from the one that we're currently reporting. If it does,
 /// then they should update it and deal with the change.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct ModSerial(pub usize);
-impl Default for ModSerial {
+pub struct ModSerial(
     // We start at something other than usize::default() so that
     // everyone else can use the default value and fire their update
     // code on the first call to has_changed().
-    fn default() -> Self {
-        Self(1000)
-    }
-}
+    #[derivative(Default(value = "1000"))] pub usize,
+);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, EnumCount, FromRepr)]
 #[serde(rename_all = "kebab-case")]

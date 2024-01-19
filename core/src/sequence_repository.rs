@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, ops::Deref, sync::atomic::AtomicUsize};
 
@@ -44,7 +45,8 @@ pub enum Sequence {
 }
 
 /// [SequenceRepository] stores data that sequencers turn into MIDI events.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Derivative, PartialEq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct SequenceRepository {
     uid_factory: SequenceUidFactory,
@@ -53,21 +55,12 @@ pub struct SequenceRepository {
 
     // Each time something changes in the repo, this number will change. Use the
     // provided methods to manage a local copy of it and decide whether to act.
+    //
+    // We start at something other than usize::default() so that
+    // everyone else can use the default value and fire their update
+    // code on the first call to has_changed().
+    #[derivative(Default(value = "1000"))]
     mod_serial: usize,
-}
-impl Default for SequenceRepository {
-    fn default() -> Self {
-        Self {
-            uid_factory: Default::default(),
-            sequences: Default::default(),
-            track_to_sequence_uids: Default::default(),
-
-            // We start at something other than usize::default() so that
-            // everyone else can use the default value and fire their update
-            // code on the first call to has_changed().
-            mod_serial: 1000,
-        }
-    }
 }
 impl SequenceRepository {
     pub fn add(

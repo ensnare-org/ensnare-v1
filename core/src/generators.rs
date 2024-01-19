@@ -5,6 +5,7 @@ use crate::{
     time::Seconds,
     traits::{prelude::*, CanPrototype, GeneratesEnvelope},
 };
+use derivative::Derivative;
 use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
@@ -75,10 +76,13 @@ impl From<Waveform> for ControlValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 pub struct OscillatorEphemerals {
     /// working variables to generate semi-deterministic noise.
+    #[derivative(Default(value = "0x70f4f854"))]
     noise_x1: u32,
+    #[derivative(Default(value = "0xe1e9f0a7"))]
     noise_x2: u32,
 
     /// An internal copy of the current sample rate.
@@ -112,25 +116,8 @@ pub struct OscillatorEphemerals {
     // Set on init and reset().
     reset_handled: bool,
 }
-impl Default for OscillatorEphemerals {
-    fn default() -> Self {
-        Self {
-            noise_x1: 0x70f4f854,
-            noise_x2: 0xe1e9f0a7,
-            sample_rate: Default::default(),
-            ticks: Default::default(),
-            signal: Default::default(),
-            cycle_position: Default::default(),
-            delta: Default::default(),
-            delta_updated: Default::default(),
-            should_sync: Default::default(),
-            is_sync_pending: Default::default(),
-            reset_handled: Default::default(),
-        }
-    }
-}
 
-#[derive(Debug, Control, Serialize, Deserialize)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Oscillator {
     #[control]
@@ -160,19 +147,6 @@ pub struct Oscillator {
 
     #[serde(skip)]
     e: OscillatorEphemerals,
-}
-impl Default for Oscillator {
-    fn default() -> Self {
-        Self {
-            waveform: Default::default(),
-            frequency: FrequencyHz(440.0),
-            fixed_frequency: Default::default(),
-            frequency_tune: Default::default(),
-            frequency_modulation: Default::default(),
-            linear_frequency_modulation: Default::default(),
-            e: Default::default(),
-        }
-    }
 }
 impl Generates<BipolarNormal> for Oscillator {
     fn value(&self) -> BipolarNormal {
@@ -454,7 +428,7 @@ enum State {
     Shutdown,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct EnvelopeEphemerals {
     sample_rate: SampleRate,
     state: State,
@@ -484,29 +458,6 @@ pub struct EnvelopeEphemerals {
     concave_a: f64,
     concave_b: f64,
     concave_c: f64,
-}
-impl Default for EnvelopeEphemerals {
-    fn default() -> Self {
-        Self {
-            sample_rate: Default::default(),
-            state: Default::default(),
-            handled_first_tick: Default::default(),
-            ticks: Default::default(),
-            time: Default::default(),
-            uncorrected_amplitude: Default::default(),
-            corrected_amplitude: Default::default(),
-            delta: Default::default(),
-            amplitude_target: Default::default(),
-            time_target: Default::default(),
-            amplitude_was_set: Default::default(),
-            convex_a: Default::default(),
-            convex_b: Default::default(),
-            convex_c: Default::default(),
-            concave_a: Default::default(),
-            concave_b: Default::default(),
-            concave_c: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]

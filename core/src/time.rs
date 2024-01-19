@@ -5,6 +5,7 @@ use crate::{
     types::ParameterType,
 };
 use anyhow::{anyhow, Error};
+use derivative::Derivative;
 use derive_builder::Builder;
 use derive_more::Display;
 use ensnare_proc_macros::Control;
@@ -22,14 +23,10 @@ pub mod prelude {
 }
 
 /// Beats per minute.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Derivative, Serialize, Deserialize, PartialEq)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct Tempo(pub ParameterType);
-impl Default for Tempo {
-    fn default() -> Self {
-        Self(128.0)
-    }
-}
+pub struct Tempo(#[derivative(Default(value = "128.0"))] pub ParameterType);
 impl fmt::Display for Tempo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("{:0.2} BPM", self.0))
@@ -129,16 +126,19 @@ impl BeatValue {
 /// each beat takes a half-second (120 beats/minute, 60 seconds/minute -> 120/60
 /// beats/second = 60/120 seconds/beat), and a measure takes four beats (4
 /// beats/measure * 1/2 seconds/beat = 4/2 seconds/measure).
-#[derive(Clone, Control, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Control, Copy, Debug, Derivative, Eq, PartialEq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct TimeSignature {
     /// The number of beats in a measure.
     #[control]
+    #[derivative(Default(value = "4"))]
     pub top: usize,
 
     /// The value of a beat. Expressed as a reciprocal; for example, if it's 4,
     /// then the beat value is 1/4 or a quarter note.
     #[control]
+    #[derivative(Default(value = "4"))]
     pub bottom: usize,
 }
 impl Display for TimeSignature {
@@ -198,11 +198,6 @@ impl TimeSignature {
     /// The bottom value.
     pub fn bottom(&self) -> usize {
         self.bottom
-    }
-}
-impl Default for TimeSignature {
-    fn default() -> Self {
-        Self { top: 4, bottom: 4 }
     }
 }
 
@@ -457,14 +452,13 @@ impl Sub<Self> for MusicalTime {
 
 /// A [ViewRange] indicates a musical time range. It's used to determine what
 /// the UI should show when it's rendering something in a timeline.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct ViewRange(pub std::ops::Range<MusicalTime>);
-impl Default for ViewRange {
-    fn default() -> Self {
-        Self(MusicalTime::START..MusicalTime::new_with_beats(4))
-    }
-}
+pub struct ViewRange(
+    #[derivative(Default(value = "MusicalTime::START..MusicalTime::new_with_beats(4)"))]
+    pub  std::ops::Range<MusicalTime>,
+);
 
 /// A [TimeRange] describes a range of [MusicalTime]. Its principal usage is to
 /// determine which time slice to handle during [Controls::work()].
@@ -556,9 +550,10 @@ impl Div<usize> for Seconds {
 }
 
 /// Samples per second. Always a positive integer; cannot be zero.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Derivative, Display, PartialEq, Eq, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct SampleRate(pub usize);
+pub struct SampleRate(#[derivative(Default(value = "44100"))] pub usize);
 #[allow(missing_docs)]
 impl SampleRate {
     pub const DEFAULT_SAMPLE_RATE: usize = 44100;
@@ -570,11 +565,6 @@ impl SampleRate {
         } else {
             Self(Self::DEFAULT_SAMPLE_RATE)
         }
-    }
-}
-impl Default for SampleRate {
-    fn default() -> Self {
-        Self::new(Self::DEFAULT_SAMPLE_RATE)
     }
 }
 impl From<f64> for SampleRate {
