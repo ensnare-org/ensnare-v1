@@ -5,8 +5,8 @@
 use crate::{
     automation::Automator,
     egui::{project_widget, ProjectAction},
+    midi::MidiRouter,
     orchestration::Orchestrator,
-    parts::MidiRouter,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;

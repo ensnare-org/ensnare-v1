@@ -768,6 +768,10 @@ impl Controls for Transport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        control::{ControlIndex, ControlValue},
+        traits::Controllable,
+    };
 
     #[test]
     fn tempo() {
@@ -1124,5 +1128,28 @@ mod tests {
         let seconds = Seconds::from(2.0);
 
         assert_eq!(usize::from(sample_rate * seconds), 88200);
+    }
+
+    #[test]
+    fn transport_is_automatable() {
+        let mut t = TransportBuilder::default().build().unwrap();
+
+        assert_eq!(t.tempo(), Tempo::default());
+
+        assert_eq!(
+            t.control_index_count(),
+            1,
+            "Transport should have one automatable parameter"
+        );
+        const TEMPO_INDEX: ControlIndex = ControlIndex(0);
+        assert_eq!(
+            t.control_name_for_index(TEMPO_INDEX),
+            Some("tempo".to_string()),
+            "Transport's parameter name should be 'tempo'"
+        );
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MAX);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
+        t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
+        assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
     }
 }

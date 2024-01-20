@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{parts::EntityRepository, types::ControlLink};
+use crate::{repositories::EntityRepository, types::ControlLink};
 use anyhow::{anyhow, Result};
 use ensnare_core::{
     generators::{PathUid, SignalPath},

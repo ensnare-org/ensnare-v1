@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::parts::{BusStation, EntityRepository, Humidifier, Mixer, TrackRepository};
+use crate::repositories::{EntityRepository, TrackRepository};
 use anyhow::Result;
 use delegate::delegate;
 use ensnare_core::{
@@ -251,11 +251,155 @@ impl Serializable for Orchestrator {
     }
 }
 
+/// A [BusRoute] represents a signal connection between two tracks.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BusRoute {
+    /// The [TrackUid] of the receiving track.
+    pub aux_track_uid: TrackUid,
+    /// How much gain should be applied to this connection.
+    pub amount: Normal,
+}
+
+/// A [BusStation] manages how signals move between tracks and aux tracks. These
+/// collections of signals are sometimes called buses.
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BusStation {
+    routes: HashMap<TrackUid, Vec<BusRoute>>,
+}
+
+impl BusStation {
+    pub fn add_send(
+        &mut self,
+        track_uid: TrackUid,
+        dst_uid: TrackUid,
+        amount: Normal,
+    ) -> anyhow::Result<()> {
+        self.routes.entry(track_uid).or_default().push(BusRoute {
+            aux_track_uid: dst_uid,
+            amount,
+        });
+        Ok(())
+    }
+
+    pub fn remove_send(&mut self, track_uid: TrackUid, aux_track_uid: TrackUid) {
+        if let Some(routes) = self.routes.get_mut(&track_uid) {
+            routes.retain(|route| route.aux_track_uid != aux_track_uid);
+        }
+    }
+
+    pub fn sends(&self) -> impl Iterator<Item = (&TrackUid, &Vec<BusRoute>)> {
+        self.routes.iter()
+    }
+
+    // If we want this method to be immutable and cheap, then we can't guarantee
+    // that it will return a Vec. Such is life.
+    #[allow(dead_code)]
+    pub fn sends_for_track(&self, track_uid: &TrackUid) -> Option<&Vec<BusRoute>> {
+        self.routes.get(track_uid)
+    }
+
+    pub(crate) fn remove_sends_for_track(&mut self, track_uid: TrackUid) {
+        self.routes.remove(&track_uid);
+        self.routes
+            .values_mut()
+            .for_each(|routes| routes.retain(|route| route.aux_track_uid != track_uid));
+    }
+}
+
+/// Controls the wet/dry mix of arranged effects.
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Humidifier {
+    uid_to_humidity: HashMap<Uid, Normal>,
+}
+impl Humidifier {
+    pub fn get_humidity(&self, uid: &Uid) -> Normal {
+        self.uid_to_humidity.get(uid).cloned().unwrap_or_default()
+    }
+
+    pub fn set_humidity(&mut self, uid: Uid, humidity: Normal) {
+        self.uid_to_humidity.insert(uid, humidity);
+    }
+
+    pub fn transform_batch(
+        &mut self,
+        humidity: Normal,
+        effect: &mut Box<dyn EntityBounds>,
+        samples: &mut [StereoSample],
+    ) {
+        for sample in samples {
+            *sample = self.transform_audio(humidity, *sample, effect.transform_audio(*sample));
+        }
+    }
+
+    pub fn transform_audio(
+        &mut self,
+        humidity: Normal,
+        pre_effect: StereoSample,
+        post_effect: StereoSample,
+    ) -> StereoSample {
+        StereoSample(
+            self.transform_channel(humidity, 0, pre_effect.0, post_effect.0),
+            self.transform_channel(humidity, 1, pre_effect.1, post_effect.1),
+        )
+    }
+
+    fn transform_channel(
+        &mut self,
+        humidity: Normal,
+        _: usize,
+        pre_effect: Sample,
+        post_effect: Sample,
+    ) -> Sample {
+        let humidity: f64 = humidity.into();
+        let aridity = 1.0 - humidity;
+        post_effect * humidity + pre_effect * aridity
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Mixer {
+    track_output: HashMap<TrackUid, Normal>,
+    track_mute: HashMap<TrackUid, bool>,
+    pub solo_track: Option<TrackUid>,
+}
+impl Mixer {
+    pub fn track_output(&mut self, track_uid: TrackUid) -> Normal {
+        self.track_output
+            .get(&track_uid)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal) {
+        self.track_output.insert(track_uid, output);
+    }
+
+    pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
+        self.track_mute.insert(track_uid, muted);
+    }
+
+    pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool {
+        self.track_mute.get(&track_uid).copied().unwrap_or_default()
+    }
+
+    pub fn solo_track(&self) -> Option<TrackUid> {
+        self.solo_track
+    }
+
+    pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>) {
+        self.solo_track = track_uid
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use ensnare_entities::instruments::TestInstrument;
-
     use super::*;
+    use ensnare_cores::TestEffectNegatesInput;
+    use ensnare_entities::instruments::TestInstrument;
 
     #[test]
     fn orchestrator_mainline() {
@@ -294,5 +438,150 @@ mod tests {
             orchestrator.get_entity_mut(&target_uid).is_some(),
             "getting an entity should return it"
         );
+    }
+
+    #[test]
+    fn bus_station_mainline() {
+        let mut station = BusStation::default();
+        assert!(station.routes.is_empty());
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.8))
+            .is_ok());
+        assert_eq!(station.routes.len(), 1);
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.7))
+            .is_ok());
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Adding a new send route with a new amount should replace the prior one"
+        );
+
+        station.remove_send(TrackUid(7), TrackUid(13));
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Removing route should still leave a (possibly empty) Vec"
+        );
+        assert!(
+            station.sends_for_track(&TrackUid(7)).unwrap().is_empty(),
+            "Removing route should work"
+        );
+
+        // Removing nonexistent route is a no-op
+        station.remove_send(TrackUid(7), TrackUid(13));
+
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(13), Normal::from(0.8))
+            .is_ok());
+        assert!(station
+            .add_send(TrackUid(7), TrackUid(14), Normal::from(0.8))
+            .is_ok());
+        assert_eq!(
+            station.routes.len(),
+            1,
+            "Adding two sends to a track should not create an extra Vec"
+        );
+        assert_eq!(
+            station.sends_for_track(&TrackUid(7)).unwrap().len(),
+            2,
+            "Adding two sends to a track should work"
+        );
+
+        // Empty can be either None or Vec::default(). Don't care.
+        station.remove_sends_for_track(TrackUid(7));
+        if let Some(sends) = station.sends_for_track(&TrackUid(7)) {
+            assert!(sends.is_empty(), "Removing all a track's sends should work");
+        }
+    }
+
+    #[test]
+    fn humidifier_lookups_work() {
+        let mut wd = Humidifier::default();
+        assert_eq!(
+            wd.get_humidity(&Uid(1)),
+            Normal::maximum(),
+            "a missing Uid should return default humidity 1.0"
+        );
+
+        let uid = Uid(1);
+        wd.set_humidity(uid, Normal::from(0.5));
+        assert_eq!(
+            wd.get_humidity(&Uid(1)),
+            Normal::from(0.5),
+            "a non-missing Uid should return the humidity that we set"
+        );
+    }
+
+    #[test]
+    fn humidifier_mainline() {
+        let mut humidifier = Humidifier::default();
+
+        let mut effect = TestEffectNegatesInput::default();
+        assert_eq!(
+            effect.transform_channel(0, Sample::MAX),
+            Sample::MIN,
+            "we expected ToyEffect to negate the input"
+        );
+
+        let pre_effect = Sample::MAX;
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::maximum(),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            Sample::MIN,
+            "Wetness 1.0 means full effect, zero pre-effect"
+        );
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::from_percentage(50.0),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            Sample::from(0.0),
+            "Wetness 0.5 means even parts effect and pre-effect"
+        );
+        assert_eq!(
+            humidifier.transform_channel(
+                Normal::zero(),
+                0,
+                pre_effect,
+                effect.transform_channel(0, pre_effect),
+            ),
+            pre_effect,
+            "Wetness 0.0 means no change from pre-effect to post"
+        );
+    }
+
+    #[test]
+    fn mixer_mainline() {
+        let mut mixer = Mixer::default();
+        assert!(mixer.track_output.is_empty());
+        assert!(mixer.track_mute.is_empty());
+
+        let track_1 = TrackUid(1);
+        let track_2 = TrackUid(2);
+
+        assert!(!mixer.is_track_muted(track_1));
+        assert!(!mixer.is_track_muted(track_2));
+        assert!(mixer.solo_track().is_none());
+
+        mixer.set_solo_track(Some(track_1));
+        assert_eq!(mixer.solo_track().unwrap(), track_1);
+        mixer.set_solo_track(None);
+        assert_eq!(mixer.solo_track(), None);
+
+        assert_eq!(mixer.track_output(track_1), Normal::maximum());
+        assert_eq!(mixer.track_output(track_2), Normal::maximum());
+
+        mixer.set_track_output(track_2, Normal::from(0.5));
+        assert_eq!(mixer.track_output(track_1), Normal::maximum());
+        assert_eq!(mixer.track_output(track_2), Normal::from(0.5));
     }
 }
