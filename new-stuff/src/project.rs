@@ -3,8 +3,10 @@
 //! Representation of a whole music project, including support for serialization.
 
 use crate::{
+    automation::Automator,
     egui::{project_widget, ProjectAction},
-    parts::{Automator, MidiRouter, Orchestrator},
+    orchestration::Orchestrator,
+    parts::MidiRouter,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
