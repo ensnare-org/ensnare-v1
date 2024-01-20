@@ -111,6 +111,8 @@ pub enum TrackWidgetAction {
     SelectEntity(Uid, String),
     /// The user wants to remove the specified entity from the signal chain.
     RemoveEntity(Uid),
+    /// This track's title bar was clicked.
+    Clicked,
 }
 
 /// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
@@ -174,7 +176,7 @@ impl<'a> Widget for TrackWidget<'a> {
             .stroke(eframe::epaint::Stroke {
                 width: 1.0,
                 color: {
-                    if false {
+                    if self.view_state.track_selection_set.contains(&track_uid) {
                         Color32::YELLOW
                     } else {
                         Color32::DARK_GRAY
@@ -194,6 +196,9 @@ impl<'a> Widget for TrackWidget<'a> {
                         .as_ref()
                         .map(|fg| Arc::clone(&fg));
                     let response = ui.add(title_bar(font_galley));
+                    if response.clicked() {
+                        *self.action = Some(TrackWidgetAction::Clicked);
+                    }
 
                     // Take up all the space we're given, even if we can't fill
                     // it with widget content.

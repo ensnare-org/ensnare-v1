@@ -427,16 +427,6 @@ impl Ensnare {
 
     fn handle_action(&mut self, action: ProjectAction) {
         match action {
-            ProjectAction::ClickTrack(_track_uid) => {
-                // TODO: this was in orchestrator_panel, and I'm not too fond of
-                // its design.
-                //
-                // self.track_selection_set.lock().unwrap().click(&track_uid,
-                //     self.is_control_only_down);
-            }
-            ProjectAction::DoubleClickTrack(_track_uid) => {
-                // This used to expand/collapse, but that's gone.
-            }
             ProjectAction::NewDeviceForTrack(track_uid, key) => {
                 self.send_to_project(ProjectServiceInput::TrackAddEntity(
                     track_uid,

@@ -15,11 +15,7 @@ use strum_macros::Display;
 /// Actions that widgets might need the parent to perform.
 #[derive(Clone, Debug, Display)]
 pub enum ProjectAction {
-    /// A [Track] was clicked in the UI.
-    ClickTrack(TrackUid),
-    /// A [Track] was double-clicked in the UI.
-    DoubleClickTrack(TrackUid),
-    /// A [Track] wants a new device of type [Key].
+    /// A track wants a new device of type [Key].
     NewDeviceForTrack(TrackUid, EntityKey),
     /// The user selected an entity with the given uid and name. The UI should
     /// show that entity's detail view.
@@ -116,6 +112,13 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                             }
                             TrackWidgetAction::RemoveEntity(uid) => {
                                 *self.action = Some(ProjectAction::RemoveEntity(uid));
+                            }
+                            TrackWidgetAction::Clicked => {
+                                let implement_this_bool_please = false;
+                                self.project
+                                    .view_state
+                                    .track_selection_set
+                                    .click(&track_uid, implement_this_bool_please);
                             }
                         }
                     }
