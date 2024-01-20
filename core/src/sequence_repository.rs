@@ -1,200 +1,205 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use derivative::Derivative;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Deref, sync::atomic::AtomicUsize};
+#[cfg(obsolete)]
+mod obsolete {
+    use crate::prelude::*;
+    use derivative::Derivative;
+    use serde::{Deserialize, Serialize};
+    use std::{collections::HashMap, fmt::Display, ops::Deref, sync::atomic::AtomicUsize};
 
-/// Identifies a [Sequence].
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct SequenceUid(pub usize);
-impl IsUid for SequenceUid {
-    fn as_usize(&self) -> usize {
-        self.0
-    }
-}
-impl From<usize> for SequenceUid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
-impl Display for SequenceUid {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.0))
-    }
-}
-pub type SequenceUidFactory = UidFactory<SequenceUid>;
-impl UidFactory<SequenceUid> {
-    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
-}
-impl Default for UidFactory<SequenceUid> {
-    fn default() -> Self {
-        Self {
-            next_uid_value: Self::FIRST_UID,
-            _phantom: Default::default(),
+    /// Identifies a [Sequence].
+    #[derive(
+        Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+    )]
+    #[serde(rename_all = "kebab-case")]
+    pub struct SequenceUid(pub usize);
+    impl IsUid for SequenceUid {
+        fn as_usize(&self) -> usize {
+            self.0
         }
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Sequence {
-    Pattern(PatternUid),
-    Note(Vec<Note>),
-}
-
-/// [SequenceRepository] stores data that sequencers turn into MIDI events.
-#[derive(Debug, Derivative, PartialEq, Serialize, Deserialize)]
-#[derivative(Default)]
-#[serde(rename_all = "kebab-case")]
-pub struct SequenceRepository {
-    uid_factory: SequenceUidFactory,
-    pub sequences: HashMap<SequenceUid, (TrackUid, MusicalTime, Box<Sequence>)>,
-    pub track_to_sequence_uids: HashMap<TrackUid, Vec<SequenceUid>>,
-
-    // Each time something changes in the repo, this number will change. Use the
-    // provided methods to manage a local copy of it and decide whether to act.
-    //
-    // We start at something other than usize::default() so that
-    // everyone else can use the default value and fire their update
-    // code on the first call to has_changed().
-    #[derivative(Default(value = "1000"))]
-    mod_serial: usize,
-}
-impl SequenceRepository {
-    pub fn add(
-        &mut self,
-        sequence: Sequence,
-        start_time: MusicalTime,
-        track_uid: TrackUid,
-    ) -> anyhow::Result<SequenceUid> {
-        let uid = self.uid_factory.mint_next();
-        self.add_with_uid(uid, sequence, start_time, track_uid)
+    impl From<usize> for SequenceUid {
+        fn from(value: usize) -> Self {
+            Self(value)
+        }
     }
-
-    pub fn add_with_uid(
-        &mut self,
-        uid: SequenceUid,
-        sequence: Sequence,
-        start_time: MusicalTime,
-        track_uid: TrackUid,
-    ) -> anyhow::Result<SequenceUid> {
-        self.sequences
-            .insert(uid.clone(), (track_uid, start_time, Box::new(sequence)));
-        self.track_to_sequence_uids
-            .entry(track_uid)
-            .or_default()
-            .push(uid.clone());
-        self.notify_change();
-        self.uid_factory.notify_externally_minted_uid(uid.clone());
-        Ok(uid)
+    impl Display for SequenceUid {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_fmt(format_args!("{}", self.0))
+        }
     }
-
-    pub fn remove(&mut self, sequence_uid: SequenceUid) {
-        if let Some((track_uid, _, _)) = self.sequences.get(&sequence_uid) {
-            if let Some(sequence_uids) = self.track_to_sequence_uids.get_mut(&track_uid) {
-                sequence_uids.retain(|uid| sequence_uid != *uid);
+    pub type SequenceUidFactory = UidFactory<SequenceUid>;
+    impl UidFactory<SequenceUid> {
+        pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
+    }
+    impl Default for UidFactory<SequenceUid> {
+        fn default() -> Self {
+            Self {
+                next_uid_value: Self::FIRST_UID,
+                _phantom: Default::default(),
             }
-            self.notify_change();
-            self.sequences.remove(&sequence_uid);
         }
     }
 
-    pub fn notify_change(&mut self) {
-        self.mod_serial += 1;
+    #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub enum Sequence {
+        Pattern(PatternUid),
+        Note(Vec<Note>),
     }
 
-    /// Use like this:
-    ///
-    /// ```no_run
-    /// use ensnare_core::sequence_repository::SequenceRepository;
-    ///
-    /// let repo = SequenceRepository::default();
-    /// let mut repo_serial = 0;
-    ///
-    /// if repo.has_changed(&mut repo_serial) {
-    ///     // Update local data
-    /// } else {
-    ///     // We're up to date, nothing to do    
-    /// }
-    /// ```
-    pub fn has_changed(&self, last_known: &mut usize) -> bool {
-        let has_changed = self.mod_serial != *last_known;
-        *last_known = self.mod_serial;
-        has_changed
+    /// [SequenceRepository] stores data that sequencers turn into MIDI events.
+    #[derive(Debug, Derivative, PartialEq, Serialize, Deserialize)]
+    #[derivative(Default)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct SequenceRepository {
+        uid_factory: SequenceUidFactory,
+        pub sequences: HashMap<SequenceUid, (TrackUid, MusicalTime, Box<Sequence>)>,
+        pub track_to_sequence_uids: HashMap<TrackUid, Vec<SequenceUid>>,
+
+        // Each time something changes in the repo, this number will change. Use the
+        // provided methods to manage a local copy of it and decide whether to act.
+        //
+        // We start at something other than usize::default() so that
+        // everyone else can use the default value and fire their update
+        // code on the first call to has_changed().
+        #[derivative(Default(value = "1000"))]
+        mod_serial: usize,
     }
-}
+    impl SequenceRepository {
+        pub fn add(
+            &mut self,
+            sequence: Sequence,
+            start_time: MusicalTime,
+            track_uid: TrackUid,
+        ) -> anyhow::Result<SequenceUid> {
+            let uid = self.uid_factory.mint_next();
+            self.add_with_uid(uid, sequence, start_time, track_uid)
+        }
 
-/// A serializable representation of a track's arrangements.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "kebab-case")]
-#[allow(missing_docs)]
-pub struct ArrangementInfo {
-    pub track_uid: TrackUid,
-    pub arranged_sequences: Vec<ArrangedSequenceInfo>,
-}
+        pub fn add_with_uid(
+            &mut self,
+            uid: SequenceUid,
+            sequence: Sequence,
+            start_time: MusicalTime,
+            track_uid: TrackUid,
+        ) -> anyhow::Result<SequenceUid> {
+            self.sequences
+                .insert(uid.clone(), (track_uid, start_time, Box::new(sequence)));
+            self.track_to_sequence_uids
+                .entry(track_uid)
+                .or_default()
+                .push(uid.clone());
+            self.notify_change();
+            self.uid_factory.notify_externally_minted_uid(uid.clone());
+            Ok(uid)
+        }
 
-/// A serializable representation of an arrangement.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "kebab-case")]
-#[allow(missing_docs)]
-pub struct ArrangedSequenceInfo {
-    pub sequence_uid: SequenceUid,
-    pub channel: MidiChannel,
-    pub position: MusicalTime,
-    pub pattern_uid: PatternUid,
-}
+        pub fn remove(&mut self, sequence_uid: SequenceUid) {
+            if let Some((track_uid, _, _)) = self.sequences.get(&sequence_uid) {
+                if let Some(sequence_uids) = self.track_to_sequence_uids.get_mut(&track_uid) {
+                    sequence_uids.retain(|uid| sequence_uid != *uid);
+                }
+                self.notify_change();
+                self.sequences.remove(&sequence_uid);
+            }
+        }
 
-impl From<&Vec<ArrangementInfo>> for SequenceRepository {
-    fn from(value: &Vec<ArrangementInfo>) -> Self {
-        let mut r = Self::default();
-        value.iter().for_each(|arrangement| {
-            arrangement.arranged_sequences.iter().for_each(|sequence| {
-                if let Ok(_) = r.add_with_uid(
-                    sequence.sequence_uid.clone(),
-                    Sequence::Pattern(sequence.pattern_uid),
-                    sequence.position,
-                    arrangement.track_uid,
-                ) {
-                    // is it done at this point? Concern that ThinSequencer
-                    // doesn't know the sequence IDs, so how can it allow
-                    // the user to edit one?
+        pub fn notify_change(&mut self) {
+            self.mod_serial += 1;
+        }
+
+        /// Use like this:
+        ///
+        /// ```no_run
+        /// use ensnare_core::sequence_repository::SequenceRepository;
+        ///
+        /// let repo = SequenceRepository::default();
+        /// let mut repo_serial = 0;
+        ///
+        /// if repo.has_changed(&mut repo_serial) {
+        ///     // Update local data
+        /// } else {
+        ///     // We're up to date, nothing to do    
+        /// }
+        /// ```
+        pub fn has_changed(&self, last_known: &mut usize) -> bool {
+            let has_changed = self.mod_serial != *last_known;
+            *last_known = self.mod_serial;
+            has_changed
+        }
+    }
+
+    /// A serializable representation of a track's arrangements.
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(missing_docs)]
+    pub struct ArrangementInfo {
+        pub track_uid: TrackUid,
+        pub arranged_sequences: Vec<ArrangedSequenceInfo>,
+    }
+
+    /// A serializable representation of an arrangement.
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(missing_docs)]
+    pub struct ArrangedSequenceInfo {
+        pub sequence_uid: SequenceUid,
+        pub channel: MidiChannel,
+        pub position: MusicalTime,
+        pub pattern_uid: PatternUid,
+    }
+
+    impl From<&Vec<ArrangementInfo>> for SequenceRepository {
+        fn from(value: &Vec<ArrangementInfo>) -> Self {
+            let mut r = Self::default();
+            value.iter().for_each(|arrangement| {
+                arrangement.arranged_sequences.iter().for_each(|sequence| {
+                    if let Ok(_) = r.add_with_uid(
+                        sequence.sequence_uid.clone(),
+                        Sequence::Pattern(sequence.pattern_uid),
+                        sequence.position,
+                        arrangement.track_uid,
+                    ) {
+                        // is it done at this point? Concern that ThinSequencer
+                        // doesn't know the sequence IDs, so how can it allow
+                        // the user to edit one?
+                    }
+                });
+            });
+            r
+        }
+    }
+    impl From<&SequenceRepository> for Vec<ArrangementInfo> {
+        fn from(value: &SequenceRepository) -> Self {
+            let mut v_tracks = Vec::default();
+            value.track_to_sequence_uids.keys().for_each(|track_uid| {
+                if let Some(sequences) = value.track_to_sequence_uids.get(track_uid) {
+                    let mut v_sequences = Vec::default();
+                    sequences.iter().for_each(|sequence_uid| {
+                        if let Some((_, position, sequence)) = value.sequences.get(sequence_uid) {
+                            if let Sequence::Pattern(pattern_uid) = sequence.deref() {
+                                v_sequences.push(ArrangedSequenceInfo {
+                                    sequence_uid: sequence_uid.clone(),
+                                    channel: MidiChannel::default(),
+                                    position: *position,
+                                    pattern_uid: *pattern_uid,
+                                });
+                            }
+                        };
+                    });
+                    v_tracks.push(ArrangementInfo {
+                        track_uid: *track_uid,
+                        arranged_sequences: v_sequences,
+                    });
                 }
             });
-        });
-        r
-    }
-}
-impl From<&SequenceRepository> for Vec<ArrangementInfo> {
-    fn from(value: &SequenceRepository) -> Self {
-        let mut v_tracks = Vec::default();
-        value.track_to_sequence_uids.keys().for_each(|track_uid| {
-            if let Some(sequences) = value.track_to_sequence_uids.get(track_uid) {
-                let mut v_sequences = Vec::default();
-                sequences.iter().for_each(|sequence_uid| {
-                    if let Some((_, position, sequence)) = value.sequences.get(sequence_uid) {
-                        if let Sequence::Pattern(pattern_uid) = sequence.deref() {
-                            v_sequences.push(ArrangedSequenceInfo {
-                                sequence_uid: sequence_uid.clone(),
-                                channel: MidiChannel::default(),
-                                position: *position,
-                                pattern_uid: *pattern_uid,
-                            });
-                        }
-                    };
-                });
-                v_tracks.push(ArrangementInfo {
-                    track_uid: *track_uid,
-                    arranged_sequences: v_sequences,
-                });
-            }
-        });
-        v_tracks
+            v_tracks
+        }
     }
 }
 
-#[cfg(test)]
+#[cfg(test_obsolete)]
 mod tests {
     use super::*;
     use crate::time::TimeRange;

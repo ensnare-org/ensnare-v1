@@ -6,7 +6,7 @@ use crate::{
     automation::Automator,
     egui::{project_widget, ProjectAction},
     midi::MidiRouter,
-    orchestration::Orchestrator,
+    orchestration::Orchestrator, composition::Composer,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
@@ -20,7 +20,7 @@ use ensnare_core::{
     traits::ControlsAsProxy,
     types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
-use ensnare_cores_egui::composer;
+use crate::egui::composer_widget;
 use ensnare_entity::traits::EntityBounds;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
@@ -396,7 +396,7 @@ impl Project {
                 eframe::epaint::vec2(5.0, 5.0),
             )
             .show(ui.ctx(), |ui| {
-                let response = ui.add(composer(&mut self.composer));
+                let response = ui.add(composer_widget(&mut self.composer));
                 response
             });
     }

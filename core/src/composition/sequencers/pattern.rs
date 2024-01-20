@@ -32,6 +32,7 @@ impl PatternSequencerBuilder {
 #[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
+    #[serde(skip)]
     #[builder(setter(skip))]
     pub inner: MidiSequencer,
 

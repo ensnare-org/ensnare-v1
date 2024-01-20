@@ -8,12 +8,11 @@ use crate::{
         WorkEvent,
     },
 };
-use serde::{Deserialize, Serialize};
+use derive_builder::Builder;
 
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Default, Builder, PartialEq)]
+//#[serde(rename_all = "kebab-case")]
 pub struct MidiSequencer {
-    #[serde(skip)]
     events: Vec<(MidiChannel, MidiEvent)>,
     pub time_range: TimeRange,
     is_recording: bool,

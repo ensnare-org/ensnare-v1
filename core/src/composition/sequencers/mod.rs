@@ -4,14 +4,12 @@ pub mod midi;
 pub mod note;
 pub mod pattern;
 
-pub use midi::MidiSequencer;
+pub use midi::{MidiSequencer, MidiSequencerBuilder};
 pub use note::{NoteSequencer, NoteSequencerBuilder};
 pub use pattern::{PatternSequencer, PatternSequencerBuilder};
 
 #[cfg(test)]
 pub mod tests {
-    use std::sync::{Arc, RwLock};
-
     use super::*;
     use crate::prelude::*;
 
@@ -144,103 +142,6 @@ pub mod tests {
 
             assert!(s
                 .remove(SAMPLE_MIDI_CHANNEL, &pattern, MusicalTime::START)
-                .is_ok());
-            assert!(
-                replay_all_units(s).is_empty(),
-                "Sequencer should be empty after removing pattern"
-            );
-        }
-    }
-
-    /// Validates the provided implementation of [Sequences] for a [Pattern].
-    pub(crate) fn validate_sequences_live_patterns_trait(
-        composer: Arc<RwLock<Composer>>,
-        s: &mut dyn Sequences<MU = PatternUid>,
-    ) {
-        const SAMPLE_MIDI_CHANNEL: MidiChannel = MidiChannel(7);
-
-        let empty_pattern_uid = composer
-            .write()
-            .unwrap()
-            .add_pattern(PatternBuilder::default().build().unwrap(), None)
-            .unwrap();
-        let ordinary_pattern_uid = composer
-            .write()
-            .unwrap()
-            .add_pattern(
-                PatternBuilder::default()
-                    .note(Note::new_with_midi_note(
-                        MidiNote::C0,
-                        MusicalTime::new_with_beats(0),
-                        MusicalTime::DURATION_WHOLE,
-                    ))
-                    .note(Note::new_with_midi_note(
-                        MidiNote::C0,
-                        MusicalTime::new_with_beats(1),
-                        MusicalTime::DURATION_WHOLE,
-                    ))
-                    .note(Note::new_with_midi_note(
-                        MidiNote::C0,
-                        MusicalTime::new_with_beats(2),
-                        MusicalTime::DURATION_WHOLE,
-                    ))
-                    .note(Note::new_with_midi_note(
-                        MidiNote::C0,
-                        MusicalTime::new_with_beats(3),
-                        MusicalTime::DURATION_WHOLE,
-                    ))
-                    .build()
-                    .unwrap(),
-                None,
-            )
-            .unwrap();
-
-        s.clear();
-
-        {
-            assert!(replay_all_units(s).is_empty());
-            assert!(s
-                .record(SAMPLE_MIDI_CHANNEL, &empty_pattern_uid, MusicalTime::START)
-                .is_ok());
-            let message_count = replay_all_units(s).len();
-            assert_eq!(
-                message_count, 0,
-                "After recording an empty pattern, no new messages should be recorded."
-            );
-        }
-        {
-            assert!(s
-                .record(
-                    SAMPLE_MIDI_CHANNEL,
-                    &ordinary_pattern_uid,
-                    MusicalTime::START
-                )
-                .is_ok());
-            let message_count = replay_all_units(s).len();
-            assert_eq!(
-                message_count, 8,
-                "After recording an pattern with four notes, eight new messages should be recorded."
-            );
-
-            assert!(s
-                .remove(
-                    SAMPLE_MIDI_CHANNEL,
-                    &ordinary_pattern_uid,
-                    MusicalTime::START + MusicalTime::new_with_units(1)
-                )
-                .is_ok());
-            assert_eq!(
-                replay_all_units(s).len(),
-                message_count,
-                "Number of messages should remain unchanged after removing nonexistent item"
-            );
-
-            assert!(s
-                .remove(
-                    SAMPLE_MIDI_CHANNEL,
-                    &ordinary_pattern_uid,
-                    MusicalTime::START
-                )
                 .is_ok());
             assert!(
                 replay_all_units(s).is_empty(),

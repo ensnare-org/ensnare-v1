@@ -1,11 +1,13 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::widgets::pattern::{self, grid, pattern_widget};
 use eframe::{egui::Widget, epaint::vec2};
-use ensnare_core::composition::{Composer, PatternBuilder};
+use ensnare_core::composition::PatternBuilder;
+use ensnare_cores_egui::widgets::pattern;
+
+use crate::composition::Composer;
 
 /// Wraps a [ComposerWidget] as a [Widget](eframe::egui::Widget).
-pub fn composer<'a>(inner: &'a mut Composer) -> impl eframe::egui::Widget + '_ {
+pub fn composer_widget<'a>(inner: &'a mut Composer) -> impl eframe::egui::Widget + '_ {
     move |ui: &mut eframe::egui::Ui| ComposerWidget::new(inner).ui(ui)
 }
 
@@ -53,10 +55,12 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                         let desired_size = vec2(ui.available_width(), 96.0);
                         let (_id, rect) = ui.allocate_space(desired_size);
                         ui.add_enabled_ui(false, |ui| {
-                            ui.allocate_ui_at_rect(rect, |ui| ui.add(grid(pattern.duration)))
-                                .inner
+                            ui.allocate_ui_at_rect(rect, |ui| {
+                                ui.add(pattern::grid(pattern.duration))
+                            })
+                            .inner
                         });
-                        ui.allocate_ui_at_rect(rect, |ui| ui.add(pattern_widget(pattern)))
+                        ui.allocate_ui_at_rect(rect, |ui| ui.add(pattern::pattern_widget(pattern)))
                             .inner
                     };
                     response |= pattern_edit_response;

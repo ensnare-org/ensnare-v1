@@ -595,3 +595,19 @@ The approach for #2 depends on the exact problem definition.
 2. Entities know only about the core traits, and somewhere in between the entity
    and the app, a new trait is defined and perhaps implemented. This means
    entities depend only on the basics.
+
+# 2024-01-20: crate organization
+
+- **core**: structures that everyone needs, and building blocks like envelope
+generators and modulators. NO EGUI. NO ENTITY CONCEPTS except EntityUid (why?).
+- **entity**: structures that define and operate on entities. Project, parts,
+  etc., go here. NO EGUI (but if you want EntityBounds without egui, then you
+  have to make all these things generic!).
+- **egui**: reusable egui widgets.
+- **core-egui**: widgets that display building blocks.
+- **entity-egui**: widgets that draw entity infrastructure.
+- **instruments**: "batteries included" instruments. FM synth, reverb, etc. NO EGUI.
+- **instruments-egui**: widgets that display instruments, as well as Entity wrappers for them.
+- **toys**: a collection of simple instruments as Entities, to show how to make a separate crate.
+- **services**: interfaces to external things.
+- **proc-macros**: proc-macros.

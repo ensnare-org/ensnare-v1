@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 pub mod automation;
+pub mod composition;
 pub mod egui;
 pub mod midi;
 pub mod orchestration;

@@ -21,7 +21,7 @@ pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
     ensnare_core::midi::MidiNote::MIN as u8..=ensnare_core::midi::MidiNote::MAX as u8;
 
 /// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
-fn icon(
+pub fn icon(
     duration: MusicalTime,
     notes: &[Note],
     colors: (Color32, Color32),
@@ -48,7 +48,7 @@ pub fn grid(duration: MusicalTime) -> impl eframe::egui::Widget {
 }
 
 /// Wraps a [Carousel] as a [Widget](eframe::egui::Widget).
-pub(crate) fn carousel<'a>(
+pub fn carousel<'a>(
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,

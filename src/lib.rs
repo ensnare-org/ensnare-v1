@@ -18,10 +18,8 @@ pub mod arrangement {
 pub mod composition {
     //! Creation of musical elements.
 
-    pub use ensnare_core::{
-        composition::{Composer, Note, Pattern, PatternBuilder, PatternUid},
-        sequence_repository::{Sequence, SequenceUid},
-    };
+    pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
+    pub use ensnare_new_stuff::composition::Composer;
 
     /// The most commonly used imports.
     pub mod prelude {

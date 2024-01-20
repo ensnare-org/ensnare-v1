@@ -1,13 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{
-    composition::sequencers::PatternSequencer,
+use anyhow::{anyhow, Result};
+use ensnare_core::{
     prelude::*,
     selection_set::SelectionSet,
-    traits::Sequences,
     types::{ColorScheme, ModSerial},
 };
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

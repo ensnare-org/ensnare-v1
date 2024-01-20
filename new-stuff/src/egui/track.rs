@@ -2,6 +2,7 @@
 
 use super::cursor::cursor;
 use super::signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction};
+use crate::composition::Composer;
 use crate::egui::grid::grid;
 use crate::project::ProjectViewState;
 use eframe::{

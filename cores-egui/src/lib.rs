@@ -4,17 +4,15 @@
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::{composition::composer, controllers::trip, transport::transport};
+    pub use super::{controllers::trip, transport::transport};
 }
 
 pub use {
     common::ColorSchemeConverter,
-    composition::composer,
     controllers::{arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget},
 };
 
 pub(crate) mod common;
-mod composition;
 mod controllers;
 pub mod effects;
 pub mod instruments;

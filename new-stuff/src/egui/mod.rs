@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+pub use composer::composer_widget;
 pub use cursor::cursor;
 pub use entities::entity_palette;
 pub use grid::grid;
@@ -16,3 +17,4 @@ mod project;
 mod signal_chain;
 mod timeline;
 mod track;
+mod composer;
