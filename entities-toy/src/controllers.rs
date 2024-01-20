@@ -2,7 +2,7 @@
 
 use eframe::egui::Slider;
 use ensnare_core::prelude::*;
-use ensnare_entity::traits::Displays;
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
     IsEntity, Metadata,

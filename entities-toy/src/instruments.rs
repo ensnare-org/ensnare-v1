@@ -7,7 +7,7 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::modulators::dca;
 use ensnare_egui_widgets::{envelope, oscillator};
-use ensnare_entity::traits::Displays;
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsEntity, Metadata,

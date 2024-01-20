@@ -1,10 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::cursor::cursor;
-use super::signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction};
-use crate::composition::Composer;
-use crate::egui::grid::grid;
-use crate::project::ProjectViewState;
+use super::{
+    cursor::cursor,
+    signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
+};
+use crate::{composition::Composer, egui::grid::grid, project::ProjectViewState};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -19,6 +19,7 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::ColorSchemeConverter;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_entity::prelude::*;
 use std::ops::Range;
 use std::{f32::consts::PI, sync::Arc};
 use strum_macros::Display;

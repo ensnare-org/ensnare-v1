@@ -3,6 +3,7 @@
 use crate::repositories::EntityRepository;
 use anyhow::{anyhow, Result};
 use ensnare_core::prelude::*;
+use ensnare_entity::Uid;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
 

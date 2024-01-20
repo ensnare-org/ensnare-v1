@@ -11,7 +11,7 @@ use crate::{
     midi::{u7, MidiChannel, MidiEvent, MidiMessage},
     time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
     types::{Normal, Sample, StereoSample},
-    uid::{TrackUid, Uid},
+    uid::TrackUid,
 };
 
 /// Quick import of all important traits.
@@ -224,14 +224,6 @@ pub trait Controls: Send {
     fn is_performing(&self) -> bool {
         false
     }
-}
-
-pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, WorkEvent) + 'a;
-
-/// A version of [Controls] for collections of entities.
-#[allow(unused_variables)]
-pub trait ControlsAsProxy: Controls {
-    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {}
 }
 
 /// A [TransformsAudio] takes input audio, which is typically produced by

@@ -1,12 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::traits::EntityBounds;
+use crate::{
+    traits::{ControlProxyEventsFn, ControlsAsProxy, EntityBounds},
+    uid::Uid,
+};
 use anyhow::anyhow;
 use derive_more::Display;
-use ensnare_core::{
-    prelude::*,
-    traits::{ControlProxyEventsFn, ControlsAsProxy},
-};
+use ensnare_core::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, HashMap, HashSet},
@@ -365,7 +365,7 @@ impl<E: EntityBounds + ?Sized> PartialEq for EntityStore<E> {
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
-    use crate::traits::EntityBounds;
+    use crate::{traits::EntityBounds, uid::Uid};
     use ensnare_core::prelude::*;
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use serde::{Deserialize, Serialize};

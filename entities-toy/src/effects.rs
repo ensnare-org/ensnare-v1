@@ -2,7 +2,7 @@
 
 use ensnare_core::prelude::*;
 use ensnare_egui_widgets::drag_normal;
-use ensnare_entity::traits::Displays;
+use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };

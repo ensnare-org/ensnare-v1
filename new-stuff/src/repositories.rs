@@ -2,10 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use delegate::delegate;
-use ensnare_core::{
-    prelude::*,
-    traits::{ControlProxyEventsFn, ControlsAsProxy},
-};
+use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
@@ -62,7 +59,7 @@ impl Serializable for TrackRepository {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityRepository {
-    pub(crate) uid_factory: UidFactory<Uid>,
+    pub(crate) uid_factory: EntityUidFactory,
     pub(crate) entities: HashMap<Uid, Box<dyn EntityBounds>>,
     pub(crate) uids_for_track: HashMap<TrackUid, Vec<Uid>>,
     pub(crate) track_for_uid: HashMap<Uid, TrackUid>,
@@ -79,7 +76,7 @@ pub struct EntityRepository {
 }
 impl EntityRepository {
     delegate! {
-        to self.uid_factory {
+        to self.uid_factory.0 {
             #[call(mint_next)]
             pub fn mint_entity_uid(&self) -> Uid;
         }
@@ -105,7 +102,7 @@ impl EntityRepository {
         } else if entity.uid() != Uid::default() {
             entity.uid()
         } else {
-            self.uid_factory.mint_next()
+            self.mint_entity_uid()
         };
         entity.set_uid(uid);
         self.entities.insert(uid, entity);

@@ -100,7 +100,7 @@ impl<T: IsUid> SelectionSet<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::uid::Uid;
+    use crate::uid::TrackUid;
 
     #[test]
     fn select_mainline() {
@@ -109,8 +109,8 @@ mod tests {
         assert!(st.is_empty());
         assert_eq!(st.len(), 0);
 
-        let uid2048 = Uid(2048);
-        let uid2049 = Uid(2049);
+        let uid2048 = TrackUid(2048);
+        let uid2049 = TrackUid(2049);
         assert!(!st.contains(&uid2048));
 
         st.insert(uid2048);

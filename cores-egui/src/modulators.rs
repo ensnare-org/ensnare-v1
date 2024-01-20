@@ -3,6 +3,7 @@
 use eframe::egui::{Slider, Widget};
 use ensnare_core::{modulators::Dca, prelude::*};
 use ensnare_drag_drop::{DragDropManager, DropTarget};
+use ensnare_entity::Uid;
 
 /// Wraps a [DcaWidget] as a [Widget](eframe::egui::Widget).
 pub fn dca<'a>(dca: &'a mut Dca, controllable_uid: Uid) -> impl eframe::egui::Widget + 'a {

@@ -4,9 +4,10 @@
 
 use crate::{
     automation::Automator,
-    egui::{project_widget, ProjectAction},
+    composition::Composer,
+    egui::{composer_widget, project_widget, ProjectAction},
     midi::MidiRouter,
-    orchestration::Orchestrator, composition::Composer,
+    orchestration::Orchestrator,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
@@ -17,11 +18,9 @@ use ensnare_core::{
     prelude::*,
     selection_set::SelectionSet,
     time::Transport,
-    traits::ControlsAsProxy,
     types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
-use crate::egui::composer_widget;
-use ensnare_entity::traits::EntityBounds;
+use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 

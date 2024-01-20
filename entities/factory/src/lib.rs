@@ -16,7 +16,6 @@ pub mod prelude {
 
 #[cfg(test)]
 pub mod tests {
-    use ensnare_core::uid::Uid;
     use ensnare_entity::{prelude::*, traits::EntityBounds};
 
     // TODO: this is copied from ensnare_core::entities::factory

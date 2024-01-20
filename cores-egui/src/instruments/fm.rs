@@ -2,8 +2,8 @@
 
 use crate::modulators::dca;
 use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_core::uid::Uid;
 use ensnare_egui_widgets::{envelope, oscillator};
+use ensnare_entity::Uid;
 
 /// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
 pub fn fm_synth<'a>(

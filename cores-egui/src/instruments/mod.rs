@@ -2,8 +2,8 @@
 
 use crate::{effects::bi_quad_filter_low_pass_24db, modulators::dca};
 use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_core::prelude::*;
 use ensnare_egui_widgets::{envelope, oscillator};
+use ensnare_entity::Uid;
 
 pub mod fm;
 
@@ -28,7 +28,7 @@ impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
 }
 
 /// Wraps a [WelshWidget] as a [Widget](eframe::egui::Widget).
-pub fn welsh<'a>(
+pub fn welsh_widget<'a>(
     uid: Uid,
     inner: &'a mut ensnare_cores::WelshSynth,
 ) -> impl eframe::egui::Widget + '_ {

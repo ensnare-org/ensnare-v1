@@ -2,6 +2,8 @@
 
 use ensnare_core::prelude::*;
 
+use crate::uid::Uid;
+
 /// An [Entity] is a generic musical instrument, which includes MIDI
 /// instruments like synths, effects like reverb, and controllers like MIDI
 /// sequencers. Almost everything in this system is an Entity of some kind. A
@@ -56,4 +58,12 @@ pub trait Displays {
     /// that don't render in the timeline can ignore this.
     #[allow(unused_variables)]
     fn set_view_range(&mut self, view_range: &ViewRange) {}
+}
+
+pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, WorkEvent) + 'a;
+
+/// A version of [Controls] for collections of entities.
+#[allow(unused_variables)]
+pub trait ControlsAsProxy: Controls {
+    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {}
 }

@@ -7,8 +7,8 @@ use super::{
 };
 use crate::project::Project;
 use eframe::{egui::Widget, epaint::Galley};
-use ensnare_core::uid::{TrackUid, Uid};
-use ensnare_entity::factory::EntityKey;
+use ensnare_core::uid::TrackUid;
+use ensnare_entity::{factory::EntityKey, prelude::*};
 use std::sync::Arc;
 use strum_macros::Display;
 

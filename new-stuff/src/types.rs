@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
+use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]

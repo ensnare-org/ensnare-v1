@@ -9,6 +9,7 @@ pub use project::{project_widget, ProjectAction};
 pub use timeline::{timeline_icon_strip, TimelineIconStrip, TimelineIconStripAction};
 pub use track::{make_title_bar_galley, title_bar, track_arrangement, track_widget};
 
+mod composer;
 mod cursor;
 mod entities;
 mod grid;
@@ -17,4 +18,3 @@ mod project;
 mod signal_chain;
 mod timeline;
 mod track;
-mod composer;

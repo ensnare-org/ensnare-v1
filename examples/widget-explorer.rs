@@ -30,7 +30,7 @@ use ensnare_cores_egui::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar, composer_widget};
+use ensnare_new_stuff::egui::{composer_widget, grid, legend, make_title_bar_galley, title_bar};
 use std::sync::Arc;
 
 #[derive(Debug, Derivative)]

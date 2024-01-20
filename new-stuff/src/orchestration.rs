@@ -3,10 +3,7 @@
 use crate::repositories::{EntityRepository, TrackRepository};
 use anyhow::Result;
 use delegate::delegate;
-use ensnare_core::{
-    prelude::*,
-    traits::{ControlProxyEventsFn, ControlsAsProxy},
-};
+use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};

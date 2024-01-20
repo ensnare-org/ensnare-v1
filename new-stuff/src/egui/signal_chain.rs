@@ -1,8 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use eframe::egui::{Image, ImageButton, Widget};
-use ensnare_core::uid::{TrackUid, Uid};
+use ensnare_core::uid::TrackUid;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_entity::prelude::*;
 use strum_macros::Display;
 
 pub type SignalChainItem = (Uid, String, bool);

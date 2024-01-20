@@ -19,7 +19,7 @@ pub mod composition {
     //! Creation of musical elements.
 
     pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
-    pub use ensnare_new_stuff::composition::Composer;
+    pub use ensnare_new_stuff::Composer;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -76,8 +76,11 @@ pub mod entities {
     //! generates MIDI messages of its own, which makes it act like a
     //! controller.
     //!
-    pub use ensnare_core::uid::{EntityUidFactory, TrackUidFactory};
-    pub use ensnare_entity::factory::{EntityFactory, EntityKey, EntityStore};
+    pub use ensnare_core::uid::TrackUidFactory;
+    pub use ensnare_entity::{
+        factory::{EntityFactory, EntityKey, EntityStore},
+        EntityUidFactory,
+    };
 
     pub mod controllers {
         //! Controllers control other devices. An example of a controller is a
@@ -212,8 +215,9 @@ pub mod types {
     pub use ensnare_core::{
         time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange},
         types::*,
-        uid::{TrackUid, TrackUidFactory, Uid, UidFactory},
+        uid::{TrackUid, TrackUidFactory, UidFactory},
     };
+    pub use ensnare_entity::Uid;
 
     /// The most commonly used imports.
     pub mod prelude {

@@ -7,7 +7,7 @@ use ensnare_core::{
     utils::Paths,
 };
 use ensnare_cores::LfoRouting;
-use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh};
+use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh_widget};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
@@ -150,7 +150,7 @@ pub struct WelshSynth {
 }
 impl Displays for WelshSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(welsh(self.uid, &mut self.inner))
+        ui.add(welsh_widget(self.uid, &mut self.inner))
     }
 }
 impl WelshSynth {

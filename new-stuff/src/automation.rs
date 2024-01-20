@@ -6,6 +6,7 @@ use ensnare_core::{
     generators::{PathUid, SignalPath},
     prelude::*,
 };
+use ensnare_entity::Uid;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
 

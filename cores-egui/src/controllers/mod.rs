@@ -13,6 +13,7 @@ use ensnare_core::{
 };
 use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode};
 use ensnare_egui_widgets::{frequency, waveform};
+use ensnare_entity::Uid;
 use strum::IntoEnumIterator;
 
 /// Wraps a [Trip] as a [Widget](eframe::egui::Widget).

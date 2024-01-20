@@ -599,7 +599,7 @@ The approach for #2 depends on the exact problem definition.
 # 2024-01-20: crate organization
 
 - **core**: structures that everyone needs, and building blocks like envelope
-generators and modulators. NO EGUI. NO ENTITY CONCEPTS except EntityUid (why?).
+generators and modulators. NO EGUI. NO ENTITY CONCEPTS.
 - **entity**: structures that define and operate on entities. Project, parts,
   etc., go here. NO EGUI (but if you want EntityBounds without egui, then you
   have to make all these things generic!).

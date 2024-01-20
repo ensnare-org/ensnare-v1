@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
+use ensnare_entity::prelude::*;
+
 use ensnare_proc_macros::{InnerInstrument, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};

@@ -5,6 +5,7 @@ use eframe::{
     epaint::{self, Color32, Rect, Shape, Stroke, Vec2},
 };
 use ensnare_core::prelude::*;
+use ensnare_entity::prelude::*;
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 use strum_macros::Display;
