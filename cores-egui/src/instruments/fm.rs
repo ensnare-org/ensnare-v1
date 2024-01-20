@@ -1,20 +1,26 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::modulators::dca;
 use eframe::egui::{CollapsingHeader, Slider, Widget};
+use ensnare_core::uid::Uid;
 use ensnare_egui_widgets::{envelope, oscillator};
 
 /// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
-pub fn fm_synth<'a>(inner: &'a mut ensnare_cores::FmSynth) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner).ui(ui)
+pub fn fm_synth<'a>(
+    inner: &'a mut ensnare_cores::FmSynth,
+    controllable_uid: Uid,
+) -> impl eframe::egui::Widget + '_ {
+    move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, controllable_uid).ui(ui)
 }
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
+    uid: Uid,
     inner: &'a mut ensnare_cores::FmSynth,
 }
 impl<'a> FmSynthWidget<'a> {
-    fn new(inner: &'a mut ensnare_cores::FmSynth) -> Self {
-        Self { inner }
+    fn new(inner: &'a mut ensnare_cores::FmSynth, uid: Uid) -> Self {
+        Self { uid, inner }
     }
 }
 impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
@@ -81,11 +87,26 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             })
             .body_response;
 
+        let dca_response = CollapsingHeader::new("DCA")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show(ui, |ui| {
+                let response = ui.add(dca(&mut self.inner.dca, self.uid));
+                if response.changed() {
+                    self.inner.notify_change_dca();
+                }
+                response
+            })
+            .body_response;
+
         let mut response = depth_response | ratio_response | beta_response;
         if let Some(carrier) = carrier_response {
             response |= carrier;
         }
         if let Some(modulator) = modulator_response {
+            response |= modulator;
+        }
+        if let Some(modulator) = dca_response {
             response |= modulator;
         }
         response

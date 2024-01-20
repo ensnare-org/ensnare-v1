@@ -66,7 +66,7 @@ pub struct FmSynth {
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(fm_synth(&mut self.inner))
+        ui.add(fm_synth(&mut self.inner, self.uid))
     }
 }
 impl FmSynth {

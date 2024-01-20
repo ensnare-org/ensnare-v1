@@ -1,7 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use std::path::PathBuf;
-
 use crate::{
     controllers::{Arpeggiator, LfoController, SignalPassthroughController, Timer, Trigger},
     effects::{
@@ -16,6 +14,7 @@ use ensnare_core::{
     utils::Paths,
 };
 use ensnare_entity::{prelude::*, traits::EntityBounds};
+use std::path::PathBuf;
 
 pub struct BuiltInEntities {}
 impl BuiltInEntities {

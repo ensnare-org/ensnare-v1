@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use serde::{Deserialize, Serialize};
-
 use crate::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// [Synthesizer] provides the smallest possible functional core of a
 /// synthesizer built around [StoresVoices]. A full
