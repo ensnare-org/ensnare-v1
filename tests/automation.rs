@@ -1,9 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    control::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+    automation::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
     entities::{controllers::LfoController, toys::ToySynth},
-    generators::Waveform,
     prelude::*,
 };
 use std::path::PathBuf;

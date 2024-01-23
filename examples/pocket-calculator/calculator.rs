@@ -18,11 +18,11 @@ use eframe::{
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
 use ensnare::{
+    cores::{Sampler, SamplerVoice},
+    elements::VoicePerNoteStore,
     prelude::*,
-    synthesizer::{Synthesizer, VoicePerNoteStore},
     utils::Paths,
 };
-use ensnare_cores::{Sampler, SamplerVoice};
 use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};

@@ -2,7 +2,7 @@
 
 //! A digital audio workstation.
 
-use ::ensnare::all_entities::EnsnareEntities;
+use ::ensnare::EnsnareEntities;
 use anyhow::anyhow;
 use eframe::egui::ViewportBuilder;
 use eframe::{

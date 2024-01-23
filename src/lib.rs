@@ -4,32 +4,8 @@
 
 //! The `ensnare` crate helps make digital music.
 
-pub mod arrangement {
-    //! Organization of musical elements.
-
-    pub use ensnare_core::time::Transport;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::Transport;
-    }
-}
-
-pub mod composition {
-    //! Creation of musical elements.
-
-    pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
-    pub use ensnare_new_stuff::Composer;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{Composer, Note, PatternBuilder, PatternUid};
-    }
-}
-
-pub mod control {
-    //! [Automation](https://en.wikipedia.org/wiki/Mix_automation), or automatic
-    //! control of device parameters.
+pub mod automation {
+    //! Automatic parameter control.
     //!
     //! For example, an LFO might emits a [ControlValue] each time its value
     //! changes. If a synthesizer's pan parameter is linked to that
@@ -55,6 +31,35 @@ pub mod control {
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{ControlIndex, ControlName, ControlValue};
+    }
+}
+
+pub mod composition {
+    //! Creation and representation of music scores, independent of musical
+    //! performance with instruments.
+
+    pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
+    pub use ensnare_new_stuff::Composer;
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{Composer, Note, PatternBuilder, PatternUid};
+    }
+}
+
+pub mod elements {
+    //! Building blocks that make up musical instruments and effects.
+
+    pub use ensnare_core::{
+        generators::{Envelope, Oscillator, Waveform},
+        instruments::Synthesizer,
+        modulators::Dca,
+        voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
+    };
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::{Dca, Envelope, Oscillator, StealingVoiceStore, Synthesizer, Waveform};
     }
 }
 
@@ -124,17 +129,6 @@ pub mod entities {
     }
 }
 
-pub mod generators {
-    //! Signal generators. These are some of the building blocks of many digital
-    //! instruments. Examples are envelopes and oscillators.
-    pub use ensnare_core::generators::{Envelope, Oscillator, Waveform};
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use ensnare_core::generators::{Envelope, Oscillator, Waveform};
-    }
-}
-
 pub mod midi {
     //! Management of all MIDI-related information that flows within the system.
     pub use ensnare_core::midi::{u4, u7, MidiChannel, MidiMessage, MidiNote};
@@ -155,22 +149,6 @@ pub mod midi {
             u4, u7, MidiChannel, MidiMessage, MidiNote,
         };
     }
-}
-
-pub mod modulators {
-    //! Infrastructure for transforming audio. An example is [Dca], or the
-    //! digitally-controlled amplifier, which many instruments use to control
-    //! signal amplitude and stereo position.
-    pub use ensnare_core::modulators::Dca;
-}
-
-pub mod synthesizer {
-    //! Infrastructure for assembling components into polyphonic musical
-    //! instruments.
-    pub use ensnare_core::{
-        instruments::Synthesizer,
-        voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
-    };
 }
 
 pub mod services {
@@ -207,6 +185,16 @@ pub mod traits {
             Generates, HandlesMidi, HasMetadata, HasSettings, MidiMessagesFn, Sequences,
             Serializable, Ticks, WorkEvent,
         };
+    }
+}
+
+pub mod transport {
+    //! Time management.
+    pub use ensnare_core::time::Transport;
+
+    /// The most commonly used imports.
+    pub mod prelude {
+        pub use super::Transport;
     }
 }
 
@@ -262,23 +250,24 @@ pub mod utils {
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::*;
+        pub use super::Paths;
     }
 }
 
+pub use all_entities::EnsnareEntities;
 pub use version::app_version;
 
+mod all_entities;
 mod version;
-
-pub mod all_entities;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        arrangement::prelude::*, composition::prelude::*, control::prelude::*,
-        entities::prelude::*, generators::prelude::*, midi::prelude::*, services::prelude::*,
-        traits::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
+        automation::prelude::*, composition::prelude::*, elements::prelude::*,
+        entities::prelude::*, midi::prelude::*, services::prelude::*, traits::prelude::*,
+        transport::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
+        EnsnareEntities,
     };
     pub use ensnare_cores_egui::prelude::*;
     pub use ensnare_new_stuff::project::Project;
