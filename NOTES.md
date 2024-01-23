@@ -603,11 +603,74 @@ generators and modulators. NO EGUI. NO ENTITY CONCEPTS.
 - **entity**: structures that define and operate on entities. Project, parts,
   etc., go here. NO EGUI (but if you want EntityBounds without egui, then you
   have to make all these things generic!).
-- **egui**: reusable egui widgets.
+- **egui**: reusable egui widgets. This crate doesn't (and can't) know about
+  specific entities.
 - **core-egui**: widgets that display building blocks.
 - **entity-egui**: widgets that draw entity infrastructure.
-- **instruments**: "batteries included" instruments. FM synth, reverb, etc. NO EGUI.
-- **instruments-egui**: widgets that display instruments, as well as Entity wrappers for them.
-- **toys**: a collection of simple instruments as Entities, to show how to make a separate crate.
+- **entities**: "batteries included" instruments. FM synth, reverb, etc. NO
+  EGUI.
+- **entities-egui**: widgets that display instruments, as well as Entity
+  wrappers for them.
+- **toys**: a collection of simple instruments as Entities, to show how to make
+  a separate crate.
 - **services**: interfaces to external things.
 - **proc-macros**: proc-macros.
+
+# 2024-01-21: crate organization part 2
+
+There is a little voice in my head that keeps asking "why are you going through
+all this trouble to separate core from entity, and egui from not-egui?" I'm
+starting to accept that this voice is smarter than I am. But in the interests of
+recording all my relevant thoughts, even the bad ones, here's my justification.
+
+**Why keep Entity separate**: I didn't want to require everyone using my core
+crate to also take the baggage of the Entity system. Responses: (1) you'll be
+lucky if anyone uses the crate at all; (2) you can #cfg[]-guard that stuff if
+you want; (3) if you really think the core things are useful and reusable, then
+you should make a PJRC-like audio crate that really knows nothing about Ensnare
+concepts, and then use it at arm's length, rather than still requiring everyone
+to use ensnare-core types.
+
+**Why keep egui separate**: likewise, I didn't want to pull in an egui
+dependency that maybe nobody else needed. Responses #1 and #2 are valid here as
+well.
+
+# 2024-01-22: crate naming and more thoughts on dividing lines
+
+"element" is a good substitute for "building block." I was thinking of
+"primitive" for a while, but that's an ugly name.
+
+What's an element, what's an entity, what's entity infrastructure?
+
+- An **element** is something that more than one entity is composed of. An
+  oscillator or envelope is an element because many instruments use it. Elements
+  don't know about Entity Uids. There is no programmatic definition of an element.
+- An **entity** implements the Entity trait. The Ensnare DAW won't refer to
+  concrete Entity types in its code (except for the factory initializer).
+- **Entity infrastructure** handles all the relationships among Entities. Some
+  parts of entity infrastructure might look like Entities (the built-in
+  sequencer is a good example), but the DAW will refer to them concretely, and
+  the user typically won't have the option to mix and match them like Entities.
+
+Core crate ingredients:
+- All elements.
+  - **core**
+- All entity infrastructure.
+  - **entity**
+- The egui widgets that elements and infra need, but maybe behind a feature
+  and/or in an `egui` module. (maybe refactor reusable widgets into a
+  non-ensnare crate)
+  - **egui**
+  - **core-egui**
+  - **entity-egui**
+  
+Entities crate ingredients:
+- All "batteries included" entities.
+  - **entities**
+  - All their egui widgets.
+  - **entities-egui**
+
+Still separate crates:
+  - **toys**
+  - **services**
+  - **proc-macros**
