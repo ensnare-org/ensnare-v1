@@ -504,9 +504,9 @@ impl From<BipolarNormal> for f32 {
 /// we're usually discussing human hearing or LFOs, we can expect [FrequencyHz]
 /// to range from about 0.0 to about 22,000.0. But because of
 /// [aliasing](https://en.wikipedia.org/wiki/Nyquist_frequency), it's not
-/// surprising to see 2x the upper range, which is where the 44.1KHz CD-quality
+/// surprising to see 2x the upper range, which is where the 44.1kHz CD-quality
 /// sampling rate comes from, and when we pick rendering rates, we might go up
-/// to 192KHz (2x for sampling a 96KHz signal).
+/// to 192kHz (2x for sampling a 96kHz signal).
 ///
 /// Eventually we might impose a non-negative restriction on this type.
 #[derive(Clone, Copy, Debug, Derivative, PartialEq, PartialOrd, Serialize, Deserialize)]

@@ -171,7 +171,7 @@ impl Debug for AudioStream {
 }
 impl AudioStream {
     /// This constant is provided to prevent decision paralysis when picking a
-    /// `buffer_size` argument. At a typical sample rate of 44.1KHz, a value of
+    /// `buffer_size` argument. At a typical sample rate of 44.1kHz, a value of
     /// 2048 would mean that samples at the end of a full buffer wouldn't reach
     /// the audio interface for 46.44 milliseconds, which is arguably not
     /// reasonable because audio latency is perceptible at as few as 10
