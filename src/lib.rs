@@ -7,9 +7,9 @@
 pub mod automation {
     //! Automatic parameter control.
     //!
-    //! For example, an LFO might emits a [ControlValue] each time its value
+    //! For example, an LFO might emit a [ControlValue] each time its value
     //! changes. If a synthesizer's pan parameter is linked to that
-    //! [ControlValue], then the synth pan changes with the LFO output.
+    //! [ControlValue], then the synth's pan changes with the LFO output.
     //!
     //! Entities that control others implement the
     //! [Controls](crate::traits::Controls) trait.
