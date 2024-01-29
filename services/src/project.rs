@@ -176,11 +176,12 @@ impl ProjectServiceDaemon {
                     }
                 }
                 ProjectServiceInput::TempInsert16RandomPatterns => {
-                    let _ = self
-                        .project
-                        .write()
-                        .unwrap()
-                        .temp_insert_16_random_patterns();
+                    todo!();
+                    // let _ = self
+                    //     .project
+                    //     .write()
+                    //     .unwrap()
+                    //     .temp_insert_16_random_patterns();
                 }
                 ProjectServiceInput::Quit => {
                     eprintln!("ProjectServiceInput::Quit");

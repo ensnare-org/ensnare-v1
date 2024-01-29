@@ -20,55 +20,16 @@ pub const MIDI_NOTE_F32_RANGE: std::ops::RangeInclusive<f32> =
 pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
     ensnare_core::midi::MidiNote::MIN as u8..=ensnare_core::midi::MidiNote::MAX as u8;
 
-/// Wraps an [Icon] as a [Widget](eframe::egui::Widget).
-pub fn icon(
-    duration: MusicalTime,
-    notes: &[Note],
-    colors: (Color32, Color32),
-    is_selected: bool,
-) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| {
-        let r = Icon::new()
-            .duration(duration)
-            .notes(notes)
-            .colors(colors.0, colors.1)
-            .is_selected(is_selected);
-        r.ui(ui)
-    }
-}
-
-/// Wraps a [DraggableIcon] as a [Widget](eframe::egui::Widget).
-fn draggable_icon() -> impl eframe::egui::Widget {
-    move |ui: &mut eframe::egui::Ui| DraggableIcon::new().ui(ui)
-}
-
-/// Wraps a [Grid] as a [Widget](eframe::egui::Widget).
-pub fn grid(duration: MusicalTime) -> impl eframe::egui::Widget {
-    move |ui: &mut eframe::egui::Ui| Grid::default().duration(duration).ui(ui)
-}
-
-/// Wraps a [Carousel] as a [Widget](eframe::egui::Widget).
-pub fn carousel<'a>(
-    pattern_uids: &'a [PatternUid],
-    uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
-    selection_set: &'a mut SelectionSet<PatternUid>,
-    action: &'a mut Option<CarouselAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        Carousel::new(pattern_uids, uids_to_patterns, selection_set, action).ui(ui)
-    }
-}
-
 /// Displays an iconic representation of a sequence of [Note]s. Intended to be a
 /// drag-and-drop source.
 #[derive(Debug, Default)]
-struct Icon<'a> {
+pub struct IconWidget<'a> {
     duration: MusicalTime,
     notes: &'a [Note],
     colors: (Color32, Color32),
     is_selected: bool,
 }
-impl<'a> Icon<'a> {
+impl<'a> IconWidget<'a> {
     /// Creates a new [Icon].
     pub fn new() -> Self {
         Default::default()
@@ -93,8 +54,24 @@ impl<'a> Icon<'a> {
         self.is_selected = is_selected;
         self
     }
+
+    pub fn widget(
+        duration: MusicalTime,
+        notes: &[Note],
+        colors: (Color32, Color32),
+        is_selected: bool,
+    ) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| {
+            let r = IconWidget::new()
+                .duration(duration)
+                .notes(notes)
+                .colors(colors.0, colors.1)
+                .is_selected(is_selected);
+            r.ui(ui)
+        }
+    }
 }
-impl<'a> eframe::egui::Widget for Icon<'a> {
+impl<'a> eframe::egui::Widget for IconWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size.y * eframe::egui::vec2(3.0, 3.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
@@ -143,14 +120,17 @@ impl<'a> eframe::egui::Widget for Icon<'a> {
 /// drag-and-drop source. This is needed in the short term because egui doesn't
 /// have an easy way to make a widget both clickable and a drag source.
 #[derive(Debug, Default)]
-struct DraggableIcon {}
-impl DraggableIcon {
-    /// Creates a new [DraggableIcon].
+pub struct DraggableIconWidget {}
+impl DraggableIconWidget {
     fn new() -> Self {
         Default::default()
     }
+
+    fn widget() -> impl eframe::egui::Widget {
+        move |ui: &mut eframe::egui::Ui| DraggableIconWidget::new().ui(ui)
+    }
 }
-impl eframe::egui::Widget for DraggableIcon {
+impl eframe::egui::Widget for DraggableIconWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size * Vec2::splat(1.25);
         let icon = Image::new(eframe::egui::include_image!(
@@ -170,13 +150,13 @@ pub enum CarouselAction {
 
 /// Displays a row of selectable icons, each with a drag source.
 #[derive(Debug)]
-struct Carousel<'a> {
+pub struct CarouselWidget<'a> {
     pattern_uids: &'a [PatternUid],
     uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
     action: &'a mut Option<CarouselAction>,
 }
-impl<'a> Carousel<'a> {
+impl<'a> CarouselWidget<'a> {
     /// Creates a new [Carousel].
     pub fn new(
         pattern_uids: &'a [PatternUid],
@@ -191,8 +171,19 @@ impl<'a> Carousel<'a> {
             action,
         }
     }
+
+    pub fn widget(
+        pattern_uids: &'a [PatternUid],
+        uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
+        selection_set: &'a mut SelectionSet<PatternUid>,
+        action: &'a mut Option<CarouselAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            CarouselWidget::new(pattern_uids, uids_to_patterns, selection_set, action).ui(ui)
+        }
+    }
 }
-impl<'a> eframe::egui::Widget for Carousel<'a> {
+impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal_top(|ui| {
             let icon_width = ui.available_width() / self.pattern_uids.len() as f32;
@@ -205,7 +196,7 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
                         let colors: (Color32, Color32) =
                             ColorSchemeConverter::to_color32(pattern.color_scheme);
                         let icon_response = ui
-                            .add(icon(
+                            .add(IconWidget::widget(
                                 pattern.duration(),
                                 pattern.notes(),
                                 colors,
@@ -226,7 +217,7 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
                         ui,
                         dd_id,
                         DragSource::Pattern(*pattern_uid),
-                        |ui| ui.add(draggable_icon()),
+                        |ui| ui.add(DraggableIconWidget::widget()),
                     );
                 });
             });
@@ -237,17 +228,21 @@ impl<'a> eframe::egui::Widget for Carousel<'a> {
 
 /// An egui widget that draws a grid in the pattern-editing view.
 #[derive(Debug, Default)]
-struct Grid {
+pub struct GridWidget {
     /// The extent of the pattern to be edited.
     duration: MusicalTime,
 }
-impl Grid {
+impl GridWidget {
     fn duration(mut self, duration: MusicalTime) -> Self {
         self.duration = duration;
         self
     }
+
+    pub fn widget(duration: MusicalTime) -> impl eframe::egui::Widget {
+        move |ui: &mut eframe::egui::Ui| Self::default().duration(duration).ui(ui)
+    }
 }
-impl eframe::egui::Widget for Grid {
+impl eframe::egui::Widget for GridWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
@@ -297,17 +292,17 @@ impl eframe::egui::Widget for Grid {
     }
 }
 
-pub fn pattern_widget<'a>(inner: &'a mut Pattern) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| PatternWidget::new(inner).ui(ui)
-}
-
 #[derive(Debug)]
-struct PatternWidget<'a> {
+pub struct PatternWidget<'a> {
     inner: &'a mut Pattern,
 }
 impl<'a> PatternWidget<'a> {
     pub fn new(inner: &'a mut Pattern) -> Self {
         Self { inner }
+    }
+
+    pub fn widget(inner: &'a mut Pattern) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| PatternWidget::new(inner).ui(ui)
     }
 
     #[allow(dead_code)]

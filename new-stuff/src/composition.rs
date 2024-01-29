@@ -9,31 +9,8 @@ use ensnare_core::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Default)]
-pub struct ComposerEphemerals {
-    pub pattern_selection_set: SelectionSet<PatternUid>,
-
-    tracks_to_sequencers: HashMap<TrackUid, PatternSequencer>,
-
-    time_range: TimeRange,
-    is_finished: bool,
-    is_performing: bool,
-
-    // Each time something changes in the repo, this number will change. Use the
-    // provided methods to manage a local copy of it and decide whether to act.
-    mod_serial: ModSerial,
-}
-
 /// [Composer] owns the musical score. It doesn't know anything about
 /// instruments that can help perform the score.
-///
-/// [Composer] defines several terms.
-///
-/// 1. A [Sequence] is a reusable series of notes. It can be of any length.
-/// 2. A [Pattern] is a more constrained Sequence that has a [TimeSignature]. A
-///    Pattern's length and granularity depends on the time signature. The
-///    length is always a round number of bars/measures, and divisions are a
-///    quarter of the time signature's note value.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Composer {
@@ -51,6 +28,26 @@ pub struct Composer {
     #[serde(skip)]
     pub e: ComposerEphemerals,
 }
+
+#[derive(Debug, Default)]
+pub struct ComposerEphemerals {
+    pub pattern_selection_set: SelectionSet<PatternUid>,
+
+    tracks_to_sequencers: HashMap<TrackUid, PatternSequencer>,
+
+    time_range: TimeRange,
+    is_finished: bool,
+    is_performing: bool,
+
+    // This copy of the global time signature exists so that we have the right
+    // default when we create a new Pattern.
+    time_signature: TimeSignature,
+
+    // Each time something changes in the repo, this number will change. Use the
+    // provided methods to manage a local copy of it and decide whether to act.
+    mod_serial: ModSerial,
+}
+
 impl Composer {
     // TODO temp
     pub fn insert_16_random_patterns(&mut self) {
@@ -273,6 +270,15 @@ impl Serializable for Composer {
     fn after_deser(&mut self) {
         self.distribute_pattern_color_schemes();
         self.replay_arrangements();
+    }
+}
+impl Configurable for Composer {
+    fn time_signature(&self) -> TimeSignature {
+        self.e.time_signature
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.e.time_signature = time_signature;
     }
 }
 

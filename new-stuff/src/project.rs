@@ -3,16 +3,11 @@
 //! Representation of a whole music project, including support for serialization.
 
 use crate::{
-    automation::Automator,
-    composition::Composer,
-    egui::{composer_widget, project_widget, ProjectAction},
-    midi::MidiRouter,
-    orchestration::Orchestrator,
+    automation::Automator, composition::Composer, midi::MidiRouter, orchestration::Orchestrator,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
 use derivative::Derivative;
-use eframe::egui::Id;
 use ensnare_core::{
     generators::PathUid,
     prelude::*,
@@ -380,47 +375,6 @@ impl Project {
 
     pub fn load_path(&self) -> Option<&PathBuf> {
         self.e.load_path.as_ref()
-    }
-
-    pub fn ui(&mut self, ui: &mut eframe::egui::Ui, action: &mut Option<ProjectAction>) {
-        let _ = ui.add(project_widget(self, action));
-    }
-
-    pub fn ui_composer(&mut self, ui: &mut eframe::egui::Ui, is_visible: &mut bool) {
-        eframe::egui::Window::new("Composer")
-            .open(is_visible)
-            .default_width(ui.available_width())
-            .anchor(
-                eframe::emath::Align2::LEFT_BOTTOM,
-                eframe::epaint::vec2(5.0, 5.0),
-            )
-            .show(ui.ctx(), |ui| {
-                let response = ui.add(composer_widget(&mut self.composer));
-                response
-            });
-    }
-
-    pub fn ui_detail(
-        &mut self,
-        ui: &mut eframe::egui::Ui,
-        uid: Option<Uid>,
-        title: &str,
-        is_visible: &mut bool,
-    ) {
-        eframe::egui::Window::new(title)
-            .id(Id::new("Entity Detail"))
-            .open(is_visible)
-            .anchor(
-                eframe::emath::Align2::RIGHT_BOTTOM,
-                eframe::epaint::vec2(5.0, 5.0),
-            )
-            .show(ui.ctx(), |ui| {
-                if let Some(uid) = uid {
-                    if let Some(entity) = self.orchestrator.entity_repo.entity_mut(uid) {
-                        entity.ui(ui);
-                    }
-                }
-            });
     }
 
     pub fn advance_arrangement_view_mode(&mut self) {

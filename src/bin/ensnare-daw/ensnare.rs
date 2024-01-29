@@ -19,6 +19,7 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
 use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
+use ensnare_new_stuff::egui::{ComposerWidget, ProjectWidget};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -118,7 +119,7 @@ impl Ensnare {
         ));
 
         // TODO TEMP to make initial project more interesting
-        r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
+        //        r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
         // r.send_to_project(ProjectServiceInput::TrackAddEntity(
         //     TrackUid(1),
         //     EntityKey::from(ensnare_entities::instruments::WelshSynth::ENTITY_KEY),
@@ -356,14 +357,34 @@ impl Ensnare {
         if let Some(project) = self.project.as_mut() {
             if let Ok(mut project) = project.write() {
                 project.view_state.cursor = Some(project.transport.current_time());
-                project.ui_composer(ui, &mut self.rendering_state.is_composer_visible);
-                project.ui_detail(
-                    ui,
-                    self.rendering_state.detail_uid,
-                    &self.rendering_state.detail_title,
-                    &mut self.rendering_state.is_detail_open,
-                );
-                project.ui(ui, &mut action);
+                eframe::egui::Window::new("Composer")
+                    .open(&mut self.rendering_state.is_composer_visible)
+                    .default_width(ui.available_width())
+                    .anchor(
+                        eframe::emath::Align2::LEFT_BOTTOM,
+                        eframe::epaint::vec2(5.0, 5.0),
+                    )
+                    .show(ui.ctx(), |ui| {
+                        let response = ui.add(ComposerWidget::widget(&mut project.composer));
+                        response
+                    });
+
+                eframe::egui::Window::new(&self.rendering_state.detail_title)
+                    .id(eframe::egui::Id::new("Entity Detail"))
+                    .open(&mut self.rendering_state.is_detail_open)
+                    .anchor(
+                        eframe::emath::Align2::RIGHT_BOTTOM,
+                        eframe::epaint::vec2(5.0, 5.0),
+                    )
+                    .show(ui.ctx(), |ui| {
+                        if let Some(uid) = self.rendering_state.detail_uid {
+                            if let Some(entity) = project.orchestrator.entity_repo.entity_mut(uid) {
+                                entity.ui(ui);
+                            }
+                        }
+                    });
+
+                let _ = ui.add(ProjectWidget::widget(&mut project, &mut action));
             }
         }
         if let Some(action) = action {

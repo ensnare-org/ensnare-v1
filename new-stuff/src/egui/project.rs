@@ -24,17 +24,9 @@ pub enum ProjectAction {
     RemoveEntity(Uid),
 }
 
-/// Wraps a [ProjectWidget] as a [Widget](eframe::egui::Widget).
-pub fn project_widget<'a>(
-    project: &'a mut Project,
-    action: &'a mut Option<ProjectAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| ProjectWidget::new(project, action).ui(ui)
-}
-
 /// An egui component that draws the main view of a project.
 #[derive(Debug)]
-struct ProjectWidget<'a> {
+pub struct ProjectWidget<'a> {
     project: &'a mut Project,
     action: &'a mut Option<ProjectAction>,
 }
@@ -133,5 +125,12 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
 impl<'a> ProjectWidget<'a> {
     fn new(project: &'a mut Project, action: &'a mut Option<ProjectAction>) -> Self {
         Self { project, action }
+    }
+
+    pub fn widget(
+        project: &'a mut Project,
+        action: &'a mut Option<ProjectAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| ProjectWidget::new(project, action).ui(ui)
     }
 }

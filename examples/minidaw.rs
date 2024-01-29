@@ -23,7 +23,7 @@ use ensnare_core::{types::TrackTitle, uid::TrackUid};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 use ensnare_new_stuff::{
-    egui::project_widget,
+    egui::ProjectWidget,
     project::{Project, ProjectTitle},
 };
 use serde::{Deserialize, Serialize};
@@ -711,7 +711,7 @@ impl MiniDaw {
             if let Some(project) = self.project.as_ref() {
                 if let Ok(mut project) = project.write() {
                     let mut action = None;
-                    let _ = ui.add(project_widget(&mut project, &mut action));
+                    let _ = ui.add(ProjectWidget::widget(&mut project, &mut action));
                     if let Some(action) = action {
                         todo!("deal with this! {action:?}");
                     }

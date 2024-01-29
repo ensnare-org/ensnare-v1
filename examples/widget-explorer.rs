@@ -30,7 +30,7 @@ use ensnare_cores_egui::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_new_stuff::egui::{composer_widget, grid, legend, make_title_bar_galley, title_bar};
+use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar, ComposerWidget};
 use std::sync::Arc;
 
 #[derive(Debug, Derivative)]
@@ -437,7 +437,7 @@ impl ComposerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(composer_widget(&mut self.composer));
+            ui.add(ComposerWidget::widget(&mut self.composer));
         }
     }
 }

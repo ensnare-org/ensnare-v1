@@ -1,15 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use eframe::{egui::Widget, epaint::vec2};
-use ensnare_core::composition::PatternBuilder;
-use ensnare_cores_egui::widgets::pattern;
-
 use crate::composition::Composer;
-
-/// Wraps a [ComposerWidget] as a [Widget](eframe::egui::Widget).
-pub fn composer_widget<'a>(inner: &'a mut Composer) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| ComposerWidget::new(inner).ui(ui)
-}
+use eframe::{egui::Widget, epaint::vec2};
+use ensnare_core::{composition::PatternBuilder, traits::Configurable};
+use ensnare_cores_egui::widgets::pattern::{
+    CarouselAction, CarouselWidget, GridWidget, PatternWidget,
+};
 
 #[derive(Debug)]
 pub struct ComposerWidget<'a> {
@@ -21,13 +17,17 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             let mut response;
             let new_pattern_response = ui.button("New Pattern");
             if new_pattern_response.clicked() {
-                let _ = self
-                    .inner
-                    .add_pattern(PatternBuilder::default().build().unwrap(), None);
+                let _ = self.inner.add_pattern(
+                    PatternBuilder::default()
+                        .time_signature(self.inner.time_signature())
+                        .build()
+                        .unwrap(),
+                    None,
+                );
             }
             response = new_pattern_response;
             let mut carousel_action = None;
-            let carousel_response = ui.add(pattern::carousel(
+            let carousel_response = ui.add(CarouselWidget::widget(
                 &self.inner.ordered_pattern_uids,
                 &self.inner.patterns,
                 &mut self.inner.e.pattern_selection_set,
@@ -35,7 +35,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             ));
             if let Some(action) = carousel_action {
                 match action {
-                    pattern::CarouselAction::DeletePattern(pattern_uid) => {
+                    CarouselAction::DeletePattern(pattern_uid) => {
                         let _ = self.inner.remove_pattern(pattern_uid);
                     }
                 }
@@ -56,11 +56,11 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                         let (_id, rect) = ui.allocate_space(desired_size);
                         ui.add_enabled_ui(false, |ui| {
                             ui.allocate_ui_at_rect(rect, |ui| {
-                                ui.add(pattern::grid(pattern.duration))
+                                ui.add(GridWidget::widget(pattern.duration))
                             })
                             .inner
                         });
-                        ui.allocate_ui_at_rect(rect, |ui| ui.add(pattern::pattern_widget(pattern)))
+                        ui.allocate_ui_at_rect(rect, |ui| ui.add(PatternWidget::widget(pattern)))
                             .inner
                     };
                     response |= pattern_edit_response;
@@ -75,5 +75,9 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
 impl<'a> ComposerWidget<'a> {
     fn new(inner: &'a mut Composer) -> Self {
         Self { inner }
+    }
+
+    pub fn widget(inner: &'a mut Composer) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| ComposerWidget::new(inner).ui(ui)
     }
 }
