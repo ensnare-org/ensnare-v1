@@ -4,10 +4,13 @@ use crate::composition::Composer;
 use eframe::{
     egui::{Frame, Widget},
     emath::{Align2, RectTransform},
-    epaint::{pos2, vec2, Color32, FontId, RectShape, Shape, Stroke},
+    epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use ensnare_core::{
-    composition::PatternBuilder, midi::MidiNote, time::TimeSignature, traits::Configurable,
+    composition::{Pattern, PatternBuilder},
+    midi::MidiNote,
+    time::TimeSignature,
+    traits::Configurable,
 };
 use ensnare_cores_egui::widgets::pattern::{CarouselAction, CarouselWidget};
 use ensnare_egui_widgets::fill_remaining_ui_space;
@@ -154,10 +157,13 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                         });
 
                         // Draw the note content
-                        // let response = ui
-                        //     .allocate_ui_at_rect(rect, |ui| ui.add(PatternWidget::widget(pattern)))
-                        //     .inner;
-                        let response = ui.allocate_ui_at_rect(rect, |ui| ui.label("hi mom")).inner;
+                        let response = ui
+                            .allocate_ui_at_rect(rect, |ui| {
+                                ui.add(PatternWidget::widget(pattern, min_window..=max_window))
+                            })
+                            .inner;
+
+                        //   let response = ui.allocate_ui_at_rect(rect, |ui| ui.label("hi mom")).inner;
 
                         fill_remaining_ui_space(ui);
                         response
@@ -262,7 +268,7 @@ impl eframe::egui::Widget for PatternGridWidget {
             };
             let line_start = to_screen * pos2(x, first_note_f32);
             let line_end = to_screen * pos2(x, last_note_f32);
-            let line_middle = to_screen * pos2(x + 0.5, first_note_f32);
+            let line_middle = to_screen * pos2(x + 0.5, last_note_f32);
             shapes.push(Shape::LineSegment {
                 points: [line_start, line_end],
                 stroke,
@@ -275,6 +281,78 @@ impl eframe::egui::Widget for PatternGridWidget {
                 Color32::YELLOW,
             );
         }
+        ui.painter().extend(shapes);
+
+        response
+    }
+}
+
+#[derive(Debug)]
+pub struct PatternWidget<'a> {
+    pattern: &'a mut Pattern,
+    note_range: RangeInclusive<u8>,
+}
+impl<'a> PatternWidget<'a> {
+    fn pattern(mut self, pattern: &'a mut Pattern) -> Self {
+        self.pattern = pattern;
+        self
+    }
+
+    fn note_range(mut self, note_range: RangeInclusive<u8>) -> Self {
+        self.note_range = note_range;
+        self
+    }
+
+    pub fn widget(
+        pattern: &'a mut Pattern,
+        note_range: RangeInclusive<u8>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            Self {
+                pattern,
+                note_range,
+            }
+            .ui(ui)
+        }
+    }
+}
+impl<'a> eframe::egui::Widget for PatternWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let desired_size = ui.available_size();
+        let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
+        let sections = self.pattern.time_signature().bottom * 4;
+        let first_note = *self.note_range.start();
+        let last_note = *self.note_range.end();
+        let first_note_f32 = first_note as f32;
+        let last_note_f32 = last_note as f32;
+        let note_range_f32 = last_note_f32..=first_note_f32;
+        let to_screen = RectTransform::from_to(
+            eframe::epaint::Rect::from_x_y_ranges(0.0..=sections as f32, note_range_f32),
+            rect,
+        );
+        let mut shapes = Vec::default();
+
+        // The `/ 4` is correct because a part is a 16th of a beat, and for this
+        // rigid pattern widget, we're using only quarter-beat divisions.
+        for note in self.pattern.notes.iter() {
+            let ul = to_screen
+                * pos2(
+                    (note.range.0.start.total_parts() / 4) as f32,
+                    note.key as f32,
+                );
+            let br = to_screen
+                * pos2(
+                    (note.range.0.end.total_parts() / 4) as f32,
+                    (note.key + 1) as f32,
+                );
+            let note_rect = Rect::from_two_pos(ul, br);
+            shapes.push(Shape::Rect(RectShape::filled(
+                note_rect,
+                Rounding::default(),
+                Color32::YELLOW,
+            )));
+        }
+
         ui.painter().extend(shapes);
 
         response

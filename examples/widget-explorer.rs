@@ -422,10 +422,20 @@ impl TitleBarSettings {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct ComposerSettings {
     hide: bool,
     composer: Composer,
+}
+impl Default for ComposerSettings {
+    fn default() -> Self {
+        let mut r = Self {
+            hide: Default::default(),
+            composer: Default::default(),
+        };
+        r.composer.insert_16_random_patterns();
+        r
+    }
 }
 impl Displays for ComposerSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
