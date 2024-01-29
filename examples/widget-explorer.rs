@@ -8,7 +8,7 @@ use derivative::Derivative;
 use eframe::{
     egui::{
         self, warn_if_debug_build, CollapsingHeader, DragValue, Id, Layout, ScrollArea, Slider,
-        Style, Ui, Widget,
+        Style, Ui, ViewportBuilder, Widget,
     },
     emath::Align,
     epaint::{vec2, Galley},
@@ -788,7 +788,14 @@ impl eframe::App for WidgetExplorer {
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport: ViewportBuilder::default()
+            .with_title(WidgetExplorer::NAME)
+            .with_maximized(true) // Not sure why this doesn't work
+            .with_inner_size(eframe::epaint::vec2(1920.0, 1080.0))
+            .to_owned(),
+        ..Default::default()
+    };
 
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
@@ -798,7 +805,10 @@ fn main() -> anyhow::Result<()> {
     if let Err(e) = eframe::run_native(
         WidgetExplorer::NAME,
         options,
-        Box::new(|cc| Box::new(WidgetExplorer::new(cc, factory))),
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+            Box::new(WidgetExplorer::new(cc, factory))
+        }),
     ) {
         Err(anyhow!("eframe::run_native(): {:?}", e))
     } else {

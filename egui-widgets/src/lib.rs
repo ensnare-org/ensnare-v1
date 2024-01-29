@@ -9,6 +9,7 @@ pub use generators::{envelope, oscillator};
 pub use indicators::{activity_indicator, level_indicator};
 pub use misc::{oblique_strategies, ObliqueStrategiesManager};
 pub use placeholder::wiggler;
+pub use util::fill_remaining_ui_space;
 
 mod audio;
 mod control_bar;
@@ -17,9 +18,9 @@ mod generators;
 mod indicators;
 mod misc;
 mod placeholder;
+mod util;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::core::drag_normal;
-    pub use super::indicators::{activity_indicator, level_indicator};
+    pub use super::{activity_indicator, drag_normal, fill_remaining_ui_space, level_indicator};
 }

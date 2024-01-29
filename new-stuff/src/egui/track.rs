@@ -19,6 +19,7 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::ColorSchemeConverter;
 use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+use ensnare_egui_widgets::fill_remaining_ui_space;
 use ensnare_entity::prelude::*;
 use std::ops::Range;
 use std::{f32::consts::PI, sync::Arc};
@@ -328,9 +329,7 @@ impl<'a> Widget for TrackWidget<'a> {
                             }
                         });
 
-                        // This must be last. It makes sure we fill the
-                        // remaining space.
-                        ui.allocate_space(ui.available_size());
+                        fill_remaining_ui_space(ui);
 
                         response
                     })

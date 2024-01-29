@@ -134,8 +134,6 @@ impl EntityGuiExplorer {
                     ui.label("Click an entity in the sidebar");
                 });
             }
-
-            ui.allocate_space(ui.available_size_before_wrap());
         });
         ui.separator();
         if let Some(key) = self.selected_key.as_ref() {
