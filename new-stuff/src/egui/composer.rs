@@ -2,14 +2,14 @@
 
 use crate::composition::Composer;
 use eframe::{
-    egui::{Frame, Widget},
+    egui::{Frame, Sense, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
 use ensnare_core::{
-    composition::{Pattern, PatternBuilder},
+    composition::{Note, Pattern, PatternBuilder},
     midi::MidiNote,
-    time::TimeSignature,
+    time::{MusicalTime, TimeRange, TimeSignature},
     traits::Configurable,
 };
 use ensnare_cores_egui::widgets::pattern::{CarouselAction, CarouselWidget};
@@ -217,7 +217,7 @@ impl PatternGridWidget {
 impl eframe::egui::Widget for PatternGridWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
-        let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
+        let (rect, response) = ui.allocate_exact_size(desired_size, Sense::hover());
         let sections = self.time_signature.bottom * 4;
         let first_note = *self.note_range.start();
         let last_note = *self.note_range.end();
@@ -319,7 +319,7 @@ impl<'a> PatternWidget<'a> {
 impl<'a> eframe::egui::Widget for PatternWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
-        let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
+        let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click());
         let sections = self.pattern.time_signature().bottom * 4;
         let first_note = *self.note_range.start();
         let last_note = *self.note_range.end();
@@ -330,6 +330,33 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             eframe::epaint::Rect::from_x_y_ranges(0.0..=sections as f32, note_range_f32),
             rect,
         );
+        let from_screen = to_screen.inverse();
+
+        // Identify the local x and y values of the cursor.
+        let (key, position) = if let Some(screen_pos) = ui.ctx().pointer_interact_pos() {
+            let local_pos = from_screen * screen_pos;
+            (
+                Some(local_pos.y as u8),
+                Some(MusicalTime::new_with_parts(local_pos.x as usize * 4)),
+            )
+        } else {
+            (None, None)
+        };
+
+        // Add or remove a note.
+        if response.clicked() {
+            if let Some(key) = key {
+                if let Some(position) = position {
+                    let new_note = Note {
+                        key,
+                        range: TimeRange(position..position + PatternBuilder::DURATION),
+                    };
+                    self.pattern.toggle_note(new_note);
+                    response.mark_changed();
+                }
+            }
+        }
+
         let mut shapes = Vec::default();
 
         // The `/ 4` is correct because a part is a 16th of a beat, and for this

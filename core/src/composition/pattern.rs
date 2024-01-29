@@ -92,11 +92,18 @@ impl PatternBuilder {
         }
     }
 
+    // Clamped to number of divisions implied by time signature
     pub fn random(&mut self) -> &mut Self {
         let mut rng = Rng::default();
 
         for _ in 0..rng.rand_range(8..16) {
-            let start = MusicalTime::new_with_parts(rng.rand_range(0..64) as usize);
+            let time_signature = self.time_signature.unwrap_or_default();
+            let ts_top = time_signature.top as u64;
+            let ts_bottom = time_signature.bottom as u64;
+            let start_beat = rng.rand_range(0..ts_top);
+            let start_division = rng.rand_range(0..ts_bottom);
+            let start =
+                MusicalTime::new_with_parts((start_beat * ts_bottom + start_division) as usize * 4);
             let duration = Self::DURATION;
             self.note(Note {
                 key: rng.rand_range(32..96) as u8,
@@ -228,6 +235,15 @@ impl Pattern {
     pub fn remove_note(&mut self, note: &Note) {
         self.notes.retain(|v| v != note);
         self.refresh_internals();
+    }
+
+    /// Adds a note if it doesn't already exist; removes it if it does.
+    pub fn toggle_note(&mut self, note: Note) {
+        if self.notes.contains(&note) {
+            self.remove_note(&note);
+        } else {
+            self.add_note(note);
+        }
     }
 
     /// Removes all notes in this pattern.
