@@ -255,9 +255,9 @@ impl eframe::egui::Widget for PatternGridWidget {
             ui.painter().text(
                 left,
                 Align2::RIGHT_BOTTOM,
-                format!("{key}"),
-                FontId::monospace(12.0),
-                Color32::RED,
+                format!("{}", MidiNote::from_repr(key as usize).unwrap().to_string()),
+                FontId::monospace(9.0),
+                Color32::YELLOW,
             );
         }
 
@@ -434,8 +434,11 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
                             },
                         ),
                         Rounding::default(),
-                        Color32::DARK_GRAY,
-                        ui.ctx().style().visuals.widgets.active.bg_stroke,
+                        Color32::from_rgb(64, 64, 64),
+                        Stroke {
+                            width: 1.0,
+                            color: Color32::DARK_GRAY,
+                        },
                     )))
                 }
             }
