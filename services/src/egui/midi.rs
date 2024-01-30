@@ -56,6 +56,7 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                         (usize::MAX, "None")
                     };
                 cb.show_ui(ui, |ui| {
+                    ui.set_min_width(480.0);
                     for port in self.inputs.iter() {
                         if ui
                             .selectable_value(&mut selected_index, port.index, port.name.clone())
@@ -77,6 +78,7 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                         (usize::MAX, "None")
                     };
                 cb.show_ui(ui, |ui| {
+                    ui.set_min_width(480.0);
                     for port in self.outputs.iter() {
                         if ui
                             .selectable_value(&mut selected_index, port.index, port.name.clone())
