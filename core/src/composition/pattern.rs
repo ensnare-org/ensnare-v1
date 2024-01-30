@@ -216,7 +216,7 @@ impl Pattern {
         let final_event_time = if final_event_time == MusicalTime::START {
             final_event_time
         } else {
-            final_event_time - MusicalTime::new_with_units(1)
+            final_event_time - MusicalTime::ONE_UNIT
         };
         let beats = final_event_time.total_beats();
         let top = self.time_signature.top;
@@ -413,7 +413,7 @@ mod tests {
             .note(Note::new_with_midi_note(
                 MidiNote::C0,
                 MusicalTime::new_with_beats(0),
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
             ))
             .build()
             .unwrap();
@@ -434,7 +434,7 @@ mod tests {
             ))
             .note(Note::new_with_midi_note(
                 MidiNote::C0,
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
                 MusicalTime::DURATION_HALF,
             ))
             .note(Note::new_with_midi_note(
@@ -461,7 +461,7 @@ mod tests {
             ))
             .note(Note::new_with_midi_note(
                 MidiNote::C0,
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
                 MusicalTime::DURATION_WHOLE,
             ))
             .note(Note::new_with_midi_note(
@@ -493,7 +493,7 @@ mod tests {
             ))
             .note(Note::new_with_midi_note(
                 MidiNote::C0,
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
                 MusicalTime::DURATION_WHOLE,
             ))
             .note(Note::new_with_midi_note(

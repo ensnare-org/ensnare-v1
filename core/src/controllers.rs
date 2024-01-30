@@ -546,7 +546,7 @@ mod tests {
         assert!(!ct.is_finished());
         let range = TimeRange(
             MusicalTime::START + MusicalTime::DURATION_WHOLE
-                ..MusicalTime::DURATION_WHOLE + MusicalTime::new_with_units(1),
+                ..MusicalTime::DURATION_WHOLE + MusicalTime::ONE_UNIT,
         );
         ct.update_time_range(&range);
         let mut received_event = None;
@@ -577,10 +577,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let range = TimeRange(
-            MusicalTime::new_with_beats(1)
-                ..MusicalTime::new_with_beats(1) + MusicalTime::new_with_units(1),
-        );
+        let range = TimeRange(MusicalTime::ONE_BEAT..MusicalTime::ONE_BEAT + MusicalTime::ONE_UNIT);
         ct.update_time_range(&range);
         let mut received_event = None;
         ct.work(&mut |event| {
@@ -637,7 +634,7 @@ mod tests {
 
             for (unit, ev, finished) in test_values {
                 let time = MusicalTime::new_with_units(unit);
-                ct.update_time_range(&TimeRange(time..(time + MusicalTime::new_with_units(1))));
+                ct.update_time_range(&TimeRange(time..(time + MusicalTime::ONE_UNIT)));
                 let mut received_event = None;
                 ct.work(&mut |event| {
                     assert!(received_event.is_none());

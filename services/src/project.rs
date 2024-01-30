@@ -219,11 +219,11 @@ impl ProjectServiceDaemon {
                     }
                 }
                 ProjectServiceInput::PatternArrange(track_uid, pattern_uid, position) => {
-                    let _ = self.project.write().unwrap().arrange_pattern(
-                        track_uid,
-                        pattern_uid,
-                        position,
-                    );
+                    // TEMP for MVP: quantize the heck out of the arrangement position
+                    if let Ok(mut project) = self.project.write() {
+                        let position = position.quantized_to_measure(&project.time_signature());
+                        let _ = project.arrange_pattern(track_uid, pattern_uid, position);
+                    }
                 }
                 ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
                     let _ = self

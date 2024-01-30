@@ -56,7 +56,7 @@ pub mod tests {
             .remove(
                 SAMPLE_MIDI_CHANNEL,
                 &SAMPLE_NOTE,
-                MusicalTime::START + MusicalTime::new_with_units(1)
+                MusicalTime::START + MusicalTime::ONE_UNIT
             )
             .is_ok());
         assert_eq!(
@@ -102,7 +102,7 @@ pub mod tests {
                 ))
                 .note(Note::new_with_midi_note(
                     MidiNote::C0,
-                    MusicalTime::new_with_beats(1),
+                    MusicalTime::ONE_BEAT,
                     MusicalTime::DURATION_WHOLE,
                 ))
                 .note(Note::new_with_midi_note(
@@ -131,7 +131,7 @@ pub mod tests {
                 .remove(
                     SAMPLE_MIDI_CHANNEL,
                     &pattern,
-                    MusicalTime::START + MusicalTime::new_with_units(1)
+                    MusicalTime::START + MusicalTime::ONE_UNIT
                 )
                 .is_ok());
             assert_eq!(
@@ -242,7 +242,7 @@ pub mod tests {
         sequences.start_recording();
         assert!(sequences.is_recording());
         sequences.update_time_range(&TimeRange(
-            MusicalTime::new_with_beats(1)..MusicalTime::DURATION_QUARTER,
+            MusicalTime::ONE_BEAT..MusicalTime::DURATION_QUARTER,
         ));
         sequences.handle_midi_message(
             MidiChannel::default(),
@@ -282,7 +282,7 @@ pub mod tests {
         assert_eq!(
             replay_messages(
                 sequences,
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
                 MusicalTime::DURATION_QUARTER,
             )
             .len(),

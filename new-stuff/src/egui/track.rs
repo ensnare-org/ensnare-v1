@@ -379,7 +379,8 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
             if response.clicked() {
                 if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
                     let local_pos = from_screen * click_pos;
-                    let time = MusicalTime::new_with_units(local_pos.x as usize).quantized();
+                    let time = MusicalTime::new_with_units(local_pos.x as usize)
+                        .quantized(MusicalTime::new_with_parts(1));
                     let key = local_pos.y as u8;
                     let note = Note::new_with(key, time, MusicalTime::DURATION_QUARTER);
                     eprintln!("Saw a click at {time}, note {note:?}");

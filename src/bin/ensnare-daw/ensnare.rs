@@ -394,7 +394,7 @@ impl Ensnare {
             }
         }
         if let Some(action) = action {
-            self.handle_action(action);
+            self.handle_project_action(action);
         }
 
         // If we're performing, then we know the screen is updating, so we
@@ -452,7 +452,7 @@ impl Ensnare {
         });
     }
 
-    fn handle_action(&mut self, action: ProjectAction) {
+    fn handle_project_action(&mut self, action: ProjectAction) {
         match action {
             ProjectAction::NewDeviceForTrack(track_uid, key) => {
                 self.send_to_project(ProjectServiceInput::TrackAddEntity(

@@ -276,7 +276,7 @@ mod tests {
                         ))
                         .note(Note::new_with_midi_note(
                             MidiNote::C0,
-                            MusicalTime::new_with_beats(1),
+                            MusicalTime::ONE_BEAT,
                             MusicalTime::DURATION_WHOLE,
                         ))
                         .note(Note::new_with_midi_note(
@@ -318,9 +318,7 @@ mod tests {
                 .pattern_uid_for_position(MusicalTime::new_with_beats(20))
                 .is_some());
             assert!(s
-                .pattern_uid_for_position(
-                    MusicalTime::new_with_beats(24) - MusicalTime::new_with_units(1)
-                )
+                .pattern_uid_for_position(MusicalTime::new_with_beats(24) - MusicalTime::ONE_UNIT)
                 .is_some());
 
             s.clear();

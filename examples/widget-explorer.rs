@@ -89,7 +89,7 @@ mod obsolete {
                     TrackUid(1),
                     &mut self.track,
                     false,
-                    Some(MusicalTime::new_with_beats(1)),
+                    Some(MusicalTime::ONE_BEAT),
                     &self.view_range,
                     &mut action,
                 ));

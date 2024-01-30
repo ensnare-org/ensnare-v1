@@ -231,7 +231,12 @@ impl MusicalTime {
     pub const TIME_END_OF_FIRST_BEAT: MusicalTime = Self::new_with_beats(1);
     pub const TIME_MAX: MusicalTime = Self::new_with_units(usize::MAX);
 
-    pub const START: MusicalTime = MusicalTime { units: 0 };
+    pub const ONE_PART: MusicalTime = Self::new_with_parts(1);
+    pub const ONE_UNIT: MusicalTime = Self::new_with_units(1);
+    pub const ONE_BEAT: MusicalTime = Self::new_with_beats(1);
+    pub const FOUR_FOUR_MEASURE: MusicalTime = Self::new_with_bars(&TimeSignature::COMMON_TIME, 1);
+
+    pub const START: MusicalTime = Self::new_with_units(0);
 
     pub fn new(
         time_signature: &TimeSignature,
@@ -374,9 +379,19 @@ impl MusicalTime {
         Self::units_to_frames(tempo, sample_rate, self.units)
     }
 
-    // Actually just chopped to nearest part for now
-    pub fn quantized(&self) -> MusicalTime {
-        MusicalTime::new_with_parts(self.total_parts())
+    pub fn quantized(&self, quantum: MusicalTime) -> MusicalTime {
+        let quanta = (self.units + quantum.units / 2) / quantum.units;
+        MusicalTime::new_with_units(quanta * quantum.units)
+    }
+
+    // TODO: this is an oversimplied heuristic to quantize according to the
+    // given time signature.
+    pub fn quantized_for_time_signature(&self, time_signature: &TimeSignature) -> MusicalTime {
+        self.quantized(MusicalTime::ONE_BEAT / time_signature.bottom)
+    }
+
+    pub fn quantized_to_measure(&self, time_signature: &TimeSignature) -> MusicalTime {
+        self.quantized(MusicalTime::new_with_beats(time_signature.top))
     }
 }
 impl Display for MusicalTime {
@@ -943,10 +958,10 @@ mod tests {
 
         // Advancing by beat works
         let mut t = MusicalTime::default();
-        t += MusicalTime::new_with_beats(1);
+        t += MusicalTime::ONE_BEAT;
         assert_eq!(t.beats(&ts), 1);
         let mut t = MusicalTime::new(&ts, 0, ts.top - 1, 0, 0);
-        t += MusicalTime::new_with_beats(1);
+        t += MusicalTime::ONE_BEAT;
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
@@ -964,13 +979,13 @@ mod tests {
 
         // Advancing by subpart works
         let mut t = MusicalTime::default();
-        t += MusicalTime::new_with_units(1);
+        t += MusicalTime::ONE_UNIT;
         assert_eq!(t.bars(&ts), 0);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.parts(), 0);
         assert_eq!(t.units(), 1);
         let mut t = MusicalTime::new(&ts, 0, 0, 0, MusicalTime::UNITS_IN_PART - 1);
-        t += MusicalTime::new_with_units(1);
+        t += MusicalTime::ONE_UNIT;
         assert_eq!(t.bars(&ts), 0);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.parts(), 1);
@@ -978,7 +993,7 @@ mod tests {
 
         // One more big rollover to be sure
         let mut t = MusicalTime::new(&ts, 0, 3, 15, MusicalTime::UNITS_IN_PART - 1);
-        t += MusicalTime::new_with_units(1);
+        t += MusicalTime::ONE_UNIT;
         assert_eq!(t.bars(&ts), 1);
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.parts(), 0);
@@ -1073,7 +1088,7 @@ mod tests {
             MusicalTime::UNITS_IN_PART - 1,
         );
 
-        let t = time + MusicalTime::new_with_beats(1);
+        let t = time + MusicalTime::ONE_BEAT;
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
@@ -1082,7 +1097,7 @@ mod tests {
         assert_eq!(t.beats(&ts), 0);
         assert_eq!(t.bars(&ts), 1);
 
-        let t = time + MusicalTime::new_with_units(1);
+        let t = time + MusicalTime::ONE_UNIT;
         assert_eq!(t.units(), 0);
         assert_eq!(t.parts(), 0);
         assert_eq!(t.beats(&ts), 0);
@@ -1111,7 +1126,7 @@ mod tests {
 
             assert_eq!(
                 transport.current_time(),
-                MusicalTime::new_with_beats(1),
+                MusicalTime::ONE_BEAT,
                 "Transport should be exactly on the one-beat mark."
             );
 
@@ -1151,5 +1166,86 @@ mod tests {
         assert_eq!(t.tempo(), Tempo::from(Tempo::MAX_VALUE));
         t.control_set_param_by_index(TEMPO_INDEX, ControlValue::MIN);
         assert_eq!(t.tempo(), Tempo::from(Tempo::MIN_VALUE));
+    }
+
+    #[test]
+    fn quantization_basics() {
+        let t1p = MusicalTime::ONE_PART;
+        let t1pm1 = MusicalTime::ONE_PART - MusicalTime::ONE_UNIT;
+        let t1pp1 = MusicalTime::ONE_PART + MusicalTime::ONE_UNIT;
+        let t2p = MusicalTime::ONE_PART * 2;
+        let t0p = MusicalTime::DURATION_ZERO;
+
+        assert_eq!(
+            t1p.quantized(MusicalTime::ONE_UNIT),
+            t1p,
+            "min quantization should never change result"
+        );
+        assert_eq!(t1pm1.quantized(MusicalTime::ONE_UNIT), t1pm1);
+        assert_eq!(t1pp1.quantized(MusicalTime::ONE_UNIT), t1pp1);
+
+        assert_eq!(
+            t1p.quantized(MusicalTime::ONE_PART),
+            t1p,
+            "quantizing on ordinary unit should choose closer point"
+        );
+        assert_eq!(t1pm1.quantized(MusicalTime::ONE_PART), t1p);
+        assert_eq!(t1pp1.quantized(MusicalTime::ONE_PART), t1p);
+
+        assert_eq!(
+            t1p.quantized(t2p),
+            t2p,
+            "quantizing to larger unit should choose closer point"
+        );
+        assert_eq!(t1pm1.quantized(t2p), t0p);
+        assert_eq!(t1pp1.quantized(t2p), t2p);
+    }
+
+    #[test]
+    fn quantization_to_time_signature() {
+        assert_eq!(
+            MusicalTime::DURATION_SIXTEENTH
+                .quantized_for_time_signature(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_ZERO
+        );
+        assert_eq!(
+            (MusicalTime::DURATION_EIGHTH - MusicalTime::ONE_UNIT)
+                .quantized_for_time_signature(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_ZERO
+        );
+        assert_eq!(
+            (MusicalTime::DURATION_EIGHTH)
+                .quantized_for_time_signature(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_QUARTER
+        );
+        assert_eq!(
+            (MusicalTime::DURATION_QUARTER)
+                .quantized_for_time_signature(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_QUARTER
+        );
+    }
+
+    #[test]
+    fn quantization_to_measure() {
+        assert_eq!(
+            MusicalTime::DURATION_SIXTEENTH.quantized_to_measure(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_ZERO
+        );
+        assert_eq!(
+            MusicalTime::DURATION_WHOLE.quantized_to_measure(&TimeSignature::COMMON_TIME),
+            MusicalTime::DURATION_ZERO
+        );
+        assert_eq!(
+            MusicalTime::DURATION_BREVE.quantized_to_measure(&TimeSignature::COMMON_TIME),
+            MusicalTime::FOUR_FOUR_MEASURE
+        );
+        assert_eq!(
+            (MusicalTime::DURATION_WHOLE * 3).quantized_to_measure(&TimeSignature::COMMON_TIME),
+            MusicalTime::FOUR_FOUR_MEASURE
+        );
+        assert_eq!(
+            (MusicalTime::DURATION_WHOLE * 6).quantized_to_measure(&TimeSignature::COMMON_TIME),
+            MusicalTime::FOUR_FOUR_MEASURE * 2
+        );
     }
 }
