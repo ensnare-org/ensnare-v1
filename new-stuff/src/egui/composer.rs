@@ -32,6 +32,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                     let _ = self.composer.add_pattern(
                         PatternBuilder::default()
                             .time_signature(self.composer.time_signature())
+                            .color_scheme(ensnare_core::types::ColorScheme::Azure)
                             .build()
                             .unwrap(),
                         None,
@@ -175,11 +176,13 @@ pub struct PatternGridWidget {
     note_range: RangeInclusive<u8>,
 }
 impl PatternGridWidget {
+    #[allow(dead_code)]
     fn time_signature(mut self, time_signature: TimeSignature) -> Self {
         self.time_signature = time_signature;
         self
     }
 
+    #[allow(dead_code)]
     fn note_range(mut self, note_range: RangeInclusive<u8>) -> Self {
         self.note_range = note_range;
         self
@@ -212,18 +215,30 @@ impl eframe::egui::Widget for PatternGridWidget {
             eframe::epaint::Rect::from_x_y_ranges(0.0..=sections as f32, note_range_f32),
             rect,
         );
+        let from_screen = to_screen.inverse();
+
+        // Identify the local x and y values of the cursor.
+        let (cursor_key, cursor_section) = if let Some(screen_pos) = ui.ctx().pointer_interact_pos()
+        {
+            let local_pos = from_screen * screen_pos;
+            (Some(local_pos.y as u8), Some(local_pos.x.floor()))
+        } else {
+            (None, None)
+        };
+
         let visuals = ui.ctx().style().visuals.widgets.noninteractive;
 
-        let mut shapes = vec![Shape::Rect(RectShape::filled(
-            rect,
-            visuals.rounding,
-            visuals.bg_fill,
-        ))];
+        let mut background_shapes = Vec::default();
+        let mut shapes = Vec::default();
+
+        const COLUMN_ROW_HIGHLIGHT_COLOR: Color32 = Color32::from_rgb(32, 32, 32);
 
         // Draw the horizontal note dividers.
         for key in self.note_range {
+            let is_hovering = Some(key) == cursor_key;
             let left = to_screen * pos2(0.0, key as f32);
             let right = to_screen * pos2(sections as f32, key as f32);
+            let bottom_right = to_screen * pos2(sections as f32, (key + 1) as f32);
             let stroke = if (key - MidiNote::C0 as u8) % 12 == 0 {
                 visuals.fg_stroke
             } else {
@@ -233,12 +248,28 @@ impl eframe::egui::Widget for PatternGridWidget {
                 points: [left, right],
                 stroke,
             });
+            if is_hovering {
+                background_shapes.push(Shape::Rect(RectShape::filled(
+                    Rect::from_two_pos(left, bottom_right),
+                    visuals.rounding,
+                    COLUMN_ROW_HIGHLIGHT_COLOR,
+                )));
+            }
+            // TODO: we should be creating and recycling at least one TextShape.
             ui.painter().text(
                 left,
                 Align2::RIGHT_BOTTOM,
                 format!("{}", MidiNote::from_repr(key as usize).unwrap().to_string()),
-                FontId::monospace(9.0),
-                Color32::YELLOW,
+                if is_hovering {
+                    FontId::monospace(12.0)
+                } else {
+                    FontId::monospace(9.0)
+                },
+                if is_hovering {
+                    Color32::YELLOW
+                } else {
+                    visuals.text_color()
+                },
             );
         }
 
@@ -247,6 +278,11 @@ impl eframe::egui::Widget for PatternGridWidget {
             let divisions_per_beat = self.time_signature.bottom;
             for division in 0..divisions_per_beat {
                 let part = beat * divisions_per_beat + division;
+                let is_hovering = if let Some(cursor_section) = cursor_section {
+                    cursor_section as usize == part
+                } else {
+                    false
+                };
                 let x = part as f32;
                 let stroke = if division == 0 {
                     visuals.fg_stroke
@@ -255,7 +291,15 @@ impl eframe::egui::Widget for PatternGridWidget {
                 };
                 let line_start = to_screen * pos2(x, first_note_f32);
                 let line_end = to_screen * pos2(x, last_note_f32);
+                let bottom_right = to_screen * pos2(x + 1.0, first_note_f32);
                 let line_middle = to_screen * pos2(x + 0.5, last_note_f32);
+                if is_hovering {
+                    background_shapes.push(Shape::Rect(RectShape::filled(
+                        Rect::from_two_pos(line_end, bottom_right),
+                        visuals.rounding,
+                        COLUMN_ROW_HIGHLIGHT_COLOR,
+                    )));
+                }
                 shapes.push(Shape::LineSegment {
                     points: [line_start, line_end],
                     stroke,
@@ -269,6 +313,7 @@ impl eframe::egui::Widget for PatternGridWidget {
                 );
             }
         }
+        ui.painter().extend(background_shapes);
         ui.painter().extend(shapes);
 
         response
@@ -281,16 +326,20 @@ pub struct PatternWidget<'a> {
     note_range: RangeInclusive<u8>,
 }
 impl<'a> PatternWidget<'a> {
+    #[allow(dead_code)]
     fn pattern(mut self, pattern: &'a mut Pattern) -> Self {
         self.pattern = pattern;
         self
     }
 
+    #[allow(dead_code)]
     fn note_range(mut self, note_range: RangeInclusive<u8>) -> Self {
         self.note_range = note_range;
         self
     }
 
+    // This is separate from widget() so that we can instantitate the widget for
+    // testing.
     fn new(pattern: &'a mut Pattern, note_range: RangeInclusive<u8>) -> Self {
         Self {
             pattern,
