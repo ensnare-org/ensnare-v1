@@ -17,25 +17,28 @@ use std::{
 
 #[derive(Debug)]
 pub enum ProjectServiceInput {
-    Init,
-    New,
-    Load(PathBuf),
-    Save(Option<PathBuf>),
-    Midi(MidiChannel, MidiMessage),
-    SetSampleRate(SampleRate),
-    Play,
-    Stop,
-    TempInsert16RandomPatterns,
-    Quit,
-    TrackAddEntity(TrackUid, EntityKey),
-    RemoveEntity(Uid),
-    PatternArrange(TrackUid, PatternUid, MusicalTime),
-    LinkControl(Uid, Uid, ControlIndex),
-    KeyEvent(Key, bool, Option<Key>),
-    NextTimelineDisplayer,
     AudioQueue(AudioQueue),
-    VisualizationQueue(VisualizationQueue),
+    KeyEvent(Key, bool, Option<Key>),
+    Midi(MidiChannel, MidiMessage),
     NeedsAudio(usize),
+    NextTimelineDisplayer,
+    PatternArrange(TrackUid, PatternUid, MusicalTime),
+    ProjectLinkControl(Uid, Uid, ControlIndex),
+    ProjectLoad(PathBuf),
+    ProjectNew,
+    ProjectPlay,
+    ProjectRemoveEntity(Uid),
+    ProjectSave(Option<PathBuf>),
+    ProjectSetSampleRate(SampleRate),
+    ProjectStop,
+    ServiceInit,
+    ServiceQuit,
+    TempInsert16RandomPatterns,
+    TrackAddEntity(TrackUid, EntityKey),
+    TrackNewAudio,
+    TrackNewAux,
+    TrackNewMidi,
+    VisualizationQueue(VisualizationQueue),
 }
 
 #[derive(Debug)]
@@ -66,7 +69,7 @@ impl ProjectService {
             factory: Arc::clone(factory),
         };
         r.spawn_thread();
-        let _ = r.sender().send(ProjectServiceInput::Init);
+        let _ = r.sender().send(ProjectServiceInput::ServiceInit);
         r
     }
 
@@ -128,13 +131,9 @@ impl ProjectServiceDaemon {
     fn set_up_new_project(&self, new_project: &mut Project) {
         if let Some(queue) = self.audio_queue.as_ref() {
             new_project.e.audio_queue = Some(Arc::clone(queue));
-        } else {
-            eprintln!("asdf");
         }
         if let Some(queue) = self.visualization_queue.as_ref() {
             new_project.e.visualization_queue = Some(queue.clone());
-        } else {
-            eprintln!("asdkfjjg");
         }
     }
 
@@ -147,15 +146,15 @@ impl ProjectServiceDaemon {
     fn execute(&mut self) {
         while let Ok(input) = self.receiver.recv() {
             match input {
-                ProjectServiceInput::Init => {
+                ProjectServiceInput::ServiceInit => {
                     self.notify_new_project();
                 }
-                ProjectServiceInput::New => {
+                ProjectServiceInput::ProjectNew => {
                     // TODO: set_up_successor
                     let new_project = Project::new_project();
                     self.swap_project(new_project);
                 }
-                ProjectServiceInput::Load(path) => match Project::load(path.clone()) {
+                ProjectServiceInput::ProjectLoad(path) => match Project::load(path.clone()) {
                     Ok(new_project) => {
                         self.swap_project(new_project);
                     }
@@ -163,7 +162,7 @@ impl ProjectServiceDaemon {
                         let _ = self.sender.send(ProjectServiceEvent::LoadFailed(path, e));
                     }
                 },
-                ProjectServiceInput::Save(path) => {
+                ProjectServiceInput::ProjectSave(path) => {
                     if let Ok(mut project) = self.project.write() {
                         match project.save(path) {
                             Ok(save_path) => {
@@ -183,24 +182,24 @@ impl ProjectServiceDaemon {
                     //     .unwrap()
                     //     .temp_insert_16_random_patterns();
                 }
-                ProjectServiceInput::Quit => {
+                ProjectServiceInput::ServiceQuit => {
                     eprintln!("ProjectServiceInput::Quit");
                     let _ = self.sender.send(ProjectServiceEvent::Quit);
-                    return;
+                    break;
                 }
-                ProjectServiceInput::SetSampleRate(sample_rate) => {
+                ProjectServiceInput::ProjectSetSampleRate(sample_rate) => {
                     self.project
                         .write()
                         .unwrap()
                         .update_sample_rate(sample_rate);
                 }
-                ProjectServiceInput::Play => {
+                ProjectServiceInput::ProjectPlay => {
                     self.project.write().unwrap().play();
                     let _ = self
                         .sender
                         .send(ProjectServiceEvent::IsPerformingChanged(true));
                 }
-                ProjectServiceInput::Stop => {
+                ProjectServiceInput::ProjectStop => {
                     self.project.write().unwrap().stop();
                     let _ = self
                         .sender
@@ -225,7 +224,7 @@ impl ProjectServiceDaemon {
                         let _ = project.arrange_pattern(track_uid, pattern_uid, position);
                     }
                 }
-                ProjectServiceInput::LinkControl(source_uid, target_uid, index) => {
+                ProjectServiceInput::ProjectLinkControl(source_uid, target_uid, index) => {
                     let _ = self
                         .project
                         .write()
@@ -267,8 +266,17 @@ impl ProjectServiceDaemon {
                     .handle_midi_message(channel, message, &mut |c, m| {
                         eprintln!("TODO: {c:?} {m:?}");
                     }),
-                ProjectServiceInput::RemoveEntity(uid) => {
+                ProjectServiceInput::ProjectRemoveEntity(uid) => {
                     let _ = self.project.write().unwrap().remove_entity(uid);
+                }
+                ProjectServiceInput::TrackNewAudio => {
+                    let _ = self.project.write().unwrap().new_audio_track();
+                }
+                ProjectServiceInput::TrackNewAux => {
+                    let _ = self.project.write().unwrap().new_aux_track();
+                }
+                ProjectServiceInput::TrackNewMidi => {
+                    let _ = self.project.write().unwrap().new_midi_track();
                 }
             }
         }

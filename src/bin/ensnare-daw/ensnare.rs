@@ -267,7 +267,7 @@ impl Ensnare {
 
     fn update_orchestrator_audio_interface_config(&mut self) {
         let sample_rate = self.settings.audio_settings.sample_rate();
-        self.send_to_project(ProjectServiceInput::SetSampleRate(sample_rate));
+        self.send_to_project(ProjectServiceInput::ProjectSetSampleRate(sample_rate));
     }
 
     fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
@@ -307,8 +307,8 @@ impl Ensnare {
 
     fn handle_control_panel_action(&mut self, action: ControlBarAction) {
         match action {
-            ControlBarAction::Play => self.send_to_project(ProjectServiceInput::Play),
-            ControlBarAction::Stop => self.send_to_project(ProjectServiceInput::Stop),
+            ControlBarAction::Play => self.send_to_project(ProjectServiceInput::ProjectPlay),
+            ControlBarAction::Stop => self.send_to_project(ProjectServiceInput::ProjectStop),
             ControlBarAction::New => {
                 self.handle_project_new();
             }
@@ -469,7 +469,7 @@ impl Ensnare {
                 self.rendering_state.is_detail_open = true;
             }
             ProjectAction::RemoveEntity(uid) => {
-                self.send_to_project(ProjectServiceInput::RemoveEntity(uid))
+                self.send_to_project(ProjectServiceInput::ProjectRemoveEntity(uid))
             }
         }
     }
@@ -487,9 +487,15 @@ impl Ensnare {
                 MenuBarAction::ProjectSave => {
                     self.handle_project_save(None);
                 }
-                MenuBarAction::TrackNewMidi => todo!(),
-                MenuBarAction::TrackNewAudio => todo!(),
-                MenuBarAction::TrackNewAux => todo!(),
+                MenuBarAction::TrackNewMidi => {
+                    self.send_to_project(ProjectServiceInput::TrackNewMidi);
+                }
+                MenuBarAction::TrackNewAudio => {
+                    self.send_to_project(ProjectServiceInput::TrackNewAudio);
+                }
+                MenuBarAction::TrackNewAux => {
+                    self.send_to_project(ProjectServiceInput::TrackNewAux);
+                }
                 MenuBarAction::TrackDuplicate => todo!(),
                 MenuBarAction::TrackDelete => todo!(),
                 MenuBarAction::TrackRemoveSelectedPatterns => todo!(),
@@ -500,15 +506,15 @@ impl Ensnare {
     }
 
     fn handle_project_new(&mut self) {
-        self.send_to_project(ProjectServiceInput::New);
+        self.send_to_project(ProjectServiceInput::ProjectNew);
     }
 
     fn handle_project_save(&mut self, path: Option<PathBuf>) {
-        self.send_to_project(ProjectServiceInput::Save(path));
+        self.send_to_project(ProjectServiceInput::ProjectSave(path));
     }
 
     fn handle_project_load(&mut self, path: PathBuf) {
-        self.send_to_project(ProjectServiceInput::Load(path));
+        self.send_to_project(ProjectServiceInput::ProjectLoad(path));
     }
 
     fn check_drag_and_drop(&mut self) {
@@ -539,7 +545,7 @@ impl Ensnare {
                 },
                 DragSource::ControlSource(source_uid) => match target {
                     DropTarget::Controllable(target_uid, index) => {
-                        self.send_to_project(ProjectServiceInput::LinkControl(
+                        self.send_to_project(ProjectServiceInput::ProjectLinkControl(
                             source_uid, target_uid, index,
                         ));
                     }

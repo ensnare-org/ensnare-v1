@@ -103,7 +103,7 @@ impl EnsnareEventAggregationService {
                                 EnsnareInput::Quit => {
                                     let _ = audio_sender.send(AudioServiceInput::Quit);
                                     let _ = midi_sender.send(MidiServiceInput::Quit);
-                                    let _ = project_sender.send(ProjectServiceInput::Quit);
+                                    let _ = project_sender.send(ProjectServiceInput::ServiceQuit);
                                     let _ = ensnare_sender.send(EnsnareEvent::Quit);
                                     return;
                                 }

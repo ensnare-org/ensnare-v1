@@ -621,11 +621,11 @@ impl MiniDaw {
 
     fn handle_control_panel_action(&mut self, action: ControlBarAction) {
         let input = match action {
-            ControlBarAction::Play => Some(ProjectServiceInput::Play),
-            ControlBarAction::Stop => Some(ProjectServiceInput::Stop),
-            ControlBarAction::New => Some(ProjectServiceInput::New),
-            ControlBarAction::Open(path) => Some(ProjectServiceInput::Load(path)),
-            ControlBarAction::Save(path) => Some(ProjectServiceInput::Save(Some(path))),
+            ControlBarAction::Play => Some(ProjectServiceInput::ProjectPlay),
+            ControlBarAction::Stop => Some(ProjectServiceInput::ProjectStop),
+            ControlBarAction::New => Some(ProjectServiceInput::ProjectNew),
+            ControlBarAction::Open(path) => Some(ProjectServiceInput::ProjectLoad(path)),
+            ControlBarAction::Save(path) => Some(ProjectServiceInput::ProjectSave(Some(path))),
             ControlBarAction::ToggleSettings => {
                 self.settings_panel.toggle();
                 None
@@ -648,12 +648,14 @@ impl MiniDaw {
             MenuBarAction::TrackDuplicate => coming_soon = true,
             MenuBarAction::TrackRemoveSelectedPatterns => coming_soon = true,
             MenuBarAction::ComingSoon => coming_soon = true,
-            MenuBarAction::ProjectNew => input = Some(ProjectServiceInput::New),
+            MenuBarAction::ProjectNew => input = Some(ProjectServiceInput::ProjectNew),
             MenuBarAction::ProjectOpen => {
-                input = Some(ProjectServiceInput::Load(PathBuf::from("minidaw.json")))
+                input = Some(ProjectServiceInput::ProjectLoad(PathBuf::from(
+                    "minidaw.json",
+                )))
             }
             MenuBarAction::ProjectSave => {
-                input = Some(ProjectServiceInput::Save(Some(PathBuf::from(
+                input = Some(ProjectServiceInput::ProjectSave(Some(PathBuf::from(
                     "minidaw.json",
                 ))))
             }
@@ -799,7 +801,7 @@ impl eframe::App for MiniDaw {
         }
         self.send_to_audio(AudioServiceInput::Quit);
         self.send_to_midi(MidiServiceInput::Quit);
-        self.send_to_project(ProjectServiceInput::Quit);
+        self.send_to_project(ProjectServiceInput::ServiceQuit);
     }
 }
 
