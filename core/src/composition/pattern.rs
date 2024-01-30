@@ -105,10 +105,11 @@ impl PatternBuilder {
             let start =
                 MusicalTime::new_with_parts((start_beat * ts_bottom + start_division) as usize * 4);
             let duration = Self::DURATION;
-            self.note(Note {
-                key: rng.rand_range(32..96) as u8,
-                range: TimeRange(start..start + duration),
-            });
+            self.note(Note::new_with(
+                rng.rand_range(32..96) as u8,
+                start,
+                duration,
+            ));
         }
         self
     }
@@ -138,10 +139,7 @@ impl PatternBuilder {
         let position_delta = MusicalTime::new_with_fractional_beats(1.0 / grid_value as f64);
         for note in midi_note_numbers {
             if note != 255 {
-                self.note(Note {
-                    key: note,
-                    range: TimeRange(position..position + position_delta),
-                });
+                self.note(Note::new_with(note, position, position_delta));
             }
             position += position_delta;
         }
@@ -326,20 +324,23 @@ mod tests {
 
     impl Note {
         /// half-note
-        const TEST_C4: Note = Note {
-            key: MidiNote::C4 as u8,
-            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_HALF),
-        };
+        const TEST_C4: Note = Note::new_with(
+            MidiNote::C4 as u8,
+            MusicalTime::START,
+            MusicalTime::DURATION_HALF,
+        );
         /// whole note
-        const TEST_D4: Note = Note {
-            key: MidiNote::D4 as u8,
-            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_WHOLE),
-        };
+        const TEST_D4: Note = Note::new_with(
+            MidiNote::D4 as u8,
+            MusicalTime::START,
+            MusicalTime::DURATION_WHOLE,
+        );
         /// two whole notes
-        const TEST_E4: Note = Note {
-            key: MidiNote::E4 as u8,
-            range: TimeRange(MusicalTime::START..MusicalTime::DURATION_BREVE),
-        };
+        const TEST_E4: Note = Note::new_with(
+            MidiNote::E4 as u8,
+            MusicalTime::START,
+            MusicalTime::DURATION_BREVE,
+        );
     }
 
     #[test]

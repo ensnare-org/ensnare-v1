@@ -78,10 +78,11 @@ fn demo_sidechaining() {
     let lead_pattern_uid = project
         .add_pattern(
             PatternBuilder::default()
-                .note(Note {
-                    key: MidiNote::C4 as u8,
-                    range: TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
-                })
+                .note(Note::new_with_midi_note(
+                    MidiNote::C4,
+                    MusicalTime::START,
+                    MusicalTime::new_with_beats(4),
+                ))
                 .build()
                 .unwrap(),
             None,

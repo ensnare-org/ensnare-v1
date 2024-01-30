@@ -32,10 +32,7 @@ fn edit_song() {
     {
         let drum_pattern = project.pattern_mut(drum_pattern_uid).unwrap();
 
-        let mut note = Note {
-            key: 60,
-            range: TimeRange(MusicalTime::START..(MusicalTime::START + MusicalTime::DURATION_HALF)),
-        };
+        let mut note = Note::new_with(60, MusicalTime::START, MusicalTime::DURATION_HALF);
         // Add to the pattern.
         drum_pattern.add_note(note.clone());
         // Wait, no, didn't want to do that.

@@ -1,10 +1,8 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, rng::Rng, types::ColorScheme};
-use anyhow::anyhow;
-use derive_builder::Builder;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ops::Add, sync::atomic::AtomicUsize};
+use std::ops::Add;
 
 /// A [Note] is a single played note. It knows which key it's playing (which
 /// is more or less assumed to be a MIDI key value), and when (start/end) it's
@@ -18,31 +16,30 @@ pub struct Note {
     pub range: TimeRange,
 }
 impl Note {
-    /// Creates a [Note] from a u8.
-    pub const fn new_with(key: u8, start: MusicalTime, duration: MusicalTime) -> Self {
-        let end = MusicalTime::new_with_units(start.total_units() + duration.total_units());
+    /// Creates a [Note] from a u8 and a start/end (inclusive start, exclusive end).
+    pub const fn new_with_start_and_end(key: u8, start: MusicalTime, end: MusicalTime) -> Self {
         Self {
             key,
             range: TimeRange(start..end),
         }
     }
 
+    /// Creates a [Note] from a u8 and start/duration.
+    pub const fn new_with(key: u8, start: MusicalTime, duration: MusicalTime) -> Self {
+        let end = MusicalTime::new_with_units(start.total_units() + duration.total_units());
+        Self::new_with_start_and_end(key, start, end)
+    }
+
     /// Creates a [Note] from a [MidiNote].
     pub fn new_with_midi_note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Self {
-        Self {
-            key: key as u8,
-            range: TimeRange(start..(start + duration)),
-        }
+        Self::new_with(key as u8, start, duration)
     }
 }
 impl Add<MusicalTime> for Note {
     type Output = Self;
 
     fn add(self, rhs: MusicalTime) -> Self::Output {
-        Self {
-            key: self.key,
-            range: TimeRange((self.range.0.start + rhs)..(self.range.0.end + rhs)),
-        }
+        Self::new_with_start_and_end(self.key, self.range.0.start + rhs, self.range.0.end + rhs)
     }
 }
 // TODO: I don't think this is the best choice to expose this idea. If there's a

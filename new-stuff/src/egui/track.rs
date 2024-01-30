@@ -418,13 +418,11 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
                                         ..(arrangement.position + arrangement.duration),
                                 ));
                                 pattern.notes().iter().for_each(|note| {
-                                    let note = Note {
-                                        key: note.key,
-                                        range: TimeRange(
-                                            (note.range.0.start + arrangement.position)
-                                                ..(note.range.0.end + arrangement.position),
-                                        ),
-                                    };
+                                    let note = Note::new_with_start_and_end(
+                                        note.key,
+                                        note.range.0.start + arrangement.position,
+                                        note.range.0.end + arrangement.position,
+                                    );
                                     shape_v.push(Self::shape_for_note(
                                         &to_screen,
                                         &visuals,

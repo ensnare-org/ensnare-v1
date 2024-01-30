@@ -381,10 +381,7 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
 
         // Add or remove a note.
         if response.clicked() {
-            let new_note = Note {
-                key,
-                range: TimeRange(position..position + PatternBuilder::DURATION),
-            };
+            let new_note = Note::new_with(key, position, PatternBuilder::DURATION);
             if self.inner.notes.contains(&new_note) {
                 self.inner.notes.retain(|n| &new_note != n);
             } else {

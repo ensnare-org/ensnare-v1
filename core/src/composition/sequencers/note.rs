@@ -25,10 +25,11 @@ impl NoteSequencerBuilder {
         for _ in 0..32 {
             let beat_range = range.0.start.total_beats() as u64..range.0.end.total_beats() as u64;
             let note_start = MusicalTime::new_with_beats(rng.rand_range(beat_range) as usize);
-            self.note(Note {
-                key: rng.rand_range(16..100) as u8,
-                range: TimeRange(note_start..note_start + MusicalTime::DURATION_QUARTER),
-            });
+            self.note(Note::new_with(
+                rng.rand_range(16..100) as u8,
+                note_start,
+                MusicalTime::DURATION_QUARTER,
+            ));
         }
         self
     }

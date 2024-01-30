@@ -396,25 +396,31 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
         let (key, position) = if let Some(screen_pos) = ui.ctx().pointer_interact_pos() {
             let local_pos = from_screen * screen_pos;
             (
-                // TODO: the max(127) is to catch an overflow in rect_for_note()
+                // TODO: the min(127) is to catch an overflow in rect_for_note()
                 // where this somehow ended up as 255. It might be from_screen
                 // giving a degenerate result when the pointer ends up way out
                 // of bounds. I don't know how this can happen.
-                Some((local_pos.y as u8).max(127)),
+                Some((local_pos.y as u8).min(127)),
                 Some(MusicalTime::new_with_parts(local_pos.x as usize * 4)),
             )
         } else {
             (None, None)
         };
 
-        // Add or remove a note.
+        // Select notes.
         if response.clicked() {
             if let Some(key) = key {
                 if let Some(position) = position {
-                    let new_note = Note {
-                        key,
-                        range: TimeRange(position..position + PatternBuilder::DURATION),
-                    };
+                    println!("Would select note {key} at {position}");
+                }
+            }
+        }
+
+        // Add or remove a note.
+        if response.double_clicked() {
+            if let Some(key) = key {
+                if let Some(position) = position {
+                    let new_note = Note::new_with(key, position, PatternBuilder::DURATION);
                     self.pattern.toggle_note(new_note);
                     response.mark_changed();
                 }
@@ -460,12 +466,7 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
                     shapes.push(Shape::Rect(RectShape::new(
                         Self::rect_for_note(
                             &to_screen,
-                            &Note {
-                                key,
-                                range: TimeRange(
-                                    position..(position + self.division_duration() * 4),
-                                ),
-                            },
+                            &Note::new_with(key, position, self.division_duration() * 4),
                         ),
                         Rounding::default(),
                         Color32::from_rgb(64, 64, 64),
