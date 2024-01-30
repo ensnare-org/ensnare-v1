@@ -628,7 +628,7 @@ pub struct TransportEphemerals {
 pub struct Transport {
     /// The current global time signature.
     #[builder(default)]
-    time_signature: TimeSignature,
+    pub time_signature: TimeSignature,
 
     /// The current beats per minute.
     #[builder(default)]

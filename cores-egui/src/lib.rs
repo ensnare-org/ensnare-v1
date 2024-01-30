@@ -4,7 +4,7 @@
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::{controllers::trip, transport::transport};
+    pub use super::{controllers::trip, transport::TransportWidget};
 }
 
 pub use {

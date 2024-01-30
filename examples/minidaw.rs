@@ -677,7 +677,7 @@ impl MiniDaw {
         }
         ui.separator();
         let mut control_bar_action = None;
-        ui.add(control_bar_widget(
+        ui.add(ControlBarWidget::widget(
             &mut self.control_bar,
             &mut control_bar_action,
         ));

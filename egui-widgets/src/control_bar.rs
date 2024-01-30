@@ -16,8 +16,8 @@ pub enum ControlBarDisplayMode {
     Frequency,
 }
 
-/// [ControlBar] is the UI component at the top of the main window. Transport,
-/// MIDI status, etc.
+/// [ControlBar] is the UI component at the top of the main window to the right
+/// of Transport.
 #[derive(Debug, Default)]
 pub struct ControlBar {
     pub saw_midi_in_activity: bool,
@@ -63,28 +63,24 @@ pub enum ControlBarAction {
     ToggleSettings,
 }
 
-/// Wraps an [ControlBar] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
-pub fn control_bar_widget<'a>(
-    control_bar: &'a mut ControlBar,
-    action: &'a mut Option<ControlBarAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| ControlBarWidget::new_with(control_bar, action).ui(ui)
-}
-
 #[derive(Debug)]
-struct ControlBarWidget<'a> {
+pub struct ControlBarWidget<'a> {
     control_bar: &'a mut ControlBar,
     action: &'a mut Option<ControlBarAction>,
 }
 impl<'a> ControlBarWidget<'a> {
-    pub fn new_with(
-        control_bar: &'a mut ControlBar,
-        action: &'a mut Option<ControlBarAction>,
-    ) -> Self {
+    fn new_with(control_bar: &'a mut ControlBar, action: &'a mut Option<ControlBarAction>) -> Self {
         Self {
             control_bar,
             action,
         }
+    }
+
+    pub fn widget(
+        control_bar: &'a mut ControlBar,
+        action: &'a mut Option<ControlBarAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| ControlBarWidget::new_with(control_bar, action).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {

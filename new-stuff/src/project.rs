@@ -386,6 +386,18 @@ impl Project {
             ArrangementViewMode::SomethingElse => ArrangementViewMode::Composition,
         };
     }
+
+    pub fn notify_transport_sample_rate_change(&mut self) {
+        self.update_sample_rate(self.sample_rate());
+    }
+
+    pub fn notify_transport_tempo_change(&mut self) {
+        self.update_tempo(self.tempo());
+    }
+
+    pub fn notify_transport_time_signature_change(&mut self) {
+        self.update_time_signature(self.time_signature());
+    }
 }
 impl Generates<StereoSample> for Project {
     delegate! {
@@ -399,14 +411,17 @@ impl Configurable for Project {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.transport.update_sample_rate(sample_rate);
         self.orchestrator.update_sample_rate(sample_rate);
+        self.composer.update_sample_rate(sample_rate);
     }
     fn update_tempo(&mut self, tempo: Tempo) {
         self.transport.update_tempo(tempo);
         self.orchestrator.update_tempo(tempo);
+        self.composer.update_tempo(tempo);
     }
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
         self.transport.update_time_signature(time_signature);
         self.orchestrator.update_time_signature(time_signature);
+        self.composer.update_time_signature(time_signature);
     }
 
     delegate! {

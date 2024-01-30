@@ -282,13 +282,19 @@ impl Ensnare {
         ui.horizontal_centered(|ui| {
             if let Some(project) = self.project.as_mut() {
                 if let Ok(mut project) = project.write() {
-                    ui.add(transport(&mut project.transport));
+                    if ui
+                        .add(TransportWidget::widget(&mut project.transport))
+                        .changed()
+                    {
+                        project.notify_transport_tempo_change();
+                        project.notify_transport_time_signature_change();
+                    }
                 }
             } else {
                 // there might be some flicker here while we wait for the
                 // project to first come into existence
             }
-            ui.add(control_bar_widget(
+            ui.add(ControlBarWidget::widget(
                 &mut self.control_bar,
                 &mut control_bar_action,
             ));
