@@ -7,7 +7,7 @@ pub use grid::grid;
 pub use legend::legend;
 pub use project::{ProjectAction, ProjectWidget};
 pub use timeline::{timeline_icon_strip, TimelineIconStrip, TimelineIconStripAction};
-pub use track::{make_title_bar_galley, title_bar, track_arrangement, track_widget};
+pub use track::{make_title_bar_galley, title_bar, track_widget};
 
 mod composer;
 mod cursor;

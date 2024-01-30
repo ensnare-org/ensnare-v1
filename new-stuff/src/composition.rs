@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::types::{ArrangementUid, ArrangementUidFactory};
 use anyhow::{anyhow, Result};
 use ensnare_core::{
     prelude::*,
@@ -9,19 +10,38 @@ use ensnare_core::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct Arrangement {
+    pub pattern_uid: PatternUid,
+    pub position: MusicalTime,
+    pub duration: MusicalTime,
+}
+
 /// [Composer] owns the musical score. It doesn't know anything about
 /// instruments that can help perform the score.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Composer {
     #[serde(default)]
-    pattern_uid_factory: UidFactory<PatternUid>,
+    pattern_uid_factory: PatternUidFactory,
     #[serde(default)]
     pub patterns: HashMap<PatternUid, Pattern>,
     #[serde(default)]
     pub ordered_pattern_uids: Vec<PatternUid>,
+
     #[serde(default)]
-    pub tracks_to_arrangements: HashMap<TrackUid, Vec<Arrangement>>,
+    arrangement_uid_factory: ArrangementUidFactory,
+    #[serde(default)]
+    pub arrangements: HashMap<ArrangementUid, Arrangement>,
+    #[serde(default)]
+    pub tracks_to_ordered_arrangement_uids: HashMap<TrackUid, Vec<ArrangementUid>>,
+
+    /// A reverse mapping of patterns to arrangements, so that we know which
+    /// arrangements to remove when a pattern is changed (TODO) or deleted.
+    #[serde(default)]
+    pub patterns_to_arrangements: HashMap<PatternUid, Vec<ArrangementUid>>,
+
     #[serde(default)]
     pub pattern_color_schemes: Vec<(PatternUid, ColorScheme)>,
 
@@ -32,6 +52,7 @@ pub struct Composer {
 #[derive(Debug, Default)]
 pub struct ComposerEphemerals {
     pub pattern_selection_set: SelectionSet<PatternUid>,
+    pub arrangement_selection_set: SelectionSet<ArrangementUid>,
 
     tracks_to_sequencers: HashMap<TrackUid, PatternSequencer>,
 
@@ -91,9 +112,18 @@ impl Composer {
     pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern> {
         if let Some(pattern) = self.patterns.remove(&pattern_uid) {
             self.ordered_pattern_uids.retain(|uid| pattern_uid != *uid);
-            self.tracks_to_arrangements
-                .values_mut()
-                .for_each(|v| v.retain(|a| a.pattern_uid != pattern_uid));
+            if let Some(arrangement_uids) = self.patterns_to_arrangements.get(&pattern_uid) {
+                arrangement_uids.iter().for_each(|arrangement_uid| {
+                    self.arrangements.remove(arrangement_uid);
+                });
+                self.tracks_to_ordered_arrangement_uids
+                    .values_mut()
+                    .for_each(|track_auids| {
+                        // TODO: keep an eye on this; it's O(NxM)
+                        track_auids.retain(|auid| !arrangement_uids.contains(auid));
+                    });
+                self.patterns_to_arrangements.remove(&pattern_uid); // see you soon borrow checker
+            }
             Ok(pattern)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
@@ -105,56 +135,66 @@ impl Composer {
         track_uid: TrackUid,
         pattern_uid: PatternUid,
         position: MusicalTime,
-    ) -> Result<()> {
+    ) -> Result<ArrangementUid> {
         if let Some(pattern) = self.patterns.get(&pattern_uid) {
-            self.tracks_to_arrangements
-                .entry(track_uid)
-                .or_default()
-                .push(Arrangement {
+            let arrangement_uid = self.arrangement_uid_factory.mint_next();
+            self.arrangements.insert(
+                arrangement_uid,
+                Arrangement {
                     pattern_uid,
                     position,
                     duration: pattern.duration(),
-                });
+                },
+            );
+            self.tracks_to_ordered_arrangement_uids
+                .entry(track_uid)
+                .or_default()
+                .push(arrangement_uid);
+            self.patterns_to_arrangements
+                .entry(pattern_uid)
+                .or_default()
+                .push(arrangement_uid);
 
             let sequencer = self.e.tracks_to_sequencers.entry(track_uid).or_default();
-            sequencer.record(MidiChannel::default(), pattern, position)
+            sequencer.record(MidiChannel::default(), pattern, position)?;
+            Ok(arrangement_uid)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
         }
     }
 
-    pub fn unarrange_pattern(
-        &mut self,
-        track_uid: TrackUid,
-        pattern_uid: PatternUid,
-        position: MusicalTime,
-    ) {
-        if let Some(arrangements) = self.tracks_to_arrangements.get_mut(&track_uid) {
-            if let Some(pattern) = self.patterns.get(&pattern_uid) {
-                let arrangement = Arrangement {
-                    pattern_uid,
-                    position,
-                    duration: pattern.duration(),
-                };
-                arrangements.retain(|a| *a != arrangement);
-                self.replay_arrangements();
+    pub fn unarrange(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid) {
+        if let Some(arrangements) = self.tracks_to_ordered_arrangement_uids.get_mut(&track_uid) {
+            arrangements.retain(|a| *a != arrangement_uid);
+            if let Some(arrangement) = self.arrangements.remove(&arrangement_uid) {
+                self.patterns_to_arrangements
+                    .entry(arrangement.pattern_uid)
+                    .or_default()
+                    .retain(|auid| *auid != arrangement_uid);
             }
+
+            self.replay_arrangements();
         }
     }
 
     fn replay_arrangements(&mut self) {
         self.e.tracks_to_sequencers.clear();
-        self.tracks_to_arrangements.keys().for_each(|track_uid| {
-            if let Some(arrangements) = self.tracks_to_arrangements.get(track_uid) {
-                arrangements.iter().for_each(|arrangement| {
-                    if let Some(pattern) = self.patterns.get(&arrangement.pattern_uid) {
-                        let sequencer = self.e.tracks_to_sequencers.entry(*track_uid).or_default();
-                        let _ =
-                            sequencer.record(MidiChannel::default(), pattern, arrangement.position);
+        self.tracks_to_ordered_arrangement_uids
+            .iter()
+            .for_each(|(track_uid, arrangement_uids)| {
+                let sequencer = self.e.tracks_to_sequencers.entry(*track_uid).or_default();
+                arrangement_uids.iter().for_each(|arrangement_uid| {
+                    if let Some(arrangement) = self.arrangements.get(arrangement_uid) {
+                        if let Some(pattern) = self.patterns.get(&arrangement.pattern_uid) {
+                            let _ = sequencer.record(
+                                MidiChannel::default(),
+                                pattern,
+                                arrangement.position,
+                            );
+                        }
                     }
-                });
-            }
-        });
+                })
+            });
     }
 
     /// Use like this:
@@ -294,7 +334,8 @@ mod tests {
             "Default Composer is empty"
         );
         assert!(c.patterns.is_empty());
-        assert!(c.tracks_to_arrangements.is_empty());
+        assert!(c.tracks_to_ordered_arrangement_uids.is_empty());
+        assert!(c.arrangements.is_empty());
 
         let pattern_1_uid = c
             .add_pattern(
@@ -314,15 +355,16 @@ mod tests {
             .unwrap();
         assert_eq!(c.ordered_pattern_uids.len(), 2, "Creating patterns works");
         assert_eq!(c.patterns.len(), 2);
-        assert!(c.tracks_to_arrangements.is_empty());
+        assert!(c.tracks_to_ordered_arrangement_uids.is_empty());
+        assert!(c.arrangements.is_empty());
 
         assert!(
-            c.pattern(pattern_1_uid).is_some(),
+            c.patterns.get(&pattern_1_uid).is_some(),
             "Retrieving patterns works"
         );
-        assert!(c.pattern(pattern_2_uid).is_some());
+        assert!(c.patterns.get(&pattern_2_uid).is_some());
         assert!(
-            c.pattern(PatternUid(9999999)).is_none(),
+            c.patterns.get(&PatternUid(9999999)).is_none(),
             "Retrieving a nonexistent pattern returns None"
         );
 
@@ -332,49 +374,98 @@ mod tests {
             .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::START)
             .unwrap();
         assert_eq!(
-            c.tracks_to_arrangements.len(),
+            c.tracks_to_ordered_arrangement_uids.len(),
             1,
             "Arranging patterns works"
         );
-        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 1);
-        let _ = c
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_1_uid)
+                .unwrap()
+                .len(),
+            1
+        );
+        let arrangement_1_uid = c
             .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 1)
             .unwrap();
-        let _ = c
+        let arrangement_2_uid = c
             .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 2)
             .unwrap();
-        assert_eq!(c.tracks_to_arrangements.len(), 1);
-        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 3);
+        assert_eq!(c.tracks_to_ordered_arrangement_uids.len(), 1);
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_1_uid)
+                .unwrap()
+                .len(),
+            3
+        );
 
         let _ = c
             .arrange_pattern(track_2_uid, pattern_2_uid, MusicalTime::DURATION_WHOLE * 3)
             .unwrap();
-        let _ = c
+        let arrangement_4_uid = c
             .arrange_pattern(track_2_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 3)
             .unwrap();
         assert_eq!(
-            c.tracks_to_arrangements.len(),
+            c.tracks_to_ordered_arrangement_uids.len(),
             2,
             "Arranging patterns across multiple tracks works"
         );
-        assert_eq!(c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(), 3);
-        assert_eq!(c.tracks_to_arrangements.get(&track_2_uid).unwrap().len(), 2);
-
-        c.unarrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::START);
         assert_eq!(
-            c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(),
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_1_uid)
+                .unwrap()
+                .len(),
+            3
+        );
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_2_uid)
+                .unwrap()
+                .len(),
+            2
+        );
+
+        c.unarrange(track_1_uid, arrangement_1_uid);
+        assert!(
+            c.arrangements.get(&arrangement_1_uid).is_none(),
+            "Unarranging should remove the arrangement"
+        );
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_1_uid)
+                .unwrap()
+                .len(),
             2,
-            "Removing an arrangement works"
+            "Unarranging should remove only the specified arrangment"
         );
 
         let removed_pattern = c.remove_pattern(pattern_1_uid).unwrap();
         assert_eq!(removed_pattern.notes().len(), 1);
-        assert_eq!(
-            c.tracks_to_arrangements.get(&track_1_uid).unwrap().len(),
-            0,
-            "Removing a pattern should also unarrange it"
+        assert!(
+            c.arrangements.get(&arrangement_2_uid).is_none(),
+            "Removing a pattern should remove all arrangements using it"
         );
-        assert_eq!(c.tracks_to_arrangements.get(&track_2_uid).unwrap().len(), 1);
+        assert!(
+            c.arrangements.get(&arrangement_4_uid).is_none(),
+            "Removing a pattern should remove all arrangements using it"
+        );
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_1_uid)
+                .unwrap()
+                .len(),
+            0,
+            "tracks_to_ordered_arrangement_uids bookkeeping"
+        );
+        assert_eq!(
+            c.tracks_to_ordered_arrangement_uids
+                .get(&track_2_uid)
+                .unwrap()
+                .len(),
+            1,
+            "tracks_to_ordered_arrangement_uids bookkeeping"
+        );
     }
 
     #[test]

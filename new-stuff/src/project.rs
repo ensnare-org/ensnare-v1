@@ -4,6 +4,7 @@
 
 use crate::{
     automation::Automator, composition::Composer, midi::MidiRouter, orchestration::Orchestrator,
+    types::ArrangementUid,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
@@ -150,8 +151,8 @@ impl Project {
             pub fn pattern_mut(&mut self, pattern_uid: PatternUid) -> Option<&mut Pattern>;
             pub fn notify_pattern_change(&mut self);
             pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
-            pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<()>;
-            pub fn unarrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime);
+            pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<ArrangementUid>;
+            pub fn unarrange(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid);
         }
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;

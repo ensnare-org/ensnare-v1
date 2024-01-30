@@ -3,7 +3,7 @@
 use crate::{repositories::EntityRepository, types::ControlLink};
 use anyhow::{anyhow, Result};
 use ensnare_core::{
-    generators::{PathUid, SignalPath},
+    generators::{PathUid, PathUidFactory, SignalPath},
     prelude::*,
 };
 use ensnare_entity::Uid;
@@ -15,7 +15,7 @@ use std::{collections::HashMap, fmt::Debug, option::Option};
 pub struct Automator {
     pub controllables: HashMap<Uid, Vec<ControlLink>>,
 
-    uid_factory: UidFactory<PathUid>,
+    uid_factory: PathUidFactory,
     pub paths: HashMap<PathUid, SignalPath>,
     pub path_links: HashMap<PathUid, Vec<ControlLink>>,
 

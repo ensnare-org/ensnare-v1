@@ -10,7 +10,7 @@ use std::{collections::HashMap, fmt::Debug, option::Option};
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TrackRepository {
-    pub(crate) uid_factory: UidFactory<TrackUid>,
+    pub(crate) uid_factory: TrackUidFactory,
     pub(crate) uids: Vec<TrackUid>,
 }
 impl TrackRepository {

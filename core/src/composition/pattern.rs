@@ -8,9 +8,10 @@ use crate::{
     uid::{IsUid, UidFactory},
 };
 use anyhow::anyhow;
+use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ops::Add, sync::atomic::AtomicUsize};
+use std::{fmt::Display, ops::Add};
 
 /// Identifies a [Pattern].
 #[derive(
@@ -33,15 +34,18 @@ impl Display for PatternUid {
         f.write_fmt(format_args!("{}", self.0))
     }
 }
-pub type PatternUidFactory = UidFactory<PatternUid>;
-impl UidFactory<PatternUid> {
-    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
-}
-impl Default for UidFactory<PatternUid> {
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PatternUidFactory(UidFactory<PatternUid>);
+impl Default for PatternUidFactory {
     fn default() -> Self {
-        Self {
-            next_uid_value: Self::FIRST_UID,
-            _phantom: Default::default(),
+        Self(UidFactory::<PatternUid>::new(131072))
+    }
+}
+impl PatternUidFactory {
+    delegate! {
+        to self.0 {
+            pub fn mint_next(&self) -> PatternUid;
         }
     }
 }

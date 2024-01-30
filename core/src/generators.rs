@@ -5,12 +5,13 @@ use crate::{
     time::Seconds,
     traits::{prelude::*, CanPrototype, GeneratesEnvelope},
 };
+use delegate::delegate;
 use derivative::Derivative;
 use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
-use std::{f64::consts::PI, fmt::Debug, ops::Range, sync::atomic::AtomicUsize};
+use std::{f64::consts::PI, fmt::Debug, ops::Range};
 use strum::EnumCount as UseEnumCount;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
@@ -1015,15 +1016,17 @@ impl From<usize> for PathUid {
     }
 }
 
-pub type PathUidFactory = UidFactory<PathUid>;
-impl UidFactory<PathUid> {
-    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1024);
-}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PathUidFactory(UidFactory<PathUid>);
 impl Default for PathUidFactory {
     fn default() -> Self {
-        Self {
-            next_uid_value: Self::FIRST_UID,
-            _phantom: Default::default(),
+        Self(UidFactory::<PathUid>::new(1024))
+    }
+}
+impl PathUidFactory {
+    delegate! {
+        to self.0 {
+            pub fn mint_next(&self) -> PathUid;
         }
     }
 }

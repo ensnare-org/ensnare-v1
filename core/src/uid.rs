@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use delegate::delegate;
 use derivative::Derivative;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
@@ -87,15 +88,17 @@ impl From<usize> for TrackUid {
     }
 }
 
-pub type TrackUidFactory = UidFactory<TrackUid>;
-impl UidFactory<TrackUid> {
-    pub const FIRST_UID: AtomicUsize = AtomicUsize::new(1);
-}
-impl Default for UidFactory<TrackUid> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TrackUidFactory(UidFactory<TrackUid>);
+impl Default for TrackUidFactory {
     fn default() -> Self {
-        Self {
-            next_uid_value: Self::FIRST_UID,
-            _phantom: Default::default(),
+        Self(UidFactory::<TrackUid>::new(1))
+    }
+}
+impl TrackUidFactory {
+    delegate! {
+        to self.0 {
+            pub fn mint_next(&self) -> TrackUid;
         }
     }
 }

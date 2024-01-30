@@ -246,7 +246,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                 crate::project::ArrangementViewMode::Composition => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(track_arrangement(
+                                            ui.add(TrackArrangementWidget::widget(
                                                 self.track_info.track_uid,
                                                 self.composer,
                                                 &self.view_state.view_range,
@@ -341,27 +341,15 @@ impl<'a> Widget for TrackWidget<'a> {
     }
 }
 
-/// Wraps a [TrackArrangement] as a [Widget](eframe::egui::Widget).
-pub fn track_arrangement<'a>(
-    track_uid: TrackUid,
-    composer: &'a mut Composer,
-    view_range: &'a ViewRange,
-    color_scheme: ColorScheme,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        TrackArrangement::new(track_uid, composer, view_range, color_scheme).ui(ui)
-    }
-}
-
 /// An egui widget that draws a track arrangement overlaid in the track view.
 #[derive(Debug)]
-struct TrackArrangement<'a> {
+struct TrackArrangementWidget<'a> {
     track_uid: TrackUid,
     composer: &'a mut Composer,
     view_range: &'a ViewRange,
     color_scheme: ColorScheme,
 }
-impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
+impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
             let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
@@ -375,10 +363,9 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
             let (track_foreground_color, track_background_color) =
                 ColorSchemeConverter::to_color32(self.color_scheme);
 
-            // Check whether we edited the sequence
-            if response.clicked() {
-                if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
-                    let local_pos = from_screen * click_pos;
+            let (clicked, position) = if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
+                let local_pos = from_screen * click_pos;
+                if response.clicked() {
                     let time = MusicalTime::new_with_units(local_pos.x as usize)
                         .quantized(MusicalTime::new_with_parts(1));
                     let key = local_pos.y as u8;
@@ -387,7 +374,13 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
                     // self.sequencer.toggle_note(note);
                     // self.sequencer.calculate_events();
                 }
-            }
+                (
+                    response.clicked(),
+                    Some(MusicalTime::new_with_units(local_pos.x as usize)),
+                )
+            } else {
+                (false, None)
+            };
 
             let visuals = if ui.is_enabled() {
                 ui.ctx().style().visuals.widgets.active
@@ -395,27 +388,53 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
                 ui.ctx().style().visuals.widgets.inactive
             };
 
-            // Generate all the note shapes
-            // let note_shapes: Vec<Shape> = self
-            //     .sequencer
-            //     .notes()
-            //     .iter()
-            //     .map(|note| self.shape_for_note(&to_screen, &visuals, note))
-            //     .collect();
-
             // Generate all the pattern note shapes
-            if let Some(arrangements) = self.composer.tracks_to_arrangements.get(&self.track_uid) {
-                let (pattern_backgrounds, pattern_shapes): (Vec<Shape>, Vec<Shape>) =
-                    arrangements.iter().fold(
-                        (Vec::default(), Vec::default()),
-                        |(mut background_v, mut shape_v), arrangement| {
-                            if let Some(pattern) = self.composer.pattern(arrangement.pattern_uid) {
+            let arrangement_uids = self
+                .composer
+                .tracks_to_ordered_arrangement_uids
+                .entry(self.track_uid)
+                .or_default()
+                .clone();
+            let (pattern_backgrounds, pattern_shapes): (Vec<Shape>, Vec<Shape>) =
+                arrangement_uids.iter().fold(
+                    (Vec::default(), Vec::default()),
+                    |(mut background_v, mut shape_v), arrangement_uid| {
+                        if let Some(arrangement) = self.composer.arrangements.get(&arrangement_uid)
+                        {
+                            if let Some(pattern) =
+                                self.composer.patterns.get(&arrangement.pattern_uid)
+                            {
+                                let arrangement_extent = arrangement.position
+                                    ..arrangement.position + arrangement.duration;
+                                if let Some(position) = position {
+                                    if arrangement_extent.contains(&position) {
+                                        eprintln!(
+                                            "hey! mouse is in {} and clicked {}",
+                                            arrangement.pattern_uid, clicked
+                                        );
+                                        if clicked {
+                                            self.composer
+                                                .e
+                                                .arrangement_selection_set
+                                                .click(arrangement_uid, false)
+                                            // TODO
+                                        }
+                                    }
+                                }
+                                let is_selected = self
+                                    .composer
+                                    .e
+                                    .arrangement_selection_set
+                                    .contains(arrangement_uid);
                                 background_v.push(Self::background_for_arrangement(
                                     &to_screen,
                                     &visuals,
-                                    track_background_color,
-                                    arrangement.position
-                                        ..(arrangement.position + arrangement.duration),
+                                    if is_selected {
+                                        Color32::RED
+                                    } else {
+                                        track_background_color
+                                    },
+                                    arrangement_extent,
                                 ));
                                 pattern.notes().iter().for_each(|note| {
                                     let note = Note::new_with_start_and_end(
@@ -431,22 +450,21 @@ impl<'a> eframe::egui::Widget for TrackArrangement<'a> {
                                     ));
                                 });
                             }
-                            (background_v, shape_v)
-                        },
-                    );
+                        }
+                        (background_v, shape_v)
+                    },
+                );
 
-                // Paint all the shapes
-                // painter.extend(note_shapes);
-                painter.extend(pattern_backgrounds);
-                painter.extend(pattern_shapes);
-            }
+            // Paint all the shapes
+            painter.extend(pattern_backgrounds);
+            painter.extend(pattern_shapes);
 
             response
         })
         .inner
     }
 }
-impl<'a> TrackArrangement<'a> {
+impl<'a> TrackArrangementWidget<'a> {
     fn new(
         track_uid: TrackUid,
         composer: &'a mut Composer,
@@ -458,6 +476,17 @@ impl<'a> TrackArrangement<'a> {
             composer,
             view_range,
             color_scheme,
+        }
+    }
+
+    pub fn widget(
+        track_uid: TrackUid,
+        composer: &'a mut Composer,
+        view_range: &'a ViewRange,
+        color_scheme: ColorScheme,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            TrackArrangementWidget::new(track_uid, composer, view_range, color_scheme).ui(ui)
         }
     }
 
