@@ -12,7 +12,10 @@ use ensnare_core::{
     time::{MusicalTime, TimeRange, TimeSignature},
     traits::Configurable,
 };
-use ensnare_cores_egui::widgets::pattern::{CarouselAction, CarouselWidget};
+use ensnare_cores_egui::{
+    widgets::pattern::{CarouselAction, CarouselWidget},
+    ColorSchemeConverter,
+};
 use ensnare_egui_widgets::fill_remaining_ui_space;
 use std::ops::RangeInclusive;
 
@@ -259,27 +262,31 @@ impl eframe::egui::Widget for PatternGridWidget {
         }
 
         // Draw the vertical note dividers.
-        for part in 0..sections {
-            let x = part as f32;
-            let stroke = if part % self.time_signature.bottom == 0 {
-                visuals.fg_stroke
-            } else {
-                visuals.bg_stroke
-            };
-            let line_start = to_screen * pos2(x, first_note_f32);
-            let line_end = to_screen * pos2(x, last_note_f32);
-            let line_middle = to_screen * pos2(x + 0.5, last_note_f32);
-            shapes.push(Shape::LineSegment {
-                points: [line_start, line_end],
-                stroke,
-            });
-            ui.painter().text(
-                line_middle,
-                Align2::CENTER_BOTTOM,
-                format!("{part}"),
-                FontId::monospace(12.0),
-                Color32::YELLOW,
-            );
+        for beat in 0..self.time_signature.top {
+            let divisions_per_beat = self.time_signature.bottom;
+            for division in 0..divisions_per_beat {
+                let part = beat * divisions_per_beat + division;
+                let x = part as f32;
+                let stroke = if division == 0 {
+                    visuals.fg_stroke
+                } else {
+                    visuals.bg_stroke
+                };
+                let line_start = to_screen * pos2(x, first_note_f32);
+                let line_end = to_screen * pos2(x, last_note_f32);
+                let line_middle = to_screen * pos2(x + 0.5, last_note_f32);
+                shapes.push(Shape::LineSegment {
+                    points: [line_start, line_end],
+                    stroke,
+                });
+                ui.painter().text(
+                    line_middle,
+                    Align2::CENTER_BOTTOM,
+                    format!("{}.{}", beat + 1, division + 1),
+                    FontId::monospace(12.0),
+                    Color32::YELLOW,
+                );
+            }
         }
         ui.painter().extend(shapes);
 
@@ -303,17 +310,40 @@ impl<'a> PatternWidget<'a> {
         self
     }
 
+    fn new(pattern: &'a mut Pattern, note_range: RangeInclusive<u8>) -> Self {
+        Self {
+            pattern,
+            note_range,
+        }
+    }
+
     pub fn widget(
         pattern: &'a mut Pattern,
         note_range: RangeInclusive<u8>,
     ) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| {
-            Self {
-                pattern,
-                note_range,
-            }
-            .ui(ui)
-        }
+        move |ui: &mut eframe::egui::Ui| Self::new(pattern, note_range).ui(ui)
+    }
+
+    fn rect_for_note(to_screen: &RectTransform, note: &Note) -> Rect {
+        // The `/ 4` is correct because a part is a 16th of a beat, and for this
+        // rigid pattern widget, we're using only quarter-beat divisions.
+        let ul = to_screen
+            * pos2(
+                (note.range.0.start.total_parts() / 4) as f32,
+                note.key as f32,
+            );
+        let br = to_screen
+            * pos2(
+                (note.range.0.end.total_parts() / 4) as f32,
+                (note.key + 1) as f32,
+            );
+        let note_rect = Rect::from_two_pos(ul, br);
+
+        note_rect
+    }
+
+    fn division_duration(&self) -> MusicalTime {
+        MusicalTime::DURATION_WHOLE / self.pattern.time_signature().bottom / 4
     }
 }
 impl<'a> eframe::egui::Widget for PatternWidget<'a> {
@@ -359,29 +389,74 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
 
         let mut shapes = Vec::default();
 
-        // The `/ 4` is correct because a part is a 16th of a beat, and for this
-        // rigid pattern widget, we're using only quarter-beat divisions.
+        let (_foreground_color, background_color) =
+            ColorSchemeConverter::to_color32(self.pattern.color_scheme);
+        let mut drew_hovered = false;
         for note in self.pattern.notes.iter() {
-            let ul = to_screen
-                * pos2(
-                    (note.range.0.start.total_parts() / 4) as f32,
-                    note.key as f32,
-                );
-            let br = to_screen
-                * pos2(
-                    (note.range.0.end.total_parts() / 4) as f32,
-                    (note.key + 1) as f32,
-                );
-            let note_rect = Rect::from_two_pos(ul, br);
-            shapes.push(Shape::Rect(RectShape::filled(
+            let note_rect = Self::rect_for_note(&to_screen, note);
+
+            let hovered = Some(note.key) == key
+                && if let Some(position) = position {
+                    note.range.0.contains(&position)
+                } else {
+                    false
+                };
+            if hovered {
+                drew_hovered = true;
+            }
+            let stroke = if hovered {
+                ui.ctx().style().visuals.widgets.active.fg_stroke
+            } else {
+                ui.ctx().style().visuals.widgets.active.bg_stroke
+            };
+
+            shapes.push(Shape::Rect(RectShape::new(
                 note_rect,
                 Rounding::default(),
-                Color32::YELLOW,
+                background_color,
+                stroke,
             )));
+        }
+        if !drew_hovered {
+            if let Some(key) = key {
+                if let Some(position) = position {
+                    // The `* 4` is here because I haven't decided whether a
+                    // pattern is always time sig's top x bottom # of divisions,
+                    // or else 4x that (each note value divided by 4)
+                    shapes.push(Shape::Rect(RectShape::new(
+                        Self::rect_for_note(
+                            &to_screen,
+                            &Note {
+                                key,
+                                range: TimeRange(
+                                    position..(position + self.division_duration() * 4),
+                                ),
+                            },
+                        ),
+                        Rounding::default(),
+                        Color32::DARK_GRAY,
+                        ui.ctx().style().visuals.widgets.active.bg_stroke,
+                    )))
+                }
+            }
         }
 
         ui.painter().extend(shapes);
 
         response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn division_duration_works() {
+        let mut pattern = PatternBuilder::default().build().unwrap();
+        let note_range = 60..=71;
+        let w = PatternWidget::new(&mut pattern, note_range);
+
+        assert_eq!(w.division_duration(), MusicalTime::DURATION_QUARTER / 4);
     }
 }
