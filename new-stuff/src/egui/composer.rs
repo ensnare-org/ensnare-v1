@@ -396,7 +396,11 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
         let (key, position) = if let Some(screen_pos) = ui.ctx().pointer_interact_pos() {
             let local_pos = from_screen * screen_pos;
             (
-                Some(local_pos.y as u8),
+                // TODO: the max(127) is to catch an overflow in rect_for_note()
+                // where this somehow ended up as 255. It might be from_screen
+                // giving a degenerate result when the pointer ends up way out
+                // of bounds. I don't know how this can happen.
+                Some((local_pos.y as u8).max(127)),
                 Some(MusicalTime::new_with_parts(local_pos.x as usize * 4)),
             )
         } else {
