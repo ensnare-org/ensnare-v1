@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{composition::Composer, egui::grid::GridWidget, project::ProjectViewState};
 use eframe::{
-    egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
+    egui::{style::WidgetVisuals, Frame, Margin, Modifiers, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
     epaint::{
         pos2, text::LayoutJob, vec2, Color32, FontId, Galley, Rect, RectShape, Shape, Stroke,
@@ -390,6 +390,7 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
             };
 
             // Generate all the pattern note shapes
+            let mut arrangement_to_unarrange = None;
             let arrangement_uids = self
                 .composer
                 .tracks_to_ordered_arrangement_uids
@@ -409,10 +410,6 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                     ..arrangement.position + arrangement.duration;
                                 if let Some(position) = position {
                                     if arrangement_extent.contains(&position) {
-                                        eprintln!(
-                                            "hey! mouse is in {} and clicked {}",
-                                            arrangement.pattern_uid, clicked
-                                        );
                                         if clicked {
                                             self.composer
                                                 .e
@@ -450,11 +447,29 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                         &note,
                                     ));
                                 });
+
+                                // If this arrangement is selected, and the user
+                                // presses Delete, then we should remove the
+                                // arrangement.
+                                if is_selected {
+                                    ui.ctx().input_mut(|i| {
+                                        if i.consume_key(
+                                            Modifiers::default(),
+                                            eframe::egui::Key::Delete,
+                                        ) {
+                                            arrangement_to_unarrange = Some(*arrangement_uid);
+                                        }
+                                    });
+                                }
                             }
                         }
                         (background_v, shape_v)
                     },
                 );
+
+            if let Some(uid) = arrangement_to_unarrange {
+                self.composer.unarrange(self.track_uid, uid);
+            }
 
             // Paint all the shapes
             painter.extend(pattern_backgrounds);
