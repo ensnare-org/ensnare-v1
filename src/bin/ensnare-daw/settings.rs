@@ -87,6 +87,10 @@ impl Settings {
     pub(crate) fn handle_midi_output_port_refresh(&mut self, ports: &[MidiPortDescriptor]) {
         self.midi_outputs = ports.to_vec();
     }
+
+    pub(crate) fn set_midi_sender(&mut self, sender: &Sender<MidiInterfaceServiceInput>) {
+        self.midi_sender = Some(sender.clone());
+    }
 }
 impl HasSettings for Settings {
     fn has_been_saved(&self) -> bool {

@@ -81,9 +81,10 @@ impl Ensnare {
     pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         let factory = Arc::new(factory);
 
-        let settings = Settings::load().unwrap_or_default();
+        let mut settings = Settings::load().unwrap_or_default();
         let audio_service = AudioService::new();
         let midi_service = MidiService::new_with(&settings.midi_settings);
+        settings.set_midi_sender(midi_service.sender());
         let project_service = ProjectService::new_with(&factory);
         let control_bar = ControlBar::default();
 
