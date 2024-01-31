@@ -18,7 +18,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
-use ensnare_egui_widgets::{oblique_strategies, ObliqueStrategiesManager};
+use ensnare_egui_widgets::ObliqueStrategiesWidget;
 use ensnare_new_stuff::egui::{ComposerWidget, ProjectWidget};
 use std::{
     path::PathBuf,
@@ -63,7 +63,7 @@ pub(super) struct Ensnare {
 
     toasts: Toasts,
 
-    oblique_strategies_mgr: ObliqueStrategiesManager,
+    oblique_strategies_mgr: ObliqueStrategiesWidget,
 
     exit_requested: bool,
 
@@ -331,7 +331,7 @@ impl Ensnare {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.label(app_version());
                 if let Some(seed) = self.oblique_strategies_mgr.check_seed() {
-                    ui.add(oblique_strategies(seed));
+                    ui.add(ObliqueStrategiesWidget::widget(seed));
                 }
             });
         });

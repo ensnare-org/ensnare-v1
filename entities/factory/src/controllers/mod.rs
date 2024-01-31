@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{generators::Oscillator, prelude::*};
-use ensnare_cores_egui::{arpeggiator, lfo_controller};
+use ensnare_cores_egui::{arpeggiator, LfoControllerWidget};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
@@ -256,7 +256,7 @@ impl LfoController {
 }
 impl Displays for LfoController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(lfo_controller(
+        let response = ui.add(LfoControllerWidget::widget(
             &mut self.inner.oscillator.waveform,
             &mut self.inner.oscillator.frequency,
         ));

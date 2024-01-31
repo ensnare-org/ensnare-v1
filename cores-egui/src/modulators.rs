@@ -5,14 +5,9 @@ use ensnare_core::{modulators::Dca, prelude::*};
 use ensnare_drag_drop::{DragDropManager, DropTarget};
 use ensnare_entity::Uid;
 
-/// Wraps a [DcaWidget] as a [Widget](eframe::egui::Widget).
-pub fn dca<'a>(dca: &'a mut Dca, controllable_uid: Uid) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, controllable_uid).ui(ui)
-}
-
 /// An egui widget for [Dca].
 #[derive(Debug)]
-struct DcaWidget<'a> {
+pub struct DcaWidget<'a> {
     dca: &'a mut Dca,
     controllable_uid: Uid,
 }
@@ -57,5 +52,9 @@ impl<'a> DcaWidget<'a> {
             dca,
             controllable_uid,
         }
+    }
+
+    pub fn widget(dca: &'a mut Dca, controllable_uid: Uid) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, controllable_uid).ui(ui)
     }
 }

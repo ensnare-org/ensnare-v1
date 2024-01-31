@@ -9,7 +9,9 @@ pub mod prelude {
 
 pub use {
     common::ColorSchemeConverter,
-    controllers::{arpeggiator, lfo_controller, note_sequencer_widget, pattern_sequencer_widget},
+    controllers::{
+        arpeggiator, note_sequencer_widget, pattern_sequencer_widget, LfoControllerWidget,
+    },
 };
 
 pub(crate) mod common;

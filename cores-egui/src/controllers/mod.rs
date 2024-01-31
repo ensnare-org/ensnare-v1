@@ -372,16 +372,8 @@ impl<'a> eframe::egui::Widget for ArpeggiatorWidget<'a> {
     }
 }
 
-/// Wraps an [LfoControllerWidget] as a [Widget](eframe::egui::Widget).
-pub fn lfo_controller<'a>(
-    waveform: &'a mut Waveform,
-    frequency: &'a mut FrequencyHz,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| LfoControllerWidget::new(waveform, frequency).ui(ui)
-}
-
 #[derive(Debug)]
-struct LfoControllerWidget<'a> {
+pub struct LfoControllerWidget<'a> {
     waveform: &'a mut Waveform,
     frequency: &'a mut FrequencyHz,
 }
@@ -392,10 +384,17 @@ impl<'a> eframe::egui::Widget for LfoControllerWidget<'a> {
     }
 }
 impl<'a> LfoControllerWidget<'a> {
-    pub fn new(waveform: &'a mut Waveform, frequency: &'a mut FrequencyHz) -> Self {
+    fn new(waveform: &'a mut Waveform, frequency: &'a mut FrequencyHz) -> Self {
         Self {
             waveform,
             frequency,
         }
+    }
+
+    pub fn widget(
+        waveform: &'a mut Waveform,
+        frequency: &'a mut FrequencyHz,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| LfoControllerWidget::new(waveform, frequency).ui(ui)
     }
 }

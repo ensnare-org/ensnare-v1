@@ -3,18 +3,17 @@
 use crate::AudioSettings;
 use eframe::egui::{CollapsingHeader, Widget};
 
-/// Wraps an [AudioSettingsWidget] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
-pub fn audio_settings(settings: &mut AudioSettings) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| AudioSettingsWidget::new_with(settings).ui(ui)
-}
-
 #[derive(Debug)]
-struct AudioSettingsWidget<'a> {
+pub struct AudioSettingsWidget<'a> {
     settings: &'a mut AudioSettings,
 }
 impl<'a> AudioSettingsWidget<'a> {
-    pub fn new_with(settings: &'a mut AudioSettings) -> Self {
+    fn new_with(settings: &'a mut AudioSettings) -> Self {
         Self { settings }
+    }
+
+    pub fn widget(settings: &mut AudioSettings) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| AudioSettingsWidget::new_with(settings).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for AudioSettingsWidget<'a> {

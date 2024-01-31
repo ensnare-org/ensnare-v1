@@ -7,7 +7,7 @@ use crossbeam_channel::Sender;
 use ensnare::{
     services::{AudioSettings, MidiSettings},
     traits::{Displays, HasSettings},
-    ui::widgets::{audio_settings, midi_settings},
+    ui::widgets::{AudioSettingsWidget, MidiSettingsWidget},
 };
 use ensnare_core::midi_interface::{MidiInterfaceServiceInput, MidiPortDescriptor};
 use serde::{Deserialize, Serialize};
@@ -117,11 +117,11 @@ impl Displays for Settings {
         let mut new_output = None;
         let response = {
             ui.heading("Audio");
-            ui.add(audio_settings(&mut self.audio_settings))
+            ui.add(AudioSettingsWidget::widget(&mut self.audio_settings))
         } | {
             ui.heading("MIDI");
             let mut settings = self.midi_settings.write().unwrap();
-            ui.add(midi_settings(
+            ui.add(MidiSettingsWidget::widget(
                 &mut settings,
                 &self.midi_inputs,
                 &self.midi_outputs,

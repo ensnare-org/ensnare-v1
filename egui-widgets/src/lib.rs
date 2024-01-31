@@ -7,7 +7,7 @@ pub use control_bar::{ControlBar, ControlBarAction, ControlBarWidget};
 pub use core::drag_normal;
 pub use generators::{envelope, oscillator};
 pub use indicators::{activity_indicator, level_indicator};
-pub use misc::{oblique_strategies, ObliqueStrategiesManager};
+pub use misc::ObliqueStrategiesWidget;
 pub use placeholder::wiggler;
 pub use util::fill_remaining_ui_space;
 

@@ -4,21 +4,8 @@ use crate::MidiSettings;
 use eframe::egui::{CollapsingHeader, ComboBox, Widget};
 use ensnare_core::midi_interface::MidiPortDescriptor;
 
-/// Wraps a [MidiSettingsWidget] as a [Widget](eframe::egui::Widget). Mutates the given view_range.
-pub fn midi_settings<'a>(
-    settings: &'a mut MidiSettings,
-    inputs: &'a [MidiPortDescriptor],
-    outputs: &'a [MidiPortDescriptor],
-    new_input: &'a mut Option<MidiPortDescriptor>,
-    new_output: &'a mut Option<MidiPortDescriptor>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        MidiSettingsWidget::new_with(settings, inputs, outputs, new_input, new_output).ui(ui)
-    }
-}
-
 #[derive(Debug)]
-struct MidiSettingsWidget<'a> {
+pub struct MidiSettingsWidget<'a> {
     pub(crate) settings: &'a mut MidiSettings,
     inputs: &'a [MidiPortDescriptor],
     outputs: &'a [MidiPortDescriptor],
@@ -26,7 +13,7 @@ struct MidiSettingsWidget<'a> {
     new_output: &'a mut Option<MidiPortDescriptor>,
 }
 impl<'a> MidiSettingsWidget<'a> {
-    pub fn new_with(
+    fn new_with(
         settings: &'a mut MidiSettings,
         inputs: &'a [MidiPortDescriptor],
         outputs: &'a [MidiPortDescriptor],
@@ -39,6 +26,18 @@ impl<'a> MidiSettingsWidget<'a> {
             outputs,
             new_input,
             new_output,
+        }
+    }
+
+    pub fn widget(
+        settings: &'a mut MidiSettings,
+        inputs: &'a [MidiPortDescriptor],
+        outputs: &'a [MidiPortDescriptor],
+        new_input: &'a mut Option<MidiPortDescriptor>,
+        new_output: &'a mut Option<MidiPortDescriptor>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            MidiSettingsWidget::new_with(settings, inputs, outputs, new_input, new_output).ui(ui)
         }
     }
 }

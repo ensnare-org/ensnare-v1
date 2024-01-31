@@ -125,11 +125,11 @@ impl Displays for Settings {
         let mut new_output = None;
         let response = {
             ui.heading("Audio");
-            ui.add(audio_settings(&mut self.audio_settings))
+            ui.add(AudioSettingsWidget::widget(&mut self.audio_settings))
         } | {
             ui.heading("MIDI");
             let mut settings = self.midi_settings.write().unwrap();
-            ui.add(midi_settings(
+            ui.add(MidiSettingsWidget::widget(
                 &mut settings,
                 &self.midi_inputs,
                 &self.midi_outputs,

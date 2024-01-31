@@ -1,10 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{
-    cursor::cursor,
+    cursor::CursorWidget,
     signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
 };
-use crate::{composition::Composer, egui::grid::grid, project::ProjectViewState};
+use crate::{composition::Composer, egui::grid::GridWidget, project::ProjectViewState};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -42,18 +42,12 @@ pub fn make_title_bar_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> A
     ui.ctx().fonts(|f| f.layout_job(job))
 }
 
-/// Wraps a [TitleBar] as a [Widget](eframe::egui::Widget). Don't have a
-/// font_galley? Check out [make_title_bar_galley()].
-pub fn title_bar(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget {
-    move |ui: &mut eframe::egui::Ui| TitleBar::new(font_galley).ui(ui)
-}
-
 /// An egui widget that draws a track's sideways title bar.
 #[derive(Debug)]
-struct TitleBar {
+pub struct TitleBarWidget {
     font_galley: Option<Arc<Galley>>,
 }
-impl eframe::egui::Widget for TitleBar {
+impl eframe::egui::Widget for TitleBarWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let available_size = vec2(16.0, ui.available_height());
         ui.set_min_size(available_size);
@@ -93,9 +87,14 @@ impl eframe::egui::Widget for TitleBar {
             .inner
     }
 }
-impl TitleBar {
+impl TitleBarWidget {
     fn new(font_galley: Option<Arc<Galley>>) -> Self {
         Self { font_galley }
+    }
+
+    /// Don't have a font_galley? Check out [make_title_bar_galley()].
+    pub fn widget(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget {
+        move |ui: &mut eframe::egui::Ui| TitleBarWidget::new(font_galley).ui(ui)
     }
 }
 
@@ -118,21 +117,9 @@ pub enum TrackWidgetAction {
     Clicked,
 }
 
-/// Wraps a [TrackWidget] as a [Widget](eframe::egui::Widget).
-pub fn track_widget<'a>(
-    track_info: &'a TrackWidgetInfo<'a>,
-    composer: &'a mut Composer,
-    view_state: &'a mut ProjectViewState,
-    action: &'a mut Option<TrackWidgetAction>,
-) -> impl Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        TrackWidget::new(track_info, composer, view_state, action).ui(ui)
-    }
-}
-
 /// An egui component that draws a track.
 #[derive(Debug)]
-struct TrackWidget<'a> {
+pub struct TrackWidget<'a> {
     track_info: &'a TrackWidgetInfo<'a>,
     composer: &'a mut Composer,
     view_state: &'a mut ProjectViewState,
@@ -143,7 +130,7 @@ impl<'a> TrackWidget<'a> {
     const TIMELINE_HEIGHT: f32 = 64.0;
     const TRACK_HEIGHT: f32 = 96.0;
 
-    pub fn new(
+    fn new(
         track_info: &'a TrackWidgetInfo<'a>,
         composer: &'a mut Composer,
         view_state: &'a mut ProjectViewState,
@@ -154,6 +141,17 @@ impl<'a> TrackWidget<'a> {
             composer,
             view_state,
             action,
+        }
+    }
+
+    pub fn widget(
+        track_info: &'a TrackWidgetInfo<'a>,
+        composer: &'a mut Composer,
+        view_state: &'a mut ProjectViewState,
+        action: &'a mut Option<TrackWidgetAction>,
+    ) -> impl Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            TrackWidget::new(track_info, composer, view_state, action).ui(ui)
         }
     }
 
@@ -198,7 +196,7 @@ impl<'a> Widget for TrackWidget<'a> {
                         .title_font_galley
                         .as_ref()
                         .map(|fg| Arc::clone(&fg));
-                    let response = ui.add(title_bar(font_galley));
+                    let response = ui.add(TitleBarWidget::widget(font_galley));
                     if response.clicked() {
                         *self.action = Some(TrackWidgetAction::Clicked);
                     }
@@ -234,7 +232,7 @@ impl<'a> Widget for TrackWidget<'a> {
                             // The Grid is always disabled and drawn first.
                             let _ = ui
                                 .allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(grid(
+                                    ui.add(GridWidget::widget(
                                         temp_range.clone(),
                                         self.view_state.view_range.clone(),
                                     ))
@@ -274,7 +272,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                 if self.view_state.view_range.0.contains(&position) {
                                     let _ = ui
                                         .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(
+                                            ui.add(CursorWidget::widget(
                                                 position,
                                                 self.view_state.view_range.clone(),
                                             ))
@@ -289,7 +287,10 @@ impl<'a> Widget for TrackWidget<'a> {
                                 if self.view_state.view_range.0.contains(&time) {
                                     let _ = ui
                                         .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(cursor(time, self.view_state.view_range.clone()))
+                                            ui.add(CursorWidget::widget(
+                                                time,
+                                                self.view_state.view_range.clone(),
+                                            ))
                                         })
                                         .inner;
                                 }

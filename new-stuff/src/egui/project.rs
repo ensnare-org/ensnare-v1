@@ -1,9 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{
-    legend::legend,
     signal_chain::SignalChainItem,
-    track::{make_title_bar_galley, title_bar, track_widget, TrackWidgetAction, TrackWidgetInfo},
+    track::{
+        make_title_bar_galley, TitleBarWidget, TrackWidget, TrackWidgetAction, TrackWidgetInfo,
+    },
+    LegendWidget,
 };
 use crate::project::Project;
 use eframe::{egui::Widget, epaint::Galley};
@@ -37,8 +39,10 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         // ones.
         let response = ui
             .horizontal(|ui| {
-                ui.add_enabled(false, title_bar(None));
-                ui.add(legend(&mut self.project.view_state.view_range));
+                ui.add_enabled(false, TitleBarWidget::widget(None));
+                ui.add(LegendWidget::widget(
+                    &mut self.project.view_state.view_range,
+                ));
             })
             .response;
 
@@ -91,7 +95,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         title_font_galley: font_galley,
                         color_scheme,
                     };
-                    ui.add(track_widget(
+                    ui.add(TrackWidget::widget(
                         &track_info,
                         &mut self.project.composer,
                         &mut self.project.view_state,

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::modulators::dca;
+use crate::modulators::DcaWidget;
 use eframe::egui::{CollapsingHeader, Slider, Widget};
 use ensnare_egui_widgets::{envelope, oscillator};
 use ensnare_entity::Uid;
@@ -91,7 +91,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let response = ui.add(dca(&mut self.inner.dca, self.uid));
+                let response = ui.add(DcaWidget::widget(&mut self.inner.dca, self.uid));
                 if response.changed() {
                     self.inner.notify_change_dca();
                 }

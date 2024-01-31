@@ -30,7 +30,9 @@ use ensnare_cores_egui::note_sequencer_widget;
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_new_stuff::egui::{grid, legend, make_title_bar_galley, title_bar, ComposerWidget};
+use ensnare_new_stuff::egui::{
+    make_title_bar_galley, ComposerWidget, GridWidget, LegendWidget, TitleBarWidget,
+};
 use std::sync::Arc;
 
 #[derive(Debug, Derivative)]
@@ -47,7 +49,7 @@ impl LegendSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(legend(&mut self.range));
+            ui.add(LegendWidget::widget(&mut self.range));
         }
     }
 }
@@ -253,7 +255,10 @@ impl GridSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(grid(self.range.clone(), self.view_range.clone()));
+            ui.add(GridWidget::widget(
+                self.range.clone(),
+                self.view_range.clone(),
+            ));
         }
     }
 
@@ -416,7 +421,9 @@ impl TitleBarSettings {
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             if let Some(font_galley) = &self.font_galley {
-                ui.add(title_bar(Some(std::sync::Arc::clone(font_galley))));
+                ui.add(TitleBarWidget::widget(Some(std::sync::Arc::clone(
+                    font_galley,
+                ))));
             }
         }
     }

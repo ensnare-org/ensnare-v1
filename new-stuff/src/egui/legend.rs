@@ -7,21 +7,20 @@ use eframe::{
 };
 use ensnare_core::time::{MusicalTime, ViewRange};
 
-/// Wraps a [Legend] as a [Widget](eframe::egui::Widget).
-pub fn legend(view_range: &mut ViewRange) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| Legend::new(view_range).ui(ui)
-}
-
 /// An egui widget that draws a legend on the horizontal axis of the timeline
 /// view.
 #[derive(Debug)]
-pub struct Legend<'a> {
+pub struct LegendWidget<'a> {
     /// The GUI view's time range.
     view_range: &'a mut ViewRange,
 }
-impl<'a> Legend<'a> {
+impl<'a> LegendWidget<'a> {
     fn new(view_range: &'a mut ViewRange) -> Self {
         Self { view_range }
+    }
+
+    pub fn widget(view_range: &mut ViewRange) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| LegendWidget::new(view_range).ui(ui)
     }
 
     pub(super) fn steps(view_range: &ViewRange) -> std::iter::StepBy<std::ops::Range<usize>> {
@@ -30,7 +29,7 @@ impl<'a> Legend<'a> {
         (view_range.0.start.total_beats()..view_range.0.end.total_beats()).step_by(step * 2)
     }
 }
-impl<'a> eframe::egui::Widget for Legend<'a> {
+impl<'a> eframe::egui::Widget for LegendWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), ui.spacing().interact_size.y);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());

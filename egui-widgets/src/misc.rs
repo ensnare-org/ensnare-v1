@@ -3,12 +3,12 @@
 use eframe::egui::Layout;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-pub struct ObliqueStrategiesManager {
+pub struct ObliqueStrategiesWidget {
     seed: Option<usize>,
     next_reseed: Instant,
     rng: oorandom::Rand64,
 }
-impl ObliqueStrategiesManager {
+impl ObliqueStrategiesWidget {
     pub fn check_seed(&mut self) -> Option<usize> {
         let now = Instant::now();
         if self.next_reseed <= now {
@@ -28,33 +28,16 @@ impl ObliqueStrategiesManager {
                 min_seconds + self.rng.rand_float() * (max_seconds - min_seconds),
             );
     }
-}
-impl Default for ObliqueStrategiesManager {
-    fn default() -> Self {
-        let mut r = Self {
-            seed: Default::default(),
-            next_reseed: Instant::now(),
-            rng: oorandom::Rand64::new(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos(),
-            ),
-        };
-        r.set_next_reseed_time(90.0, 300.0);
-        r
-    }
-}
 
-/// Displays an [Oblique
-/// Strategy](https://en.wikipedia.org/wiki/Oblique_Strategies) to promote
-/// creativity. Thank you, Brian Eno and Peter Schmidt.
-///
-/// A given seed will always display the same strategy, but not every seed
-/// corresponds to a unique strategy.
-pub fn oblique_strategies(seed: usize) -> impl eframe::egui::Widget + 'static {
-    move |ui: &mut eframe::egui::Ui| {
-        let strategies = vec![
+    /// Displays an [Oblique
+    /// Strategy](https://en.wikipedia.org/wiki/Oblique_Strategies) to promote
+    /// creativity. Thank you, Brian Eno and Peter Schmidt.
+    ///
+    /// A given seed will always display the same strategy, but not every seed
+    /// corresponds to a unique strategy.
+    pub fn widget(seed: usize) -> impl eframe::egui::Widget + 'static {
+        move |ui: &mut eframe::egui::Ui| {
+            let strategies = vec![
             "Abandon normal instruments",
             "Accept advice",
             "Accretion",
@@ -172,10 +155,27 @@ pub fn oblique_strategies(seed: usize) -> impl eframe::egui::Widget + 'static {
             "You don't have to be ashamed of using your own ideas",
             "[This space intentionally left blank]",
         ];
-        ui.with_layout(
-            Layout::centered_and_justified(eframe::egui::Direction::LeftToRight),
-            |ui| ui.label(strategies[seed % strategies.len()]),
-        )
-        .inner
+            ui.with_layout(
+                Layout::centered_and_justified(eframe::egui::Direction::LeftToRight),
+                |ui| ui.label(strategies[seed % strategies.len()]),
+            )
+            .inner
+        }
+    }
+}
+impl Default for ObliqueStrategiesWidget {
+    fn default() -> Self {
+        let mut r = Self {
+            seed: Default::default(),
+            next_reseed: Instant::now(),
+            rng: oorandom::Rand64::new(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos(),
+            ),
+        };
+        r.set_next_reseed_time(90.0, 300.0);
+        r
     }
 }

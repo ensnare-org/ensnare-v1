@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::legend::Legend;
+use super::legend::LegendWidget;
 use eframe::{
     egui::{vec2, Widget},
     emath::RectTransform,
@@ -8,22 +8,16 @@ use eframe::{
 };
 use ensnare_core::time::ViewRange;
 
-/// Wraps a [Grid] as a [Widget](eframe::egui::Widget).
-pub fn grid<'a>(range: ViewRange, view_range: ViewRange) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| Grid::default().range(range).view_range(view_range).ui(ui)
-}
-
 /// An egui widget that draws a grid in the timeline view.
-
 #[derive(Debug, Default)]
-pub struct Grid {
+pub struct GridWidget {
     /// The timeline's full time range.
     range: ViewRange,
 
     /// The GUI view's time range.
     view_range: ViewRange,
 }
-impl Grid {
+impl GridWidget {
     fn range(mut self, range: ViewRange) -> Self {
         self.range = range;
         self
@@ -32,8 +26,17 @@ impl Grid {
         self.view_range = view_range;
         self
     }
+
+    pub fn widget(range: ViewRange, view_range: ViewRange) -> impl eframe::egui::Widget {
+        move |ui: &mut eframe::egui::Ui| {
+            GridWidget::default()
+                .range(range)
+                .view_range(view_range)
+                .ui(ui)
+        }
+    }
 }
-impl eframe::egui::Widget for Grid {
+impl eframe::egui::Widget for GridWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
@@ -53,7 +56,7 @@ impl eframe::egui::Widget for Grid {
             visuals.bg_fill,
         ))];
 
-        for x in Legend::steps(&self.view_range) {
+        for x in LegendWidget::steps(&self.view_range) {
             shapes.push(Shape::LineSegment {
                 points: [
                     to_screen * pos2(x as f32, 0.0),

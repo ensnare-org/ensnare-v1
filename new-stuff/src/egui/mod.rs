@@ -1,13 +1,13 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 pub use composer::ComposerWidget;
-pub use cursor::cursor;
+pub use cursor::CursorWidget;
 pub use entities::entity_palette;
-pub use grid::grid;
-pub use legend::legend;
+pub use grid::GridWidget;
+pub use legend::LegendWidget;
 pub use project::{ProjectAction, ProjectWidget};
 pub use timeline::{timeline_icon_strip, TimelineIconStrip, TimelineIconStripAction};
-pub use track::{make_title_bar_galley, title_bar, track_widget};
+pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 
 mod composer;
 mod cursor;

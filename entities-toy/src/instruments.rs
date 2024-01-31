@@ -5,7 +5,7 @@ use ensnare_core::{
     modulators::Dca,
     prelude::*,
 };
-use ensnare_cores_egui::modulators::dca;
+use ensnare_cores_egui::modulators::DcaWidget;
 use ensnare_egui_widgets::{envelope, oscillator};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
@@ -34,7 +34,8 @@ pub struct ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(oscillator(&mut self.inner.oscillator)) | ui.add(dca(&mut self.inner.dca, self.uid))
+        ui.add(oscillator(&mut self.inner.oscillator))
+            | ui.add(DcaWidget::widget(&mut self.inner.dca, self.uid))
     }
 }
 impl ToyInstrument {

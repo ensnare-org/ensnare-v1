@@ -223,11 +223,10 @@ pub mod ui {
         //! `widgets` contains egui `Widget`s that help draw things.
         pub use ensnare_cores_egui::{prelude::*, widgets::pattern};
         pub use ensnare_egui_widgets::{
-            oblique_strategies, ControlBar, ControlBarAction, ControlBarWidget,
-            ObliqueStrategiesManager,
+            ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
         };
         pub use ensnare_new_stuff::egui::*;
-        pub use ensnare_services::{audio_settings, midi_settings};
+        pub use ensnare_services::{AudioSettingsWidget, MidiSettingsWidget};
     }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 
@@ -235,8 +234,9 @@ pub mod ui {
     pub mod prelude {
         pub use super::{
             widgets::{
-                audio_settings, entity_palette, midi_settings, timeline_icon_strip, ControlBar,
-                ControlBarAction, ControlBarWidget, ProjectAction, TimelineIconStripAction,
+                entity_palette, timeline_icon_strip, AudioSettingsWidget, ControlBar,
+                ControlBarAction, ControlBarWidget, MidiSettingsWidget, ProjectAction,
+                TimelineIconStripAction,
             },
             DragDropManager, DragSource, DropTarget,
         };
