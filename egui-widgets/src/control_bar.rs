@@ -59,6 +59,9 @@ pub enum ControlBarAction {
     /// The user asked to save the current project to the given filename.
     Save(PathBuf),
 
+    /// The user asked to export the current project as a WAV to the given filename.
+    ExportToWav(PathBuf),
+
     /// The user pressed the settings icon.
     ToggleSettings,
 }
@@ -149,6 +152,20 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
             {
                 *self.action = Some(ControlBarAction::Save(PathBuf::from(
                     "ensnare-project.json",
+                )));
+            }
+            if ui
+                .add(ImageButton::new(
+                    Image::new(eframe::egui::include_image!(
+                        "../../res/images/md-symbols/audio_file.png"
+                    ))
+                    .fit_to_original_size(1.0),
+                ))
+                .on_hover_text("Export project to WAV")
+                .clicked()
+            {
+                *self.action = Some(ControlBarAction::ExportToWav(PathBuf::from(
+                    "ensnare-project.wav",
                 )));
             }
             ui.separator();

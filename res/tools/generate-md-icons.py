@@ -14,46 +14,53 @@
 #
 # The reason we're not using fonts is because of
 # https://github.com/emilk/egui/issues/3526
+#
+# NOTE that cloning the repo is different from downloading the GitHub release
+# zip. In particular, the symbols/ directory at the root is missing.
 
-import subprocess, sys
+import subprocess
+import sys
 
 # Browse available icons at https://fonts.google.com/icons?icon.platform=web
 ICONS = {
-	'av': ['play_arrow', 'pause', 'stop'],
-	'action': ['drag_indicator']
-	}
+    'av': ['play_arrow', 'pause', 'stop'],
+    'action': ['drag_indicator']
+}
 
 md_dir = sys.argv[1]
-print("Reading material design icons/symbols from base directory {md_dir}".format(md_dir=md_dir))
+print(
+    "Reading material design icons/symbols from base directory {md_dir}".format(md_dir=md_dir))
 
 subprocess.run(["mkdir", "-p", "res/images/md-icons"])
 subprocess.run(["mkdir", "-p", "res/images/md-symbols"])
 
 for (group, icons) in ICONS.items():
-   for name in icons:
-       outfile = "res/images/md-icons/{name}.png".format(name=name)
-       args = ["convert",
-               "{md_dir}/src/{group}/{name}/materialicons/24px.svg".format(md_dir=md_dir,
-                                                                           group=str(group),
-                                                                           name=name),
-               "-density", "576",
-               "-background", "none",
-               "-negate", outfile]
-       subprocess.run(args)
-       subprocess.run(["mogrify", "-strip", outfile])
+    for name in icons:
+        outfile = "res/images/md-icons/{name}.png".format(name=name)
+        args = ["convert",
+                "{md_dir}/src/{group}/{name}/materialicons/24px.svg".format(md_dir=md_dir,
+                                                                            group=str(
+                                                                                group),
+                                                                            name=name),
+                "-density", "576",
+                "-background", "none",
+                "-negate", outfile]
+        subprocess.run(args)
+        subprocess.run(["mogrify", "-strip", outfile])
 
 # Browse available symbols at https://fonts.google.com/icons
 SYMBOLS = [
-        'drag_indicator',
-        'file_open',
-        'file_save',
-        'new_window',
-        'piano',
-        'play_arrow',
-        'playlist_add_circle',
-        'settings',
-        'stop',
-        'view_timeline',
+    'audio_file',
+    'drag_indicator',
+    'file_open',
+    'file_save',
+    'new_window',
+    'piano',
+    'play_arrow',
+    'playlist_add_circle',
+    'settings',
+    'stop',
+    'view_timeline',
 ]
 for (symbol) in SYMBOLS:
     outfile = "res/images/md-symbols/{symbol}.png".format(symbol=symbol)

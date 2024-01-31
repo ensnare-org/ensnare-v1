@@ -18,7 +18,6 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
-use ensnare_core::traits::HasExtent;
 use ensnare_egui_widgets::ObliqueStrategiesWidget;
 use ensnare_new_stuff::egui::{ComposerWidget, ProjectWidget};
 use std::{
@@ -258,6 +257,22 @@ impl Ensnare {
                             options: ToastOptions::default().duration_in_seconds(5.0),
                         });
                     }
+                    ProjectServiceEvent::Exported(export_path) => {
+                        self.toasts.add(Toast {
+                            kind: egui_toast::ToastKind::Success,
+                            text: format!("Exported to {}", export_path.display()).into(),
+                            options: ToastOptions::default()
+                                .duration_in_seconds(1.0)
+                                .show_progress(false),
+                        });
+                    }
+                    ProjectServiceEvent::ExportFailed(e) => {
+                        self.toasts.add(Toast {
+                            kind: egui_toast::ToastKind::Error,
+                            text: format!("Error exporting {}", e).into(),
+                            options: ToastOptions::default().duration_in_seconds(5.0),
+                        });
+                    }
                 },
                 EnsnareEvent::Quit => {
                     eprintln!("EnsnareEvent::Quit");
@@ -272,8 +287,6 @@ impl Ensnare {
     }
 
     fn show_top(&mut self, ui: &mut eframe::egui::Ui) {
-        // self.menu_bar
-        //     .set_is_any_track_selected(self.orchestrator_service.is_any_track_selected());
         self.menu_bar.ui(ui);
         let menu_action = self.menu_bar.take_action();
         self.handle_menu_bar_action(menu_action);
@@ -310,18 +323,27 @@ impl Ensnare {
         match action {
             ControlBarAction::Play => self.send_to_project(ProjectServiceInput::ProjectPlay),
             ControlBarAction::Stop => self.send_to_project(ProjectServiceInput::ProjectStop),
-            ControlBarAction::New => {
-                self.handle_project_new();
-            }
+            ControlBarAction::New => self.send_to_project(ProjectServiceInput::ProjectNew),
+
             ControlBarAction::Open(path) => {
-                self.handle_project_load(path);
+                {
+                    let this = &mut *self;
+                    this.send_to_project(ProjectServiceInput::ProjectLoad(path));
+                };
             }
             ControlBarAction::Save(path) => {
-                self.handle_project_save(Some(path));
+                {
+                    let this = &mut *self;
+                    let path = Some(path);
+                    this.send_to_project(ProjectServiceInput::ProjectSave(path));
+                };
             }
             ControlBarAction::ToggleSettings => {
                 self.rendering_state.is_settings_panel_open =
                     !self.rendering_state.is_settings_panel_open;
+            }
+            ControlBarAction::ExportToWav(path) => {
+                self.send_to_project(ProjectServiceInput::ProjectExportToWav(Some(path)))
             }
         }
     }
@@ -480,46 +502,36 @@ impl Ensnare {
     }
 
     fn handle_menu_bar_action(&mut self, action: Option<MenuBarAction>) {
-        if let Some(action) = action {
-            match action {
-                MenuBarAction::Quit => self.exit_requested = true,
-                MenuBarAction::ProjectNew => {
-                    self.handle_project_new();
-                }
-                MenuBarAction::ProjectOpen => {
-                    self.handle_project_load(PathBuf::from("ensnare-project.json"));
-                }
-                MenuBarAction::ProjectSave => {
-                    self.handle_project_save(None);
-                }
-                MenuBarAction::TrackNewMidi => {
-                    self.send_to_project(ProjectServiceInput::TrackNewMidi);
-                }
-                MenuBarAction::TrackNewAudio => {
-                    self.send_to_project(ProjectServiceInput::TrackNewAudio);
-                }
-                MenuBarAction::TrackNewAux => {
-                    self.send_to_project(ProjectServiceInput::TrackNewAux);
-                }
-                MenuBarAction::TrackDuplicate => todo!(),
-                MenuBarAction::TrackDelete => todo!(),
-                MenuBarAction::TrackRemoveSelectedPatterns => todo!(),
-                MenuBarAction::TrackAddThing(_) => todo!(),
-                MenuBarAction::ComingSoon => todo!(),
+        let Some(action) = action else { return };
+        match action {
+            MenuBarAction::Quit => self.exit_requested = true,
+            MenuBarAction::ProjectNew => self.send_to_project(ProjectServiceInput::ProjectNew),
+            MenuBarAction::ProjectOpen => {
+                self.send_to_project(ProjectServiceInput::ProjectLoad(PathBuf::from(
+                    "ensnare-project.json",
+                )));
             }
+            MenuBarAction::ProjectSave => {
+                self.send_to_project(ProjectServiceInput::ProjectSave(None))
+            }
+            MenuBarAction::ProjectExportToWav => self.send_to_project(
+                ProjectServiceInput::ProjectExportToWav(Some(PathBuf::from("ensnare-project.wav"))),
+            ),
+            MenuBarAction::TrackNewMidi => {
+                self.send_to_project(ProjectServiceInput::TrackNewMidi);
+            }
+            MenuBarAction::TrackNewAudio => {
+                self.send_to_project(ProjectServiceInput::TrackNewAudio);
+            }
+            MenuBarAction::TrackNewAux => {
+                self.send_to_project(ProjectServiceInput::TrackNewAux);
+            }
+            MenuBarAction::TrackDuplicate => todo!(),
+            MenuBarAction::TrackDelete => todo!(),
+            MenuBarAction::TrackRemoveSelectedPatterns => todo!(),
+            MenuBarAction::TrackAddThing(_) => todo!(),
+            MenuBarAction::ComingSoon => todo!(),
         }
-    }
-
-    fn handle_project_new(&mut self) {
-        self.send_to_project(ProjectServiceInput::ProjectNew);
-    }
-
-    fn handle_project_save(&mut self, path: Option<PathBuf>) {
-        self.send_to_project(ProjectServiceInput::ProjectSave(path));
-    }
-
-    fn handle_project_load(&mut self, path: PathBuf) {
-        self.send_to_project(ProjectServiceInput::ProjectLoad(path));
     }
 
     fn check_drag_and_drop(&mut self) {

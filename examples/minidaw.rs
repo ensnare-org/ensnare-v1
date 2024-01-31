@@ -588,6 +588,8 @@ impl MiniDaw {
                 ProjectServiceEvent::Quit => {
                     // Good to know, but no need to do anything.
                 }
+                ProjectServiceEvent::ExportFailed(_) => todo!(),
+                ProjectServiceEvent::Exported(_) => todo!(),
             }
             true
         } else {
@@ -629,6 +631,9 @@ impl MiniDaw {
             ControlBarAction::ToggleSettings => {
                 self.settings_panel.toggle();
                 None
+            }
+            ControlBarAction::ExportToWav(path) => {
+                Some(ProjectServiceInput::ProjectExportToWav(Some(path)))
             }
         };
         if let Some(input) = input {

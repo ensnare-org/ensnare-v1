@@ -23,6 +23,7 @@ pub enum ProjectServiceInput {
     NeedsAudio(usize),
     NextTimelineDisplayer,
     PatternArrange(TrackUid, PatternUid, MusicalTime),
+    ProjectExportToWav(Option<PathBuf>),
     ProjectLinkControl(Uid, Uid, ControlIndex),
     ProjectLoad(PathBuf),
     ProjectNew,
@@ -43,14 +44,15 @@ pub enum ProjectServiceInput {
 
 #[derive(Debug)]
 pub enum ProjectServiceEvent {
-    // The supplied Project is for the recipient to keep. No need to Arc::clone().
-    Loaded(Arc<RwLock<Project>>),
-    LoadFailed(PathBuf, Error),
-    Saved(PathBuf),
-    SaveFailed(Error),
-    TitleChanged(String),
+    ExportFailed(Error),
+    Exported(PathBuf),
     IsPerformingChanged(bool),
+    LoadFailed(PathBuf, Error),
+    Loaded(Arc<RwLock<Project>>), // The supplied Project is for the recipient to keep. No need to Arc::clone().
     Quit,
+    SaveFailed(Error),
+    Saved(PathBuf),
+    TitleChanged(String),
 }
 
 /// A wrapper around a [Project] that provides a channel-based interface to it.
@@ -163,14 +165,13 @@ impl ProjectServiceDaemon {
                     }
                 },
                 ProjectServiceInput::ProjectSave(path) => {
-                    if let Ok(mut project) = self.project.write() {
-                        match project.save(path) {
-                            Ok(save_path) => {
-                                let _ = self.sender.send(ProjectServiceEvent::Saved(save_path));
-                            }
-                            Err(e) => {
-                                let _ = self.sender.send(ProjectServiceEvent::SaveFailed(e));
-                            }
+                    let mut project = self.project.write().unwrap();
+                    match project.save(path) {
+                        Ok(save_path) => {
+                            let _ = self.sender.send(ProjectServiceEvent::Saved(save_path));
+                        }
+                        Err(e) => {
+                            let _ = self.sender.send(ProjectServiceEvent::SaveFailed(e));
                         }
                     }
                 }
@@ -277,6 +278,10 @@ impl ProjectServiceDaemon {
                 }
                 ProjectServiceInput::TrackNewMidi => {
                     let _ = self.project.write().unwrap().new_midi_track();
+                }
+                ProjectServiceInput::ProjectExportToWav(path) => {
+                    let path = path.unwrap_or(PathBuf::from("exported-project.wav"));
+                    let _ = self.project.write().unwrap().export_to_wav(path);
                 }
             }
         }
