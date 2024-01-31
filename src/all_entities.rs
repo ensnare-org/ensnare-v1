@@ -24,41 +24,6 @@ impl EnsnareEntities {
     pub fn register(
         mut factory: EntityFactory<dyn EntityBounds>,
     ) -> EntityFactory<dyn EntityBounds> {
-        // Controllers
-        factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
-            Box::new(Arpeggiator::new_with(uid, Tempo::default()))
-        });
-        factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
-            Box::new(LfoController::new_with(
-                uid,
-                Oscillator::new_with_waveform_and_frequency(
-                    Waveform::Sawtooth,
-                    FrequencyHz::from(0.2),
-                ),
-            ))
-        });
-        factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
-            Box::new(SignalPassthroughController::new_with(uid))
-        });
-        factory.register_entity_with_str_key("signal-amplitude-passthrough", |uid| {
-            Box::new(SignalPassthroughController::new_amplitude_passthrough_type(
-                uid,
-            ))
-        });
-        factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |uid| {
-            Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type(uid))
-        });
-        factory.register_entity_with_str_key(Timer::ENTITY_KEY, |uid| {
-            Box::new(Timer::new_with(uid, MusicalTime::DURATION_QUARTER))
-        });
-        factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
-            Box::new(Trigger::new_with(
-                uid,
-                ensnare_core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
-                ControlValue(1.0),
-            ))
-        });
-
         // Effects
         factory.register_entity_with_str_key(Bitcrusher::ENTITY_KEY, |uid| {
             Box::new(Bitcrusher::new_with(uid, 8))
@@ -66,9 +31,6 @@ impl EnsnareEntities {
         factory.register_entity_with_str_key(Chorus::ENTITY_KEY, |_uid| Box::<Chorus>::default());
         factory.register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| {
             Box::<Compressor>::default()
-        });
-        factory.register_entity_with_str_key("filter-low-pass-24db", |uid| {
-            Box::new(BiQuadFilterLowPass24db::new_with(uid, 300.0.into(), 0.85))
         });
         factory.register_entity_with_str_key(Gain::ENTITY_KEY, |uid| {
             Box::new(Gain::new_with(uid, Normal::from(0.5)))
@@ -131,6 +93,43 @@ impl EnsnareEntities {
                 Envelope::safe_default(),
             ))
         });
+
+        if false {
+            // Controllers
+            factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
+                Box::new(Arpeggiator::new_with(uid, Tempo::default()))
+            });
+            factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
+                Box::new(LfoController::new_with(
+                    uid,
+                    Oscillator::new_with_waveform_and_frequency(
+                        Waveform::Sawtooth,
+                        FrequencyHz::from(0.2),
+                    ),
+                ))
+            });
+            factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
+                Box::new(SignalPassthroughController::new_with(uid))
+            });
+            factory.register_entity_with_str_key("signal-amplitude-passthrough", |uid| {
+                Box::new(SignalPassthroughController::new_amplitude_passthrough_type(
+                    uid,
+                ))
+            });
+            factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |uid| {
+                Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type(uid))
+            });
+            factory.register_entity_with_str_key(Timer::ENTITY_KEY, |uid| {
+                Box::new(Timer::new_with(uid, MusicalTime::DURATION_QUARTER))
+            });
+            factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
+                Box::new(Trigger::new_with(
+                    uid,
+                    ensnare_core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
+                    ControlValue(1.0),
+                ))
+            });
+        }
 
         factory
     }
