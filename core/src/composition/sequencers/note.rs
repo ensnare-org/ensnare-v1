@@ -60,12 +60,14 @@ impl Sequences for NoteSequencer {
         note: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        let note = note.clone() + position;
+        let note = note.shift_right(position);
         let events: Vec<MidiEvent> = note.clone().into();
         events.iter().for_each(|e| {
             let _ = self.e.inner.record_midi_event(channel, *e);
         });
-        self.e.extent.expand_with_range(note.extent());
+        self.e
+            .extent
+            .expand_with_range(&note.extent().shift_right(position));
         self.notes.push(note);
         Ok(())
     }
@@ -76,7 +78,7 @@ impl Sequences for NoteSequencer {
         note: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        let note = note.clone() + position;
+        let note = note.shift_right(position);
         let _ = self.e.inner.remove_midi_message(
             channel,
             MidiMessage::NoteOn {
@@ -154,8 +156,8 @@ impl NoteSequencer {
     }
 }
 impl HasExtent for NoteSequencer {
-    fn extent(&self) -> &TimeRange {
-        &self.e.extent
+    fn extent(&self) -> TimeRange {
+        self.e.extent.clone()
     }
 
     fn set_extent(&mut self, extent: TimeRange) {

@@ -440,7 +440,7 @@ pub trait SequencesMidi: Controls + Configurable + HandlesMidi {
 /// if the consumer of extent() doesn't understand what it's looking at.
 pub trait HasExtent {
     /// Returns the range of MusicalTime that this thing spans.
-    fn extent(&self) -> &TimeRange;
+    fn extent(&self) -> TimeRange;
 
     /// Sets the range.
     fn set_extent(&mut self, extent: TimeRange);

@@ -213,7 +213,7 @@ impl Sequences for ToySequencer {
             },
             unit.extent.0.end + position,
         );
-        self.extent.expand_with_range(unit.extent());
+        self.extent.expand_with_range(&unit.extent());
         self.notes.push(unit.clone());
         Ok(())
     }
@@ -251,8 +251,8 @@ impl Sequences for ToySequencer {
     }
 }
 impl HasExtent for ToySequencer {
-    fn extent(&self) -> &TimeRange {
-        &self.extent
+    fn extent(&self) -> TimeRange {
+        self.extent.clone()
     }
 
     fn set_extent(&mut self, extent: TimeRange) {

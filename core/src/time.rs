@@ -504,6 +504,12 @@ impl TimeRange {
         self.0.start = self.0.start.min(time);
         self.0.end = self.0.end.max(time);
     }
+
+    /// Adds to both start and end. This is less ambiguous than implementing
+    /// Add<MusicalTime>, which could reasonably add only to the end.
+    pub fn shift_right(&self, time: MusicalTime) -> TimeRange {
+        TimeRange(self.0.start + time..self.0.end + time)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]

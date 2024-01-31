@@ -18,6 +18,7 @@ use eframe::{
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{app_version, prelude::*};
+use ensnare_core::traits::HasExtent;
 use ensnare_egui_widgets::ObliqueStrategiesWidget;
 use ensnare_new_stuff::egui::{ComposerWidget, ProjectWidget};
 use std::{
@@ -363,6 +364,10 @@ impl Ensnare {
         if let Some(project) = self.project.as_mut() {
             if let Ok(mut project) = project.write() {
                 project.view_state.cursor = Some(project.transport.current_time());
+                project.view_state.view_range = Self::calculate_project_view_range(
+                    &project.time_signature(),
+                    project.composer.extent(),
+                );
                 eframe::egui::Window::new("Composer")
                     .open(&mut self.rendering_state.is_composer_visible)
                     .default_width(ui.available_width())
@@ -574,6 +579,13 @@ impl Ensnare {
         if let Err(e) = self.project_sender.send(input) {
             eprintln!("Error {e} while sending ProjectServiceInput");
         }
+    }
+
+    fn calculate_project_view_range(
+        time_signature: &TimeSignature,
+        extent: TimeRange,
+    ) -> ViewRange {
+        ViewRange(extent.0.start..extent.0.end + MusicalTime::new_with_bars(time_signature, 1))
     }
 }
 impl App for Ensnare {

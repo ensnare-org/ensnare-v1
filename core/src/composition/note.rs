@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::ops::Add;
 
 /// A [Note] is a single played note. It knows which key it's playing (which
 /// is more or less assumed to be a MIDI key value), and when (start/end) it's
@@ -16,8 +15,8 @@ pub struct Note {
     pub extent: TimeRange,
 }
 impl HasExtent for Note {
-    fn extent(&self) -> &TimeRange {
-        &self.extent
+    fn extent(&self) -> TimeRange {
+        self.extent.clone()
     }
 
     fn set_extent(&mut self, extent: TimeRange) {
@@ -43,11 +42,8 @@ impl Note {
     pub fn new_with_midi_note(key: MidiNote, start: MusicalTime, duration: MusicalTime) -> Self {
         Self::new_with(key as u8, start, duration)
     }
-}
-impl Add<MusicalTime> for Note {
-    type Output = Self;
 
-    fn add(self, rhs: MusicalTime) -> Self::Output {
+    pub fn shift_right(&self, rhs: MusicalTime) -> Self {
         Self::new_with_start_and_end(self.key, self.extent.0.start + rhs, self.extent.0.end + rhs)
     }
 }

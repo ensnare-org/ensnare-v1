@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ops::Add};
+use std::fmt::Display;
 
 /// Identifies a [Pattern].
 #[derive(
@@ -158,21 +158,12 @@ impl Serializable for Pattern {
     }
 }
 impl HasExtent for Pattern {
-    fn extent(&self) -> &TimeRange {
-        &self.extent
+    fn extent(&self) -> TimeRange {
+        self.extent.clone()
     }
 
     fn set_extent(&mut self, extent: TimeRange) {
         self.extent = extent;
-    }
-}
-impl Add<MusicalTime> for Pattern {
-    type Output = Self;
-
-    fn add(self, rhs: MusicalTime) -> Self::Output {
-        let mut r = self.clone();
-        r.notes = self.notes.iter().map(|note| note.clone() + rhs).collect();
-        r
     }
 }
 impl Into<Vec<MidiEvent>> for Pattern {
@@ -315,6 +306,18 @@ impl Pattern {
 
     pub fn colors(&self) -> Option<(u8, u8)> {
         None
+    }
+
+    /// Adds to both start and end. This is less ambiguous than implementing
+    /// Add<MusicalTime>, which could reasonably add only to the end.
+    pub fn shift_right(&self, rhs: MusicalTime) -> Self {
+        let mut r = self.clone();
+        r.notes = self
+            .notes
+            .iter()
+            .map(|note| note.shift_right(rhs))
+            .collect();
+        r
     }
 }
 

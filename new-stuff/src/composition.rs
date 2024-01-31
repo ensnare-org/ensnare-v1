@@ -68,7 +68,6 @@ pub struct ComposerEphemerals {
     // provided methods to manage a local copy of it and decide whether to act.
     mod_serial: ModSerial,
 }
-
 impl Composer {
     // TODO temp
     pub fn insert_16_random_patterns(&mut self) {
@@ -319,6 +318,22 @@ impl Configurable for Composer {
 
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
         self.e.time_signature = time_signature;
+    }
+}
+impl HasExtent for Composer {
+    fn extent(&self) -> TimeRange {
+        let extent = self.e.tracks_to_sequencers.values().fold(
+            TimeRange::default(),
+            |mut extent, sequencer| {
+                extent.expand_with_range(&sequencer.extent());
+                extent
+            },
+        );
+        extent
+    }
+
+    fn set_extent(&mut self, _: TimeRange) {
+        eprintln!("Composer::set_extent() should never be called");
     }
 }
 

@@ -59,12 +59,14 @@ impl Sequences for PatternSequencer {
         pattern: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        let pattern = pattern.clone() + position;
+        let pattern = pattern.shift_right(position);
         let events: Vec<MidiEvent> = pattern.clone().into();
         events.iter().for_each(|&e| {
             let _ = self.e.inner.record_midi_event(channel, e);
         });
-        self.e.extent.expand_with_range(pattern.extent());
+        self.e
+            .extent
+            .expand_with_range(&pattern.extent().shift_right(position));
         self.patterns.push((channel, pattern));
         Ok(())
     }
@@ -75,7 +77,7 @@ impl Sequences for PatternSequencer {
         pattern: &Self::MU,
         position: MusicalTime,
     ) -> anyhow::Result<()> {
-        let pattern = pattern.clone() + position;
+        let pattern = pattern.shift_right(position);
         let events: Vec<MidiEvent> = pattern.clone().into();
         events.iter().for_each(|&e| {
             let _ = self.e.inner.remove_midi_event(channel, e);
@@ -92,8 +94,8 @@ impl Sequences for PatternSequencer {
     }
 }
 impl HasExtent for PatternSequencer {
-    fn extent(&self) -> &TimeRange {
-        &self.e.extent
+    fn extent(&self) -> TimeRange {
+        self.e.extent.clone()
     }
 
     fn set_extent(&mut self, extent: TimeRange) {
@@ -144,7 +146,7 @@ impl PatternSequencer {
     fn recalculate_extent(&mut self) {
         self.e.extent = Default::default();
         self.patterns.iter().for_each(|(_channel, pattern)| {
-            self.e.extent.expand_with_range(pattern.extent());
+            self.e.extent.expand_with_range(&pattern.extent());
         });
     }
 }
@@ -297,7 +299,7 @@ mod tests {
 
         assert_eq!(
             s.extent(),
-            &TimeRange::default(),
+            TimeRange::default(),
             "Empty sequencer should have empty extent"
         );
 
@@ -308,7 +310,7 @@ mod tests {
             .is_ok());
         assert_eq!(
             s.extent(),
-            &TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
+            TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
             "Adding an empty 4/4 pattern to a sequencer should update the extent to one measure"
         );
 
@@ -317,8 +319,17 @@ mod tests {
             .is_ok());
         assert_eq!(
             s.extent(),
-            &TimeRange::default(),
+            TimeRange::default(),
             "After removing last pattern from sequencer, its extent should return to empty"
+        );
+
+        assert!(s
+            .record(MidiChannel::default(), &pattern, MusicalTime::ONE_BEAT * 16)
+            .is_ok());
+        assert_eq!(
+            s.extent(),
+            TimeRange(MusicalTime::START..(MusicalTime::new_with_beats(4) + MusicalTime::ONE_BEAT * 16)),
+            "Adding a 4/4 pattern later in a 4/4 score should update the extent to one measure starting at the 16th measure"
         );
     }
 
