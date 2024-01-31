@@ -7,7 +7,7 @@ use ensnare_core::{
     utils::Paths,
 };
 use ensnare_cores::LfoRouting;
-use ensnare_cores_egui::instruments::{fm::fm_synth, sampler, welsh_widget};
+use ensnare_cores_egui::instruments::{FmSynthWidget, SamplerWidget, WelshWidget};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
@@ -17,17 +17,18 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(
-    Debug, InnerControllable, InnerConfigurable, IsEntity, Metadata, Serialize, Deserialize,
+    Debug,
+    InnerControllable,
+    InnerConfigurable,
+    InnerHandlesMidi,
+    InnerInstrument,
+    IsEntity,
+    Metadata,
+    Serialize,
+    Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(
-    Controls,
-    GeneratesStereoSample,
-    HandlesMidi,
-    Serializable,
-    Ticks,
-    TransformsAudio
-)]
+#[entity(Controls, Serializable, TransformsAudio)]
 
 pub struct Drumkit {
     uid: Uid,
@@ -66,7 +67,7 @@ pub struct FmSynth {
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(fm_synth(&mut self.inner, self.uid))
+        ui.add(FmSynthWidget::widget(&mut self.inner, self.uid))
     }
 }
 impl FmSynth {
@@ -103,19 +104,20 @@ impl FmSynth {
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
+    InnerInstrument,
     InnerSerializable,
     IsEntity,
     Metadata,
     Serialize,
 )]
-#[entity(GeneratesStereoSample, Ticks, Controls, TransformsAudio)]
+#[entity(Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
     inner: ensnare_cores::Sampler,
 }
 impl Displays for Sampler {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(sampler(&mut self.inner))
+        ui.add(SamplerWidget::widget(&mut self.inner))
     }
 }
 impl Sampler {
@@ -150,7 +152,7 @@ pub struct WelshSynth {
 }
 impl Displays for WelshSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(welsh_widget(self.uid, &mut self.inner))
+        ui.add(WelshWidget::widget(self.uid, &mut self.inner))
     }
 }
 impl WelshSynth {

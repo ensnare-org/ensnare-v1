@@ -704,7 +704,9 @@ impl MiniDaw {
     }
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::horizontal().show(ui, |ui| ui.add(entity_palette(self.factory.sorted_keys())));
+        ScrollArea::horizontal().show(ui, |ui| {
+            ui.add(EntityPaletteWidget::widget(self.factory.sorted_keys()))
+        });
     }
 
     fn show_right(&mut self, ui: &mut eframe::egui::Ui) {

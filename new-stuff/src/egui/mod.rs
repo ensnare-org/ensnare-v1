@@ -2,11 +2,11 @@
 
 pub use composer::ComposerWidget;
 pub use cursor::CursorWidget;
-pub use entities::entity_palette;
+pub use entities::EntityPaletteWidget;
 pub use grid::GridWidget;
 pub use legend::LegendWidget;
 pub use project::{ProjectAction, ProjectWidget};
-pub use timeline::{timeline_icon_strip, TimelineIconStrip, TimelineIconStripAction};
+pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
 pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 
 mod composer;

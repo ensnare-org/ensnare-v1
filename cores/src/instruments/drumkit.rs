@@ -139,17 +139,3 @@ impl Drumkit {
         self.name = name.to_string();
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::tests::DEFAULT_SAMPLE_RATE;
-
-// // TODO: this is a bad test. It uses production data. When we have a more
-// flexible way to load drumkits, switch over to that.
-//
-//     // #[test]
-//     // fn loading() {
-//     //     let _ = Drumkit::new_from_files(DEFAULT_SAMPLE_RATE,         PathBuf::from("test-data/;
-//     // }
-// }

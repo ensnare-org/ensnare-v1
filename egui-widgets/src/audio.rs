@@ -14,18 +14,17 @@ use ensnare_core::{
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
 
-/// A [Widget](eframe::egui::Widget) for picking an oscillator waveform.
-pub fn waveform<'a>(waveform: &'a mut Waveform) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| WaveformWidget::new(waveform).ui(ui)
-}
-
 #[derive(Debug)]
-struct WaveformWidget<'a> {
+pub struct WaveformWidget<'a> {
     waveform: &'a mut Waveform,
 }
 impl<'a> WaveformWidget<'a> {
-    pub fn new(waveform: &'a mut Waveform) -> Self {
+    fn new(waveform: &'a mut Waveform) -> Self {
         Self { waveform }
+    }
+
+    pub fn widget(waveform: &'a mut Waveform) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| WaveformWidget::new(waveform).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
@@ -51,22 +50,21 @@ impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
     }
 }
 
-/// A [Widget](eframe::egui::Widget) for picking a frequency.
-pub fn frequency<'a>(
-    range: FrequencyRange,
-    frequency: &'a mut FrequencyHz,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| FrequencyWidget::new(range, frequency).ui(ui)
-}
-
 #[derive(Debug)]
-struct FrequencyWidget<'a> {
+pub struct FrequencyWidget<'a> {
     range: FrequencyRange,
     frequency: &'a mut FrequencyHz,
 }
 impl<'a> FrequencyWidget<'a> {
-    pub fn new(range: FrequencyRange, frequency: &'a mut FrequencyHz) -> Self {
+    fn new(range: FrequencyRange, frequency: &'a mut FrequencyHz) -> Self {
         Self { range, frequency }
+    }
+
+    pub fn widget(
+        range: FrequencyRange,
+        frequency: &'a mut FrequencyHz,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| FrequencyWidget::new(range, frequency).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for FrequencyWidget<'a> {
@@ -111,19 +109,6 @@ pub fn analyze_spectrum(slice_1: &[Sample], slice_2: &[Sample]) -> anyhow::Resul
     }
 }
 
-/// Wraps a [FrequencyDomain] as a [Widget](eframe::egui::Widget).
-pub fn frequency_domain(values: &[f32]) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| FrequencyDomain::new(values).ui(ui)
-}
-
-/// Wraps a [TimeDomain] as a [Widget](eframe::egui::Widget).
-pub fn time_domain<'a>(
-    slice_1: &'a [Sample],
-    slice_2: &'a [Sample],
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| TimeDomain::new(slice_1, slice_2).ui(ui)
-}
-
 /// Displays a series of [Sample]s in the time domain. That's a fancy way of
 /// saying it shows the amplitudes.
 ///
@@ -132,16 +117,20 @@ pub fn time_domain<'a>(
 /// require a contiguous buffer, which would require expensive ring-buffer
 /// rotations most of the time.
 #[derive(Debug)]
-pub struct TimeDomain<'a> {
+pub struct TimeDomainWidget<'a> {
     slice_1: &'a [Sample],
     slice_2: &'a [Sample],
 }
-impl<'a> TimeDomain<'a> {
+impl<'a> TimeDomainWidget<'a> {
     fn new(slice_1: &'a [Sample], slice_2: &'a [Sample]) -> Self {
         Self { slice_1, slice_2 }
     }
+
+    pub fn widget(slice_1: &'a [Sample], slice_2: &'a [Sample]) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| TimeDomainWidget::new(slice_1, slice_2).ui(ui)
+    }
 }
-impl<'a> eframe::egui::Widget for TimeDomain<'a> {
+impl<'a> eframe::egui::Widget for TimeDomainWidget<'a> {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
@@ -182,15 +171,19 @@ impl<'a> eframe::egui::Widget for TimeDomain<'a> {
 /// Displays a series of [Sample]s in the frequency domain. Or, to put it
 /// another way, shows a spectrum analysis of a clip.
 #[derive(Debug)]
-pub struct FrequencyDomain<'a> {
+pub struct FrequencyDomainWidget<'a> {
     values: &'a [f32],
 }
-impl<'a> FrequencyDomain<'a> {
+impl<'a> FrequencyDomainWidget<'a> {
     fn new(values: &'a [f32]) -> Self {
         Self { values }
     }
+
+    pub fn widget(values: &[f32]) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| FrequencyDomainWidget::new(values).ui(ui)
+    }
 }
-impl<'a> eframe::egui::Widget for FrequencyDomain<'a> {
+impl<'a> eframe::egui::Widget for FrequencyDomainWidget<'a> {
     fn ui(self, ui: &mut egui::Ui) -> eframe::egui::Response {
         let (response, painter) =
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());

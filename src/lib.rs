@@ -183,7 +183,7 @@ pub mod traits {
         pub use super::{
             Configurable, ControlEventsFn, Controllable, Controls, Displays, EntityBounds,
             Generates, HandlesMidi, HasExtent, HasMetadata, HasSettings, MidiMessagesFn, Sequences,
-            Serializable, Ticks, WorkEvent,
+            Serializable, WorkEvent,
         };
     }
 }
@@ -234,9 +234,9 @@ pub mod ui {
     pub mod prelude {
         pub use super::{
             widgets::{
-                entity_palette, timeline_icon_strip, AudioSettingsWidget, ControlBar,
-                ControlBarAction, ControlBarWidget, MidiSettingsWidget, ProjectAction,
-                TimelineIconStripAction,
+                AudioSettingsWidget, ControlBar, ControlBarAction, ControlBarWidget,
+                EntityPaletteWidget, MidiSettingsWidget, ProjectAction, TimelineIconStripAction,
+                TimelineIconStripWidget,
             },
             DragDropManager, DragSource, DropTarget,
         };

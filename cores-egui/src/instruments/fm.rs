@@ -2,16 +2,8 @@
 
 use crate::modulators::DcaWidget;
 use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_egui_widgets::{envelope, oscillator};
+use ensnare_egui_widgets::{EnvelopeWidget, OscillatorWidget};
 use ensnare_entity::Uid;
-
-/// Wraps a [FmSynthWidget] as a [Widget](eframe::egui::Widget).
-pub fn fm_synth<'a>(
-    inner: &'a mut ensnare_cores::FmSynth,
-    controllable_uid: Uid,
-) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, controllable_uid).ui(ui)
-}
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
@@ -21,6 +13,13 @@ pub struct FmSynthWidget<'a> {
 impl<'a> FmSynthWidget<'a> {
     fn new(inner: &'a mut ensnare_cores::FmSynth, uid: Uid) -> Self {
         Self { uid, inner }
+    }
+
+    pub fn widget(
+        inner: &'a mut ensnare_cores::FmSynth,
+        controllable_uid: Uid,
+    ) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, controllable_uid).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
@@ -58,11 +57,12 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let carrier_response = ui.add(oscillator(&mut self.inner.carrier));
+                let carrier_response = ui.add(OscillatorWidget::widget(&mut self.inner.carrier));
                 if carrier_response.changed() {
                     self.inner.notify_change_carrier();
                 }
-                let carrier_envelope_response = ui.add(envelope(&mut self.inner.carrier_envelope));
+                let carrier_envelope_response =
+                    ui.add(EnvelopeWidget::widget(&mut self.inner.carrier_envelope));
                 if carrier_envelope_response.changed() {
                     self.inner.notify_change_carrier_envelope();
                 }
@@ -74,12 +74,13 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let modulator_response = ui.add(oscillator(&mut self.inner.modulator));
+                let modulator_response =
+                    ui.add(OscillatorWidget::widget(&mut self.inner.modulator));
                 if modulator_response.changed() {
                     self.inner.notify_change_modulator();
                 }
                 let modulator_envelope_response =
-                    ui.add(envelope(&mut self.inner.modulator_envelope));
+                    ui.add(EnvelopeWidget::widget(&mut self.inner.modulator_envelope));
                 if modulator_envelope_response.changed() {
                     self.inner.notify_change_modulator_envelope();
                 }

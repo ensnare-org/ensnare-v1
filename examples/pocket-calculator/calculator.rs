@@ -23,6 +23,7 @@ use ensnare::{
     prelude::*,
     utils::Paths,
 };
+use ensnare_core::traits::Ticks;
 use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};

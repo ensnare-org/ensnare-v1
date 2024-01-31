@@ -6,7 +6,7 @@ use ensnare_core::{
     prelude::*,
 };
 use ensnare_cores_egui::modulators::DcaWidget;
-use ensnare_egui_widgets::{envelope, oscillator};
+use ensnare_egui_widgets::{EnvelopeWidget, OscillatorWidget};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
@@ -34,7 +34,7 @@ pub struct ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(oscillator(&mut self.inner.oscillator))
+        ui.add(OscillatorWidget::widget(&mut self.inner.oscillator))
             | ui.add(DcaWidget::widget(&mut self.inner.dca, self.uid))
     }
 }
@@ -65,7 +65,7 @@ pub struct ToySynth {
 }
 impl ToySynth {
     fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(oscillator(&mut self.inner.oscillator));
+        let response = ui.add(OscillatorWidget::widget(&mut self.inner.oscillator));
         if response.changed() {
             // make sure everyone knows
         }
@@ -73,7 +73,7 @@ impl ToySynth {
     }
 
     fn ui_envelope(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(envelope(&mut self.inner.envelope));
+        let response = ui.add(EnvelopeWidget::widget(&mut self.inner.envelope));
         if response.changed() {
             // make sure everyone knows
         }

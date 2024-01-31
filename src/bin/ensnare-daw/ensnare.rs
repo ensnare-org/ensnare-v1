@@ -362,7 +362,9 @@ impl Ensnare {
     }
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::vertical().show(ui, |ui| ui.add(entity_palette(self.factory.sorted_keys())));
+        ScrollArea::vertical().show(ui, |ui| {
+            ui.add(EntityPaletteWidget::widget(self.factory.sorted_keys()))
+        });
     }
 
     fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
@@ -371,7 +373,7 @@ impl Ensnare {
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
         let mut action = None;
-        ui.add(timeline_icon_strip(&mut action));
+        ui.add(TimelineIconStripWidget::widget(&mut action));
         if let Some(action) = action {
             match action {
                 TimelineIconStripAction::NextTimelineView => {

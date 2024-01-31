@@ -12,7 +12,7 @@ use ensnare_core::{
     prelude::*,
 };
 use ensnare_cores::controllers::{Arpeggiator, ArpeggioMode};
-use ensnare_egui_widgets::{frequency, waveform};
+use ensnare_egui_widgets::{FrequencyWidget, WaveformWidget};
 use ensnare_entity::Uid;
 use strum::IntoEnumIterator;
 
@@ -379,8 +379,11 @@ pub struct LfoControllerWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for LfoControllerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(waveform(self.waveform))
-            | ui.add(frequency(FrequencyRange::Subaudible, self.frequency))
+        ui.add(WaveformWidget::widget(self.waveform))
+            | ui.add(FrequencyWidget::widget(
+                FrequencyRange::Subaudible,
+                self.frequency,
+            ))
     }
 }
 impl<'a> LfoControllerWidget<'a> {

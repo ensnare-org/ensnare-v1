@@ -2,10 +2,12 @@
 
 //! egui widgets that might be useful outside this project.
 
-pub use audio::{analyze_spectrum, frequency, frequency_domain, time_domain, waveform};
+pub use audio::{
+    analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
+};
 pub use control_bar::{ControlBar, ControlBarAction, ControlBarWidget};
-pub use core::drag_normal;
-pub use generators::{envelope, oscillator};
+pub use core::DragNormalWidget;
+pub use generators::{EnvelopeWidget, OscillatorWidget};
 pub use indicators::{activity_indicator, level_indicator};
 pub use misc::ObliqueStrategiesWidget;
 pub use placeholder::wiggler;
@@ -22,5 +24,8 @@ mod util;
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {
-    pub use super::{activity_indicator, drag_normal, fill_remaining_ui_space, level_indicator};
+    pub use super::{
+        activity_indicator, fill_remaining_ui_space, level_indicator, DragNormalWidget,
+        WaveformWidget,
+    };
 }

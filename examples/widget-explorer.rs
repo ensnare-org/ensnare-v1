@@ -27,6 +27,7 @@ use ensnare_core::{
     types::{TrackTitle, VisualizationQueue},
 };
 use ensnare_cores_egui::note_sequencer_widget;
+use ensnare_egui_widgets::{FrequencyDomainWidget, TimeDomainWidget};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
@@ -532,7 +533,7 @@ impl TimeDomainSettings {
                 ui.set_max_height(self.max_height);
                 if let Ok(queue) = self.visualization_queue.0.read() {
                     let (slice_1, slice_2) = queue.as_slices();
-                    ui.add(ensnare_egui_widgets::time_domain(slice_1, slice_2));
+                    ui.add(TimeDomainWidget::widget(slice_1, slice_2));
                 }
             });
         }
@@ -591,7 +592,7 @@ impl FrequencyDomainSettings {
             ui.scope(|ui| {
                 ui.set_max_width(self.max_width);
                 ui.set_max_height(self.max_height);
-                ui.add(ensnare_egui_widgets::frequency_domain(&self.fft_buffer));
+                ui.add(FrequencyDomainWidget::widget(&self.fft_buffer));
             });
         }
     }

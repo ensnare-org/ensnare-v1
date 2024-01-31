@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::prelude::*;
-use ensnare_egui_widgets::drag_normal;
+use ensnare_egui_widgets::DragNormalWidget;
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
@@ -28,7 +28,10 @@ pub struct ToyEffect {
 }
 impl Displays for ToyEffect {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(drag_normal(&mut self.inner.magnitude, "Magnitude: "))
+        ui.add(DragNormalWidget::widget(
+            &mut self.inner.magnitude,
+            "Magnitude: ",
+        ))
     }
 }
 impl ToyEffect {

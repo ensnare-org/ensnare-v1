@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, waveform};
+use crate::prelude::*;
 use eframe::{
     egui::{Frame, Sense, Widget},
     emath,
@@ -11,39 +11,38 @@ use ensnare_core::{
     prelude::*,
 };
 
-/// Wraps an [OscillatorWidget] as a [Widget](eframe::egui::Widget).
-pub fn oscillator<'a>(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
-}
 /// An egui widget for [Oscillator].
 #[derive(Debug)]
-struct OscillatorWidget<'a> {
+pub struct OscillatorWidget<'a> {
     oscillator: &'a mut Oscillator,
 }
 impl<'a> eframe::egui::Widget for OscillatorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(waveform(&mut self.oscillator.waveform))
+        ui.add(WaveformWidget::widget(&mut self.oscillator.waveform))
     }
 }
 impl<'a> OscillatorWidget<'a> {
     fn new(oscillator: &'a mut Oscillator) -> Self {
         Self { oscillator }
     }
-}
 
-/// Wraps an [EnvelopeWidget] as a [Widget](eframe::egui::Widget).
-pub fn envelope<'a>(envelope: &'a mut Envelope) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| EnvelopeWidget::new(envelope).ui(ui)
+    pub fn widget(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
+    }
 }
 
 /// An egui widget that draws an [Envelope].
 #[derive(Debug)]
-struct EnvelopeWidget<'a> {
+pub struct EnvelopeWidget<'a> {
     envelope: &'a mut Envelope,
 }
 impl<'a> EnvelopeWidget<'a> {
     fn new(envelope: &'a mut Envelope) -> Self {
         Self { envelope }
+    }
+
+    pub fn widget(envelope: &'a mut Envelope) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| EnvelopeWidget::new(envelope).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for EnvelopeWidget<'a> {
@@ -53,7 +52,7 @@ impl<'a> eframe::egui::Widget for EnvelopeWidget<'a> {
         let mut sustain = self.envelope.sustain();
         let mut release = self.envelope.release();
 
-        let canvas_response = ui.add(envelope_shaper(
+        let canvas_response = ui.add(EnvelopeShaperWidget::widget(
             &mut attack,
             &mut decay,
             &mut sustain,
@@ -65,22 +64,22 @@ impl<'a> eframe::egui::Widget for EnvelopeWidget<'a> {
             self.envelope.set_sustain(sustain);
             self.envelope.set_release(release);
         }
-        let attack_response = ui.add(drag_normal(&mut attack, "Attack: "));
+        let attack_response = ui.add(DragNormalWidget::widget(&mut attack, "Attack: "));
         if attack_response.changed() {
             self.envelope.set_attack(attack);
         }
         ui.end_row();
-        let decay_response = ui.add(drag_normal(&mut decay, "Decay: "));
+        let decay_response = ui.add(DragNormalWidget::widget(&mut decay, "Decay: "));
         if decay_response.changed() {
             self.envelope.set_decay(decay);
         }
         ui.end_row();
-        let sustain_response = ui.add(drag_normal(&mut sustain, "Sustain: "));
+        let sustain_response = ui.add(DragNormalWidget::widget(&mut sustain, "Sustain: "));
         if sustain_response.changed() {
             self.envelope.set_sustain(sustain);
         }
         ui.end_row();
-        let release_response = ui.add(drag_normal(&mut release, "Release: "));
+        let release_response = ui.add(DragNormalWidget::widget(&mut release, "Release: "));
         if release_response.changed() {
             self.envelope.set_release(release);
         }
@@ -206,18 +205,6 @@ impl<'a> eframe::egui::Widget for EnvelopeWidget<'a> {
 //     response
 // }
 
-/// Wraps an [EnvelopeShaperWidget] as a [Widget](eframe::egui::Widget).
-pub fn envelope_shaper<'a>(
-    attack: &'a mut Normal,
-    decay: &'a mut Normal,
-    sustain: &'a mut Normal,
-    release: &'a mut Normal,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| {
-        EnvelopeShaperWidget::new(attack, decay, sustain, release).ui(ui)
-    }
-}
-
 /// An egui widget that allows visual editing of an [Envelope].
 #[derive(Debug)]
 struct EnvelopeShaperWidget<'a> {
@@ -238,6 +225,17 @@ impl<'a> EnvelopeShaperWidget<'a> {
             decay,
             sustain,
             release,
+        }
+    }
+
+    pub fn widget(
+        attack: &'a mut Normal,
+        decay: &'a mut Normal,
+        sustain: &'a mut Normal,
+        release: &'a mut Normal,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            EnvelopeShaperWidget::new(attack, decay, sustain, release).ui(ui)
         }
     }
 }

@@ -3,23 +3,22 @@
 use eframe::egui::DragValue;
 use ensnare_core::types::Normal;
 
-/// Wraps a [DragNormal] as a [Widget](eframe::egui::Widget).
-pub fn drag_normal<'a>(normal: &'a mut Normal, prefix: &'a str) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| DragNormal::new(normal).prefix(prefix).ui(ui)
-}
-
 /// An egui widget that makes it easier to work with a [DragValue] and a Normal.
 #[derive(Debug)]
-struct DragNormal<'a> {
+pub struct DragNormalWidget<'a> {
     normal: &'a mut Normal,
     prefix: Option<String>,
 }
-impl<'a> DragNormal<'a> {
-    pub fn new(normal: &'a mut Normal) -> Self {
+impl<'a> DragNormalWidget<'a> {
+    fn new(normal: &'a mut Normal) -> Self {
         Self {
             normal,
             prefix: None,
         }
+    }
+
+    pub fn widget(normal: &'a mut Normal, prefix: &'a str) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| DragNormalWidget::new(normal).prefix(prefix).ui(ui)
     }
 
     pub fn prefix(mut self, prefix: impl ToString) -> Self {
@@ -27,7 +26,7 @@ impl<'a> DragNormal<'a> {
         self
     }
 
-    pub fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut value = self.normal.0 * 100.0;
         let mut dv = DragValue::new(&mut value)
             .clamp_range(0.0..=100.0)

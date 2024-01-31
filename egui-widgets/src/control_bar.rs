@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{activity_indicator, analyze_spectrum, frequency_domain, time_domain};
+use crate::{activity_indicator, analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget};
 use eframe::{
     egui::{Image, ImageButton, Layout, Widget},
     epaint::vec2,
@@ -185,14 +185,15 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 ui.scope(|ui| {
                     ui.set_max_size(vec2(64.0, 32.0));
                     if match self.control_bar.display_mode {
-                        ControlBarDisplayMode::Time => {
-                            ui.add(time_domain(sample_buffer_slice_1, sample_buffer_slice_2))
-                        }
+                        ControlBarDisplayMode::Time => ui.add(TimeDomainWidget::widget(
+                            sample_buffer_slice_1,
+                            sample_buffer_slice_2,
+                        )),
                         ControlBarDisplayMode::Frequency => {
                             let values =
                                 analyze_spectrum(sample_buffer_slice_1, sample_buffer_slice_2)
                                     .unwrap();
-                            ui.add(frequency_domain(&values))
+                            ui.add(FrequencyDomainWidget::widget(&values))
                         }
                     }
                     .clicked()

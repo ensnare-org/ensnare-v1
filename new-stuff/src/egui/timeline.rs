@@ -5,13 +5,6 @@ use eframe::{
     epaint::Vec2,
 };
 
-/// Wraps a [TimelineIconStrip] as a [Widget](eframe::egui::Widget).
-pub fn timeline_icon_strip<'a>(
-    action: &'a mut Option<TimelineIconStripAction>,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| TimelineIconStrip::new(action).ui(ui)
-}
-
 #[derive(Debug)]
 pub enum TimelineIconStripAction {
     NextTimelineView,
@@ -20,15 +13,21 @@ pub enum TimelineIconStripAction {
 
 /// An egui widget that displays an icon strip that goes above the timeline view.
 #[derive(Debug)]
-pub struct TimelineIconStrip<'a> {
+pub struct TimelineIconStripWidget<'a> {
     action: &'a mut Option<TimelineIconStripAction>,
 }
-impl<'a> TimelineIconStrip<'a> {
+impl<'a> TimelineIconStripWidget<'a> {
     fn new(action: &'a mut Option<TimelineIconStripAction>) -> Self {
         Self { action }
     }
+
+    pub fn widget(
+        action: &'a mut Option<TimelineIconStripAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| TimelineIconStripWidget::new(action).ui(ui)
+    }
 }
-impl<'a> eframe::egui::Widget for TimelineIconStrip<'a> {
+impl<'a> eframe::egui::Widget for TimelineIconStripWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.horizontal(|ui| {
             ui.spacing_mut().button_padding = Vec2::splat(0.0);

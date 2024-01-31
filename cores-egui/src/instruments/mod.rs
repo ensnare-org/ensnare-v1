@@ -1,16 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{effects::BiQuadFilterLowPass24dbWidget, modulators::DcaWidget};
-use eframe::egui::{CollapsingHeader, Slider, Widget};
-use ensnare_egui_widgets::{envelope, oscillator};
-use ensnare_entity::Uid;
+pub use fm::FmSynthWidget;
 
 pub mod fm;
 
-/// Wraps a [SamplerWidget] as a [Widget](eframe::egui::Widget).
-pub fn sampler<'a>(inner: &'a mut ensnare_cores::Sampler) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner).ui(ui)
-}
+use crate::{effects::BiQuadFilterLowPass24dbWidget, modulators::DcaWidget};
+use eframe::egui::{CollapsingHeader, Slider, Widget};
+use ensnare_egui_widgets::{EnvelopeWidget, OscillatorWidget};
+use ensnare_entity::Uid;
 
 #[derive(Debug)]
 pub struct SamplerWidget<'a> {
@@ -20,19 +17,15 @@ impl<'a> SamplerWidget<'a> {
     fn new(inner: &'a mut ensnare_cores::Sampler) -> Self {
         Self { inner }
     }
+
+    pub fn widget(inner: &'a mut ensnare_cores::Sampler) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner).ui(ui)
+    }
 }
 impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(sampler(self.inner))
+        ui.label(format!("Filename: {:?}", self.inner.path()))
     }
-}
-
-/// Wraps a [WelshWidget] as a [Widget](eframe::egui::Widget).
-pub fn welsh_widget<'a>(
-    uid: Uid,
-    inner: &'a mut ensnare_cores::WelshSynth,
-) -> impl eframe::egui::Widget + '_ {
-    move |ui: &mut eframe::egui::Ui| WelshWidget::new(uid, inner).ui(ui)
 }
 
 #[derive(Debug)]
@@ -44,6 +37,13 @@ impl<'a> WelshWidget<'a> {
     fn new(uid: Uid, inner: &'a mut ensnare_cores::WelshSynth) -> Self {
         Self { uid, inner }
     }
+
+    pub fn widget(
+        uid: Uid,
+        inner: &'a mut ensnare_cores::WelshSynth,
+    ) -> impl eframe::egui::Widget + '_ {
+        move |ui: &mut eframe::egui::Ui| WelshWidget::new(uid, inner).ui(ui)
+    }
 }
 impl<'a> eframe::egui::Widget for WelshWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -51,7 +51,10 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui.add(oscillator(&mut self.inner.oscillator_1)).changed() {
+                if ui
+                    .add(OscillatorWidget::widget(&mut self.inner.oscillator_1))
+                    .changed()
+                {
                     self.inner.notify_change_oscillator_1();
                 }
             })
@@ -60,7 +63,10 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui.add(oscillator(&mut self.inner.oscillator_2)).changed() {
+                if ui
+                    .add(OscillatorWidget::widget(&mut self.inner.oscillator_2))
+                    .changed()
+                {
                     self.inner.notify_change_oscillator_2();
                 }
             })
@@ -89,7 +95,10 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                if ui.add(envelope(&mut self.inner.amp_envelope)).changed() {
+                if ui
+                    .add(EnvelopeWidget::widget(&mut self.inner.amp_envelope))
+                    .changed()
+                {
                     self.inner.notify_change_amp_envelope();
                 }
             })
@@ -106,7 +115,10 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 {
                     self.inner.notify_change_filter();
                 }
-                if ui.add(envelope(&mut self.inner.filter_envelope)).changed() {
+                if ui
+                    .add(EnvelopeWidget::widget(&mut self.inner.filter_envelope))
+                    .changed()
+                {
                     self.inner.notify_change_filter_envelope();
                 }
             })
