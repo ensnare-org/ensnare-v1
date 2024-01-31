@@ -32,12 +32,23 @@ impl PatternSequencerBuilder {
 #[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct PatternSequencer {
-    #[serde(skip)]
-    #[builder(setter(skip))]
-    pub inner: MidiSequencer,
-
     #[builder(default, setter(each(name = "pattern", into)))]
     pub patterns: Vec<(MidiChannel, Pattern)>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    pub e: PatternSequencerEphemerals,
+}
+#[derive(Debug, Default, PartialEq)]
+pub struct PatternSequencerEphemerals {
+    pub inner: MidiSequencer,
+    pub extent: TimeRange,
+}
+impl PatternSequencerEphemerals {
+    fn clear(&mut self) {
+        self.inner.clear();
+        self.extent = Default::default();
+    }
 }
 impl Sequences for PatternSequencer {
     type MU = Pattern;
@@ -51,8 +62,9 @@ impl Sequences for PatternSequencer {
         let pattern = pattern.clone() + position;
         let events: Vec<MidiEvent> = pattern.clone().into();
         events.iter().for_each(|&e| {
-            let _ = self.inner.record_midi_event(channel, e);
+            let _ = self.e.inner.record_midi_event(channel, e);
         });
+        self.e.extent.expand_with_range(pattern.extent());
         self.patterns.push((channel, pattern));
         Ok(())
     }
@@ -66,45 +78,55 @@ impl Sequences for PatternSequencer {
         let pattern = pattern.clone() + position;
         let events: Vec<MidiEvent> = pattern.clone().into();
         events.iter().for_each(|&e| {
-            let _ = self.inner.remove_midi_event(channel, e);
+            let _ = self.e.inner.remove_midi_event(channel, e);
         });
         self.patterns
             .retain(|(c, p)| *c != channel || *p != pattern);
+        self.recalculate_extent();
         Ok(())
     }
 
     fn clear(&mut self) {
         self.patterns.clear();
-        self.inner.clear();
+        self.e.clear();
+    }
+}
+impl HasExtent for PatternSequencer {
+    fn extent(&self) -> &TimeRange {
+        &self.e.extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.e.extent = extent;
     }
 }
 impl Controls for PatternSequencer {
     fn update_time_range(&mut self, range: &TimeRange) {
-        self.inner.update_time_range(range)
+        self.e.inner.update_time_range(range)
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.inner.work(control_events_fn)
+        self.e.inner.work(control_events_fn)
     }
 
     fn is_finished(&self) -> bool {
-        self.inner.is_finished()
+        self.e.inner.is_finished()
     }
 
     fn play(&mut self) {
-        self.inner.play()
+        self.e.inner.play()
     }
 
     fn stop(&mut self) {
-        self.inner.stop()
+        self.e.inner.stop()
     }
 
     fn skip_to_start(&mut self) {
-        self.inner.skip_to_start()
+        self.e.inner.skip_to_start()
     }
 
     fn is_performing(&self) -> bool {
-        self.inner.is_performing()
+        self.e.inner.is_performing()
     }
 }
 impl Serializable for PatternSequencer {
@@ -112,9 +134,18 @@ impl Serializable for PatternSequencer {
         for (channel, pattern) in &self.patterns {
             let events: Vec<MidiEvent> = pattern.clone().into();
             events.iter().for_each(|&e| {
-                let _ = self.inner.record_midi_event(*channel, e);
+                let _ = self.e.inner.record_midi_event(*channel, e);
             });
         }
+        self.recalculate_extent();
+    }
+}
+impl PatternSequencer {
+    fn recalculate_extent(&mut self) {
+        self.e.extent = Default::default();
+        self.patterns.iter().for_each(|(_channel, pattern)| {
+            self.e.extent.expand_with_range(pattern.extent());
+        });
     }
 }
 
@@ -144,7 +175,7 @@ mod obsolete {
         ) -> anyhow::Result<()> {
             let composer = self.composer.read().unwrap();
             if let Some(pattern) = composer.pattern(*pattern_uid) {
-                let _ = self.inner.record(channel, &pattern, position);
+                let _ = self.e.inner.record(channel, &pattern, position);
                 self.arrangements.push(LivePatternArrangement {
                     pattern_uid: *pattern_uid,
                     range: position..position + pattern.duration(),
@@ -164,19 +195,19 @@ mod obsolete {
             // Someday I will get https://en.wikipedia.org/wiki/De_Morgan%27s_laws right
             self.arrangements
                 .retain(|a| a.pattern_uid != *pattern_uid || a.range.start != position);
-            self.inner.clear();
+            self.e.inner.clear();
             self.replay();
             Ok(())
         }
 
         fn clear(&mut self) {
             self.arrangements.clear();
-            self.inner.clear();
+            self.e.inner.clear();
         }
     }
     impl Controls for LivePatternSequencer {
         fn update_time_range(&mut self, range: &TimeRange) {
-            self.inner.update_time_range(range)
+            self.e.inner.update_time_range(range)
         }
 
         fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -186,27 +217,27 @@ mod obsolete {
                 control_events_fn(event);
             };
 
-            self.inner.work(&mut inner_control_events_fn)
+            self.e.inner.work(&mut inner_control_events_fn)
         }
 
         fn is_finished(&self) -> bool {
-            self.inner.is_finished()
+            self.e.inner.is_finished()
         }
 
         fn play(&mut self) {
-            self.inner.play()
+            self.e.inner.play()
         }
 
         fn stop(&mut self) {
-            self.inner.stop()
+            self.e.inner.stop()
         }
 
         fn skip_to_start(&mut self) {
-            self.inner.skip_to_start()
+            self.e.inner.skip_to_start()
         }
 
         fn is_performing(&self) -> bool {
-            self.inner.is_performing()
+            self.e.inner.is_performing()
         }
     }
     impl Serializable for LivePatternSequencer {
@@ -229,9 +260,11 @@ mod obsolete {
             let composer = self.composer.read().unwrap();
             self.arrangements.iter().for_each(|arrangement| {
                 if let Some(pattern) = composer.pattern(arrangement.pattern_uid) {
-                    let _ =
-                        self.inner
-                            .record(MidiChannel::default(), pattern, arrangement.range.start);
+                    let _ = self.e.inner.record(
+                        MidiChannel::default(),
+                        pattern,
+                        arrangement.range.start,
+                    );
                 }
             });
         }
@@ -251,6 +284,44 @@ mod obsolete {
 }
 #[cfg(test)]
 mod tests {
+    use super::PatternSequencerBuilder;
+    use crate::{
+        midi::MidiChannel,
+        prelude::{MusicalTime, PatternBuilder, TimeRange, TimeSignature},
+        traits::{HasExtent, Sequences},
+    };
+
+    #[test]
+    fn pattern_sequencer_handles_extents() {
+        let mut s = PatternSequencerBuilder::default().build().unwrap();
+
+        assert_eq!(
+            s.extent(),
+            &TimeRange::default(),
+            "Empty sequencer should have empty extent"
+        );
+
+        let pattern = PatternBuilder::default().build().unwrap();
+        assert_eq!(pattern.time_signature(), TimeSignature::default());
+        assert!(s
+            .record(MidiChannel::default(), &pattern, MusicalTime::START)
+            .is_ok());
+        assert_eq!(
+            s.extent(),
+            &TimeRange(MusicalTime::START..MusicalTime::new_with_beats(4)),
+            "Adding an empty 4/4 pattern to a sequencer should update the extent to one measure"
+        );
+
+        assert!(s
+            .remove(MidiChannel::default(), &pattern, MusicalTime::START)
+            .is_ok());
+        assert_eq!(
+            s.extent(),
+            &TimeRange::default(),
+            "After removing last pattern from sequencer, its extent should return to empty"
+        );
+    }
+
     #[cfg(obsolete)]
     mod obsolete {
         use super::*;

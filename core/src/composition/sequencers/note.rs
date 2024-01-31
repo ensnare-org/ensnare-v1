@@ -2,8 +2,8 @@
 
 use super::midi::MidiSequencer;
 use crate::{prelude::*, rng::Rng, traits::Sequences};
+use delegate::delegate;
 use derive_builder::Builder;
-use ensnare_proc_macros::InnerConfigurable;
 use serde::{Deserialize, Serialize};
 
 impl NoteSequencerBuilder {
@@ -35,16 +35,21 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(Debug, Default, Builder, InnerConfigurable, Serialize, Deserialize)]
+#[derive(Debug, Default, Builder, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
-    #[serde(skip)]
-    #[builder(setter(skip))]
-    pub inner: MidiSequencer,
-
     #[builder(default, setter(each(name = "note", into)))]
     notes: Vec<Note>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    pub e: NoteSequencerEphemerals,
+}
+#[derive(Debug, Default)]
+pub struct NoteSequencerEphemerals {
+    pub inner: MidiSequencer,
+    pub extent: TimeRange,
 }
 impl Sequences for NoteSequencer {
     type MU = Note;
@@ -58,8 +63,9 @@ impl Sequences for NoteSequencer {
         let note = note.clone() + position;
         let events: Vec<MidiEvent> = note.clone().into();
         events.iter().for_each(|e| {
-            let _ = self.inner.record_midi_event(channel, *e);
+            let _ = self.e.inner.record_midi_event(channel, *e);
         });
+        self.e.extent.expand_with_range(note.extent());
         self.notes.push(note);
         Ok(())
     }
@@ -71,58 +77,59 @@ impl Sequences for NoteSequencer {
         position: MusicalTime,
     ) -> anyhow::Result<()> {
         let note = note.clone() + position;
-        let _ = self.inner.remove_midi_message(
+        let _ = self.e.inner.remove_midi_message(
             channel,
             MidiMessage::NoteOn {
                 key: u7::from(note.key),
                 vel: u7::from(127),
             },
-            note.range.0.start,
+            note.extent.0.start,
         );
-        let _ = self.inner.remove_midi_message(
+        let _ = self.e.inner.remove_midi_message(
             channel,
             MidiMessage::NoteOff {
                 key: u7::from(note.key),
                 vel: u7::from(127),
             },
-            note.range.0.end,
+            note.extent.0.end,
         );
         self.notes.retain(|n| *n != note);
+        self.recalculate_extent();
         Ok(())
     }
 
     fn clear(&mut self) {
         self.notes.clear();
-        self.inner.clear();
+        self.e.inner.clear();
     }
 }
 impl Controls for NoteSequencer {
     fn update_time_range(&mut self, range: &TimeRange) {
-        self.inner.update_time_range(range)
+        self.e.inner.update_time_range(range)
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.inner.work(control_events_fn)
+        self.e.inner.work(control_events_fn)
     }
 
     fn is_finished(&self) -> bool {
-        self.inner.is_finished()
+        self.e.inner.is_finished()
     }
 
     fn play(&mut self) {
-        self.inner.play()
+        self.e.inner.play()
     }
 
     fn stop(&mut self) {
-        self.inner.stop()
+        self.e.inner.stop()
     }
 
     fn skip_to_start(&mut self) {
-        self.inner.skip_to_start()
+        self.e.inner.skip_to_start()
     }
 
     fn is_performing(&self) -> bool {
-        self.inner.is_performing()
+        self.e.inner.is_performing()
     }
 }
 impl Serializable for NoteSequencer {
@@ -132,9 +139,39 @@ impl Serializable for NoteSequencer {
         self.notes.iter().for_each(|note| {
             let events: Vec<MidiEvent> = note.clone().into();
             events.iter().for_each(|e| {
-                let _ = self.inner.record_midi_event(MidiChannel::default(), *e);
+                let _ = self.e.inner.record_midi_event(MidiChannel::default(), *e);
             });
         });
+        self.recalculate_extent();
+    }
+}
+impl NoteSequencer {
+    fn recalculate_extent(&mut self) {
+        self.e.extent = Default::default();
+        self.notes.iter().for_each(|note| {
+            self.e.extent.expand_with_range(&note.extent());
+        });
+    }
+}
+impl HasExtent for NoteSequencer {
+    fn extent(&self) -> &TimeRange {
+        &self.e.extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.e.extent = extent;
+    }
+}
+impl Configurable for NoteSequencer {
+    delegate! {
+        to self.e.inner {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 

@@ -17,9 +17,9 @@ use crate::{
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        Configurable, ControlEventsFn, Controllable, Controls, Generates, HandlesMidi, HasSettings,
-        IsStereoSampleVoice, IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi,
-        Serializable, StoresVoices, Ticks, TransformsAudio, WorkEvent,
+        Configurable, ControlEventsFn, Controllable, Controls, Generates, HandlesMidi, HasExtent,
+        HasSettings, IsStereoSampleVoice, IsVoice, MidiMessagesFn, PlaysNotes, Sequences,
+        SequencesMidi, Serializable, StoresVoices, Ticks, TransformsAudio, WorkEvent,
     };
 }
 
@@ -422,7 +422,43 @@ pub trait SequencesMidi: Controls + Configurable + HandlesMidi {
     fn is_recording(&self) -> bool;
 }
 
-/// Records and replays the given musical unit.
+/// A convenience trait that helps describe the lifetime, in MusicalTime, of
+/// something.
+///
+/// This is not necessarily the times of the first and last MIDI events. For
+/// example, if the struct in question (MU, or Musical Unit) were one-measure
+/// patterns, then the extent of such a pattern would be the full measure, even
+/// if the pattern were empty, because it still takes up a measure of "musical
+/// space."
+///
+/// Note that extent() returns a Range, not a RangeInclusive. This is most
+/// natural for MUs like patterns that are aligned to musical boundaries. For a
+/// MU that is instantaneous, like a MIDI event, however, the current
+/// recommendation is to return a range whose end is the last event's time + one
+/// MusicalTime unit, which adheres to the contract of Range, but can add an
+/// extra measure of silence (since the range now extends to the next measure)
+/// if the consumer of extent() doesn't understand what it's looking at.
+pub trait HasExtent {
+    /// Returns the range of MusicalTime that this thing spans.
+    fn extent(&self) -> &TimeRange;
+
+    /// Sets the range.
+    fn set_extent(&mut self, extent: TimeRange);
+
+    /// Convenience method that returns the distance between extent's start and
+    /// end. The duration is the amount of time from the start to the point when
+    /// the next contiguous musical item should start. This does not necessarily
+    /// mean the time between the first note-on and the first note-off! For
+    /// example, an empty 4/4 pattern lasts for 4 beats.
+    fn duration(&self) -> MusicalTime {
+        let e = self.extent();
+        e.0.end - e.0.start
+    }
+}
+/// Records and replays the given musical unit. This is another convenience
+/// trait that helps rationalize sequencer interfaces while the concept of a
+/// sequencer itself is under development. TODO: delete this trait when
+/// sequencing is better developed.
 pub trait Sequences: Controls + std::fmt::Debug {
     /// "Musical Unit"
     type MU;

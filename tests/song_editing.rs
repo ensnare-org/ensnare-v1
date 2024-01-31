@@ -47,7 +47,7 @@ fn edit_song() {
         let note = drum_pattern
             .move_note(
                 &note.clone(),
-                note.range.0.start + MusicalTime::DURATION_BREVE,
+                note.extent.0.start + MusicalTime::DURATION_BREVE,
             )
             .unwrap();
         let _ = drum_pattern

@@ -437,8 +437,8 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                 pattern.notes().iter().for_each(|note| {
                                     let note = Note::new_with_start_and_end(
                                         note.key,
-                                        note.range.0.start + arrangement.position,
-                                        note.range.0.end + arrangement.position,
+                                        note.extent.0.start + arrangement.position,
+                                        note.extent.0.end + arrangement.position,
                                     );
                                     shape_v.push(Self::shape_for_note(
                                         &to_screen,
@@ -512,8 +512,8 @@ impl<'a> TrackArrangementWidget<'a> {
         foreground_color: Color32,
         note: &Note,
     ) -> Shape {
-        let a = to_screen * pos2(note.range.0.start.total_units() as f32, note.key as f32);
-        let b = to_screen * pos2(note.range.0.end.total_units() as f32, note.key as f32);
+        let a = to_screen * pos2(note.extent.0.start.total_units() as f32, note.key as f32);
+        let b = to_screen * pos2(note.extent.0.end.total_units() as f32, note.key as f32);
         Shape::Rect(RectShape::new(
             Rect::from_two_pos(a, b),
             visuals.rounding,

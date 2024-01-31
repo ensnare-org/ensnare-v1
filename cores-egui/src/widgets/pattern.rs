@@ -102,9 +102,10 @@ impl<'a> eframe::egui::Widget for IconWidget<'a> {
         };
         for note in self.notes {
             let key = note.key as f32;
-            let p1 = to_screen * eframe::epaint::pos2(note.range.0.start.total_parts() as f32, key);
+            let p1 =
+                to_screen * eframe::epaint::pos2(note.extent.0.start.total_parts() as f32, key);
             let mut p2 =
-                to_screen * eframe::epaint::pos2(note.range.0.end.total_parts() as f32, key);
+                to_screen * eframe::epaint::pos2(note.extent.0.end.total_parts() as f32, key);
 
             // Even very short notes should be visible.
             if p1.x == p2.x {
@@ -347,11 +348,11 @@ impl<'a> PatternWidget<'a> {
         let notes_vert = 24.0;
         const FIGURE_THIS_OUT: f32 = 16.0;
         let ul = Pos2 {
-            x: note.range.0.start.total_parts() as f32 / FIGURE_THIS_OUT,
+            x: note.extent.0.start.total_parts() as f32 / FIGURE_THIS_OUT,
             y: (note.key as f32) / notes_vert,
         };
         let br = Pos2 {
-            x: note.range.0.end.total_parts() as f32 / FIGURE_THIS_OUT,
+            x: note.extent.0.end.total_parts() as f32 / FIGURE_THIS_OUT,
             y: (1.0 + note.key as f32) / notes_vert,
         };
         Rect::from_two_pos(ul, br)
@@ -363,7 +364,8 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
         let to_screen = RectTransform::from_to(
             eframe::epaint::Rect::from_x_y_ranges(
-                MusicalTime::START.total_parts() as f32..=self.inner.duration.total_parts() as f32,
+                MusicalTime::START.total_parts() as f32
+                    ..=self.inner.duration().total_parts() as f32,
                 128.0..=0.0,
             ),
             response.rect,
@@ -397,10 +399,14 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             .iter()
             .map(|note| {
                 let rect = Rect::from_two_pos(
-                    to_screen * pos2(note.range.0.start.total_parts() as f32, note.key as f32),
-                    to_screen * pos2(note.range.0.end.total_parts() as f32, note.key as f32 + 1.0),
+                    to_screen * pos2(note.extent.0.start.total_parts() as f32, note.key as f32),
+                    to_screen
+                        * pos2(
+                            note.extent.0.end.total_parts() as f32,
+                            note.key as f32 + 1.0,
+                        ),
                 );
-                let hovered = note.key == key && note.range.0.contains(&position);
+                let hovered = note.key == key && note.extent.0.contains(&position);
                 let stroke = if hovered {
                     ui.ctx().style().visuals.widgets.active.fg_stroke
                 } else {

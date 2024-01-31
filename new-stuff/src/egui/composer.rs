@@ -9,7 +9,7 @@ use eframe::{
 use ensnare_core::{
     composition::{Note, Pattern, PatternBuilder},
     midi::MidiNote,
-    time::{MusicalTime, TimeRange, TimeSignature},
+    time::{MusicalTime, TimeSignature},
     traits::Configurable,
 };
 use ensnare_cores_egui::{
@@ -359,12 +359,12 @@ impl<'a> PatternWidget<'a> {
         // rigid pattern widget, we're using only quarter-beat divisions.
         let ul = to_screen
             * pos2(
-                (note.range.0.start.total_parts() / 4) as f32,
+                (note.extent.0.start.total_parts() / 4) as f32,
                 note.key as f32,
             );
         let br = to_screen
             * pos2(
-                (note.range.0.end.total_parts() / 4) as f32,
+                (note.extent.0.end.total_parts() / 4) as f32,
                 (note.key + 1) as f32,
             );
         let note_rect = Rect::from_two_pos(ul, br);
@@ -437,7 +437,7 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
 
             let hovered = Some(note.key) == key
                 && if let Some(position) = position {
-                    note.range.0.contains(&position)
+                    note.extent.0.contains(&position)
                 } else {
                     false
                 };

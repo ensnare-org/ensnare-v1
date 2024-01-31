@@ -160,25 +160,23 @@ struct ToySequencer {
     time_range: TimeRange,
     is_recording: bool,
     is_performing: bool,
-    max_event_time: MusicalTime,
+    extent: TimeRange,
 }
 impl SequencesMidi for ToySequencer {
     fn clear(&mut self) {
         self.events.clear();
-        self.max_event_time = MusicalTime::default();
+        self.extent = Default::default();
     }
 
     fn record_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
         self.events.push(event);
-        if event.time > self.max_event_time {
-            self.max_event_time = event.time;
-        }
+        self.extent.expand_with_time(event.time);
         Ok(())
     }
 
     fn remove_midi_event(&mut self, _channel: MidiChannel, event: MidiEvent) -> anyhow::Result<()> {
         self.events.retain(|e| *e != event);
-        self.recalculate_max_time();
+        self.recalculate_extent();
         Ok(())
     }
 
@@ -205,7 +203,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.0.start + position,
+            unit.extent.0.start + position,
         );
         let _ = self.record_midi_message(
             channel,
@@ -213,8 +211,9 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            unit.range.0.end + position,
+            unit.extent.0.end + position,
         );
+        self.extent.expand_with_range(unit.extent());
         self.notes.push(unit.clone());
         Ok(())
     }
@@ -231,7 +230,7 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            position + unit.range.0.start,
+            position + unit.extent.0.start,
         );
         let _ = self.remove_midi_message(
             channel,
@@ -239,15 +238,25 @@ impl Sequences for ToySequencer {
                 key: u7::from(unit.key),
                 vel: u7::from(127),
             },
-            position + unit.range.0.end,
+            position + unit.extent.0.end,
         );
         self.notes.retain(|n| n != unit);
+        self.recalculate_extent();
         Ok(())
     }
 
     fn clear(&mut self) {
         self.notes.clear();
         SequencesMidi::clear(self);
+    }
+}
+impl HasExtent for ToySequencer {
+    fn extent(&self) -> &TimeRange {
+        &self.extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.extent = extent;
     }
 }
 impl Configurable for ToySequencer {}
@@ -265,7 +274,7 @@ impl Controls for ToySequencer {
     }
 
     fn is_finished(&self) -> bool {
-        self.time_range.0.end >= self.max_event_time
+        self.time_range.0.end >= self.extent.0.end
     }
 
     fn play(&mut self) {
@@ -299,11 +308,11 @@ impl HandlesMidi for ToySequencer {
     }
 }
 impl ToySequencer {
-    fn recalculate_max_time(&mut self) {
+    fn recalculate_extent(&mut self) {
         if let Some(max_event_time) = self.events.iter().map(|e| e.time).max() {
-            self.max_event_time = max_event_time;
+            self.extent.expand_with_time(max_event_time);
         } else {
-            self.max_event_time = MusicalTime::default();
+            self.set_extent(Default::default());
         }
     }
 }

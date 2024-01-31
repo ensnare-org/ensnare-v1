@@ -492,6 +492,18 @@ impl TimeRange {
     pub fn new_with_start_and_duration(start: MusicalTime, duration: MusicalTime) -> Self {
         Self(start..(start + duration))
     }
+
+    /// Ensures that the extent includes the extent of the given item.
+    pub fn expand_with_range(&mut self, item: &TimeRange) {
+        self.0.start = self.0.start.min(item.0.start);
+        self.0.end = self.0.end.max(item.0.end);
+    }
+
+    /// Ensures that the extent includes the given instant.
+    pub fn expand_with_time(&mut self, time: MusicalTime) {
+        self.0.start = self.0.start.min(time);
+        self.0.end = self.0.end.max(time);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]

@@ -1,12 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{
-    prelude::*,
-    rng::Rng,
-    time::{MusicalTime, TimeSignature},
-    types::ColorScheme,
-    uid::{IsUid, UidFactory},
-};
+use crate::{prelude::*, rng::Rng, types::ColorScheme};
 use anyhow::anyhow;
 use delegate::delegate;
 use derive_builder::Builder;
@@ -63,19 +57,15 @@ pub struct Pattern {
     #[builder(default)]
     time_signature: TimeSignature,
 
-    /// The duration is the amount of time from the start of the pattern to the
-    /// point when the next pattern should start. This does not necessarily mean
-    /// the time between the first note-on and the first note-off! For example,
-    /// an empty 4/4 pattern lasts for 4 beats.
-    #[builder(setter(skip))]
-    pub duration: MusicalTime,
-
     /// The notes that make up this pattern. When it is in a [Pattern], a
     /// [Note]'s range is relative to the start of the [Pattern]. For example, a
     /// note that plays immediately would have a range start of zero. TODO:
     /// specify any ordering restrictions.
     #[builder(default, setter(each(name = "note", into)))]
     pub notes: Vec<Note>,
+
+    #[builder(setter(skip))]
+    pub extent: TimeRange,
 
     #[builder(default)]
     #[serde(skip)]
@@ -153,9 +143,9 @@ impl PatternBuilder {
 impl Default for Pattern {
     fn default() -> Self {
         let mut r = Self {
-            time_signature: TimeSignature::default(),
-            duration: Default::default(),
+            time_signature: Default::default(),
             notes: Default::default(),
+            extent: Default::default(),
             color_scheme: Default::default(),
         };
         r.after_deser();
@@ -165,6 +155,15 @@ impl Default for Pattern {
 impl Serializable for Pattern {
     fn after_deser(&mut self) {
         self.refresh_internals();
+    }
+}
+impl HasExtent for Pattern {
+    fn extent(&self) -> &TimeRange {
+        &self.extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.extent = extent;
     }
 }
 impl Add<MusicalTime> for Pattern {
@@ -207,7 +206,7 @@ impl Pattern {
         let final_event_time = self
             .notes
             .iter()
-            .map(|n| n.range.0.end)
+            .map(|n| n.extent.0.end)
             .max()
             .unwrap_or_default();
 
@@ -223,7 +222,9 @@ impl Pattern {
         let beats = final_event_time.total_beats();
         let top = self.time_signature.top;
         let rounded_up_bars = (beats + top) / top;
-        self.duration = MusicalTime::new_with_bars(&self.time_signature, rounded_up_bars);
+        self.extent = TimeRange(
+            MusicalTime::START..MusicalTime::new_with_bars(&self.time_signature, rounded_up_bars),
+        );
     }
 
     /// Adds a note to this pattern. Does not check for duplicates. It's OK to
@@ -254,17 +255,12 @@ impl Pattern {
         self.refresh_internals();
     }
 
-    /// This pattern's duration in [MusicalTime].
-    pub fn duration(&self) -> MusicalTime {
-        self.duration
-    }
-
     /// Sets a new start time for all notes in the Pattern matching the given
     /// [Note]. If any are found, returns the new version.
     pub fn move_note(&mut self, note: &Note, new_start: MusicalTime) -> anyhow::Result<Note> {
         let mut new_note = note.clone();
-        let new_note_length = new_note.range.0.end - new_note.range.0.start;
-        new_note.range = TimeRange(new_start..new_start + new_note_length);
+        let new_note_length = new_note.extent.0.end - new_note.extent.0.start;
+        new_note.extent = TimeRange(new_start..new_start + new_note_length);
         self.replace_note(note, new_note)
     }
 
@@ -277,7 +273,7 @@ impl Pattern {
         duration: MusicalTime,
     ) -> anyhow::Result<Note> {
         let mut new_note = note.clone();
-        new_note.range = TimeRange(new_start..new_start + duration);
+        new_note.extent = TimeRange(new_start..new_start + duration);
         self.replace_note(note, new_note)
     }
 
@@ -534,7 +530,7 @@ mod tests {
             "Default PatternBuilder yields pattern with zero notes"
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::new_with_bars(&p.time_signature, 1),
             "Default PatternBuilder yields one-measure pattern"
         );
@@ -588,12 +584,12 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            p.notes[0].range.0.start,
+            p.notes[0].extent.0.start,
             MusicalTime::START + MusicalTime::DURATION_SIXTEENTH,
             "moving a note works"
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::new_with_beats(4),
             "Moving a note in pattern doesn't change duration"
         );
@@ -613,7 +609,7 @@ mod tests {
             .move_note(&Note::TEST_C4, MusicalTime::new_with_beats(4))
             .is_ok());
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::new_with_beats(4 * 2),
             "Moving a note out of pattern increases duration"
         );
@@ -637,11 +633,11 @@ mod tests {
                 ..(MusicalTime::START + MusicalTime::DURATION_EIGHTH + MusicalTime::DURATION_WHOLE),
         );
         assert_eq!(
-            p.notes[0].range, expected_range,
+            p.notes[0].extent, expected_range,
             "moving/resizing a note works"
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::new_with_beats(4),
             "moving/resizing within pattern doesn't change duration"
         );
@@ -658,7 +654,7 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::new_with_beats(8),
             "moving/resizing outside current pattern makes the pattern longer"
         );
@@ -710,7 +706,7 @@ mod tests {
                 .build()
                 .unwrap();
             assert_eq!(
-                p.duration,
+                p.duration(),
                 MusicalTime::new_with_beats(ts.top),
                 "Pattern's beat count matches its time signature"
             );
@@ -736,14 +732,14 @@ mod tests {
         assert_eq!(p.note_count(), len_16, "sixteen quarter notes");
         assert_eq!(p.notes[15].key, 67);
         assert_eq!(
-            p.notes[15].range,
+            p.notes[15].extent,
             TimeRange(
                 MusicalTime::DURATION_QUARTER * 15
                     ..MusicalTime::DURATION_WHOLE * p.time_signature.top
             )
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top
         );
 
@@ -755,7 +751,7 @@ mod tests {
             .build()
             .unwrap();
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top * 2,
             "17 notes in 4/4 pattern produces two bars"
         );
@@ -768,7 +764,7 @@ mod tests {
             .unwrap();
         assert_eq!(p.note_count(), len_4, "four quarter notes");
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top
         );
 
@@ -780,7 +776,7 @@ mod tests {
             .unwrap();
         assert_eq!(p.note_count(), len_3_1, "three quarter notes with one rest");
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top
         );
 
@@ -797,7 +793,7 @@ mod tests {
             "eight eighth notes in 2/2 time is two bars long"
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top * 2
         );
 
@@ -814,11 +810,11 @@ mod tests {
         );
         assert_eq!(p.notes[0].key, 60);
         assert_eq!(
-            p.notes[0].range,
+            p.notes[0].extent,
             TimeRange(MusicalTime::START..MusicalTime::DURATION_QUARTER)
         );
         assert_eq!(
-            p.duration,
+            p.duration(),
             MusicalTime::DURATION_WHOLE * p.time_signature.top
         );
     }
@@ -829,6 +825,6 @@ mod tests {
             .time_signature(TimeSignature::CUT_TIME)
             .build()
             .unwrap();
-        assert_eq!(p.duration, MusicalTime::new_with_beats(2));
+        assert_eq!(p.duration(), MusicalTime::new_with_beats(2));
     }
 }

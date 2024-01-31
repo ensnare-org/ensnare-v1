@@ -13,14 +13,23 @@ pub struct Note {
     /// The MIDI key code for the note. 69 is (usually) A4.
     pub key: u8,
     /// The range of time when this note should play.
-    pub range: TimeRange,
+    pub extent: TimeRange,
+}
+impl HasExtent for Note {
+    fn extent(&self) -> &TimeRange {
+        &self.extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.extent = extent;
+    }
 }
 impl Note {
     /// Creates a [Note] from a u8 and a start/end (inclusive start, exclusive end).
     pub const fn new_with_start_and_end(key: u8, start: MusicalTime, end: MusicalTime) -> Self {
         Self {
             key,
-            range: TimeRange(start..end),
+            extent: TimeRange(start..end),
         }
     }
 
@@ -39,7 +48,7 @@ impl Add<MusicalTime> for Note {
     type Output = Self;
 
     fn add(self, rhs: MusicalTime) -> Self::Output {
-        Self::new_with_start_and_end(self.key, self.range.0.start + rhs, self.range.0.end + rhs)
+        Self::new_with_start_and_end(self.key, self.extent.0.start + rhs, self.extent.0.end + rhs)
     }
 }
 // TODO: I don't think this is the best choice to expose this idea. If there's a
@@ -53,14 +62,14 @@ impl Into<Vec<MidiEvent>> for Note {
                     key: u7::from(self.key),
                     vel: u7::from(127),
                 },
-                time: self.range.0.start,
+                time: self.extent.0.start,
             },
             MidiEvent {
                 message: MidiMessage::NoteOff {
                     key: u7::from(self.key),
                     vel: u7::from(127),
                 },
-                time: self.range.0.end,
+                time: self.extent.0.end,
             },
         ]
     }
