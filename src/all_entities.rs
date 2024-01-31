@@ -7,14 +7,17 @@ use crate::{
     entities::{
         controllers::{Arpeggiator, LfoController, SignalPassthroughController},
         effects::{
-            filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
+            filter::{
+                BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
+                BiQuadFilterHighPass, BiQuadFilterLowPass24db,
+            },
+            Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
         },
         instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
         EntityFactory,
     },
     prelude::*,
 };
-use ensnare_core::modulators::Dca;
 use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.
@@ -50,6 +53,18 @@ impl EnsnareEntities {
                 FrequencyHz(500.0),
                 1.0,
             ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterAllPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterAllPass::new_with(uid, FrequencyHz(500.0), 1.0))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterHighPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterHighPass::new_with(uid, FrequencyHz(500.0), 1.0))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterBandPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterBandPass::new_with(uid, FrequencyHz(500.0), 5.0))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterBandStop::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterBandStop::new_with(uid, FrequencyHz(500.0), 5.0))
         });
 
         // Instruments

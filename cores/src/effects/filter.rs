@@ -1,33 +1,26 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use derivative::Derivative;
 use ensnare_core::{prelude::*, traits::CanPrototype};
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Debug, Control, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct BiQuadFilterLowPass24db {
     #[control]
+    #[derivative(Default(value = "1000.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
+    #[derivative(Default(value = "1.0"))]
     passband_ripple: ParameterType,
 
     #[serde(skip)]
     sample_rate: SampleRate,
-
     #[serde(skip)]
     channels: [BiQuadFilterLowPass24dbChannel; 2],
-}
-impl Default for BiQuadFilterLowPass24db {
-    fn default() -> Self {
-        Self {
-            cutoff: FrequencyHz::from(1000.0),
-            passband_ripple: 1.0,
-            sample_rate: Default::default(),
-            channels: Default::default(),
-        }
-    }
 }
 impl Serializable for BiQuadFilterLowPass24db {}
 impl Configurable for BiQuadFilterLowPass24db {
@@ -165,15 +158,17 @@ impl BiQuadFilterLowPass24dbChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterLowPass12db {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     q: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterLowPass12dbChannel; 2],
 }
 impl Serializable for BiQuadFilterLowPass12db {}
@@ -260,15 +255,17 @@ impl BiQuadFilterLowPass12dbChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterHighPass {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     q: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterHighPassChannel; 2],
 }
 impl Serializable for BiQuadFilterHighPass {}
@@ -357,15 +354,19 @@ impl BiQuadFilterHighPassChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterAllPass {
     #[control]
+    #[derivative(Default(value = "1000.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
+    #[derivative(Default(value = "1.0"))]
     q: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterAllPassChannel; 2],
 }
 impl Serializable for BiQuadFilterAllPass {}
@@ -420,6 +421,18 @@ impl BiQuadFilterAllPass {
         }
     }
 }
+impl CanPrototype for BiQuadFilterAllPass {
+    fn make_another(&self) -> Self {
+        let mut r = Self::default();
+        r.update_from_prototype(self);
+        r
+    }
+    fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
+        self.set_cutoff(prototype.cutoff());
+        self.set_q(prototype.q());
+        self
+    }
+}
 
 #[derive(Debug, Default)]
 struct BiQuadFilterAllPassChannel {
@@ -450,15 +463,17 @@ impl BiQuadFilterAllPassChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterBandPass {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterBandPassChannel; 2],
 }
 impl Serializable for BiQuadFilterBandPass {}
@@ -543,15 +558,17 @@ impl BiQuadFilterBandPassChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterBandStop {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterBandStopChannel; 2],
 }
 impl Serializable for BiQuadFilterBandStop {}
@@ -638,7 +655,8 @@ impl BiQuadFilterBandStopChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterPeakingEq {
     #[control]
     cutoff: FrequencyHz,
@@ -648,8 +666,9 @@ pub struct BiQuadFilterPeakingEq {
     #[control]
     q: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterPeakingEqChannel; 2],
 }
 impl Serializable for BiQuadFilterPeakingEq {}
@@ -742,15 +761,17 @@ impl BiQuadFilterPeakingEqChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterLowShelf {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     db_gain: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterLowShelfChannel; 2],
 }
 impl Serializable for BiQuadFilterLowShelf {}
@@ -838,15 +859,17 @@ impl BiQuadFilterLowShelfChannel {
     }
 }
 
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterHighShelf {
     #[control]
     cutoff: FrequencyHz,
     #[control]
     db_gain: ParameterType,
 
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilterHighShelfChannel; 2],
 }
 impl Serializable for BiQuadFilterHighShelf {}
@@ -936,10 +959,12 @@ impl BiQuadFilterHighShelfChannel {
 
 /// This filter does nothing, expensively. It exists for debugging. I might
 /// delete it later.
-#[derive(Debug, Control)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 pub struct BiQuadFilterNone {
+    #[serde(skip)]
     sample_rate: SampleRate,
-
+    #[serde(skip)]
     channels: [BiQuadFilter; 2],
 }
 impl Serializable for BiQuadFilterNone {}

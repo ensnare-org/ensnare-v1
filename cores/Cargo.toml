@@ -12,6 +12,7 @@ version = "0.1.0"
 anyhow = "1.0.75"
 bit-vec = "0.6.3"
 delegate = "0.12"
+derivative = "2.2.0"
 derive_builder = "0.12.0"
 ensnare-core = { path = "../core" }
 ensnare-proc-macros = { path = "../proc-macros" }

@@ -5,7 +5,10 @@ pub use {
     chorus::Chorus,
     compressor::Compressor,
     delay::{Delay, RecirculatingDelayLine},
-    filter::{BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterLowPass24db},
+    filter::{
+        BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop, BiQuadFilterHighPass,
+        BiQuadFilterLowPass24db,
+    },
     gain::Gain,
     limiter::Limiter,
     reverb::Reverb,

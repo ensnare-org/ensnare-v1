@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{effects::bi_quad_filter_low_pass_24db, modulators::DcaWidget};
+use crate::{effects::BiQuadFilterLowPass24dbWidget, modulators::DcaWidget};
 use eframe::egui::{CollapsingHeader, Slider, Widget};
 use ensnare_egui_widgets::{envelope, oscillator};
 use ensnare_entity::Uid;
@@ -99,7 +99,9 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
                 if ui
-                    .add(bi_quad_filter_low_pass_24db(&mut self.inner.filter))
+                    .add(BiQuadFilterLowPass24dbWidget::widget(
+                        &mut self.inner.filter,
+                    ))
                     .changed()
                 {
                     self.inner.notify_change_filter();
