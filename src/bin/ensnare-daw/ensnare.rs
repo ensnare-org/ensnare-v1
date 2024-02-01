@@ -368,7 +368,21 @@ impl Ensnare {
     }
 
     fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::horizontal().show(ui, |ui| ui.label("Under Construction"));
+        ScrollArea::vertical().show(ui, |ui| {
+            if let Some(uid) = self.rendering_state.detail_uid {
+                if let Some(project) = self.project.as_mut() {
+                    if let Ok(mut project) = project.write() {
+                        ui.heading(self.rendering_state.detail_title.as_str());
+                        ui.separator();
+                        if let Some(entity) = project.orchestrator.entity_repo.entity_mut(uid) {
+                            entity.ui(ui);
+                        }
+                    }
+                }
+            } else {
+                ui.heading("No instrument selected");
+            }
+        });
     }
 
     fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
@@ -403,21 +417,6 @@ impl Ensnare {
                     .show(ui.ctx(), |ui| {
                         let response = ui.add(ComposerWidget::widget(&mut project.composer));
                         response
-                    });
-
-                eframe::egui::Window::new(&self.rendering_state.detail_title)
-                    .id(eframe::egui::Id::new("Entity Detail"))
-                    .open(&mut self.rendering_state.is_detail_open)
-                    .anchor(
-                        eframe::emath::Align2::RIGHT_BOTTOM,
-                        eframe::epaint::vec2(5.0, 5.0),
-                    )
-                    .show(ui.ctx(), |ui| {
-                        if let Some(uid) = self.rendering_state.detail_uid {
-                            if let Some(entity) = project.orchestrator.entity_repo.entity_mut(uid) {
-                                entity.ui(ui);
-                            }
-                        }
                     });
 
                 let _ = ui.add(ProjectWidget::widget(&mut project, &mut action));
