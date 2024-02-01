@@ -73,7 +73,7 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .header_response;
         let mut oscillator_mix = self.inner.oscillator_mix.0;
         if ui
-            .add(Slider::new(&mut oscillator_mix, 0.0..=1.0))
+            .add(Slider::new(&mut oscillator_mix, 0.0..=1.0).text("Osc Blend"))
             .changed()
         {
             self.inner.set_oscillator_mix(oscillator_mix.into());
@@ -103,7 +103,7 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 }
             })
             .header_response;
-        response |= CollapsingHeader::new("LPF")
+        response |= CollapsingHeader::new("Low-Pass Filter")
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
