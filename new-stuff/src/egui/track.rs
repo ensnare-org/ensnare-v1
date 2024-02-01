@@ -230,14 +230,15 @@ impl<'a> Widget for TrackWidget<'a> {
                             );
 
                             // The Grid is always disabled and drawn first.
-                            let _ = ui
-                                .allocate_ui_at_rect(rect, |ui| {
+                            let _ = ui.add_enabled_ui(false, |ui| {
+                                ui.allocate_ui_at_rect(rect, |ui| {
                                     ui.add(GridWidget::widget(
                                         temp_range.clone(),
                                         self.view_state.view_range.clone(),
                                     ))
                                 })
-                                .inner;
+                                .inner
+                            });
 
                             // Draw the widget corresponding to the current mode.
                             match self.view_state.arrangement_mode {

@@ -38,6 +38,7 @@ impl GridWidget {
 }
 impl eframe::egui::Widget for GridWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        debug_assert!(!ui.is_enabled(), "GridWidget must be disabled");
         let desired_size = vec2(ui.available_width(), 64.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::hover());
         let to_screen = RectTransform::from_to(
