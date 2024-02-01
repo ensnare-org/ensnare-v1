@@ -9,6 +9,7 @@ use ensnare_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use strum::EnumCount;
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -69,18 +70,6 @@ pub struct ComposerEphemerals {
     mod_serial: ModSerial,
 }
 impl Composer {
-    // TODO temp
-    pub fn insert_16_random_patterns(&mut self) {
-        (0..16).for_each(|i| {
-            let pattern = PatternBuilder::default()
-                .random()
-                .color_scheme(ColorScheme::from_repr(i).unwrap())
-                .build()
-                .unwrap();
-            let _ = self.add_pattern(pattern, None);
-        });
-    }
-
     pub fn add_pattern(
         &mut self,
         contents: Pattern,
@@ -243,6 +232,10 @@ impl Composer {
                     pattern.color_scheme = *color_scheme;
                 }
             });
+    }
+
+    pub fn suggest_next_pattern_color_scheme(&self) -> ColorScheme {
+        ColorScheme::from_repr(self.patterns.len() % ColorScheme::COUNT).unwrap_or_default()
     }
 }
 impl Controls for Composer {

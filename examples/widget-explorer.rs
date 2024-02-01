@@ -440,12 +440,10 @@ struct ComposerSettings {
 }
 impl Default for ComposerSettings {
     fn default() -> Self {
-        let mut r = Self {
+        Self {
             hide: Default::default(),
             composer: Default::default(),
-        };
-        r.composer.insert_16_random_patterns();
-        r
+        }
     }
 }
 impl Displays for ComposerSettings {

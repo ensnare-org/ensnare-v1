@@ -34,7 +34,6 @@ pub enum ProjectServiceInput {
     ProjectStop,
     ServiceInit,
     ServiceQuit,
-    TempInsert16RandomPatterns,
     TrackAddEntity(TrackUid, EntityKey),
     TrackNewAudio,
     TrackNewAux,
@@ -174,14 +173,6 @@ impl ProjectServiceDaemon {
                             let _ = self.sender.send(ProjectServiceEvent::SaveFailed(e));
                         }
                     }
-                }
-                ProjectServiceInput::TempInsert16RandomPatterns => {
-                    todo!();
-                    // let _ = self
-                    //     .project
-                    //     .write()
-                    //     .unwrap()
-                    //     .temp_insert_16_random_patterns();
                 }
                 ProjectServiceInput::ServiceQuit => {
                     eprintln!("ProjectServiceInput::Quit");

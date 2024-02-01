@@ -172,11 +172,6 @@ impl Project {
         r
     }
 
-    pub fn temp_insert_16_random_patterns(&mut self) -> anyhow::Result<()> {
-        self.composer.insert_16_random_patterns();
-        Ok(())
-    }
-
     /// Adds a set of tracks that make sense for a new project.
     pub fn create_starter_tracks(&mut self) -> anyhow::Result<()> {
         if !self.orchestrator.track_repo.uids().is_empty() {

@@ -27,18 +27,38 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
             let r = {
-                let item_response = ui.button("New Pattern");
-                if item_response.clicked() {
-                    let _ = self.composer.add_pattern(
-                        PatternBuilder::default()
-                            .time_signature(self.composer.time_signature())
-                            .color_scheme(ensnare_core::types::ColorScheme::Azure)
-                            .build()
-                            .unwrap(),
-                        None,
-                    );
-                }
-                item_response
+                ui.horizontal(|ui| {
+                    let response = {
+                        let item_response = ui.button("New Pattern");
+                        if item_response.clicked() {
+                            let _ = self.composer.add_pattern(
+                                PatternBuilder::default()
+                                    .time_signature(self.composer.time_signature())
+                                    .color_scheme(self.composer.suggest_next_pattern_color_scheme())
+                                    .build()
+                                    .unwrap(),
+                                None,
+                            );
+                        }
+                        item_response
+                    } | {
+                        let item_response = ui.button("Add Random");
+                        if item_response.clicked() {
+                            let _ = self.composer.add_pattern(
+                                PatternBuilder::default()
+                                    .time_signature(self.composer.time_signature())
+                                    .random()
+                                    .color_scheme(self.composer.suggest_next_pattern_color_scheme())
+                                    .build()
+                                    .unwrap(),
+                                None,
+                            );
+                        }
+                        item_response
+                    };
+                    response
+                })
+                .inner
             } | {
                 let mut carousel_action = None;
                 let item_response = ui.add(CarouselWidget::widget(

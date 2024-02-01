@@ -119,13 +119,6 @@ impl Ensnare {
             r.control_bar.visualization_queue.clone(),
         ));
 
-        // TODO TEMP to make initial project more interesting
-        //        r.send_to_project(ProjectServiceInput::TempInsert16RandomPatterns);
-        // r.send_to_project(ProjectServiceInput::TrackAddEntity(
-        //     TrackUid(1),
-        //     EntityKey::from(ensnare_entities::instruments::WelshSynth::ENTITY_KEY),
-        // ));
-
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r
     }

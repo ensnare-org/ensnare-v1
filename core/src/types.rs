@@ -15,7 +15,7 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, RangeInclusive, Sub},
     sync::{Arc, RwLock},
 };
-use strum_macros::{EnumCount, FromRepr};
+use strum_macros::{EnumCount, EnumIter, FromRepr};
 
 pub mod prelude {
     pub use super::{
@@ -807,6 +807,7 @@ pub struct ModSerial(
     Default,
     Deserialize,
     EnumCount,
+    EnumIter,
     Eq,
     FromRepr,
     Ord,
