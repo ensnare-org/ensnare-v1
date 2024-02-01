@@ -606,37 +606,25 @@ impl App for Ensnare {
         self.handle_events(ctx);
         self.handle_input_events(ctx);
 
-        let top = TopBottomPanel::top("top-panel")
+        TopBottomPanel::top("top-panel")
             .resizable(false)
-            .exact_height(64.0);
-        let bottom = TopBottomPanel::bottom("bottom-panel")
+            .exact_height(64.0)
+            .show(ctx, |ui| self.show_top(ui));
+        TopBottomPanel::bottom("bottom-panel")
             .resizable(false)
-            .exact_height(24.0);
-        let left = SidePanel::left("left-panel")
+            .exact_height(24.0)
+            .show(ctx, |ui| self.show_bottom(ui));
+        SidePanel::left("left-panel")
             .resizable(true)
             .default_width(240.0)
-            .width_range(160.0..=480.0);
-        let right = SidePanel::right("right-panel")
+            .width_range(160.0..=480.0)
+            .show(ctx, |ui| self.show_left(ui));
+        SidePanel::right("right-panel")
             .resizable(true)
             .default_width(160.0)
-            .width_range(160.0..=480.0);
-        let center = CentralPanel::default();
-
-        top.show(ctx, |ui| {
-            self.show_top(ui);
-        });
-        bottom.show(ctx, |ui| {
-            self.show_bottom(ui);
-        });
-        left.show(ctx, |ui| {
-            self.show_left(ui);
-        });
-        right.show(ctx, |ui| {
-            self.show_right(ui);
-        });
-        center.show(ctx, |ui| {
-            self.show_center(ui);
-        });
+            .width_range(160.0..=480.0)
+            .show(ctx, |ui| self.show_right(ui));
+        CentralPanel::default().show(ctx, |ui| self.show_center(ui));
 
         self.show_settings_panel(ctx);
 
