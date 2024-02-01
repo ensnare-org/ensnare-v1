@@ -1,9 +1,13 @@
 [package]
 name = "ensnare-new-stuff"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Things I haven't organized yet"
+publish = false
+authors.workspace = true
+documentation.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"

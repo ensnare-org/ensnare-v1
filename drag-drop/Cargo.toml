@@ -1,12 +1,15 @@
 # Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 [package]
-authors = ["Mike Tsao <mike@sowbug.com>"]
-description = "Drag-and-drop functionality"
-edition = "2021"
 name = "ensnare-drag-drop"
+description = "Drag-and-drop functionality"
 publish = false
-version = "0.1.0"
+authors.workspace = true
+documentation.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 eframe = "0.25"

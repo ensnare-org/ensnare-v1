@@ -1,17 +1,25 @@
 # Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-[package]
+[workspace.package]
 authors = ["Mike Tsao <mike@sowbug.com>"]
-default-run = "ensnare-daw"
-description = "Audio tools"
 documentation = "https://docs.rs/ensnare/"
 edition = "2021"
-homepage = "https://ensnare.rs"
 license = "MIT"
-name = "ensnare"
-readme = "README.md"
 repository = "https://github.com/ensnare-org/ensnare"
-version = "0.0.2"
+version = "0.0.3"
+
+[package]
+name = "ensnare"
+description = "Audio tools"
+default-run = "ensnare-daw"
+homepage = "https://ensnare.rs"
+readme = "README.md"
+authors.workspace = true
+documentation.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
@@ -38,20 +46,6 @@ serde_json = "1.0"
 strum_macros = "0.26"
 thiserror = "1.0.50"
 
-[workspace]
-members = [
-    "core",
-    "cores",
-    "cores-egui",
-    "egui-widgets",
-    "entities",
-    "entities-toy",
-    "entity",
-    "new-stuff",
-    "proc-macros",
-    "services",
-]
-
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
 egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features = [
@@ -70,6 +64,20 @@ name = "ensnare-daw"
 [lib]
 name = "ensnare"
 path = "src/lib.rs"
+
+[workspace]
+members = [
+    "core",
+    "cores",
+    "cores-egui",
+    "egui-widgets",
+    "entities",
+    "entities-toy",
+    "entity",
+    "new-stuff",
+    "proc-macros",
+    "services",
+]
 
 [profile.release]
 strip = true
