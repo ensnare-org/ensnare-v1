@@ -1,11 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use delegate::delegate;
+use derive_more::Display;
 use ensnare_core::prelude::*;
 use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArrangementUid(usize);
 impl IsUid for ArrangementUid {
     fn as_usize(&self) -> usize {

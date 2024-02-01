@@ -390,8 +390,11 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                 ui.ctx().style().visuals.widgets.inactive
             };
 
+            let is_control_down = ui.ctx().input(|i| i.modifiers.command_only());
+
             // Generate all the pattern note shapes
             let mut arrangement_to_unarrange = None;
+            let mut arrangement_to_duplicate = None;
             let arrangement_uids = self
                 .composer
                 .tracks_to_ordered_arrangement_uids
@@ -415,8 +418,7 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                             self.composer
                                                 .e
                                                 .arrangement_selection_set
-                                                .click(arrangement_uid, false)
-                                            // TODO
+                                                .click(arrangement_uid, is_control_down);
                                         }
                                     }
                                 }
@@ -429,7 +431,7 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                     &to_screen,
                                     &visuals,
                                     if is_selected {
-                                        Color32::RED
+                                        Color32::YELLOW
                                     } else {
                                         track_background_color
                                     },
@@ -450,8 +452,7 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                 });
 
                                 // If this arrangement is selected, and the user
-                                // presses Delete, then we should remove the
-                                // arrangement.
+                                // presses a key, then we should handle it.
                                 if is_selected {
                                     ui.ctx().input_mut(|i| {
                                         if i.consume_key(
@@ -459,6 +460,10 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
                                             eframe::egui::Key::Delete,
                                         ) {
                                             arrangement_to_unarrange = Some(*arrangement_uid);
+                                        } else if i
+                                            .consume_key(Modifiers::COMMAND, eframe::egui::Key::D)
+                                        {
+                                            arrangement_to_duplicate = Some(*arrangement_uid);
                                         }
                                     });
                                 }
@@ -470,6 +475,14 @@ impl<'a> eframe::egui::Widget for TrackArrangementWidget<'a> {
 
             if let Some(uid) = arrangement_to_unarrange {
                 self.composer.unarrange(self.track_uid, uid);
+            } else if let Some(uid) = arrangement_to_duplicate {
+                if let Ok(new_uid) = self.composer.duplicate_arrangement(self.track_uid, uid) {
+                    self.composer.e.arrangement_selection_set.clear();
+                    self.composer
+                        .e
+                        .arrangement_selection_set
+                        .click(&new_uid, false);
+                }
             }
 
             // Paint all the shapes

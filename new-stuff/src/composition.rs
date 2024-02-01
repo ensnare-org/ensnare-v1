@@ -165,6 +165,24 @@ impl Composer {
         }
     }
 
+    pub fn duplicate_arrangement(
+        &mut self,
+        track_uid: TrackUid,
+        arrangement_uid: ArrangementUid,
+    ) -> Result<ArrangementUid> {
+        if let Some(arrangement) = self.arrangements.get(&arrangement_uid) {
+            self.arrange_pattern(
+                track_uid,
+                arrangement.pattern_uid,
+                arrangement.position + arrangement.duration,
+            )
+        } else {
+            Err(anyhow!(
+                "Arrangement at {track_uid}-{arrangement_uid} was missing"
+            ))
+        }
+    }
+
     fn replay_arrangements(&mut self) {
         self.e.tracks_to_sequencers.clear();
         self.tracks_to_ordered_arrangement_uids

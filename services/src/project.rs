@@ -213,7 +213,18 @@ impl ProjectServiceDaemon {
                     // TEMP for MVP: quantize the heck out of the arrangement position
                     if let Ok(mut project) = self.project.write() {
                         let position = position.quantized_to_measure(&project.time_signature());
-                        let _ = project.arrange_pattern(track_uid, pattern_uid, position);
+                        if let Ok(new_uid) =
+                            project.arrange_pattern(track_uid, pattern_uid, position)
+                        {
+                            // Select the newly arranged pattern so that
+                            // control-D requires no clicking.
+                            project.composer.e.arrangement_selection_set.clear();
+                            project
+                                .composer
+                                .e
+                                .arrangement_selection_set
+                                .click(&new_uid, false);
+                        }
                     }
                 }
                 ProjectServiceInput::ProjectLinkControl(source_uid, target_uid, index) => {
