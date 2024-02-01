@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use derivative::Derivative;
 use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_proc_macros::Control;
 
@@ -9,10 +10,13 @@ pub(crate) trait Delays {
     fn pop_output(&mut self, input: Sample) -> Sample;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
 pub(crate) struct DelayLine {
     sample_rate: SampleRate,
+    #[derivative(Default(value = "0.1.into()"))]
     delay: Seconds,
+    #[derivative(Default(value = "0.1"))]
     decay_factor: SignalType,
 
     buffer_size: usize,
@@ -28,15 +32,13 @@ impl Configurable for DelayLine {
 impl DelayLine {
     /// decay_factor: 1.0 = no decay
     pub(super) fn new_with(delay: Seconds, decay_factor: SignalType) -> Self {
-        Self {
-            sample_rate: Default::default(),
+        let mut r = Self {
             delay,
             decay_factor,
-
-            buffer_size: Default::default(),
-            buffer_pointer: 0,
-            buffer: Default::default(),
-        }
+            ..Default::default()
+        };
+        r.resize_buffer();
+        r
     }
 
     pub(super) fn delay(&self) -> Seconds {
