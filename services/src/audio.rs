@@ -105,7 +105,7 @@ impl AudioService {
 
                 // TODO: not sure this is the best place for this.
                 r.audio_stream.play();
-                
+
                 r
             }
             Err(e) => panic!("AudioService: {e:?}"),
