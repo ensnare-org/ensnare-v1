@@ -359,6 +359,7 @@ impl Ensnare {
                 }
             });
         });
+        self.toasts.show(ui.ctx());
     }
 
     fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
@@ -431,8 +432,6 @@ impl Ensnare {
         if self.e.is_project_performing {
             ui.ctx().request_repaint();
         }
-
-        self.toasts.show(ui.ctx());
     }
 
     fn show_settings_panel(&mut self, ctx: &Context) {
