@@ -607,8 +607,6 @@ impl App for Ensnare {
     fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
         self.handle_events(ctx);
         self.handle_input_events(ctx);
-        // self.orchestrator_service
-        //     .set_control_only_down(self.modifiers.command_only());
 
         let top = TopBottomPanel::top("top-panel")
             .resizable(false)
@@ -618,7 +616,7 @@ impl App for Ensnare {
             .exact_height(24.0);
         let left = SidePanel::left("left-panel")
             .resizable(true)
-            .default_width(160.0)
+            .default_width(240.0)
             .width_range(160.0..=480.0);
         let right = SidePanel::right("right-panel")
             .resizable(true)
