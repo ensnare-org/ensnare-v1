@@ -4,7 +4,7 @@
 
 use ::ensnare::EnsnareEntities;
 use anyhow::anyhow;
-use eframe::egui::ViewportBuilder;
+use eframe::egui::{ViewportBuilder, Visuals};
 use eframe::{
     egui::{Context, FontData, FontDefinitions, TextStyle},
     epaint::{Color32, FontFamily, FontId},
@@ -104,6 +104,8 @@ fn initialize_style(ctx: &Context) {
         ),
     ]
     .into();
+
+    style.visuals = Visuals::dark();
 
     ctx.set_style(style);
 }
