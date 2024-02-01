@@ -3,6 +3,8 @@
 //! The `widget-explorer` example is a sandbox for developing egui Ensnare
 //! widgets.
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use anyhow::anyhow;
 use derivative::Derivative;
 use eframe::{

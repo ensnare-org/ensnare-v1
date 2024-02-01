@@ -3,6 +3,8 @@
 //! The `entity-gui-explorer` example is a sandbox for developing the GUI part
 //! of Ensnare entities.
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use anyhow::anyhow;
 use eframe::{
     egui::{self, warn_if_debug_build, CollapsingHeader, Layout, ScrollArea, Style},

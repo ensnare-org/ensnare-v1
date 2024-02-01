@@ -3,6 +3,8 @@
 //! The `pocket-calculator` example is a simple groovebox. It demonstrates using
 //! the `ensnare` crate without a [Project].
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;

@@ -4,6 +4,7 @@
 //! sound engine and some of the GUI components to create a simple
 //! music-production application.
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![deny(rustdoc::broken_intra_doc_links)]
 
 use anyhow::anyhow;

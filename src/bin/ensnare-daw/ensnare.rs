@@ -2,6 +2,8 @@
 
 //! Main struct for Ensnare DAW application.
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use crate::{
     events::{EnsnareEvent, EnsnareEventAggregationService, EnsnareInput},
     menu::{MenuBar, MenuBarAction},
