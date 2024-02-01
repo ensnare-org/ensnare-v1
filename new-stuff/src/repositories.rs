@@ -105,6 +105,9 @@ impl EntityRepository {
             self.mint_entity_uid()
         };
         entity.set_uid(uid);
+        entity.update_sample_rate(self.sample_rate);
+        entity.update_time_signature(self.time_signature);
+        entity.update_tempo(self.tempo);
         self.entities.insert(uid, entity);
         self.uids_for_track
             .entry(track_uid.clone())
