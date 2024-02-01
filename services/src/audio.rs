@@ -102,6 +102,10 @@ impl AudioService {
                     config: Default::default(),
                 };
                 r.spawn_thread();
+
+                // TODO: not sure this is the best place for this.
+                r.audio_stream.play();
+                
                 r
             }
             Err(e) => panic!("AudioService: {e:?}"),
@@ -210,7 +214,6 @@ impl AudioStream {
 
     /// Tells the audio stream to resume playing audio (and consuming samples
     /// from the queue).
-    #[allow(dead_code)]
     pub fn play(&self) {
         let _ = self.stream.play();
     }
