@@ -91,22 +91,7 @@ impl EnsnareEntities {
             Box::new(sampler)
         });
         factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
-            Box::new(WelshSynth::new_with(
-                uid,
-                Oscillator::new_with_waveform(Waveform::Sine),
-                Oscillator::new_with_waveform(Waveform::Sawtooth),
-                true,
-                0.8.into(),
-                Envelope::safe_default(),
-                Dca::default(),
-                Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
-                ensnare_cores::LfoRouting::FilterCutoff,
-                Normal::from(0.5),
-                ensnare_cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
-                Normal::from(0.1),
-                Normal::from(0.8),
-                Envelope::safe_default(),
-            ))
+            Box::new(WelshSynth::new_with_factory_patch(uid))
         });
 
         if false {

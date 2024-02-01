@@ -16,25 +16,15 @@ use ensnare_egui_widgets::{FrequencyWidget, WaveformWidget};
 use ensnare_entity::Uid;
 use strum::IntoEnumIterator;
 
-/// Wraps a [Trip] as a [Widget](eframe::egui::Widget).
-pub fn trip<'a>(
-    uid: Uid,
-    trip: &'a mut ensnare_core::controllers::ControlTrip,
-    control_links: Option<&'a [(Uid, ControlIndex)]>,
-    view_range: ViewRange,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| Trip::new(uid, trip, control_links, view_range).ui(ui)
-}
-
 #[derive(Debug)]
-struct Trip<'a> {
+pub struct TripWidget<'a> {
     #[allow(dead_code)] // TODO see commented-out section in ui()
     uid: Uid,
     control_trip: &'a mut ensnare_core::controllers::ControlTrip,
     control_links: Option<&'a [(Uid, ControlIndex)]>,
     view_range: ViewRange,
 }
-impl<'a> Trip<'a> {
+impl<'a> TripWidget<'a> {
     fn new(
         uid: Uid,
         control_trip: &'a mut ensnare_core::controllers::ControlTrip,
@@ -48,8 +38,19 @@ impl<'a> Trip<'a> {
             view_range,
         }
     }
+
+    pub fn widget(
+        uid: Uid,
+        trip: &'a mut ensnare_core::controllers::ControlTrip,
+        control_links: Option<&'a [(Uid, ControlIndex)]>,
+        view_range: ViewRange,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| {
+            TripWidget::new(uid, trip, control_links, view_range).ui(ui)
+        }
+    }
 }
-impl<'a> eframe::egui::Widget for Trip<'a> {
+impl<'a> eframe::egui::Widget for TripWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let to_screen = RectTransform::from_to(
@@ -271,19 +272,10 @@ mod obsolete {
         }
     }
 }
-/// Wraps a [PatternSequencerWidget] as a [Widget](eframe::egui::Widget).
-pub fn pattern_sequencer_widget<'a>(
-    sequencer: &'a mut PatternSequencer,
-    view_range: &'a ViewRange,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
-}
 
 #[derive(Debug)]
 pub struct PatternSequencerWidget<'a> {
-    #[allow(dead_code)]
     sequencer: &'a mut PatternSequencer,
-    #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> PatternSequencerWidget<'a> {
@@ -293,6 +285,13 @@ impl<'a> PatternSequencerWidget<'a> {
             view_range: view_range.clone(),
         }
     }
+
+    pub fn widget(
+        sequencer: &'a mut PatternSequencer,
+        view_range: &'a ViewRange,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| PatternSequencerWidget::new(sequencer, view_range).ui(ui)
+    }
 }
 impl<'a> eframe::egui::Widget for PatternSequencerWidget<'a> {
     fn ui(self, _ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -300,21 +299,11 @@ impl<'a> eframe::egui::Widget for PatternSequencerWidget<'a> {
     }
 }
 
-/// Wraps a [NoteSequencerWidget] as a [Widget](eframe::egui::Widget).
-pub fn note_sequencer_widget<'a>(
-    sequencer: &'a mut NoteSequencer,
-    view_range: &'a ViewRange,
-) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| NoteSequencerWidget::new(sequencer, view_range).ui(ui)
-}
-
 /// An egui widget that draws a legend on the horizontal axis of the timeline
 /// view.
 #[derive(Debug)]
 pub struct NoteSequencerWidget<'a> {
-    #[allow(dead_code)]
     sequencer: &'a mut NoteSequencer,
-    #[allow(dead_code)]
     view_range: ViewRange,
 }
 impl<'a> NoteSequencerWidget<'a> {
@@ -324,6 +313,13 @@ impl<'a> NoteSequencerWidget<'a> {
             view_range: view_range.clone(),
         }
     }
+
+    pub fn widget(
+        sequencer: &'a mut NoteSequencer,
+        view_range: &'a ViewRange,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| NoteSequencerWidget::new(sequencer, view_range).ui(ui)
+    }
 }
 impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -331,19 +327,18 @@ impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
     }
 }
 
-/// Wraps a [ArpeggiatorWidget] as a [Widget](eframe::egui::Widget).
-pub fn arpeggiator<'a>(entity: &'a mut Arpeggiator) -> impl eframe::egui::Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| ArpeggiatorWidget::new(entity).ui(ui)
-}
-
 /// Renders [Arpeggiator] in egui.
 #[derive(Debug)]
-struct ArpeggiatorWidget<'a> {
+pub struct ArpeggiatorWidget<'a> {
     inner: &'a mut Arpeggiator,
 }
 impl<'a> ArpeggiatorWidget<'a> {
     fn new(entity: &'a mut Arpeggiator) -> Self {
         Self { inner: entity }
+    }
+
+    pub fn widget(entity: &'a mut Arpeggiator) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| ArpeggiatorWidget::new(entity).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for ArpeggiatorWidget<'a> {

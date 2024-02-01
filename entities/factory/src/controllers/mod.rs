@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{generators::Oscillator, prelude::*};
-use ensnare_cores_egui::{arpeggiator, LfoControllerWidget};
+use ensnare_cores_egui::{ArpeggiatorWidget, LfoControllerWidget};
 use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
@@ -30,7 +30,7 @@ pub struct Arpeggiator {
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(arpeggiator(&mut self.inner))
+        ui.add(ArpeggiatorWidget::widget(&mut self.inner))
     }
 }
 impl Arpeggiator {

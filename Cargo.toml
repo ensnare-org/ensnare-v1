@@ -23,7 +23,6 @@ eframe = "0.25"
 egui-toast = "0.11"
 egui_extras = { version = "0.25", features = ["all_loaders"] }
 ensnare-core = { path = "core" }
-ensnare-cores = { path = "cores" }
 ensnare-cores-egui = { path = "cores-egui" }
 ensnare-drag-drop = { path = "drag-drop" }
 ensnare-egui-widgets = { path = "egui-widgets" }
@@ -59,6 +58,7 @@ egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
+ensnare-cores = { path = "cores" }
 ensnare-entities = { path = "entities", features = ["factory", "test"] }
 regex = "1.7"
 strum = "0.25.0"

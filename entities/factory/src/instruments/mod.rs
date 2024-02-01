@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare_core::{
-    generators::{Envelope, Oscillator},
+    generators::{Envelope, Oscillator, Waveform},
     modulators::Dca,
     prelude::*,
     utils::Paths,
@@ -190,5 +190,24 @@ impl WelshSynth {
                 filter_envelope,
             ),
         }
+    }
+
+    pub fn new_with_factory_patch(uid: Uid) -> Self {
+        WelshSynth::new_with(
+            uid,
+            Oscillator::new_with_waveform(Waveform::Sine),
+            Oscillator::new_with_waveform(Waveform::Sawtooth),
+            true,
+            0.8.into(),
+            Envelope::safe_default(),
+            Dca::default(),
+            Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
+            ensnare_cores::LfoRouting::FilterCutoff,
+            Normal::from(0.5),
+            ensnare_cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+            Normal::from(0.1),
+            Normal::from(0.8),
+            Envelope::safe_default(),
+        )
     }
 }

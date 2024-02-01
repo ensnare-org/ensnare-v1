@@ -63,11 +63,6 @@ pub mod elements {
     }
 }
 
-pub mod cores {
-    //! The core business logic that powers musical instruments.
-    pub use ensnare_cores::{controllers::*, effects::*, instruments::*, toys::*};
-}
-
 pub mod entities {
     //! Built-in musical instruments and supporting infrastructure.
     //!

@@ -26,7 +26,7 @@ use ensnare_core::{
     time::TimeRange,
     types::{TrackTitle, VisualizationQueue},
 };
-use ensnare_cores_egui::note_sequencer_widget;
+use ensnare_cores_egui::NoteSequencerWidget;
 use ensnare_egui_widgets::{FrequencyDomainWidget, TimeDomainWidget};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
@@ -291,7 +291,10 @@ impl NoteSequencerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(note_sequencer_widget(&mut self.sequencer, &self.view_range));
+            ui.add(NoteSequencerWidget::widget(
+                &mut self.sequencer,
+                &self.view_range,
+            ));
         }
     }
 

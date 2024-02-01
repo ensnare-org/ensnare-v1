@@ -1,18 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! egui logic for drawing ensnare entities.
-
-/// Recommended imports for easy onboarding.
-pub mod prelude {
-    pub use super::{controllers::trip, transport::TransportWidget};
-}
+//! egui logic for drawing core Ensnare elements.
 
 pub use {
     common::ColorSchemeConverter,
     controllers::{
-        arpeggiator, note_sequencer_widget, pattern_sequencer_widget, LfoControllerWidget,
+        ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget,
+        TripWidget,
     },
 };
+
+/// Recommended imports for easy onboarding.
+pub mod prelude {
+    pub use super::{controllers::TripWidget, transport::TransportWidget};
+}
 
 pub(crate) mod common;
 mod controllers;
