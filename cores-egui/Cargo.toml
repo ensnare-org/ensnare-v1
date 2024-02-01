@@ -16,5 +16,5 @@ ensnare-cores = { path = "../cores" }
 ensnare-drag-drop = { path = "../drag-drop" }
 ensnare-egui-widgets = { path = "../egui-widgets" }
 ensnare-entity = { path = "../entity" }
-strum = "0.25"
-strum_macros = "0.26.1"
+strum = "0.26"
+strum_macros = "0.26"

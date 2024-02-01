@@ -21,7 +21,8 @@ ensnare-proc-macros = { path = "../proc-macros" }
 hound = "3.5.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-strum_macros = "0.25.2"
+strum = "0.26"
+strum_macros = "0.26"
 thiserror = "1.0.50"
 typetag = "0.2.14"
 

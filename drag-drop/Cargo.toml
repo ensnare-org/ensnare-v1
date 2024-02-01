@@ -13,4 +13,4 @@ eframe = "0.25"
 ensnare-core = { path = "../core" }
 ensnare-entity = { path = "../entity" }
 once_cell = "1.18.0"
-strum_macros = "0.25"
+strum_macros = "0.26"

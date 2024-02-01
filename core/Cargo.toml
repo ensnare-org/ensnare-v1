@@ -26,8 +26,8 @@ midly = "0.5.3"
 nalgebra = "0.32.3"
 oorandom = "11.1.3"
 serde = { version = "1.0.193", features = ["derive"] }
-strum = "0.25.0"
-strum_macros = "0.25.2"
+strum = "0.26"
+strum_macros = "0.26"
 
 [dev-dependencies]
 hound = "3.5.0"
