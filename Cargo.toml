@@ -30,16 +30,16 @@ derive_more = "0.99.17"
 eframe = "0.25"
 egui-toast = "0.11"
 egui_extras = { version = "0.25", features = ["all_loaders"] }
-ensnare-core = { path = "core" }
-ensnare-cores-egui = { path = "cores-egui" }
-ensnare-drag-drop = { path = "drag-drop" }
-ensnare-egui-widgets = { path = "egui-widgets" }
-ensnare-entities = { path = "entities", features = ["factory"] }
-ensnare-entities-toy = { path = "entities-toy" }
-ensnare-entity = { path = "entity" }
-ensnare-new-stuff = { path = "new-stuff" }
-ensnare-proc-macros = { path = "proc-macros" }
-ensnare-services = { path = "services" }
+ensnare-core = { version = "0.0.3", path = "core" }
+ensnare-cores-egui = { version = "0.0.3", path = "cores-egui" }
+ensnare-drag-drop = { version = "0.0.3", path = "drag-drop" }
+ensnare-egui-widgets = { version = "0.0.3", path = "egui-widgets" }
+ensnare-entities = { version = "0.0.3", path = "entities", features = ["factory"] }
+ensnare-entities-toy = { version = "0.0.3", path = "entities-toy" }
+ensnare-entity = { version = "0.0.3", path = "entity" }
+ensnare-new-stuff = { version = "0.0.3", path = "new-stuff" }
+ensnare-proc-macros = { version = "0.0.3", path = "proc-macros" }
+ensnare-services = { version = "0.0.3", path = "services" }
 env_logger = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -52,8 +52,8 @@ egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
-ensnare-cores = { path = "cores" }
-ensnare-entities = { path = "entities", features = ["factory", "test"] }
+ensnare-cores = { version = "0.0.3", path = "cores" }
+ensnare-entities = { version = "0.0.3", path = "entities", features = ["factory", "test"] }
 regex = "1.7"
 strum = "0.26"
 typetag = "0.2.13"
