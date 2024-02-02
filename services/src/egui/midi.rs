@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::MidiSettings;
-use eframe::egui::{CollapsingHeader, ComboBox, Widget};
+use eframe::egui::{Checkbox, ComboBox, Widget};
 use ensnare_core::midi_interface::MidiPortDescriptor;
 
 #[derive(Debug)]
@@ -43,18 +43,17 @@ impl<'a> MidiSettingsWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        CollapsingHeader::new("MIDI")
-            .default_open(true)
-            .show(ui, |ui| {
-                let mut cb = ComboBox::from_label("MIDI in");
-                let (mut selected_index, _selected_text) =
-                    if let Some(selected) = &self.settings.selected_input {
-                        cb = cb.selected_text(selected.name.clone());
-                        (selected.index, selected.name.as_str())
-                    } else {
-                        (usize::MAX, "None")
-                    };
-                cb.show_ui(ui, |ui| {
+        let response = {
+            let mut cb = ComboBox::from_label("MIDI in").width(320.0);
+            let (mut selected_index, _selected_text) =
+                if let Some(selected) = &self.settings.selected_input {
+                    cb = cb.selected_text(selected.name.clone());
+                    (selected.index, selected.name.as_str())
+                } else {
+                    (usize::MAX, "None")
+                };
+            let in_response = cb
+                .show_ui(ui, |ui| {
                     ui.set_min_width(480.0);
                     for port in self.inputs.iter() {
                         if ui
@@ -65,18 +64,20 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                             *self.new_input = Some(port.clone());
                         }
                     }
-                });
-                ui.end_row();
+                })
+                .response;
+            //            ui.end_row();
 
-                let mut cb = ComboBox::from_label("MIDI out");
-                let (mut selected_index, _selected_text) =
-                    if let Some(selected) = &self.settings.selected_output {
-                        cb = cb.selected_text(selected.name.clone());
-                        (selected.index, selected.name.as_str())
-                    } else {
-                        (usize::MAX, "None")
-                    };
-                cb.show_ui(ui, |ui| {
+            let mut cb = ComboBox::from_label("MIDI out").width(320.0);
+            let (mut selected_index, _selected_text) =
+                if let Some(selected) = &self.settings.selected_output {
+                    cb = cb.selected_text(selected.name.clone());
+                    (selected.index, selected.name.as_str())
+                } else {
+                    (usize::MAX, "None")
+                };
+            let out_response = cb
+                .show_ui(ui, |ui| {
                     ui.set_min_width(480.0);
                     for port in self.outputs.iter() {
                         if ui
@@ -87,9 +88,21 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                             *self.new_output = Some(port.clone());
                         }
                     }
-                });
-                ui.end_row();
-            })
-            .header_response
+                })
+                .response;
+            //    ui.end_row();
+            in_response | out_response
+        } | {
+            let mut should = self.settings.should_route_externally();
+            let item_response = ui.add(Checkbox::new(
+                &mut should,
+                "Route MIDI messages to external hardware",
+            ));
+            if item_response.changed() {
+                self.settings.set_should_route_externally(should);
+            }
+            item_response
+        };
+        response
     }
 }

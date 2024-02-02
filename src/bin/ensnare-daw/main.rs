@@ -87,7 +87,7 @@ fn initialize_style(ctx: &Context) {
     style.text_styles = [
         (
             TextStyle::Heading,
-            FontId::new(16.0, FontFamily::Proportional),
+            FontId::new(20.0, FontFamily::Proportional),
         ),
         (TextStyle::Body, FontId::new(16.0, FontFamily::Proportional)),
         (

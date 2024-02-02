@@ -98,6 +98,7 @@ impl Ensnare {
                 audio_service,
                 midi_service,
                 project_service,
+                settings.receiver(),
             ),
             project: Default::default(),
             menu_bar: MenuBar::new_with(&factory),

@@ -3,13 +3,17 @@
 //! The `settings` module contains [Settings], which are all the user's
 //! persistent global preferences. It also contains [SettingsPanel].
 
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::Frame;
 use ensnare::{
     services::{AudioSettings, MidiSettings},
     traits::{Displays, HasSettings},
     ui::widgets::{AudioSettingsWidget, MidiSettingsWidget},
 };
-use ensnare_core::midi_interface::{MidiInterfaceServiceInput, MidiPortDescriptor};
+use ensnare_core::{
+    midi_interface::{MidiInterfaceServiceInput, MidiPortDescriptor},
+    types::ChannelPair,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -17,6 +21,11 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
+
+#[derive(Debug)]
+pub enum SettingsEvent {
+    ShouldRouteExternally(bool),
+}
 
 /// Global preferences.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -26,12 +35,15 @@ pub(crate) struct Settings {
     pub(crate) midi_settings: Arc<std::sync::RwLock<MidiSettings>>,
 
     #[serde(skip)]
+    pub(crate) e: SettingsEphemerals,
+}
+#[derive(Debug, Default)]
+pub(crate) struct SettingsEphemerals {
+    event_channel: ChannelPair<SettingsEvent>,
     midi_sender: Option<Sender<MidiInterfaceServiceInput>>,
 
     // Cached options for fast menu drawing.
-    #[serde(skip)]
     midi_inputs: Vec<MidiPortDescriptor>,
-    #[serde(skip)]
     midi_outputs: Vec<MidiPortDescriptor>,
 }
 impl Settings {
@@ -53,8 +65,17 @@ impl Settings {
             .map_err(|e| anyhow::format_err!("Couldn't open {settings_path:?}: {}", e))?;
         file.read_to_string(&mut contents)
             .map_err(|e| anyhow::format_err!("Couldn't read {settings_path:?}: {}", e))?;
-        serde_json::from_str(&contents)
-            .map_err(|e| anyhow::format_err!("Couldn't parse {settings_path:?}: {}", e))
+        let settings: Self = serde_json::from_str(&contents)
+            .map_err(|e| anyhow::format_err!("Couldn't parse {settings_path:?}: {}", e))?;
+
+        let should = settings
+            .midi_settings
+            .read()
+            .unwrap()
+            .should_route_externally();
+        settings.notify_should_route_externally(should);
+
+        Ok(settings)
     }
 
     pub(crate) fn save(&mut self) -> anyhow::Result<()> {
@@ -81,15 +102,31 @@ impl Settings {
     }
 
     pub(crate) fn handle_midi_input_port_refresh(&mut self, ports: &[MidiPortDescriptor]) {
-        self.midi_inputs = ports.to_vec();
+        self.e.midi_inputs = ports.to_vec();
     }
 
     pub(crate) fn handle_midi_output_port_refresh(&mut self, ports: &[MidiPortDescriptor]) {
-        self.midi_outputs = ports.to_vec();
+        self.e.midi_outputs = ports.to_vec();
     }
 
     pub(crate) fn set_midi_sender(&mut self, sender: &Sender<MidiInterfaceServiceInput>) {
-        self.midi_sender = Some(sender.clone());
+        self.e.midi_sender = Some(sender.clone());
+    }
+
+    pub(crate) fn receiver(&self) -> &Receiver<SettingsEvent> {
+        &self.e.event_channel.receiver
+    }
+
+    // We require the parameter to be provided, even though we could look it up
+    // ourselves, because our reference to MidiSettings is in a RwLock, and a
+    // common case is to call this while the caller has a write() lock on
+    // MidiSettings() -- deadlock!
+    fn notify_should_route_externally(&self, should: bool) {
+        let _ = self
+            .e
+            .event_channel
+            .sender
+            .send(SettingsEvent::ShouldRouteExternally(should));
     }
 }
 impl HasSettings for Settings {
@@ -119,22 +156,41 @@ impl Displays for Settings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut new_input = None;
         let mut new_output = None;
+        ui.set_max_width(480.0);
         let response = {
-            ui.heading("Audio");
-            ui.add(AudioSettingsWidget::widget(&mut self.audio_settings))
+            Frame::default()
+                .stroke(ui.ctx().style().visuals.noninteractive().fg_stroke)
+                .inner_margin(5.0)
+                .show(ui, |ui| {
+                    ui.set_min_width(ui.available_width());
+                    ui.heading("Audio");
+                    ui.add(AudioSettingsWidget::widget(&mut self.audio_settings))
+                })
+                .inner
         } | {
-            ui.heading("MIDI");
-            let mut settings = self.midi_settings.write().unwrap();
-            ui.add(MidiSettingsWidget::widget(
-                &mut settings,
-                &self.midi_inputs,
-                &self.midi_outputs,
-                &mut new_input,
-                &mut new_output,
-            ))
+            Frame::default()
+                .stroke(ui.ctx().style().visuals.noninteractive().fg_stroke)
+                .inner_margin(5.0)
+                .show(ui, |ui| {
+                    ui.set_min_width(ui.available_width());
+                    ui.heading("MIDI");
+                    let mut settings = self.midi_settings.write().unwrap();
+                    let item_response = ui.add(MidiSettingsWidget::widget(
+                        &mut settings,
+                        &self.e.midi_inputs,
+                        &self.e.midi_outputs,
+                        &mut new_input,
+                        &mut new_output,
+                    ));
+                    if item_response.changed() {
+                        self.notify_should_route_externally(settings.should_route_externally());
+                    }
+                    item_response
+                })
+                .inner
         };
 
-        if let Some(sender) = &self.midi_sender {
+        if let Some(sender) = &self.e.midi_sender {
             if let Some(new_input) = &new_input {
                 let _ = sender.send(MidiInterfaceServiceInput::SelectMidiInput(
                     new_input.clone(),
@@ -157,55 +213,3 @@ impl Displays for Settings {
         response
     }
 }
-
-// #[derive(Debug)]
-// pub(crate) struct SettingsPanel {
-//     pub(crate) settings: Settings,
-//     pub(crate) audio_service: AudioService,
-//     pub(crate) midi_service: MidiService,
-
-//     midi_inputs: Vec<MidiPortDescriptor>,
-//     midi_outputs: Vec<MidiPortDescriptor>,
-// }
-// impl SettingsPanel {
-//     /// Creates a new [SettingsPanel].
-//     pub fn new_with(
-//         settings: Settings,
-//         orchestrator: &Arc<Mutex<Orchestrator<dyn EntityBounds>>>,
-//         sample_buffer_sender: Option<Sender<[Sample; 64]>>,
-//     ) -> Self {
-//         let orchestrator = Arc::clone(&orchestrator);
-//         let midi_service = MidiService::new_with(&settings.midi_settings);
-//         let midi_service_sender = midi_service.sender().clone();
-//         let sample_buffer_sender = sample_buffer_sender.clone();
-//         let needs_audio_fn: NeedsAudioFn = {
-//             Box::new(move |audio_queue, samples_requested| {
-//                 if let Ok(mut o) = orchestrator.lock() {
-//                     let o: &mut Orchestrator<dyn EntityBounds> = &mut o;
-//                     let mut helper = OrchestratorHelper::new_with_sample_buffer_sender(
-//                         o,
-//                         sample_buffer_sender.clone(),
-//                     );
-//                     helper.render_and_enqueue(samples_requested, audio_queue, &mut |event| {
-//                         if let WorkEvent::Midi(channel, message) = event {
-//                             let _ = midi_service_sender
-//                                 .send(MidiInterfaceInput::Midi(channel, message));
-//                         }
-//                     });
-//                 }
-//             })
-//         };
-//         Self {
-//             settings,
-//             midi_inputs: Default::default(),
-//             midi_outputs: Default::default(),
-//         }
-//     }
-
-//     /// Asks the panel to shut down any services associated with contained panels.
-//     pub fn exit(&self) {
-//         self.audio_sender.exit();
-//         self.midi_service.exit();
-//     }
-
-// }

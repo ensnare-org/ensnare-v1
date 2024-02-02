@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::AudioSettings;
-use eframe::egui::{CollapsingHeader, Widget};
+use eframe::egui::Widget;
 
 #[derive(Debug)]
 pub struct AudioSettingsWidget<'a> {
@@ -18,12 +18,7 @@ impl<'a> AudioSettingsWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for AudioSettingsWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        CollapsingHeader::new("Audio")
-            .default_open(true)
-            .show(ui, |ui| {
-                ui.label(format!("Sample rate: {}", self.settings.sample_rate()));
-                ui.label(format!("Channels: {}", self.settings.channel_count()));
-            })
-            .header_response
+        ui.label(format!("Sample rate: {}", self.settings.sample_rate()))
+            | ui.label(format!("Channels: {}", self.settings.channel_count()))
     }
 }

@@ -61,27 +61,40 @@ pub struct MidiSettings {
     #[serde(default, with = "opt_external_struct")]
     pub(crate) selected_output: Option<MidiPortDescriptor>,
 
+    #[serde(default)]
+    #[derivative(Default(value = "true"))]
+    should_route_externally: bool,
+
     #[serde(skip)]
+    pub(crate) e: MidiSettingsEphemerals,
+}
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+pub struct MidiSettingsEphemerals {
     has_been_saved: bool,
 
-    #[serde(skip, default = "MidiSettings::create_last_input_instant")]
     #[derivative(Default(value = "Self::create_last_input_instant()"))]
     last_input_instant: Arc<Mutex<Instant>>,
-    #[serde(skip, default = "Instant::now")]
     #[derivative(Default(value = "Instant::now()"))]
     last_output_instant: Instant,
 }
+impl MidiSettingsEphemerals {
+    fn create_last_input_instant() -> Arc<Mutex<Instant>> {
+        Arc::new(Mutex::new(Instant::now()))
+    }
+}
+
 impl HasSettings for MidiSettings {
     fn has_been_saved(&self) -> bool {
-        self.has_been_saved
+        self.e.has_been_saved
     }
 
     fn needs_save(&mut self) {
-        self.has_been_saved = false;
+        self.e.has_been_saved = false;
     }
 
     fn mark_clean(&mut self) {
-        self.has_been_saved = true;
+        self.e.has_been_saved = true;
     }
 }
 impl MidiSettings {
@@ -99,9 +112,14 @@ impl MidiSettings {
             self.needs_save();
         }
     }
-
-    fn create_last_input_instant() -> Arc<Mutex<Instant>> {
-        Arc::new(Mutex::new(Instant::now()))
+    pub fn should_route_externally(&self) -> bool {
+        self.should_route_externally
+    }
+    pub fn set_should_route_externally(&mut self, should_route: bool) {
+        if should_route != self.should_route_externally {
+            self.should_route_externally = should_route;
+            self.needs_save();
+        }
     }
 }
 
@@ -175,7 +193,7 @@ impl MidiService {
     pub fn send(&mut self, input: MidiInterfaceServiceInput) {
         if let MidiInterfaceServiceInput::Midi(..) = input {
             if let Ok(mut settings) = self.settings.write() {
-                settings.last_output_instant = Instant::now();
+                settings.e.last_output_instant = Instant::now();
             }
         }
 
@@ -222,7 +240,8 @@ impl MidiService {
                     }
                     MidiInterfaceServiceEvent::Midi(channel, message) => {
                         if let Ok(mut settings) = settings.write() {
-                            settings.last_input_instant = MidiSettings::create_last_input_instant();
+                            settings.e.last_input_instant =
+                                MidiSettingsEphemerals::create_last_input_instant();
                         }
                         let _ = app_sender.send(MidiServiceEvent::Midi(channel, message));
                     }

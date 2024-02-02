@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::settings::SettingsEvent;
 use crossbeam_channel::{Receiver, Select, Sender};
 use ensnare_core::types::ChannelPair;
 use ensnare_services::{
@@ -47,12 +48,15 @@ pub(super) struct EnsnareEventAggregationService {
     audio_service: AudioService,
     midi_service: MidiService,
     project_service: ProjectService,
+
+    settings_receiver: Receiver<SettingsEvent>,
 }
 impl EnsnareEventAggregationService {
     pub fn new_with(
         audio_service: AudioService,
         midi_service: MidiService,
         project_service: ProjectService,
+        settings_receiver: &Receiver<SettingsEvent>,
     ) -> Self {
         let r = Self {
             input_channels: Default::default(),
@@ -60,6 +64,7 @@ impl EnsnareEventAggregationService {
             audio_service,
             midi_service,
             project_service,
+            settings_receiver: settings_receiver.clone(),
         };
         r.spawn_thread();
         r
@@ -87,6 +92,7 @@ impl EnsnareEventAggregationService {
         let midi_receiver = self.midi_service.receiver().clone();
         let project_sender = self.project_service.sender().clone();
         let project_receiver = self.project_service.receiver().clone();
+        let settings_receiver = self.settings_receiver.clone();
 
         let _ = std::thread::spawn(move || {
             let mut sel = Select::new();
@@ -94,6 +100,8 @@ impl EnsnareEventAggregationService {
             let midi_index = sel.recv(&midi_receiver);
             let audio_index = sel.recv(&audio_receiver);
             let project_index = sel.recv(&project_receiver);
+            let settings_index = sel.recv(&settings_receiver);
+            let mut should_route_midi = true;
 
             loop {
                 let operation = sel.select();
@@ -130,6 +138,7 @@ impl EnsnareEventAggregationService {
                     index if index == midi_index => {
                         if let Ok(event) = operation.recv(&midi_receiver) {
                             match event {
+                                // MIDI messages that came from external interfaces.
                                 MidiServiceEvent::Midi(channel, message) => {
                                     // Forward right away to the project. We
                                     // still forward it to the app so that it
@@ -147,21 +156,33 @@ impl EnsnareEventAggregationService {
                     index if index == project_index => {
                         if let Ok(event) = operation.recv(&project_receiver) {
                             match event {
+                                // MIDI messages that came from the project.
                                 ProjectServiceEvent::Midi(channel, message) => {
-                                    // Fast-route generated MIDI messages so app
-                                    // doesn't have to. This handles
-                                    // ProjectServiceEvent::Midi, so the app
-                                    // should never see it.
-                                    let _ =  midi_interface_sender
+                                    if should_route_midi {
+                                        // Fast-route generated MIDI messages so app
+                                        // doesn't have to. This handles
+                                        // ProjectServiceEvent::Midi, so the app
+                                        // should never see it.
+                                        let _ =  midi_interface_sender
                                     .send(
                                     ensnare_core::midi_interface::MidiInterfaceServiceInput::Midi(
                                         channel, message,
                                     ),
                                 );
+                                    }
                                 }
                                 _ => {
                                     let _ = ensnare_sender
                                         .send(EnsnareEvent::ProjectServiceEvent(event));
+                                }
+                            }
+                        }
+                    }
+                    index if index == settings_index => {
+                        if let Ok(event) = operation.recv(&settings_receiver) {
+                            match event {
+                                SettingsEvent::ShouldRouteExternally(should) => {
+                                    should_route_midi = should;
                                 }
                             }
                         }
