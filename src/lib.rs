@@ -6,27 +6,35 @@
 //! The `ensnare` crate helps make digital music.
 
 pub mod automation {
-    //! Automatic parameter control.
+    //! Automation lets a project change the parameters of instruments and
+    //! effects over time in a programmatic, reproducible way.
     //!
-    //! For example, an LFO might emit a [ControlValue] each time its value
-    //! changes. If a synthesizer's pan parameter is linked to that
-    //! [ControlValue], then the synth's pan changes with the LFO output.
+    //! For example, suppose a producer wants a pan effect going
+    //! left-right-left-right throughout the whole song. This could be done by
+    //! manually turning a knob back and forth, but that's tedious, and it
+    //! especially won't work when rendering the final output to a song file.
     //!
-    //! Entities that control others implement the
-    //! [Controls](crate::traits::Controls) trait.
+    //! Using automation, the producer can instead configure an LFO to emit a
+    //! [ControlValue] each time its value changes, and then link that output to
+    //! a synthesizer's pan parameter. Then the synth's pan changes with the LFO
+    //! output, automatically and identically for each performance of the song.
     //!
     //! Controllable entities have one or more parameters that are addressable
     //! by [ControlName] or [ControlIndex], which are discoverable through the
-    //! [Controllable](crate::traits::Controllable) trait.
+    //! [Controllable](crate::traits::Controllable) trait. The
+    //! [Control](ensnare_proc_macros::Control) derive macro, with #[control]
+    //! derive parameters, usually implements this trait.
     //!
-    //! All values that pass through the control subsystem are normalized to
+    //! All values that pass through the automation subsystem are normalized to
     //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for
     //! all applicable types in the system.
 
-    pub use ensnare_core::control::{ControlIndex, ControlName, ControlValue};
-
-    pub use ensnare_core::controllers::{
-        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+    pub use ensnare_core::{
+        control::{ControlIndex, ControlName, ControlValue},
+        controllers::{
+            ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+        },
+        traits::{ControlEventsFn, Controllable, Controls},
     };
 
     /// The most commonly used imports.
@@ -36,8 +44,7 @@ pub mod automation {
 }
 
 pub mod composition {
-    //! Creation and representation of music scores, independent of musical
-    //! performance with instruments.
+    //! Creation and representation of music scores.
 
     pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
     pub use ensnare_new_stuff::Composer;
