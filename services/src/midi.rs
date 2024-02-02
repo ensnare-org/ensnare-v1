@@ -182,6 +182,10 @@ impl MidiService {
         let _ = self.midi_interface_service.sender().send(input);
     }
 
+    pub fn interface_sender(&self) -> &Sender<MidiInterfaceServiceInput> {
+        &self.midi_interface_service.sender()
+    }
+
     // Sits in a loop, watching the receiving side of the event channel and
     // handling whatever comes through.
     fn spawn_thread(&self) {

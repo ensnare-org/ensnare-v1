@@ -18,7 +18,7 @@ use strum_macros::{FromRepr, IntoStaticStr};
 
 pub mod prelude {
     pub use super::{
-        BeatValue, MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange,
+        BeatValue, MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, Transport, ViewRange,
     };
 }
 

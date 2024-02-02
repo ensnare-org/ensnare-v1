@@ -45,7 +45,7 @@ pub mod voices;
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        composition::prelude::*, control::prelude::*, midi::prelude::*, time::prelude::*,
-        traits::prelude::*, types::prelude::*, uid::prelude::*,
+        composition::prelude::*, control::prelude::*, generators::prelude::*, midi::prelude::*,
+        time::prelude::*, traits::prelude::*, types::prelude::*, uid::prelude::*,
     };
 }

@@ -591,6 +591,7 @@ impl MiniDaw {
                 }
                 ProjectServiceEvent::ExportFailed(_) => todo!(),
                 ProjectServiceEvent::Exported(_) => todo!(),
+                ProjectServiceEvent::Midi(_, _) => todo!(),
             }
             true
         } else {

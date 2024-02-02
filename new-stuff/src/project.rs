@@ -10,10 +10,8 @@ use anyhow::{anyhow, Result};
 use delegate::delegate;
 use derivative::Derivative;
 use ensnare_core::{
-    generators::PathUid,
     prelude::*,
     selection_set::SelectionSet,
-    time::Transport,
     types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
 use ensnare_entity::prelude::*;
@@ -253,10 +251,22 @@ impl Project {
         }
     }
 
-    fn generate_frames(&mut self, frames: &mut [StereoSample]) {
+    fn generate_frames(
+        &mut self,
+        frames: &mut [StereoSample],
+        mut midi_events_fn: Option<&mut MidiMessagesFn>,
+    ) {
         let time_range = self.transport.advance(frames.len());
         self.update_time_range(&time_range);
-        self.work(&mut |_| {});
+        self.work(&mut |e| {
+            if let Some( midi_events_fn) = midi_events_fn.as_mut() {
+                match e {
+                    WorkEvent::Midi(channel, message) => midi_events_fn(channel,message),
+                    WorkEvent::MidiForTrack(_track, channel, message) => midi_events_fn(channel,message),
+                    WorkEvent::Control(_control_value) => panic!("generate_frames() received WorkEvent::Control, which should be handled elsewhere"),
+                }
+            }
+        });
         if self.e.is_finished {
             self.stop();
         }
@@ -279,7 +289,7 @@ impl Project {
         self.play();
         while self.is_performing() {
             let mut samples = [StereoSample::SILENCE; 64];
-            self.generate_frames(&mut samples);
+            self.generate_frames(&mut samples, None);
             for sample in samples {
                 let (left, right) = sample.into_i16();
                 let _ = writer.write_sample(left);
@@ -289,7 +299,11 @@ impl Project {
         Ok(())
     }
 
-    pub fn fill_audio_queue(&mut self, count: usize) {
+    pub fn fill_audio_queue(
+        &mut self,
+        count: usize,
+        mut midi_events_fn: Option<&mut MidiMessagesFn>,
+    ) {
         if count == 0 {
             return;
         }
@@ -305,7 +319,7 @@ impl Project {
             };
             let buffer_slice = &mut buffer[0..to_generate];
             buffer_slice.fill(StereoSample::SILENCE);
-            self.generate_frames(buffer_slice);
+            self.generate_frames(buffer_slice, midi_events_fn.as_deref_mut());
             if let Some(audio_queue) = self.e.audio_queue.as_ref() {
                 buffer_slice.iter().for_each(|s| {
                     if let Some(_old_element) = audio_queue.force_push(*s) {
@@ -461,7 +475,7 @@ impl Controls for Project {
         self.composer.update_time_range(time_range);
     }
 
-    fn work(&mut self, _: &mut ControlEventsFn) {
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let mut events = Vec::default();
         self.composer
             .work(&mut |event| events.push((Uid::default(), event)));
@@ -470,13 +484,20 @@ impl Controls for Project {
         while let Some((uid, event)) = events.pop() {
             match event {
                 WorkEvent::Midi(_, _) => {
-                    todo!("Someone has not mapped WorkEvent::Midi to WorkEvent::MidiForTrack before passing it to Project");
+                    // This is a logic error because it means that we don't know
+                    // which track created this MIDI event, which means that we
+                    // don't know which entities are eligible to receive it. (We
+                    // confine MIDI events to their originating track to avoid
+                    // the need for a system to route channels to tracks.)
+                    todo!("Project must know a MIDI event's originating track. Please map WorkEvent::Midi to WorkEvent::MidiForTrack before passing it to Project.");
                 }
                 WorkEvent::MidiForTrack(track_uid, channel, message) => {
                     if let Some(midi_router) = self.track_to_midi_router.get(&track_uid) {
                         let _ =
                             midi_router.route(&mut self.orchestrator.entity_repo, channel, message);
                     }
+                    // Give caller an opportunity to route messages elsewhere.
+                    control_events_fn(event);
                 }
                 WorkEvent::Control(value) => {
                     self.dispatch_control_event(uid, value);
@@ -620,7 +641,7 @@ mod tests {
 
         project.play();
         let mut frames = [StereoSample::SILENCE; 4];
-        project.generate_frames(&mut frames);
+        project.generate_frames(&mut frames, None);
         assert!(frames
             .iter()
             .any(|frame| { *frame != StereoSample::SILENCE }));
@@ -810,7 +831,7 @@ mod tests {
             None,
         );
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(EXPECTED_LEVEL);
         assert!(
             samples.iter().all(|s| *s == expected_sample),
@@ -821,7 +842,7 @@ mod tests {
             .add_send(midi_track_uid, aux_track_uid, Normal::from(0.5))
             .is_ok());
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.75);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "With a 50% send to an aux track with no effects, we should see the original MEDIUM=0.5 plus 50% of it = 0.75, but at sample #{index} we got {:?}", s);
@@ -835,7 +856,7 @@ mod tests {
         );
 
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * -1.0);
         samples.iter().enumerate().for_each(|(index,s)| {
             assert_eq!(*s ,expected_sample, "With a 50% send to an aux with a negating effect, we should see the original 0.5 plus a negation of 50% of 0.5 = 0.250, but at sample #{index} we got {:?}", s);
@@ -861,7 +882,7 @@ mod tests {
         );
 
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Two tracks each with a 0.5 output should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -869,7 +890,7 @@ mod tests {
 
         project.set_track_output(track_1_uid, Normal::from(0.5));
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Setting one track's output to 50% should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -877,7 +898,7 @@ mod tests {
 
         project.set_solo_track(Some(track_1_uid));
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 * 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Soloing Track #1 (which is set to 50%) should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -886,10 +907,52 @@ mod tests {
         project.set_solo_track(None);
         project.mute_track(track_1_uid, true);
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_frames(&mut samples);
+        project.generate_frames(&mut samples, None);
         let expected_sample = StereoSample::from(0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Muting Track #1 and ending solo should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
         });
+    }
+
+    #[test]
+    fn project_routes_midi_to_external() {
+        let mut project = Project::default();
+
+        let pattern_uid = project
+            .add_pattern(
+                PatternBuilder::default()
+                    .note(Note::new_with_midi_note(
+                        MidiNote::A0,
+                        MusicalTime::START,
+                        MusicalTime::DURATION_QUARTER,
+                    ))
+                    .build()
+                    .unwrap(),
+                None,
+            )
+            .unwrap();
+        let track_1_uid = project.new_midi_track().unwrap();
+
+        let _ = project.arrange_pattern(track_1_uid, pattern_uid, MusicalTime::START);
+
+        let mut messages = Vec::default();
+        let mut samples = [StereoSample::SILENCE; 4];
+        project.play();
+        project.generate_frames(&mut samples, Some(&mut |c, m| messages.push((c, m))));
+
+        assert!(
+            !messages.is_empty(),
+            "Project should route MIDI messages to caller"
+        );
+        let (channel, message) = messages.first().unwrap();
+        assert_eq!(
+            *channel,
+            MidiChannel::default(),
+            "Received message should be on default channel"
+        );
+        assert!(
+            matches!(message, MidiMessage::NoteOn { .. },),
+            "Received message should be a note-on message"
+        );
     }
 }

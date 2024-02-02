@@ -48,6 +48,7 @@ pub enum ProjectServiceEvent {
     IsPerformingChanged(bool),
     LoadFailed(PathBuf, Error),
     Loaded(Arc<RwLock<Project>>), // The supplied Project is for the recipient to keep. No need to Arc::clone().
+    Midi(MidiChannel, MidiMessage), // Handled by EnsnareEventAggregationService, never sent to app.
     Quit,
     SaveFailed(Error),
     Saved(PathBuf),
@@ -260,7 +261,18 @@ impl ProjectServiceDaemon {
                     self.project.write().unwrap().e.visualization_queue = Some(queue)
                 }
                 ProjectServiceInput::NeedsAudio(count) => {
-                    self.project.write().unwrap().fill_audio_queue(count);
+                    self.project.write().unwrap().fill_audio_queue(
+                        count,
+                        Some(&mut |c, m| {
+                            // If we had a channel sender to the MIDI service,
+                            // then we could send directly there from here. But
+                            // that would introduce a dependency between
+                            // ProjectService and MidiService, and I'd rather
+                            // stay with a simple hub/spoke event architecture
+                            // until it proves to be a performance issue.
+                            let _ = self.sender.send(ProjectServiceEvent::Midi(c, m));
+                        }),
+                    );
                 }
                 ProjectServiceInput::Midi(channel, message) => self
                     .project

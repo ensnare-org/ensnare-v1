@@ -228,10 +228,20 @@ impl Controls for EntityRepository {
 impl ControlsAsProxy for EntityRepository {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
         self.entities.iter_mut().for_each(|(uid, e)| {
+            // To segregate MIDI events to the track in which they were
+            // generated, we record the track Uid. But we don't do the lookup
+            // until we have a MIDI event to route.
             let mut track_uid = None;
+
+            // Call each entity's Controls::work(), processing any events it
+            // generates.
             e.work(&mut |inner_event| match inner_event {
                 WorkEvent::Midi(channel, message) => {
+                    // We have a MIDI event. Do we know the entity's track Uid?
                     if track_uid.is_none() {
+                        // We don't. Let's look it up and cache it for the rest
+                        // of the block, because an entity can belong to only
+                        // one track.
                         track_uid = self.track_for_uid.get(uid).copied();
                     }
                     control_events_fn(
@@ -239,7 +249,10 @@ impl ControlsAsProxy for EntityRepository {
                         WorkEvent::MidiForTrack(track_uid.unwrap_or_default(), channel, message),
                     );
                 }
-                _ => control_events_fn(*uid, inner_event),
+                _ => {
+                    // Route other event types without further processing.
+                    control_events_fn(*uid, inner_event)
+                }
             })
         });
         self.update_is_finished();

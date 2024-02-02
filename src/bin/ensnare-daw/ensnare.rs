@@ -269,6 +269,9 @@ impl Ensnare {
                             options: ToastOptions::default().duration_in_seconds(5.0),
                         });
                     }
+                    ProjectServiceEvent::Midi(..) => {
+                        panic!("ProjectServiceEvent::Midi should be handled by the aggregation service and never forwarded")
+                    }
                 },
                 EnsnareEvent::Quit => {
                     eprintln!("EnsnareEvent::Quit");

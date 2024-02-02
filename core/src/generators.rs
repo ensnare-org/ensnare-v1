@@ -15,6 +15,10 @@ use std::{f64::consts::PI, fmt::Debug, ops::Range};
 use strum::EnumCount as UseEnumCount;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
+pub mod prelude {
+    pub use super::{Envelope, Oscillator, PathUid, Waveform};
+}
+
 #[derive(
     Clone,
     Copy,

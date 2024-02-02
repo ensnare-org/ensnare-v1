@@ -82,6 +82,7 @@ impl EnsnareEventAggregationService {
         // Note that this one is temporarily different! MidiInterfaceService and
         // MidiService are separate but shouldn't be. It's confusing!
         let midi_sender = self.midi_service.input_channels.sender.clone();
+        let midi_interface_sender = self.midi_service.interface_sender().clone();
 
         let midi_receiver = self.midi_service.receiver().clone();
         let project_sender = self.project_service.sender().clone();
@@ -145,7 +146,24 @@ impl EnsnareEventAggregationService {
                     }
                     index if index == project_index => {
                         if let Ok(event) = operation.recv(&project_receiver) {
-                            let _ = ensnare_sender.send(EnsnareEvent::ProjectServiceEvent(event));
+                            match event {
+                                ProjectServiceEvent::Midi(channel, message) => {
+                                    // Fast-route generated MIDI messages so app
+                                    // doesn't have to. This handles
+                                    // ProjectServiceEvent::Midi, so the app
+                                    // should never see it.
+                                    let _ =  midi_interface_sender
+                                    .send(
+                                    ensnare_core::midi_interface::MidiInterfaceServiceInput::Midi(
+                                        channel, message,
+                                    ),
+                                );
+                                }
+                                _ => {
+                                    let _ = ensnare_sender
+                                        .send(EnsnareEvent::ProjectServiceEvent(event));
+                                }
+                            }
                         }
                     }
                     _ => {
