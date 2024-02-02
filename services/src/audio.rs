@@ -2,7 +2,8 @@
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    FromSample, Sample as CpalSample, SizedSample, Stream, SupportedStreamConfig,
+    BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,
+    SupportedStreamConfig,
 };
 use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::{Receiver, Sender};
@@ -245,7 +246,7 @@ impl AudioStream {
         let config = SupportedStreamConfig::new(
             config.channels(),
             config.sample_rate(),
-            cpal::SupportedBufferSize::Range { min: 512, max: 512 },
+            config.buffer_size().clone(),
             config.sample_format(),
         );
         Ok((host, device, config))
@@ -261,20 +262,44 @@ impl AudioStream {
         sender: &Sender<AudioServiceEvent>,
     ) -> anyhow::Result<Stream, anyhow::Error> {
         let config = config.clone();
+        let sample_format = config.sample_format();
+        let mut config: StreamConfig = config.into();
 
-        match config.sample_format() {
-            cpal::SampleFormat::I8 => todo!(),
-            cpal::SampleFormat::I16 => todo!(),
-            cpal::SampleFormat::I32 => todo!(),
-            cpal::SampleFormat::I64 => todo!(),
-            cpal::SampleFormat::U8 => todo!(),
-            cpal::SampleFormat::U16 => todo!(),
-            cpal::SampleFormat::U32 => todo!(),
-            cpal::SampleFormat::U64 => todo!(),
+        // TODO: this is a short-term hack to confirm that good latency with
+        // Alsa is possible. It is!
+        config.buffer_size = BufferSize::Fixed(512);
+
+        match sample_format {
+            cpal::SampleFormat::I8 => {
+                Self::stream_make::<i8>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::I16 => {
+                Self::stream_make::<i16>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::I32 => {
+                Self::stream_make::<i32>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::I64 => {
+                Self::stream_make::<i64>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::U8 => {
+                Self::stream_make::<u8>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::U16 => {
+                Self::stream_make::<u16>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::U32 => {
+                Self::stream_make::<u32>(&config.into(), device, queue, sender)
+            }
+            cpal::SampleFormat::U64 => {
+                Self::stream_make::<u64>(&config.into(), device, queue, sender)
+            }
             cpal::SampleFormat::F32 => {
                 Self::stream_make::<f32>(&config.into(), device, queue, sender)
             }
-            cpal::SampleFormat::F64 => todo!(),
+            cpal::SampleFormat::F64 => {
+                Self::stream_make::<f64>(&config.into(), device, queue, sender)
+            }
             _ => todo!(),
         }
     }
@@ -287,7 +312,7 @@ impl AudioStream {
         sender: &Sender<AudioServiceEvent>,
     ) -> Result<Stream, anyhow::Error>
     where
-        T: SizedSample + FromSample<f32>,
+        T: SizedSample + FromSample<SampleType>,
     {
         let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
@@ -313,7 +338,7 @@ impl AudioStream {
         queue: &AudioQueue,
         sender: &Sender<AudioServiceEvent>,
     ) where
-        T: CpalSample + FromSample<f32>,
+        T: CpalSample + FromSample<SampleType>,
     {
         let have_len = queue.len();
         let need_len = output.len();
@@ -335,11 +360,9 @@ impl AudioStream {
 
         for frame in output.chunks_exact_mut(channel_count) {
             if let Some(sample) = queue.pop() {
-                let left = sample.0 .0 as f32;
-                let right = sample.1 .0 as f32;
-                frame[0] = T::from_sample(left);
+                frame[0] = T::from_sample(sample.0 .0);
                 if channel_count > 1 {
-                    frame[1] = T::from_sample(right);
+                    frame[1] = T::from_sample(sample.1 .0);
                 }
             } else {
                 let _ = sender.send(AudioServiceEvent::Underrun);
