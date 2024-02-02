@@ -2,6 +2,8 @@
 
 //! Ensnare is a library for generating digital audio.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 /// Structs that represent music.
 pub mod composition;
 /// Handles automation, or real-time automatic control of one entity's

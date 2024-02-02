@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 #![warn(missing_docs)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 //! The `ensnare` crate helps make digital music.
 
