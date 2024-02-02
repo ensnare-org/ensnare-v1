@@ -164,6 +164,7 @@ pub enum WorkEvent {
 }
 impl MessageBounds for WorkEvent {}
 
+/// Passes [WorkEvent]s to the caller. Used in [Controls::work()].
 pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 
 /// A device that [Controls] produces [EntityEvent]s that control other things.
@@ -352,7 +353,7 @@ pub trait HasSettings {
     fn mark_clean(&mut self);
 }
 
-/// The callback signature for handle_midi_message().
+/// Passes MIDI messages to the caller.
 pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
 
 /// Takes standard MIDI messages. Implementers can ignore MidiChannel if it's
