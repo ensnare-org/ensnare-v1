@@ -19,8 +19,6 @@ pub mod generators;
 pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
-/// Talking to external MIDI devices.
-pub mod midi_interface;
 /// Building blocks for signal modulation.
 pub mod modulators;
 /// Provides a random-number generator for debugging and testing.

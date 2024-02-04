@@ -1,13 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::midi_interface::{
+    MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
+};
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
 use ensnare_core::{
-    midi_interface::{
-        MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
-        MidiPortDescriptor,
-    },
-    prelude::*,
+    midi::{MidiChannel, MidiMessage},
+    traits::HasSettings,
+    types::ChannelPair,
 };
 use serde::{Deserialize, Serialize};
 use std::{

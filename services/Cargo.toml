@@ -14,11 +14,12 @@ version.workspace = true
 [dependencies]
 anyhow = "1.0.75"
 cpal = "0.15.2"
-crossbeam = "0.8.3"
-crossbeam-channel = "0.5.8"
+crossbeam = "0.8"
+crossbeam-channel = "0.5"
 derivative = "2.2.0"
 eframe = "0.25"
 ensnare-core = { path = "../core" }
 ensnare-entity = { path = "../entity" }
 ensnare-new-stuff = { path = "../new-stuff" }
+midir = "0.9"
 serde = { version = "1.0", features = ["derive", "rc"] }

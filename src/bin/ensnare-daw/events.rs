@@ -163,12 +163,11 @@ impl EnsnareEventAggregationService {
                                         // doesn't have to. This handles
                                         // ProjectServiceEvent::Midi, so the app
                                         // should never see it.
-                                        let _ =  midi_interface_sender
-                                    .send(
-                                    ensnare_core::midi_interface::MidiInterfaceServiceInput::Midi(
-                                        channel, message,
-                                    ),
-                                );
+                                        let _ = midi_interface_sender.send(
+                                            ensnare::midi::interface::MidiInterfaceServiceInput::Midi(
+                                                channel, message,
+                                            ),
+                                        );
                                     }
                                 }
                                 _ => {

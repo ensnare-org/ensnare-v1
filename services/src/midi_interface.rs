@@ -4,10 +4,9 @@
 //! create a [MidiInterfaceService], then use its sender and receiver channels
 //! to exchange [MidiHandlerInput] and [MidiHandlerEvent] messages.
 
-use crate::midi::{MidiChannel, MidiMessage};
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use ensnare_core::midi::{u4, LiveEvent, MidiChannel, MidiMessage};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection, SendError};
-use midly::{live::LiveEvent, num::u4};
 use std::{fmt::Debug, thread::JoinHandle};
 
 /// Provides user-friendly strings for displaying available MIDI ports.

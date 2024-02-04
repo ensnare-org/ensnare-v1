@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::midi_interface::MidiPortDescriptor;
 use crate::MidiSettings;
 use eframe::egui::{Checkbox, ComboBox, Widget};
-use ensnare_core::midi_interface::MidiPortDescriptor;
 
 #[derive(Debug)]
 pub struct MidiSettingsWidget<'a> {

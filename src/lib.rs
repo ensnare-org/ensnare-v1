@@ -139,7 +139,7 @@ pub mod midi {
     pub mod interface {
         //! External MIDI hardware, such as MIDI interfaces or MIDI keyboards
         //! plugged in through USB).
-        pub use ensnare_core::midi_interface::{
+        pub use ensnare_services::{
             MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
             MidiPortDescriptor,
         };
