@@ -117,7 +117,7 @@ jobs:
           command: build
           args: --release --target ${{ matrix.target }}
       - name: Build installer
-        run: cargo deb --target ${{ matrix.target }} --no-build --no-strip
+        run: cargo deb --target ${{ matrix.target }} --no-build --no-strip --deb-version $tag
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
