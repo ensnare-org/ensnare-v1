@@ -23,6 +23,8 @@ version.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
+cpal = "0.15.2"
+crossbeam = "0.8.4"
 crossbeam-channel = "0.5"
 delegate = "0.12"
 derivative = "2.2.0"
@@ -39,12 +41,13 @@ ensnare-entities = { version = "0.0.3", path = "entities", features = [
 ] }
 ensnare-entities-toy = { version = "0.0.3", path = "entities-toy" }
 ensnare-entity = { version = "0.0.3", path = "entity" }
-ensnare-new-stuff = { version = "0.0.3", path = "new-stuff" }
 ensnare-proc-macros = { version = "0.0.3", path = "proc-macros" }
-ensnare-services = { version = "0.0.3", path = "services" }
 env_logger = "0.10"
+hound = "3.5.1"
+midir = "0.9.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+strum = "0.26"
 strum_macros = "0.26"
 thiserror = "1.0.50"
 
@@ -63,6 +66,7 @@ ensnare-entities = { version = "0.0.3", path = "entities", features = [
     "factory",
     "test",
 ] }
+more-asserts = "0.3.1"
 regex = "1.7"
 strum = "0.26"
 typetag = "0.2.13"
@@ -84,9 +88,7 @@ members = [
     "entities",
     "entities-toy",
     "entity",
-    "new-stuff",
     "proc-macros",
-    "services",
 ]
 
 [profile.release]

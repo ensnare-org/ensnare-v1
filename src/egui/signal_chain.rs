@@ -79,7 +79,7 @@ impl<'a> Widget for SignalChainWidget<'a> {
                                 false,
                                 ImageButton::new(
                                     Image::new(eframe::egui::include_image!(
-                                        "../../../res/images/md-symbols/playlist_add_circle.png"
+                                        "../../res/images/md-symbols/playlist_add_circle.png"
                                     ))
                                     .fit_to_original_size(1.0),
                                 ),
@@ -121,7 +121,7 @@ impl Widget for SignalItem {
         if self.is_control_source {
             ui.horizontal(|ui| {
                 let icon = Image::new(eframe::egui::include_image!(
-                    "../../../res/images/md-symbols/drag_indicator.png"
+                    "../../res/images/md-symbols/drag_indicator.png"
                 ))
                 .fit_to_original_size(1.0);
                 let response = ui.button(&self.name);

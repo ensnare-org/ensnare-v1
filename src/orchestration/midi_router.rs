@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::repositories::EntityRepository;
+use crate::orchestration::EntityRepository;
 use anyhow::{anyhow, Result};
 use ensnare_core::prelude::*;
 use ensnare_entity::Uid;

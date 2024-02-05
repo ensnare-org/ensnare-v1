@@ -1,6 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::repositories::{EntityRepository, TrackRepository};
+use super::{
+    humidity::Humidifier,
+    repositories::{EntityRepository, TrackRepository},
+    BusStation,
+};
 use anyhow::Result;
 use delegate::delegate;
 use ensnare_core::prelude::*;
@@ -245,114 +249,6 @@ impl Serializable for Orchestrator {
     fn after_deser(&mut self) {
         self.track_repo.after_deser();
         self.entity_repo.after_deser();
-    }
-}
-
-/// A [BusRoute] represents a signal connection between two tracks.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BusRoute {
-    /// The [TrackUid] of the receiving track.
-    pub aux_track_uid: TrackUid,
-    /// How much gain should be applied to this connection.
-    pub amount: Normal,
-}
-
-/// A [BusStation] manages how signals move between tracks and aux tracks. These
-/// collections of signals are sometimes called buses.
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BusStation {
-    routes: HashMap<TrackUid, Vec<BusRoute>>,
-}
-
-impl BusStation {
-    pub fn add_send(
-        &mut self,
-        track_uid: TrackUid,
-        dst_uid: TrackUid,
-        amount: Normal,
-    ) -> anyhow::Result<()> {
-        self.routes.entry(track_uid).or_default().push(BusRoute {
-            aux_track_uid: dst_uid,
-            amount,
-        });
-        Ok(())
-    }
-
-    pub fn remove_send(&mut self, track_uid: TrackUid, aux_track_uid: TrackUid) {
-        if let Some(routes) = self.routes.get_mut(&track_uid) {
-            routes.retain(|route| route.aux_track_uid != aux_track_uid);
-        }
-    }
-
-    pub fn sends(&self) -> impl Iterator<Item = (&TrackUid, &Vec<BusRoute>)> {
-        self.routes.iter()
-    }
-
-    // If we want this method to be immutable and cheap, then we can't guarantee
-    // that it will return a Vec. Such is life.
-    #[allow(dead_code)]
-    pub fn sends_for_track(&self, track_uid: &TrackUid) -> Option<&Vec<BusRoute>> {
-        self.routes.get(track_uid)
-    }
-
-    pub(crate) fn remove_sends_for_track(&mut self, track_uid: TrackUid) {
-        self.routes.remove(&track_uid);
-        self.routes
-            .values_mut()
-            .for_each(|routes| routes.retain(|route| route.aux_track_uid != track_uid));
-    }
-}
-
-/// Controls the wet/dry mix of arranged effects.
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Humidifier {
-    uid_to_humidity: HashMap<Uid, Normal>,
-}
-impl Humidifier {
-    pub fn get_humidity(&self, uid: &Uid) -> Normal {
-        self.uid_to_humidity.get(uid).cloned().unwrap_or_default()
-    }
-
-    pub fn set_humidity(&mut self, uid: Uid, humidity: Normal) {
-        self.uid_to_humidity.insert(uid, humidity);
-    }
-
-    pub fn transform_batch(
-        &mut self,
-        humidity: Normal,
-        effect: &mut Box<dyn EntityBounds>,
-        samples: &mut [StereoSample],
-    ) {
-        for sample in samples {
-            *sample = self.transform_audio(humidity, *sample, effect.transform_audio(*sample));
-        }
-    }
-
-    pub fn transform_audio(
-        &mut self,
-        humidity: Normal,
-        pre_effect: StereoSample,
-        post_effect: StereoSample,
-    ) -> StereoSample {
-        StereoSample(
-            self.transform_channel(humidity, 0, pre_effect.0, post_effect.0),
-            self.transform_channel(humidity, 1, pre_effect.1, post_effect.1),
-        )
-    }
-
-    fn transform_channel(
-        &mut self,
-        humidity: Normal,
-        _: usize,
-        pre_effect: Sample,
-        post_effect: Sample,
-    ) -> Sample {
-        let humidity: f64 = humidity.into();
-        let aridity = 1.0 - humidity;
-        post_effect * humidity + pre_effect * aridity
     }
 }
 

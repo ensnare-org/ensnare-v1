@@ -2,11 +2,14 @@
 
 use crate::settings::SettingsEvent;
 use crossbeam_channel::{Receiver, Select, Sender};
-use ensnare_core::types::ChannelPair;
-use ensnare_services::{
-    AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
-    MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+use ensnare::{
+    midi::MidiInterfaceServiceInput,
+    services::{
+        AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
+        MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+    },
 };
+use ensnare_core::types::ChannelPair;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -164,9 +167,7 @@ impl EnsnareEventAggregationService {
                                         // ProjectServiceEvent::Midi, so the app
                                         // should never see it.
                                         let _ = midi_interface_sender.send(
-                                            ensnare::midi::interface::MidiInterfaceServiceInput::Midi(
-                                                channel, message,
-                                            ),
+                                            MidiInterfaceServiceInput::Midi(channel, message),
                                         );
                                     }
                                 }

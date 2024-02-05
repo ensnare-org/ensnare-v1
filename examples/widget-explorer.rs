@@ -16,6 +16,9 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
+use ensnare::egui::{
+    make_title_bar_galley, ComposerWidget, GridWidget, LegendWidget, TitleBarWidget,
+};
 use ensnare::{
     app_version,
     prelude::*,
@@ -33,9 +36,6 @@ use ensnare_egui_widgets::{FrequencyDomainWidget, TimeDomainWidget};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_new_stuff::egui::{
-    make_title_bar_galley, ComposerWidget, GridWidget, LegendWidget, TitleBarWidget,
-};
 use std::sync::Arc;
 
 #[derive(Debug, Derivative)]

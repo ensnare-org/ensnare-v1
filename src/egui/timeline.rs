@@ -35,7 +35,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStripWidget<'a> {
             let next_response = ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/view_timeline.png"
+                        "../../res/images/md-symbols/view_timeline.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))
@@ -46,7 +46,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStripWidget<'a> {
             let composer_response = ui
                 .add(ImageButton::new(
                     Image::new(eframe::egui::include_image!(
-                        "../../../res/images/md-symbols/piano.png"
+                        "../../res/images/md-symbols/piano.png"
                     ))
                     .fit_to_original_size(1.0),
                 ))

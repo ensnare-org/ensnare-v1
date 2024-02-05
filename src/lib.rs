@@ -5,55 +5,20 @@
 
 //! The `ensnare` crate helps make digital music.
 
-pub mod automation {
-    //! Automation lets a project change the parameters of instruments and
-    //! effects over time in a programmatic, reproducible way.
-    //!
-    //! For example, suppose a producer wants a pan effect going
-    //! left-right-left-right throughout the whole song. This could be done by
-    //! manually turning a knob back and forth, but that's tedious, and it
-    //! especially won't work when rendering the final output to a song file.
-    //!
-    //! Using automation, the producer can instead configure an LFO to emit a
-    //! [ControlValue] each time its value changes, and then link that output to
-    //! a synthesizer's pan parameter. Then the synth's pan changes with the LFO
-    //! output, automatically and identically for each performance of the song.
-    //!
-    //! Controllable entities have one or more parameters that are addressable
-    //! by [ControlName] or [ControlIndex], which are discoverable through the
-    //! [Controllable](crate::traits::Controllable) trait. The
-    //! [Control](ensnare_proc_macros::Control) derive macro, with #[control]
-    //! derive parameters, usually implements this trait.
-    //!
-    //! All values that pass through the automation subsystem are normalized to
-    //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for
-    //! all applicable types in the system.
+pub use automation::Automator;
+pub use composition::Composer;
+pub use orchestration::Orchestrator;
 
-    pub use ensnare_core::{
-        control::{ControlIndex, ControlName, ControlValue},
-        controllers::{
-            ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
-        },
-        traits::{ControlEventsFn, Controllable, Controls},
-    };
+// pub mod compositionx {
+//     //! Creation and representation of music scores.
 
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{ControlIndex, ControlName, ControlValue};
-    }
-}
+//     pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
 
-pub mod composition {
-    //! Creation and representation of music scores.
-
-    pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
-    pub use ensnare_new_stuff::Composer;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{Composer, Note, PatternBuilder, PatternUid};
-    }
-}
+//     /// The most commonly used imports.
+//     pub mod prelude {
+//         pub use super::{Note, PatternBuilder, PatternUid};
+//     }
+// }
 
 pub mod elements {
     //! Building blocks that make up musical instruments and effects.
@@ -132,50 +97,6 @@ pub mod entities {
     }
 }
 
-pub mod midi {
-    //! Management of all MIDI-related information that flows within the system.
-    pub use ensnare_core::midi::{u4, u7, MidiChannel, MidiMessage, MidiNote};
-
-    pub mod interface {
-        //! External MIDI hardware, such as MIDI interfaces or MIDI keyboards
-        //! plugged in through USB).
-        pub use ensnare_services::{
-            MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
-            MidiPortDescriptor,
-        };
-    }
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{
-            interface::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor},
-            u4, u7, MidiChannel, MidiMessage, MidiNote,
-        };
-    }
-}
-
-pub mod services {
-    //! Services typically run in their own thread and use crossbeam channels
-    //! for communication. Some also provide a UI panel that helps visualize and
-    //! manage the subsystem, which means that they implement
-    //! [Displays](crate::traits::Displays).
-
-    pub use ensnare_services::{
-        AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, MidiService,
-        MidiServiceEvent, MidiServiceInput, MidiSettings, ProjectService, ProjectServiceEvent,
-        ProjectServiceInput,
-    };
-
-    /// `use ensnare::systems::prelude::*;` when working with services.
-    pub mod prelude {
-        pub use super::{
-            AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings, MidiService,
-            MidiServiceEvent, MidiServiceInput, MidiSettings, ProjectService, ProjectServiceEvent,
-            ProjectServiceInput,
-        };
-    }
-}
-
 pub mod traits {
     //! Common behaviors of system components.
     pub use ensnare_core::traits::*;
@@ -203,6 +124,7 @@ pub mod transport {
 
 pub mod types {
     //! Common data types used throughout the system.
+    pub use crate::types_future::*;
     pub use ensnare_core::{
         time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange},
         types::*,
@@ -222,27 +144,11 @@ pub mod types {
 
 pub mod ui {
     //! Components that provide and coordinate the user interface.
-    pub mod widgets {
-        //! `widgets` contains egui `Widget`s that help draw things.
-        pub use ensnare_cores_egui::{prelude::*, widgets::pattern};
-        pub use ensnare_egui_widgets::{
-            ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
-        };
-        pub use ensnare_new_stuff::egui::*;
-        pub use ensnare_services::{AudioSettingsWidget, MidiSettingsWidget};
-    }
     pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{
-            widgets::{
-                AudioSettingsWidget, ControlBar, ControlBarAction, ControlBarWidget,
-                EntityPaletteWidget, MidiSettingsWidget, ProjectAction, TimelineIconStripAction,
-                TimelineIconStripWidget,
-            },
-            DragDropManager, DragSource, DropTarget,
-        };
+        pub use super::{DragDropManager, DragSource, DropTarget};
     }
 }
 
@@ -259,18 +165,31 @@ pub mod utils {
 pub use all_entities::EnsnareEntities;
 pub use version::app_version;
 
+pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
+
 mod all_entities;
 mod version;
+
+pub mod automation;
+pub mod composition;
+pub mod egui;
+pub mod midi;
+pub mod orchestration;
+pub mod project;
+pub mod services;
+mod types_future;
+
+//pub use project::{ProjectAction, ProjectWidget};
+// pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        automation::prelude::*, composition::prelude::*, elements::prelude::*,
-        entities::prelude::*, midi::prelude::*, services::prelude::*, traits::prelude::*,
-        transport::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
-        EnsnareEntities,
+        automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
+        entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
+        services::prelude::*, traits::prelude::*, transport::prelude::*, types::prelude::*,
+        ui::prelude::*, utils::prelude::*, EnsnareEntities,
     };
     pub use ensnare_cores_egui::prelude::*;
-    pub use ensnare_new_stuff::project::Project;
 }

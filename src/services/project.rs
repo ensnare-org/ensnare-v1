@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::project::Project;
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
@@ -9,7 +10,6 @@ use ensnare_core::{
     types::{AudioQueue, VisualizationQueue},
 };
 use ensnare_entity::prelude::*;
-use ensnare_new_stuff::project::Project;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},

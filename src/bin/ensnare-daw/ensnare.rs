@@ -19,9 +19,15 @@ use eframe::{
     App, CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{app_version, prelude::*};
-use ensnare_egui_widgets::ObliqueStrategiesWidget;
-use ensnare_new_stuff::egui::{ComposerWidget, ProjectWidget};
+use ensnare::{
+    app_version,
+    egui::{TimelineIconStripAction, TimelineIconStripWidget},
+    prelude::*,
+    DragDropManager,
+};
+use ensnare_egui_widgets::{
+    ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
+};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},

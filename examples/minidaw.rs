@@ -19,14 +19,15 @@ use eframe::{
     CreationContext,
 };
 use egui_toast::{Toast, ToastOptions, Toasts};
-use ensnare::{app_version, prelude::*};
+use ensnare::{
+    app_version,
+    egui::{AudioSettingsWidget, MidiSettingsWidget},
+    prelude::*,
+};
 use ensnare_core::{types::TrackTitle, uid::TrackUid};
+use ensnare_egui_widgets::{ControlBar, ControlBarAction, ControlBarWidget};
 use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
-use ensnare_new_stuff::{
-    egui::ProjectWidget,
-    project::{Project, ProjectTitle},
-};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,

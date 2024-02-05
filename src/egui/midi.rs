@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::midi_interface::MidiPortDescriptor;
-use crate::MidiSettings;
+use crate::services::{MidiPortDescriptor, MidiSettings};
 use eframe::egui::{Checkbox, ComboBox, Widget};
 
 #[derive(Debug)]

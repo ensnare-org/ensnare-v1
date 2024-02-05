@@ -4,7 +4,11 @@ use super::{
     cursor::CursorWidget,
     signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
 };
-use crate::{composition::Composer, egui::grid::GridWidget, project::ProjectViewState};
+use crate::{
+    composition::Composer,
+    egui::grid::GridWidget,
+    project::{ArrangementViewMode, ProjectViewState},
+};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Modifiers, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -242,7 +246,7 @@ impl<'a> Widget for TrackWidget<'a> {
 
                             // Draw the widget corresponding to the current mode.
                             match self.view_state.arrangement_mode {
-                                crate::project::ArrangementViewMode::Composition => {
+                                ArrangementViewMode::Composition => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
                                             ui.add(TrackArrangementWidget::widget(
@@ -254,12 +258,12 @@ impl<'a> Widget for TrackWidget<'a> {
                                         });
                                     });
                                 }
-                                crate::project::ArrangementViewMode::Control(_) => {
+                                ArrangementViewMode::Control(_) => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| ui.label("control!!!!"));
                                     });
                                 }
-                                crate::project::ArrangementViewMode::SomethingElse => {
+                                ArrangementViewMode::SomethingElse => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
                                             ui.label("something else111!!!!")

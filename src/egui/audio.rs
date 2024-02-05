@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::AudioSettings;
+use crate::services::AudioSettings;
 use eframe::egui::Widget;
 
 #[derive(Debug)]

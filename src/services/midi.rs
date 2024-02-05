@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::midi_interface::{
+use super::midi_interface::{
     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
 };
 use crossbeam_channel::{Receiver, Sender};

@@ -206,7 +206,7 @@ impl Composer {
     /// Use like this:
     ///
     /// ```no_run
-    /// use ensnare_new_stuff::Composer;
+    /// use ensnare::Composer;
     ///
     /// let composer = Composer::default();
     /// let mut composer_serial = 0;

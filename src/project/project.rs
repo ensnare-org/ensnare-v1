@@ -3,8 +3,8 @@
 //! Representation of a whole music project, including support for serialization.
 
 use crate::{
-    automation::Automator, composition::Composer, midi::MidiRouter, orchestration::Orchestrator,
-    types::ArrangementUid,
+    automation::Automator, composition::Composer, orchestration::MidiRouter,
+    orchestration::Orchestrator, types::ArrangementUid,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
@@ -17,11 +17,6 @@ use ensnare_core::{
 use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
-
-/// The most commonly used imports.
-pub mod prelude {
-    pub use super::ProjectTitle;
-}
 
 /// A user-visible project title.
 #[derive(Clone, Debug, Derivative, derive_more::Display, PartialEq, Serialize, Deserialize)]
