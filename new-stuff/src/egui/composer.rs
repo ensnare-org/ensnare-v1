@@ -115,19 +115,15 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                 // for it. Thanks vikrinox on the egui Discord.
                 Frame::default()
                     .inner_margin(eframe::egui::Margin::same(2.0 / 2.0))
-                    .stroke(Stroke {
-                        width: 2.0,
-                        color: Color32::YELLOW,
-                    })
                     .show(ui, |ui| {
                         // Draw top bar
                         ui.label(format!("Time Signature: {}", pattern.time_signature()));
                         let available_size = ui.available_size();
                         let (_id, rect) =
-                            ui.allocate_space(vec2(available_size.x, available_size.y - 5.0));
+                            ui.allocate_space(vec2(available_size.x, available_size.y - 10.0));
                         let mut rect = rect;
-                        *rect.left_mut() += 16.0;
-                        *rect.top_mut() += 16.0;
+                        *rect.left_mut() += 20.0;
+                        *rect.top_mut() += 20.0;
 
                         // Overlay the grid
                         let min_note = pattern
@@ -278,22 +274,27 @@ impl eframe::egui::Widget for PatternGridWidget {
                     COLUMN_ROW_HIGHLIGHT_COLOR,
                 )));
             }
+            let (font_id, color, label) = if is_hovering {
+                (
+                    FontId::monospace(14.0),
+                    Color32::YELLOW,
+                    format!(
+                        "{}",
+                        MidiNote::from_repr(key as usize)
+                            .unwrap()
+                            .note_name_with_octave()
+                    ),
+                )
+            } else {
+                (
+                    FontId::monospace(9.0),
+                    visuals.text_color(),
+                    format!("{}", MidiNote::from_repr(key as usize).unwrap().to_string()),
+                )
+            };
             // TODO: we should be creating and recycling at least one TextShape.
-            ui.painter().text(
-                left,
-                Align2::RIGHT_BOTTOM,
-                format!("{}", MidiNote::from_repr(key as usize).unwrap().to_string()),
-                if is_hovering {
-                    FontId::monospace(12.0)
-                } else {
-                    FontId::monospace(9.0)
-                },
-                if is_hovering {
-                    Color32::YELLOW
-                } else {
-                    visuals.text_color()
-                },
-            );
+            ui.painter()
+                .text(left, Align2::RIGHT_BOTTOM, label, font_id, color);
         }
 
         // Draw the vertical note dividers.
