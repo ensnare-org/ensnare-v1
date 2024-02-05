@@ -81,11 +81,6 @@ pub mod entities {
     //     pub use ensnare_entities::instruments::*;
     // }
 
-    pub mod toys {
-        //! Extremely simple implementations of various types of entities.
-        pub use ensnare_entities_toy::{controllers::*, effects::*, instruments::*};
-    }
-
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
@@ -95,7 +90,7 @@ pub mod entities {
             EntityStore,
         };
         // pub use ensnare_entities::BuiltInEntities;
-        // pub use ensnare_entities_toy::ToyEntities;
+        // pub use ensnare_toys::ToyEntities;
     }
 }
 

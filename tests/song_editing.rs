@@ -4,7 +4,7 @@ use ensnare::{
     entities_future::{Gain, Reverb},
     prelude::*,
 };
-use ensnare_entities_toy::prelude::*;
+use ensnare_toys::prelude::*;
 
 #[test]
 fn edit_song() {

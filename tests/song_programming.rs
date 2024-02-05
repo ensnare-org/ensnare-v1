@@ -4,8 +4,8 @@ use ensnare::{
     entities_future::{Drumkit, Reverb},
     prelude::*,
 };
-use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
+use ensnare_toys::prelude::*;
 
 fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.

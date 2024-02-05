@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{entities_future::Gain, prelude::*};
-use ensnare_entities_toy::{ToyEntities, ToySynth};
+use ensnare_toys::{ToyEntities, ToySynth};
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good

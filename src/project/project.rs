@@ -544,14 +544,13 @@ impl Serializable for Project {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use super::*;
     use crate::entities_future::{
         TestAudioSource, TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
     };
-    use ensnare_entities_toy::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
     use ensnare_proc_macros::{IsEntity, Metadata};
+    use ensnare_toys::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
+    use std::sync::Arc;
 
     trait TestEntity: EntityBounds {}
 
