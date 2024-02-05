@@ -12,7 +12,6 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, entities::EntityUidFactory, prelude::*};
-use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds; // TODO clean up
 use std::collections::HashMap;
 use strum::IntoEnumIterator;

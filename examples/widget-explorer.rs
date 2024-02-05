@@ -33,7 +33,6 @@ use ensnare_core::{
 };
 use ensnare_cores_egui::NoteSequencerWidget;
 use ensnare_egui_widgets::{FrequencyDomainWidget, TimeDomainWidget};
-use ensnare_entities::BuiltInEntities;
 use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
 use std::sync::Arc;

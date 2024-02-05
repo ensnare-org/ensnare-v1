@@ -1,13 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{
-        effects::{Gain, Reverb},
-        toys::{ToyInstrument, ToySynth},
-    },
+    entities_future::{Gain, Reverb},
     prelude::*,
 };
-use ensnare_entities::BuiltInEntities;
+use ensnare_entities_toy::prelude::*;
 
 #[test]
 fn edit_song() {

@@ -310,7 +310,7 @@ impl Serializable for EntityRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_entities::instruments::TestInstrument;
+    use crate::entities_future::TestInstrument;
     use more_asserts::assert_gt;
 
     #[test]

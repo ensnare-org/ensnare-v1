@@ -33,12 +33,10 @@ eframe = "0.25"
 egui-toast = "0.11"
 egui_extras = { version = "0.25", features = ["all_loaders"] }
 ensnare-core = { version = "0.0.3", path = "core" }
+ensnare-cores = { version = "0.0.3", path = "cores" }
 ensnare-cores-egui = { version = "0.0.3", path = "cores-egui" }
 ensnare-drag-drop = { version = "0.0.3", path = "drag-drop" }
 ensnare-egui-widgets = { version = "0.0.3", path = "egui-widgets" }
-ensnare-entities = { version = "0.0.3", path = "entities", features = [
-    "factory",
-] }
 ensnare-entities-toy = { version = "0.0.3", path = "entities-toy" }
 ensnare-entity = { version = "0.0.3", path = "entity" }
 ensnare-proc-macros = { version = "0.0.3", path = "proc-macros" }
@@ -50,21 +48,18 @@ serde_json = "1.0"
 strum = "0.26"
 strum_macros = "0.26"
 thiserror = "1.0.50"
+typetag = "0.2.14"
 
 [features]
-default = ["std"]
+default = ["std", "test"]
 std = []
+test = []
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
 egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features = [
     "knobs",
     "displays",
-] }
-ensnare-cores = { version = "0.0.3", path = "cores" }
-ensnare-entities = { version = "0.0.3", path = "entities", features = [
-    "factory",
-    "test",
 ] }
 more-asserts = "0.3.1"
 regex = "1.7"
@@ -85,7 +80,6 @@ members = [
     "cores",
     "cores-egui",
     "egui-widgets",
-    "entities",
     "entities-toy",
     "entity",
     "proc-macros",

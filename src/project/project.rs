@@ -547,9 +547,8 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
-    use ensnare_entities::{
-        effects::TestEffectNegatesInput,
-        instruments::{TestAudioSource, TestInstrumentCountsMidiMessages},
+    use crate::entities_future::{
+        TestAudioSource, TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
     };
     use ensnare_entities_toy::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
     use ensnare_proc_macros::{IsEntity, Metadata};

@@ -2,9 +2,11 @@
 
 use ensnare::{
     automation::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-    entities::{controllers::LfoController, toys::ToySynth},
+    entities_future::{BuiltInEntities, LfoController},
     prelude::*,
 };
+use ensnare_entities_toy::prelude::*;
+use ensnare_entity::factory::EntityFactory;
 use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.

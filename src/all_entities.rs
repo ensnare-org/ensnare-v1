@@ -4,20 +4,16 @@
 //! use them.
 
 use crate::{
-    entities::{
-        controllers::{Arpeggiator, LfoController, SignalPassthroughController},
-        effects::{
-            filter::{
-                BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
-                BiQuadFilterHighPass, BiQuadFilterLowPass24db,
-            },
-            Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
-        },
-        instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
-        EntityFactory,
+    entities_future::{
+        Arpeggiator, BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
+        BiQuadFilterHighPass, BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Drumkit,
+        FmSynth, Gain, LfoController, Limiter, Reverb, Sampler, SignalPassthroughController, Timer,
+        Trigger, WelshSynth,
     },
     prelude::*,
+    utils::Paths,
 };
+use ensnare_entity::{factory::EntityFactory, traits::EntityBounds};
 use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.

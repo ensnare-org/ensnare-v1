@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+pub mod filter;
+
 use eframe::egui::Slider;
 use ensnare_core::{prelude::*, time::Seconds};
 use ensnare_entity::prelude::*;
@@ -7,7 +9,6 @@ use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
-pub mod filter;
 
 #[derive(
     Debug,

@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::prelude::*;
-use ensnare_entities::BuiltInEntities;
 use ensnare_entity::traits::EntityBounds;
 
 #[test]

@@ -1,5 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+//! Common data types used throughout the system.
+
 use delegate::delegate;
 use derive_more::Display;
 use ensnare_core::prelude::*;

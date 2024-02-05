@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{effects::Reverb, instruments::Drumkit, toys::ToySynth},
+    entities_future::{Drumkit, Reverb},
     prelude::*,
 };
-use ensnare_entities::BuiltInEntities;
+use ensnare_entities_toy::prelude::*;
 use ensnare_entity::traits::EntityBounds;
 
 fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {

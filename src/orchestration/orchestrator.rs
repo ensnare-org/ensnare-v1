@@ -291,8 +291,8 @@ impl Mixer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::entities_future::TestInstrument;
     use ensnare_cores::TestEffectNegatesInput;
-    use ensnare_entities::instruments::TestInstrument;
 
     #[test]
     fn orchestrator_mainline() {
