@@ -2,7 +2,7 @@
 
 use crate::composition::Composer;
 use eframe::{
-    egui::{Frame, Sense, Widget},
+    egui::{Frame, PointerButton, Sense, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
@@ -164,7 +164,10 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                         // Draw the note content
                         let response = ui
                             .allocate_ui_at_rect(rect, |ui| {
-                                ui.add(PatternWidget::widget(pattern, min_window..=max_window))
+                                ui.add(PatternEditorWidget::widget(
+                                    pattern,
+                                    min_window..=max_window,
+                                ))
                             })
                             .inner;
 
@@ -341,11 +344,11 @@ impl eframe::egui::Widget for PatternGridWidget {
 }
 
 #[derive(Debug)]
-pub struct PatternWidget<'a> {
+pub struct PatternEditorWidget<'a> {
     pattern: &'a mut Pattern,
     note_range: RangeInclusive<u8>,
 }
-impl<'a> PatternWidget<'a> {
+impl<'a> PatternEditorWidget<'a> {
     #[allow(dead_code)]
     fn pattern(mut self, pattern: &'a mut Pattern) -> Self {
         self.pattern = pattern;
@@ -396,7 +399,7 @@ impl<'a> PatternWidget<'a> {
         MusicalTime::DURATION_WHOLE / self.pattern.time_signature().bottom / 4
     }
 }
-impl<'a> eframe::egui::Widget for PatternWidget<'a> {
+impl<'a> eframe::egui::Widget for PatternEditorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
         let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click());
@@ -427,21 +430,20 @@ impl<'a> eframe::egui::Widget for PatternWidget<'a> {
             (None, None)
         };
 
-        // Select notes.
-        if response.clicked() {
-            if let Some(key) = key {
-                if let Some(position) = position {
-                    println!("Would select note {key} at {position}");
-                }
-            }
-        }
-
-        // Add or remove a note.
-        if response.double_clicked() {
+        // Select notes and add/remove.
+        if response.clicked_by(PointerButton::Primary) {
             if let Some(key) = key {
                 if let Some(position) = position {
                     let new_note = Note::new_with(key, position, PatternBuilder::DURATION);
-                    self.pattern.toggle_note(new_note);
+                    self.pattern.add_note(new_note);
+                    response.mark_changed();
+                }
+            }
+        } else if response.clicked_by(PointerButton::Secondary) {
+            if let Some(key) = key {
+                if let Some(position) = position {
+                    let new_note = Note::new_with(key, position, PatternBuilder::DURATION);
+                    self.pattern.remove_note(&new_note);
                     response.mark_changed();
                 }
             }
@@ -513,7 +515,7 @@ mod tests {
     fn division_duration_works() {
         let mut pattern = PatternBuilder::default().build().unwrap();
         let note_range = 60..=71;
-        let w = PatternWidget::new(&mut pattern, note_range);
+        let w = PatternEditorWidget::new(&mut pattern, note_range);
 
         assert_eq!(w.division_duration(), MusicalTime::DURATION_QUARTER / 4);
     }
