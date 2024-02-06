@@ -2,13 +2,6 @@
 
 //! Handles digital-audio, wall-clock, and musical time.
 
-/// The most commonly used imports.
-pub mod prelude {
-    pub use super::{
-        BeatValue, MusicalTime, SampleRate, Seconds, Tempo, TimeRange, TimeSignature, ViewRange,
-    };
-}
-
 use crate::prelude::*;
 use anyhow::{anyhow, Error};
 use derivative::Derivative;

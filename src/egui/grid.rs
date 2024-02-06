@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::legend::LegendWidget;
-use crate::time::ViewRange;
+use crate::prelude::*;
 use eframe::{
     egui::{vec2, Widget},
     emath::RectTransform,

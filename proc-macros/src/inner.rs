@@ -18,12 +18,12 @@ pub(crate) fn impl_inner_configurable_derive(input: TokenStream) -> TokenStream 
             impl #generics #crate_name::traits::Configurable for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
-                        fn sample_rate(&self) -> #crate_name::time::SampleRate;
-                        fn update_sample_rate(&mut self, sample_rate: #crate_name::time::SampleRate);
-                        fn tempo(&self) -> #crate_name::time::Tempo;
-                        fn update_tempo(&mut self, tempo: #crate_name::time::Tempo);
-                        fn time_signature(&self) -> #crate_name::time::TimeSignature;
-                        fn update_time_signature(&mut self, time_signature: #crate_name::time::TimeSignature);
+                        fn sample_rate(&self) -> #crate_name::types::SampleRate;
+                        fn update_sample_rate(&mut self, sample_rate: #crate_name::types::SampleRate);
+                        fn tempo(&self) -> #crate_name::types::Tempo;
+                        fn update_tempo(&mut self, tempo: #crate_name::types::Tempo);
+                        fn time_signature(&self) -> #crate_name::types::TimeSignature;
+                        fn update_time_signature(&mut self, time_signature: #crate_name::types::TimeSignature);
                     }
                 }
             }

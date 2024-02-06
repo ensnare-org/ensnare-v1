@@ -22,7 +22,6 @@ pub mod midi;
 pub mod orchestration;
 pub mod project;
 pub mod services;
-pub mod time;
 pub mod traits;
 pub mod types;
 pub mod util;
@@ -36,7 +35,7 @@ pub mod prelude {
     pub use super::{
         automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
         entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
-        services::prelude::*, time::prelude::*, traits::prelude::*, types::prelude::*,
-        util::prelude::*, EnsnareEntities,
+        services::prelude::*, traits::prelude::*, types::prelude::*, util::prelude::*,
+        EnsnareEntities,
     };
 }
