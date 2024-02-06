@@ -2,7 +2,7 @@
 
 use crate::main_crate_name;
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use std::{collections::HashSet, str::FromStr};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
@@ -51,10 +51,10 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
                     v.push(quote! {#crate_name::traits::Configurable});
                 }
                 Attributes::Controllable => {
-                    v.push(quote! {#crate_name::traits::Controllable});
+                    v.push(quote! {#crate_name::automation::Controllable});
                 }
                 Attributes::Controls => {
-                    v.push(quote! {#crate_name::traits::Controls});
+                    v.push(quote! {#crate_name::automation::Controls});
                 }
                 Attributes::Displays => {
                     v.push(quote! {#crate_name::traits::Displays});

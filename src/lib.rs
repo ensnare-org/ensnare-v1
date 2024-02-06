@@ -14,7 +14,6 @@ pub use version::app_version;
 
 pub mod automation;
 pub mod composition;
-pub mod core;
 pub mod cores;
 pub mod egui;
 pub mod elements;
@@ -22,6 +21,7 @@ pub mod entities;
 pub mod midi;
 pub mod orchestration;
 pub mod project;
+pub mod rng;
 pub mod selection_set;
 pub mod services;
 pub mod time;

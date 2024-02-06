@@ -1,6 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{core::rng::Rng, prelude::*};
+//! Automation controllers are things that emit control events at specified
+//! times. They aren't currently used in interactive song composition, but are
+//! useful for testing and for programmatic song composition.
+
+use crate::{prelude::*, rng::Rng};
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};

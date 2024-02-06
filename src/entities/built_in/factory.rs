@@ -46,7 +46,7 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
             Box::new(Trigger::new_with(
                 uid,
-                crate::core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
+                crate::automation::Timer::new_with(MusicalTime::DURATION_QUARTER),
                 ControlValue(1.0),
             ))
         });

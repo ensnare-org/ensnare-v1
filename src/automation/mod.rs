@@ -25,19 +25,22 @@
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{ControlIndex, ControlName, ControlValue};
+    pub use super::{
+        ControlEventsFn, ControlIndex, ControlName, ControlProxyEventsFn, ControlStep,
+        ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, ControlValue,
+        Controllable, Controls, ControlsAsProxy,
+    };
 }
 
-pub use crate::{
-    core::{
-        control::{ControlIndex, ControlName, ControlValue},
-        controllers::{
-            ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
-        },
-    },
-    traits::{ControlEventsFn, Controllable, Controls},
-};
-
 pub use automator::Automator;
+pub use controllers::{
+    ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, Timer,
+    Trigger,
+};
+pub use traits::{ControlEventsFn, ControlProxyEventsFn, Controllable, Controls, ControlsAsProxy};
+pub use types::{ControlIndex, ControlName, ControlValue};
 
 mod automator;
+mod controllers;
+mod traits;
+mod types;

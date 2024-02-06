@@ -1,14 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::composition::NoteSequencer;
-use crate::core::controllers::ControlTripPath;
 use crate::{
-    composition::PatternSequencer,
+    composition::{NoteSequencer, PatternSequencer},
     cores::controllers::{Arpeggiator, ArpeggioMode},
     egui::unfiled::{FrequencyWidget, WaveformWidget},
     prelude::*,
 };
-
 use eframe::{
     egui::{Sense, Widget},
     emath::RectTransform,
@@ -20,14 +17,14 @@ use strum::IntoEnumIterator;
 pub struct TripWidget<'a> {
     #[allow(dead_code)] // TODO see commented-out section in ui()
     uid: Uid,
-    control_trip: &'a mut crate::core::controllers::ControlTrip,
+    control_trip: &'a mut ControlTrip,
     control_links: Option<&'a [(Uid, ControlIndex)]>,
     view_range: ViewRange,
 }
 impl<'a> TripWidget<'a> {
     fn new(
         uid: Uid,
-        control_trip: &'a mut crate::core::controllers::ControlTrip,
+        control_trip: &'a mut ControlTrip,
         control_links: Option<&'a [(Uid, ControlIndex)]>,
         view_range: ViewRange,
     ) -> Self {
@@ -41,7 +38,7 @@ impl<'a> TripWidget<'a> {
 
     pub fn widget(
         uid: Uid,
-        trip: &'a mut crate::core::controllers::ControlTrip,
+        trip: &'a mut ControlTrip,
         control_links: Option<&'a [(Uid, ControlIndex)]>,
         view_range: ViewRange,
     ) -> impl eframe::egui::Widget + 'a {

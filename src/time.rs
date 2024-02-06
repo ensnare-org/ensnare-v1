@@ -643,10 +643,7 @@ impl Mul<Seconds> for SampleRate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        automation::{ControlIndex, ControlValue},
-        traits::Controllable,
-    };
+    use crate::automation::{ControlIndex, ControlValue, Controllable};
 
     #[test]
     fn tempo() {

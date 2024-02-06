@@ -328,14 +328,14 @@ impl SignalPassthroughController {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
-    inner: crate::core::controllers::Timer,
+    inner: crate::automation::Timer,
 }
 impl Displays for Timer {}
 impl Timer {
     pub fn new_with(uid: Uid, duration: MusicalTime) -> Self {
         Self {
             uid,
-            inner: crate::core::controllers::Timer::new_with(duration),
+            inner: crate::automation::Timer::new_with(duration),
         }
     }
 }
@@ -356,14 +356,14 @@ impl Timer {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,
-    inner: crate::core::controllers::Trigger,
+    inner: crate::automation::Trigger,
 }
 impl Displays for Trigger {}
 impl Trigger {
-    pub fn new_with(uid: Uid, timer: crate::core::controllers::Timer, value: ControlValue) -> Self {
+    pub fn new_with(uid: Uid, timer: crate::automation::Timer, value: ControlValue) -> Self {
         Self {
             uid,
-            inner: crate::core::controllers::Trigger::new_with(timer, value),
+            inner: crate::automation::Trigger::new_with(timer, value),
         }
     }
 }

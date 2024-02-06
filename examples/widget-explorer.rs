@@ -22,12 +22,12 @@ use ensnare::{
     prelude::*,
 };
 use ensnare::{
-    core::Rng,
     egui::{
         analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, DragDropManager,
         DragSource, DropTarget, FrequencyDomainWidget, GridWidget, LegendWidget,
         NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
     },
+    rng::Rng,
     types::VisualizationQueue,
 };
 use ensnare_toys::prelude::*;

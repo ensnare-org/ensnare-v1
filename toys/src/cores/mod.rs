@@ -14,7 +14,7 @@ mod synth;
 pub mod tests {
     use super::*;
     use ensnare::{
-        core::Rng,
+        rng::Rng,
         traits::{Generates, Ticks},
     };
 

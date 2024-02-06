@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! Provides a random-number generator for debugging and testing.
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// A pseudorandom number generator (PRNG) for applications that don't require

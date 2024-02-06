@@ -2,7 +2,7 @@
 
 use crate::main_crate_name;
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
 pub(crate) fn impl_inner_configurable_derive(input: TokenStream) -> TokenStream {
@@ -42,7 +42,7 @@ pub(crate) fn impl_derive_inner_controllable(input: TokenStream) -> TokenStream 
 
         let quote = quote! {
             #[automatically_derived]
-            impl #generics #crate_name::traits::Controllable for #struct_name #ty_generics {
+            impl #generics #crate_name::automation::Controllable for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
                         fn control_index_count(&self) -> usize;
@@ -68,7 +68,7 @@ pub(crate) fn impl_derive_inner_controls(input: TokenStream) -> TokenStream {
 
         let quote = quote! {
             #[automatically_derived]
-            impl #generics #crate_name::traits::Controls for #struct_name #ty_generics {
+            impl #generics #crate_name::automation::Controls for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
                         fn time_range(&self) -> Option<TimeRange>;

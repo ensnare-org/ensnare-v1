@@ -231,7 +231,7 @@ pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident
                 #struct_size_const_body
             }
             #[automatically_derived]
-            impl #generics #main_crate::traits::Controllable for #struct_name #ty_generics {
+            impl #generics #main_crate::automation::Controllable for #struct_name #ty_generics {
                 fn control_index_count(&self) -> usize { Self::STRUCT_SIZE }
                 fn control_set_param_by_name(&mut self, name: &str, value: #main_crate::automation::ControlValue) {
                     if let Some(index) = self.control_index_for_name(name) {

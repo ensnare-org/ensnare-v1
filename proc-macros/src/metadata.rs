@@ -3,7 +3,7 @@
 use crate::main_crate_name;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
 pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
