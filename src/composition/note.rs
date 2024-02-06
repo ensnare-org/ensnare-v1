@@ -43,6 +43,8 @@ impl Note {
         Self::new_with(key as u8, start, duration)
     }
 
+    /// Moves the note's start/end by the specified amount without changing its
+    /// duration.
     pub fn shift_right(&self, rhs: MusicalTime) -> Self {
         Self::new_with_start_and_end(self.key, self.extent.0.start + rhs, self.extent.0.end + rhs)
     }

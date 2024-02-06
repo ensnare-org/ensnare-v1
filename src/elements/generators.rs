@@ -1030,7 +1030,7 @@ impl PathUidFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{midi::MidiNote, time::Transport};
+    use crate::prelude::*;
     use float_cmp::approx_eq;
     use more_asserts::{assert_gt, assert_lt};
     use std::{env::current_dir, fs, path::PathBuf};

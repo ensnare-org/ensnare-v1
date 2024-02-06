@@ -1,5 +1,13 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+//! Unique identifiers for various system structs, and factories that helps
+//! ensure they are in fact unique.
+
+/// The most commonly used imports.
+pub mod prelude {
+    pub use super::{IsUid, TrackUid, TrackUidFactory, UidFactory};
+}
+
 use delegate::delegate;
 use derivative::Derivative;
 use derive_more::Display;
@@ -10,8 +18,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-/// A [Uid] is an [Entity](crate::traits::Entity) identifier that is unique
-/// within the current project.
+/// An identifier that is unique within the current project.
 #[derive(
     Clone,
     Copy,
@@ -37,10 +44,6 @@ impl From<usize> for Uid {
     fn from(value: usize) -> Self {
         Self(value)
     }
-}
-
-pub mod prelude {
-    pub use super::{IsUid, TrackUid, TrackUidFactory, UidFactory};
 }
 
 /// An optional Uid trait.
