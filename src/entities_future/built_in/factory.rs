@@ -7,13 +7,7 @@ use super::{
     },
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
 };
-use crate::core::{
-    generators::{Envelope, Oscillator, Waveform},
-    modulators::Dca,
-    prelude::*,
-    utils::Paths,
-};
-use crate::prelude::*;
+use crate::{prelude::*, utils::Paths};
 use std::path::PathBuf;
 
 pub struct BuiltInEntities {}

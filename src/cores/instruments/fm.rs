@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::core::{
-    generators::{Envelope, Oscillator},
     instruments::Synthesizer,
-    modulators::Dca,
-    prelude::*,
     traits::{CanPrototype, GeneratesEnvelope},
     voices::StealingVoiceStore,
 };
+use crate::prelude::*;
 use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};

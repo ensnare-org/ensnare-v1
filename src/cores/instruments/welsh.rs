@@ -1,10 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::prelude::*;
 use crate::{
     core::{
-        generators::{Envelope, Oscillator},
         instruments::Synthesizer,
-        modulators::Dca,
         prelude::*,
         traits::{CanPrototype, GeneratesEnvelope},
         voices::StealingVoiceStore,

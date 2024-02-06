@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{generators::Oscillator, prelude::*};
 use crate::{
     egui::{ArpeggiatorWidget, LfoControllerWidget},
     prelude::*,

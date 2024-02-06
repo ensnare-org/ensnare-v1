@@ -24,15 +24,13 @@ pub mod elements {
     //! Building blocks that make up musical instruments and effects.
 
     pub use crate::core::{
-        generators::{Envelope, Oscillator, Waveform},
         instruments::Synthesizer,
-        modulators::Dca,
         voices::{StealingVoiceStore, VoicePerNoteStore, VoiceStore},
     };
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{Dca, Envelope, Oscillator, StealingVoiceStore, Synthesizer, Waveform};
+        pub use super::{StealingVoiceStore, Synthesizer};
     }
 }
 
@@ -147,6 +145,7 @@ pub mod composition;
 pub mod core;
 pub mod cores;
 pub mod egui;
+pub mod elements_future;
 pub mod entities_future;
 pub mod midi;
 pub mod orchestration;
@@ -168,9 +167,9 @@ pub mod time {
 pub mod prelude {
     pub use super::{
         automation::prelude::*, composition::prelude::*, core::prelude::*, egui::prelude::*,
-        elements::prelude::*, entities::prelude::*, entities_future::prelude::*, midi::prelude::*,
-        orchestration::prelude::*, project::prelude::*, services::prelude::*, traits::prelude::*,
-        traits_future::prelude::*, transport::prelude::*, types::prelude::*, utils::prelude::*,
-        EnsnareEntities,
+        elements::prelude::*, elements_future::prelude::*, entities::prelude::*,
+        entities_future::prelude::*, midi::prelude::*, orchestration::prelude::*,
+        project::prelude::*, services::prelude::*, traits::prelude::*, traits_future::prelude::*,
+        transport::prelude::*, types::prelude::*, utils::prelude::*, EnsnareEntities,
     };
 }

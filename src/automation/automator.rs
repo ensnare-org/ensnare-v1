@@ -1,9 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::{
-    generators::{PathUid, PathUidFactory, SignalPath},
-    prelude::*,
-};
+use crate::elements_future::{PathUid, PathUidFactory, SignalPath};
+use crate::prelude::*;
 use crate::{orchestration::EntityRepository, types::ControlLink, uid::Uid};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};

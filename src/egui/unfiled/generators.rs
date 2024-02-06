@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::core::DragNormalWidget;
-use crate::core::{
-    generators::{Envelope, Oscillator},
-    prelude::*,
-};
 use crate::prelude::*;
 use eframe::{
     egui::{Frame, Sense, Widget},

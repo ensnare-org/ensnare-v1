@@ -3,7 +3,6 @@
 use crate::core::{
     composition::sequencers::{NoteSequencer, PatternSequencer},
     controllers::ControlTripPath,
-    generators::Waveform,
     prelude::*,
 };
 use crate::cores::controllers::{Arpeggiator, ArpeggioMode};

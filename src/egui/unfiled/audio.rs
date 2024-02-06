@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::prelude::*;
-use crate::core::{
-    generators::Waveform,
-    types::{FrequencyHz, FrequencyRange},
-};
+use crate::prelude::*;
 use anyhow::anyhow;
 use eframe::{
     egui::{self, ComboBox, Sense, Slider, Widget},

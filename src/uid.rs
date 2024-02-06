@@ -1,9 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use delegate::delegate;
-use serde::{Deserialize, Serialize};
-
 use crate::core::prelude::IsUid;
+use serde::{Deserialize, Serialize};
 
 /// A [Uid] is an [Entity](crate::traits::Entity) identifier that is unique
 /// within the current project.

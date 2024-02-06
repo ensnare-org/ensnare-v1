@@ -13,14 +13,10 @@ pub mod control;
 pub mod controllers;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
-/// Building blocks for signal generation.
-pub mod generators;
 /// Scaffolding for implementing instruments.
 pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
-/// Building blocks for signal modulation.
-pub mod modulators;
 /// Provides a random-number generator for debugging and testing.
 pub mod rng;
 /// A set of things that the user can select.
@@ -45,7 +41,7 @@ pub use rng::Rng;
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        composition::prelude::*, control::prelude::*, generators::prelude::*, midi::prelude::*,
-        time::prelude::*, traits::prelude::*, types::prelude::*, uid::prelude::*,
+        composition::prelude::*, control::prelude::*, midi::prelude::*, time::prelude::*,
+        traits::prelude::*, types::prelude::*, uid::prelude::*,
     };
 }
