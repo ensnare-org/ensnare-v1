@@ -181,7 +181,7 @@ impl<V: IsStereoSampleVoice> HandlesMidi for Synthesizer<V> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::voices::{tests::TestVoice, VoiceCount, VoiceStore};
+    use crate::elements::voices::tests::TestVoice;
 
     #[derive(Debug)]
     pub struct TestSynthesizer {

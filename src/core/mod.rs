@@ -13,8 +13,6 @@ pub mod control;
 pub mod controllers;
 // /// Infrastructure for managing [Entities](Entity).
 // pub mod entities;
-/// Scaffolding for implementing instruments.
-pub mod instruments;
 /// MIDI-related functionality.
 pub mod midi;
 /// Provides a random-number generator for debugging and testing.
@@ -33,8 +31,6 @@ pub mod types;
 pub mod uid;
 /// Helper functions.
 pub mod utils;
-/// Scaffolding for managing multiple voices.
-pub mod voices;
 
 pub use rng::Rng;
 

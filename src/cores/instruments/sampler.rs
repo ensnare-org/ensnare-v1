@@ -1,11 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{
-    instruments::Synthesizer,
-    prelude::*,
-    utils::Paths,
-    voices::{VoiceCount, VoiceStore},
-};
+use crate::core::utils::Paths;
+use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use ensnare_proc_macros::Control;
 use hound::WavReader;

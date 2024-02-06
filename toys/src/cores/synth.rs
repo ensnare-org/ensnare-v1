@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use delegate::delegate;
-use ensnare::core::voices::{VoiceCount, VoiceStore};
 use ensnare::{
     prelude::*,
     traits::{CanPrototype, GeneratesEnvelope},

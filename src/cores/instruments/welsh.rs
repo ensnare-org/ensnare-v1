@@ -2,12 +2,7 @@
 
 use crate::prelude::*;
 use crate::{
-    core::{
-        instruments::Synthesizer,
-        prelude::*,
-        traits::{CanPrototype, GeneratesEnvelope},
-        voices::StealingVoiceStore,
-    },
+    core::traits::{CanPrototype, GeneratesEnvelope},
     cores::effects::BiQuadFilterLowPass24db,
 };
 use core::fmt::Debug;
