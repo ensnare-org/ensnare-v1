@@ -609,7 +609,10 @@ mod tests {
         let instrument_uid = project
             .add_entity(
                 track_uid,
-                Box::new(TestInstrument::new_with(Uid::default())),
+                Box::new(TestAudioSource::new_with(
+                    Uid::default(),
+                    TestAudioSource::MEDIUM,
+                )),
                 None,
             )
             .unwrap();

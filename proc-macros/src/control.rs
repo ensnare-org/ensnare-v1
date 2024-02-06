@@ -22,7 +22,7 @@ pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident
         let data = &input.data;
         let struct_name = &input.ident;
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
-        let main_crate = format_ident!("{}", main_crate_name());
+        let main_crate = main_crate_name();
 
         // Code adapted from https://blog.turbo.fish/proc-macro-error-handling/
         // Thank you!

@@ -13,7 +13,7 @@ pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
     let generics = input.generics;
     let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
-    let crate_name = format_ident!("{}", main_crate_name());
+    let crate_name = main_crate_name();
     TokenStream::from(quote! {
         #[automatically_derived]
         impl #generics #crate_name::traits_future::HasMetadata for #name #ty_generics {

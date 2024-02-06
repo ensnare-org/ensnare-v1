@@ -41,7 +41,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         let generics = &input.generics;
         let struct_name = &input.ident;
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
-        let crate_name = format_ident!("{}", main_crate_name());
+        let crate_name = main_crate_name();
 
         let parsed_attrs = parse_attrs(&input.attrs);
         let mut skip_inner = false;

@@ -143,7 +143,7 @@ pub fn derive_inner_transforms_audio(input: TokenStream) -> TokenStream {
 // Some of the code generated in these macros uses the ensnare crate, but
 // that crate also uses this proc-macro lib. So we need to correct the reference
 // to sometimes be just `crate`.
-fn main_crate_name() -> String {
+fn old_main_crate_name() -> String {
     const CRATE_NAME: &'static str = "ensnare"; // if you named it with dashes -- my-crate
     const CRATE_NAME_FOR_USE: &'static str = "ensnare"; // substitute underscores for dashes -- my_crate
 
@@ -153,9 +153,10 @@ fn main_crate_name() -> String {
                 // We aren't importing the crate by name, so we must be it.
                 quote!(crate).to_string()
             }
-            proc_macro_crate::FoundCrate::Name(_) => {
+            proc_macro_crate::FoundCrate::Name(the_name) => {
                 // We're importing the crate by name, which means we aren't the
                 // crate.
+                eprintln!("the name is {the_name}");
                 let ident = format_ident!("{}", CRATE_NAME_FOR_USE);
                 quote!(#ident).to_string()
             }
@@ -163,4 +164,23 @@ fn main_crate_name() -> String {
     } else {
         panic!("forgot to import {}", CRATE_NAME);
     }
+}
+
+fn main_crate_name() -> proc_macro2::TokenStream {
+    const MAIN_CRATE_NAME: &str = "ensnare";
+    let name = match (
+        proc_macro_crate::crate_name(MAIN_CRATE_NAME),
+        std::env::var("CARGO_CRATE_NAME").as_deref(),
+    ) {
+        (Ok(proc_macro_crate::FoundCrate::Itself), Ok(MAIN_CRATE_NAME)) => quote!(crate),
+        (Ok(proc_macro_crate::FoundCrate::Name(name)), _) => {
+            let ident = Ident::new(&name, proc_macro2::Span::call_site());
+            quote!(::#ident)
+        }
+        _ => {
+            let n = format_ident!("{}", MAIN_CRATE_NAME);
+            quote!(::#n)
+        }
+    };
+    name
 }
