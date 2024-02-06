@@ -21,14 +21,11 @@ pub mod entities;
 pub mod midi;
 pub mod orchestration;
 pub mod project;
-pub mod rng;
-pub mod selection_set;
 pub mod services;
 pub mod time;
 pub mod traits;
 pub mod types;
-pub mod uid;
-pub mod utils;
+pub mod util;
 
 mod all_entities;
 mod version;
@@ -40,6 +37,6 @@ pub mod prelude {
         automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
         entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
         services::prelude::*, time::prelude::*, traits::prelude::*, types::prelude::*,
-        utils::prelude::*, EnsnareEntities,
+        util::prelude::*, EnsnareEntities,
     };
 }

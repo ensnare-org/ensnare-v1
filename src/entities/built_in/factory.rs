@@ -7,7 +7,7 @@ use super::{
     },
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
 };
-use crate::{prelude::*, utils::Paths};
+use crate::{prelude::*, util::Paths};
 use std::path::PathBuf;
 
 pub struct BuiltInEntities {}

@@ -2,9 +2,8 @@
 
 use crate::{
     egui::{colors::ColorSchemeConverter, DragDropManager, DragSource},
-    midi::MidiNote,
     prelude::*,
-    selection_set::SelectionSet,
+    util::SelectionSet,
 };
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},

@@ -1,22 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Unique identifiers for various system structs, and factories that helps
+//! Unique identifiers for various system structs, and factories that help
 //! ensure they are in fact unique.
 
-/// The most commonly used imports.
-pub mod prelude {
-    pub use super::{IsUid, TrackUid, TrackUidFactory, UidFactory};
-}
-
-use delegate::delegate;
-use derivative::Derivative;
-use derive_more::Display;
+use core::sync::atomic::Ordering;
 use serde::{Deserialize, Serialize};
-use std::{
-    hash::Hash,
-    marker::PhantomData,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::{hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
 
 /// An identifier that is unique within the current project.
 #[derive(
@@ -91,53 +80,10 @@ impl<U: IsUid> PartialEq for UidFactory<U> {
     }
 }
 
-/// Identifies a track.
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Derivative,
-    Display,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Hash,
-    Serialize,
-    Deserialize,
-)]
-#[derivative(Default)]
-#[serde(rename_all = "kebab-case")]
-pub struct TrackUid(#[derivative(Default(value = "1"))] pub usize);
-impl IsUid for TrackUid {
-    fn as_usize(&self) -> usize {
-        self.0
-    }
-}
-impl From<usize> for TrackUid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TrackUidFactory(UidFactory<TrackUid>);
-impl Default for TrackUidFactory {
-    fn default() -> Self {
-        Self(UidFactory::<TrackUid>::new(1))
-    }
-}
-impl TrackUidFactory {
-    delegate! {
-        to self.0 {
-            pub fn mint_next(&self) -> TrackUid;
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use derivative::Derivative;
     use std::collections::HashSet;
 
     #[derive(Copy, Clone, Debug, Derivative, Eq, PartialEq, Ord, PartialOrd, Hash)]

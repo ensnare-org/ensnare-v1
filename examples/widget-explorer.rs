@@ -19,6 +19,7 @@ use eframe::{
 use ensnare::{
     app_version,
     composition::{NoteSequencer, NoteSequencerBuilder},
+    orchestration::TrackTitle,
     prelude::*,
 };
 use ensnare::{
@@ -27,8 +28,8 @@ use ensnare::{
         DragSource, DropTarget, FrequencyDomainWidget, GridWidget, LegendWidget,
         NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
     },
-    rng::Rng,
     types::VisualizationQueue,
+    util::Rng,
 };
 use ensnare_toys::prelude::*;
 use std::sync::Arc;

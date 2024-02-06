@@ -166,6 +166,13 @@ impl From<ControlValue> for Seconds {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct ControlLink {
+    pub uid: Uid,
+    pub param: ControlIndex,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

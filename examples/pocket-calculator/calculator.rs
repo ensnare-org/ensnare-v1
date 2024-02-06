@@ -21,7 +21,7 @@ use ensnare::{
     cores::{Sampler, SamplerVoice},
     elements::VoicePerNoteStore,
     prelude::*,
-    utils::Paths,
+    util::Paths,
 };
 use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};

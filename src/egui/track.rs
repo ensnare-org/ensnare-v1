@@ -4,10 +4,12 @@ use super::{
     colors::ColorSchemeConverter,
     cursor::CursorWidget,
     signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
+    DragDropManager, DragSource, DropTarget, GridWidget,
 };
-use super::{DragDropManager, DragSource, DropTarget, GridWidget};
-use crate::prelude::*;
-use crate::{egui::unfiled::fill_remaining_ui_space, types::ColorScheme};
+use crate::{
+    egui::unfiled::fill_remaining_ui_space, orchestration::TrackTitle, prelude::*,
+    types::ColorScheme,
+};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Modifiers, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
@@ -16,8 +18,7 @@ use eframe::{
         TextShape, Vec2,
     },
 };
-use std::ops::Range;
-use std::{f32::consts::PI, sync::Arc};
+use std::{f32::consts::PI, ops::Range, sync::Arc};
 use strum_macros::Display;
 
 /// Call this once for the TrackTitle, and then provide it on each frame to

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, util::Paths};
 use anyhow::{anyhow, Result};
 use ensnare_proc_macros::Control;
 use hound::WavReader;
@@ -342,7 +342,7 @@ impl Sampler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::FileType;
+    use crate::util::FileType;
     use std::path::PathBuf;
 
     fn paths_with_test_data_dir() -> Paths {

@@ -11,6 +11,7 @@ use crate::{
         Trigger, WelshSynth,
     },
     prelude::*,
+    util::Paths,
 };
 use std::path::PathBuf;
 

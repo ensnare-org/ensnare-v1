@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use super::TrackUidFactory;
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use delegate::delegate;

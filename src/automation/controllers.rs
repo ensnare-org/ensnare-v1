@@ -4,7 +4,7 @@
 //! times. They aren't currently used in interactive song composition, but are
 //! useful for testing and for programmatic song composition.
 
-use crate::{prelude::*, rng::Rng};
+use crate::{prelude::*, util::Rng};
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};

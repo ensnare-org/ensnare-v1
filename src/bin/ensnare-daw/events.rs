@@ -8,7 +8,7 @@ use ensnare::{
         AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
         MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
     },
-    types::ChannelPair,
+    util::ChannelPair,
 };
 use std::sync::Arc;
 use thiserror::Error;

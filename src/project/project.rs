@@ -5,10 +5,10 @@
 use crate::{
     automation::Automator,
     composition::Composer,
-    orchestration::{MidiRouter, Orchestrator},
+    orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
-    selection_set::SelectionSet,
-    types::{ArrangementUid, AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
+    types::{AudioQueue, ColorScheme, VisualizationQueue},
+    util::SelectionSet,
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;

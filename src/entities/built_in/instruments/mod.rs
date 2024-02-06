@@ -2,7 +2,7 @@
 
 use crate::cores::LfoRouting;
 use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
-use crate::prelude::*;
+use crate::{prelude::*, util::Paths};
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
     InnerSerializable, IsEntity, Metadata,

@@ -6,10 +6,11 @@
 pub mod prelude {
     pub use super::{
         sequencers::{PatternSequencer, PatternSequencerBuilder},
-        Composer, Note, Pattern, PatternBuilder, PatternUid, PatternUidFactory,
+        ArrangementUid, Composer, Note, Pattern, PatternBuilder, PatternUid, PatternUidFactory,
     };
 }
 
+pub use arrangement::{ArrangementUid, ArrangementUidFactory};
 pub use composer::Composer;
 pub use note::Note;
 pub use pattern::{Pattern, PatternBuilder, PatternUid, PatternUidFactory};
@@ -18,6 +19,7 @@ pub use sequencers::{
     PatternSequencerBuilder,
 };
 
+mod arrangement;
 mod composer;
 mod note;
 mod pattern;

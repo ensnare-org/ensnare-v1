@@ -10,7 +10,7 @@ use ensnare::{
     midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
     services::{AudioSettings, MidiSettings},
     traits::{Displays, HasSettings},
-    types::ChannelPair,
+    util::ChannelPair,
 };
 use serde::{Deserialize, Serialize};
 use std::{

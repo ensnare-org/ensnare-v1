@@ -1,8 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::modulators::DcaWidget;
-use crate::egui::unfiled::{EnvelopeWidget, OscillatorWidget};
-use crate::uid::Uid;
+use crate::{
+    egui::unfiled::{EnvelopeWidget, OscillatorWidget},
+    prelude::*,
+};
 use eframe::egui::{CollapsingHeader, Slider, Widget};
 
 #[derive(Debug)]

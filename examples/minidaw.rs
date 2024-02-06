@@ -25,6 +25,7 @@ use ensnare::{
         AudioSettingsWidget, ControlBar, ControlBarAction, ControlBarWidget, DragDropManager,
         MidiSettingsWidget,
     },
+    orchestration::TrackTitle,
     prelude::*,
 };
 use serde::{Deserialize, Serialize};

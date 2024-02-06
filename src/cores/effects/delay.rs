@@ -229,7 +229,7 @@ impl Delay {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rng::Rng;
+    use crate::util::Rng;
     use float_cmp::approx_eq;
     use more_asserts::{assert_gt, assert_lt};
 

@@ -14,8 +14,8 @@ mod synth;
 pub mod tests {
     use super::*;
     use ensnare::{
-        rng::Rng,
         traits::{Generates, Ticks},
+        util::Rng,
     };
 
     // TODO: restore tests that test basic trait behavior, then figure out how

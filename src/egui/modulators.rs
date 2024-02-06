@@ -2,7 +2,6 @@
 
 use super::{DragDropManager, DropTarget};
 use crate::prelude::*;
-use crate::uid::Uid;
 use eframe::egui::{Slider, Widget};
 
 /// An egui widget for [Dca].

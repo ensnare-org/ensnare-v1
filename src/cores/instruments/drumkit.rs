@@ -5,6 +5,7 @@ use crate::{
     elements::VoicePerNoteStore,
     midi::{prelude::*, GeneralMidiPercussionProgram},
     prelude::*,
+    util::Paths,
 };
 use anyhow::anyhow;
 use ensnare_proc_macros::Control;

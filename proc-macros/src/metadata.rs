@@ -17,11 +17,11 @@ pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
     TokenStream::from(quote! {
         #[automatically_derived]
         impl #generics #crate_name::traits::HasMetadata for #name #ty_generics {
-            fn uid(&self) -> #crate_name::uid::Uid {
+            fn uid(&self) -> #crate_name::types::Uid {
                 self.uid
             }
 
-            fn set_uid(&mut self, uid: #crate_name::uid::Uid) {
+            fn set_uid(&mut self, uid: #crate_name::types::Uid) {
                 self.uid = uid;
             }
 
