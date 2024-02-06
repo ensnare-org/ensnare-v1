@@ -5,7 +5,6 @@ use ensnare::{
     entities_future::{BuiltInEntities, LfoController},
     prelude::*,
 };
-use ensnare_entity::factory::EntityFactory;
 use ensnare_toys::prelude::*;
 use std::path::PathBuf;
 

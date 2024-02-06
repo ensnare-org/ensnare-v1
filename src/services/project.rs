@@ -1,15 +1,14 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::project::Project;
+use crate::core::{
+    prelude::*,
+    types::{AudioQueue, VisualizationQueue},
+};
+use crate::prelude::*;
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
 use eframe::egui::Key;
-use ensnare_core::{
-    prelude::*,
-    types::{AudioQueue, VisualizationQueue},
-};
-use ensnare_entity::prelude::*;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},

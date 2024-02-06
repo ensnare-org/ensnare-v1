@@ -5,7 +5,7 @@
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{Project, ProjectTitle};
+    pub use super::{ArrangementViewMode, Project, ProjectTitle, ProjectViewState};
 }
 
 pub use project::{ArrangementViewMode, Project, ProjectTitle, ProjectViewState};

@@ -12,13 +12,10 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+anyhow = "1.0.79"
 delegate = "0.12"
 eframe = "0.25"
-ensnare-core = { path = "../core" }
-ensnare-cores = { path = "../cores" }
-ensnare-cores-egui = { path = "../cores-egui" }
-ensnare-egui-widgets = { path = "../egui-widgets" }
-ensnare-entity = { path = "../entity" }
+ensnare = { path = "../" }
 ensnare-proc-macros = { path = "../proc-macros" }
 serde = { version = "1.0.193", features = ["derive"] }
 typetag = "0.2.14"

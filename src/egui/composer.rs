@@ -1,23 +1,24 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::composition::Composer;
-use eframe::{
-    egui::{Frame, PointerButton, Sense, Widget},
-    emath::{Align2, RectTransform},
-    epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
-};
-use ensnare_core::{
+use crate::core::{
     composition::{Note, Pattern, PatternBuilder},
     midi::MidiNote,
     time::{MusicalTime, TimeSignature},
     traits::Configurable,
 };
-use ensnare_cores_egui::{
-    widgets::pattern::{CarouselAction, CarouselWidget},
-    ColorSchemeConverter,
+use crate::egui::unfiled::fill_remaining_ui_space;
+use eframe::{
+    egui::{Frame, PointerButton, Sense, Widget},
+    emath::{Align2, RectTransform},
+    epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
-use ensnare_egui_widgets::fill_remaining_ui_space;
 use std::ops::RangeInclusive;
+
+use super::{
+    colors::ColorSchemeConverter,
+    unfiled::{CarouselAction, CarouselWidget},
+};
 
 #[derive(Debug)]
 pub struct ComposerWidget<'a> {

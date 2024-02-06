@@ -3,13 +3,13 @@
 use super::midi_interface::{
     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
 };
-use crossbeam_channel::{Receiver, Sender};
-use derivative::Derivative;
-use ensnare_core::{
+use crate::core::{
     midi::{MidiChannel, MidiMessage},
     traits::HasSettings,
     types::ChannelPair,
 };
+use crossbeam_channel::{Receiver, Sender};
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{Arc, Mutex, RwLock},

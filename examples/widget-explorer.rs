@@ -16,24 +16,19 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
-use ensnare::egui::{
-    make_title_bar_galley, ComposerWidget, GridWidget, LegendWidget, TitleBarWidget,
-};
+use ensnare::{app_version, prelude::*};
 use ensnare::{
-    app_version,
-    prelude::*,
-    ui::{DragSource, DropTarget},
+    core::{
+        composition::sequencers::{NoteSequencer, NoteSequencerBuilder},
+        Rng,
+    },
+    egui::{
+        analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, DragDropManager,
+        DragSource, DropTarget, FrequencyDomainWidget, GridWidget, LegendWidget,
+        NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
+    },
+    types::VisualizationQueue,
 };
-use ensnare_core::{
-    composition::sequencers::{NoteSequencer, NoteSequencerBuilder},
-    modulators::Dca,
-    rng::Rng,
-    time::TimeRange,
-    types::{TrackTitle, VisualizationQueue},
-};
-use ensnare_cores_egui::NoteSequencerWidget;
-use ensnare_egui_widgets::{FrequencyDomainWidget, TimeDomainWidget};
-use ensnare_entity::traits::EntityBounds;
 use ensnare_toys::prelude::*;
 use std::sync::Arc;
 
@@ -477,7 +472,7 @@ impl WigglerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(ensnare_egui_widgets::wiggler());
+            ui.add(wiggler());
         }
     }
 }
@@ -583,7 +578,7 @@ impl FrequencyDomainSettings {
         if self.fft_calc_counter == 0 {
             if let Ok(queue) = self.visualization_queue.0.read() {
                 let (slice_1, slice_2) = queue.as_slices();
-                self.fft_buffer = ensnare_egui_widgets::analyze_spectrum(slice_1, slice_2).unwrap();
+                self.fft_buffer = analyze_spectrum(slice_1, slice_2).unwrap();
             }
         }
         self.fft_calc_counter += 1;

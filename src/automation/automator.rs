@@ -1,12 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{orchestration::EntityRepository, types::ControlLink};
-use anyhow::{anyhow, Result};
-use ensnare_core::{
+use crate::core::{
     generators::{PathUid, PathUidFactory, SignalPath},
     prelude::*,
 };
-use ensnare_entity::Uid;
+use crate::{orchestration::EntityRepository, types::ControlLink, uid::Uid};
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
 

@@ -17,9 +17,12 @@ use eframe::{
     epaint::{Color32, Stroke, Vec2},
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
-use ensnare::{elements::VoicePerNoteStore, prelude::*, utils::Paths};
-use ensnare_core::traits::Ticks;
-use ensnare_cores::{Sampler, SamplerVoice};
+use ensnare::{
+    cores::{Sampler, SamplerVoice},
+    elements::VoicePerNoteStore,
+    prelude::*,
+    utils::Paths,
+};
 use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};
@@ -925,6 +928,13 @@ impl Pattern {
         self.set_a(sound, step, a);
         self.set_b(sound, step, b);
     }
+
+    fn steps(&self) -> &[Step; 16] {
+        &self.steps
+    }
+    fn is_clear(&self) -> bool {
+        self.steps().iter().all(|n| n.is_clear())
+    }
 }
 
 #[derive(Copy, Clone, Debug, Derivative, PartialEq)]
@@ -969,6 +979,9 @@ impl Step {
     }
     fn toggle_sound(&mut self, sound: u8) {
         self.set_active(sound, !self.is_sound_active(sound));
+    }
+    fn is_clear(&self) -> bool {
+        self.sounds.iter().all(|s| !s)
     }
 }
 
@@ -1346,21 +1359,6 @@ mod tests {
     impl Engine {
         fn chain_active_pattern(&mut self) {
             self.chain_pattern(self.active_pattern());
-        }
-    }
-
-    impl Pattern {
-        fn steps(&self) -> &[Step; 16] {
-            &self.steps
-        }
-        fn is_clear(&self) -> bool {
-            self.steps().iter().all(|n| n.is_clear())
-        }
-    }
-
-    impl Step {
-        fn is_clear(&self) -> bool {
-            self.sounds.iter().all(|s| !s)
         }
     }
 

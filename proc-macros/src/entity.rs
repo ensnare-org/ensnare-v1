@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{core_crate_name, entity_crate_name};
+use crate::main_crate_name;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use std::{collections::HashSet, str::FromStr};
@@ -41,39 +41,38 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         let generics = &input.generics;
         let struct_name = &input.ident;
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
-        let core_crate = format_ident!("{}", core_crate_name());
-        let entity_crate = format_ident!("{}", entity_crate_name());
+        let crate_name = format_ident!("{}", main_crate_name());
 
         let parsed_attrs = parse_attrs(&input.attrs);
         let mut skip_inner = false;
         let top_level_trait_names = parsed_attrs.iter().fold(Vec::default(), |mut v, a| {
             match a {
                 Attributes::Configurable => {
-                    v.push(quote! {#core_crate::traits::Configurable});
+                    v.push(quote! {#crate_name::traits::Configurable});
                 }
                 Attributes::Controllable => {
-                    v.push(quote! {#core_crate::traits::Controllable});
+                    v.push(quote! {#crate_name::traits::Controllable});
                 }
                 Attributes::Controls => {
-                    v.push(quote! {#core_crate::traits::Controls});
+                    v.push(quote! {#crate_name::traits::Controls});
                 }
                 Attributes::Displays => {
-                    v.push(quote! {#entity_crate::traits::Displays});
+                    v.push(quote! {#crate_name::traits_future::Displays});
                 }
                 Attributes::GeneratesStereoSample => {
-                    v.push(quote! {#core_crate::traits::Generates<StereoSample>});
+                    v.push(quote! {#crate_name::traits::Generates<StereoSample>});
                 }
                 Attributes::HandlesMidi => {
-                    v.push(quote! {#core_crate::traits::HandlesMidi});
+                    v.push(quote! {#crate_name::traits::HandlesMidi});
                 }
                 Attributes::Serializable => {
-                    v.push(quote! {#core_crate::traits::Serializable});
+                    v.push(quote! {#crate_name::traits::Serializable});
                 }
                 Attributes::Ticks => {
-                    v.push(quote! {#core_crate::traits::Ticks});
+                    v.push(quote! {#crate_name::traits::Ticks});
                 }
                 Attributes::TransformsAudio => {
-                    v.push(quote! {#core_crate::traits::TransformsAudio});
+                    v.push(quote! {#crate_name::traits::TransformsAudio});
                 }
                 Attributes::SkipInner => {
                     skip_inner = true;
@@ -85,10 +84,10 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             #[typetag::serde]
-            impl #generics #entity_crate::traits::Entity for #struct_name #ty_generics {
+            impl #generics #crate_name::traits_future::Entity for #struct_name #ty_generics {
             }
             #[typetag::serde]
-            impl #generics #entity_crate::traits::EntityBounds for #struct_name #ty_generics {}
+            impl #generics #crate_name::traits_future::EntityBounds for #struct_name #ty_generics {}
             #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
         };
         quote

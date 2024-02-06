@@ -21,12 +21,11 @@ use eframe::{
 use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
-    egui::{TimelineIconStripAction, TimelineIconStripWidget},
+    egui::{
+        ControlBar, ControlBarAction, ControlBarWidget, DragDropManager, DragSource, DropTarget,
+        ObliqueStrategiesWidget, TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
+    },
     prelude::*,
-    DragDropManager,
-};
-use ensnare_egui_widgets::{
-    ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
 };
 use std::{
     path::PathBuf,

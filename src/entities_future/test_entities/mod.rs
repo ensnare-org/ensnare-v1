@@ -2,7 +2,7 @@
 
 //! Test instruments and effects.
 
-pub use controllers::TestController;
+pub use controllers::{TestController, TestControllerAlwaysSendsMidiMessage};
 pub use effects::{TestEffect, TestEffectNegatesInput};
 pub use factory::register_test_entities;
 pub use instruments::{TestAudioSource, TestInstrument, TestInstrumentCountsMidiMessages};

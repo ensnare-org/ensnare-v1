@@ -34,7 +34,7 @@ pub mod prelude {
     pub use super::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor};
 }
 
+pub use crate::core::midi::{u4, u7, MidiChannel, MidiEvent, MidiMessage, MidiNote};
 pub use crate::services::{
     MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
 };
-pub use ensnare_core::midi::{u4, u7, MidiChannel, MidiMessage, MidiNote};

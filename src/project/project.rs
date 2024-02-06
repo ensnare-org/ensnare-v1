@@ -2,19 +2,18 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::{
-    automation::Automator, composition::Composer, orchestration::MidiRouter,
-    orchestration::Orchestrator, types::ArrangementUid,
-};
-use anyhow::{anyhow, Result};
-use delegate::delegate;
-use derivative::Derivative;
-use ensnare_core::{
+use crate::core::{
     prelude::*,
     selection_set::SelectionSet,
     types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
-use ensnare_entity::prelude::*;
+use crate::{
+    automation::Automator, composition::Composer, orchestration::MidiRouter,
+    orchestration::Orchestrator, prelude::*, types::ArrangementUid,
+};
+use anyhow::{anyhow, Result};
+use delegate::delegate;
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
@@ -546,10 +545,10 @@ impl Serializable for Project {
 mod tests {
     use super::*;
     use crate::entities_future::{
-        TestAudioSource, TestEffectNegatesInput, TestInstrumentCountsMidiMessages,
+        TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
+        TestInstrument, TestInstrumentCountsMidiMessages,
     };
     use ensnare_proc_macros::{IsEntity, Metadata};
-    use ensnare_toys::{ToyControllerAlwaysSendsMidiMessage, ToyInstrument};
     use std::sync::Arc;
 
     trait TestEntity: EntityBounds {}
@@ -610,7 +609,7 @@ mod tests {
         let instrument_uid = project
             .add_entity(
                 track_uid,
-                Box::new(ToyInstrument::new_with(Uid::default())),
+                Box::new(TestInstrument::new_with(Uid::default())),
                 None,
             )
             .unwrap();
@@ -773,7 +772,7 @@ mod tests {
         let sender_uid = project
             .add_entity(
                 track_a_uid,
-                Box::new(ToyControllerAlwaysSendsMidiMessage::default()),
+                Box::new(TestControllerAlwaysSendsMidiMessage::default()),
                 None,
             )
             .unwrap();
@@ -813,7 +812,7 @@ mod tests {
 
     #[test]
     fn sends_send() {
-        const EXPECTED_LEVEL: ParameterType = ensnare_cores::TestAudioSource::MEDIUM;
+        const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
         let mut project = Project::default();
         let midi_track_uid = project.new_midi_track().unwrap();
         let aux_track_uid = project.new_aux_track().unwrap();
@@ -858,7 +857,7 @@ mod tests {
 
     #[test]
     fn mixer_works() {
-        const EXPECTED_LEVEL: ParameterType = ensnare_cores::TestAudioSource::MEDIUM;
+        const EXPECTED_LEVEL: ParameterType = TestAudioSource::MEDIUM;
         let mut project = Project::default();
         let track_1_uid = project.new_midi_track().unwrap();
         let track_2_uid = project.new_midi_track().unwrap();

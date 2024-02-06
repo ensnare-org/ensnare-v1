@@ -1,9 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::controllers::TestController;
-use super::effects::TestEffect;
-use super::instruments::{TestInstrument, TestInstrumentCountsMidiMessages};
-use ensnare_entity::{factory::EntityFactory, traits::EntityBounds};
+use super::{
+    controllers::TestController,
+    effects::TestEffect,
+    instruments::{TestInstrument, TestInstrumentCountsMidiMessages},
+};
+use crate::prelude::*;
 
 /// Registers all [EntityFactory]'s test entities. Test entities are generally
 /// simple, and provide instrumentation rather than useful audio functionality.

@@ -1,11 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::core::time::{MusicalTime, ViewRange};
 use eframe::{
     egui::{vec2, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, FontId},
 };
-use ensnare_core::time::{MusicalTime, ViewRange};
 
 /// An egui widget that draws a legend on the horizontal axis of the timeline
 /// view.

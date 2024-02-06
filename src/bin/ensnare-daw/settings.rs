@@ -9,9 +9,10 @@ use ensnare::{
     egui::{AudioSettingsWidget, MidiSettingsWidget},
     midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
     services::{AudioSettings, MidiSettings},
-    traits::{Displays, HasSettings},
+    traits::HasSettings,
+    traits_future::Displays,
+    types::ChannelPair,
 };
-use ensnare_core::types::ChannelPair;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,

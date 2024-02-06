@@ -6,12 +6,16 @@
 pub mod prelude {
     #[cfg(feature = "test")]
     pub use super::register_test_entities;
-    pub use super::BuiltInEntities;
+    pub use super::{
+        infra::{EntityFactory, EntityKey, EntityUidFactory},
+        BuiltInEntities,
+    };
 }
 
 pub use built_in::*;
 #[cfg(feature = "test")]
 pub use test_entities::*;
 
-pub mod built_in;
-pub mod test_entities;
+mod built_in;
+mod infra;
+mod test_entities;

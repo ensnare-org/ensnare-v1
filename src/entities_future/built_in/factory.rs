@@ -7,13 +7,13 @@ use super::{
     },
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
 };
-use ensnare_core::{
+use crate::core::{
     generators::{Envelope, Oscillator, Waveform},
     modulators::Dca,
     prelude::*,
     utils::Paths,
 };
-use ensnare_entity::{prelude::*, traits::EntityBounds};
+use crate::prelude::*;
 use std::path::PathBuf;
 
 pub struct BuiltInEntities {}
@@ -52,7 +52,7 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
             Box::new(Trigger::new_with(
                 uid,
-                ensnare_core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
+                crate::core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
                 ControlValue(1.0),
             ))
         });
@@ -121,9 +121,9 @@ impl BuiltInEntities {
                 Envelope::safe_default(),
                 Dca::default(),
                 Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
-                ensnare_cores::LfoRouting::FilterCutoff,
+                crate::cores::LfoRouting::FilterCutoff,
                 Normal::from(0.5),
-                ensnare_cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+                crate::cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
                 Normal::from(0.1),
                 Normal::from(0.8),
                 Envelope::safe_default(),
@@ -137,7 +137,6 @@ impl BuiltInEntities {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensnare_entity::traits::EntityBounds;
 
     // TODO: if we want to re-enable this, then we need to change
     // Sampler/Drumkit and anyone else to not load files when instantiated. This
@@ -166,7 +165,7 @@ mod tests {
         check_entity_factory(factory);
     }
 
-    // TODO: this is copied from ensnare_core::entities::factory
+    // TODO: this is copied from crate::core::entities::factory
     pub fn check_entity_factory(factory: EntityFactory<dyn EntityBounds>) {
         assert!(factory
             .new_entity(EntityKey::from(".9-#$%)@#)"), Uid::default())

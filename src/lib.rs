@@ -23,7 +23,7 @@ pub use orchestration::Orchestrator;
 pub mod elements {
     //! Building blocks that make up musical instruments and effects.
 
-    pub use ensnare_core::{
+    pub use crate::core::{
         generators::{Envelope, Oscillator, Waveform},
         instruments::Synthesizer,
         modulators::Dca,
@@ -49,11 +49,7 @@ pub mod entities {
     //! generates MIDI messages of its own, which makes it act like a
     //! controller.
     //!
-    pub use ensnare_core::uid::TrackUidFactory;
-    pub use ensnare_entity::{
-        factory::{EntityFactory, EntityKey, EntityStore},
-        EntityUidFactory,
-    };
+    pub use crate::core::uid::TrackUidFactory;
 
     // pub mod controllers {
     //     //! Controllers control other devices. An example of a controller is a
@@ -83,12 +79,6 @@ pub mod entities {
 
     /// The most commonly used imports.
     pub mod prelude {
-        pub use super::{
-            //     controllers::{Timer, Trigger},
-            EntityFactory,
-            EntityKey,
-            EntityStore,
-        };
         // pub use ensnare_entities::BuiltInEntities;
         // pub use ensnare_toys::ToyEntities;
     }
@@ -96,22 +86,20 @@ pub mod entities {
 
 pub mod traits {
     //! Common behaviors of system components.
-    pub use ensnare_core::traits::*;
-    pub use ensnare_entity::traits::*;
+    pub use crate::core::traits::*;
 
     /// The most commonly used imports.
     pub mod prelude {
         pub use super::{
-            Configurable, ControlEventsFn, Controllable, Controls, Displays, EntityBounds,
-            Generates, HandlesMidi, HasExtent, HasMetadata, HasSettings, MidiMessagesFn, Sequences,
-            Serializable, WorkEvent,
+            Configurable, ControlEventsFn, Controllable, Controls, Generates, HandlesMidi,
+            HasExtent, HasSettings, MidiMessagesFn, Sequences, Serializable, WorkEvent,
         };
     }
 }
 
 pub mod transport {
     //! Time management.
-    pub use ensnare_core::time::Transport;
+    pub use crate::core::time::Transport;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -121,13 +109,12 @@ pub mod transport {
 
 pub mod types {
     //! Common data types used throughout the system.
-    pub use crate::types_future::*;
-    pub use ensnare_core::{
+    pub use crate::core::{
         time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange},
         types::*,
         uid::{TrackUid, TrackUidFactory, UidFactory},
     };
-    pub use ensnare_entity::Uid;
+    pub use crate::{types_future::*, uid::Uid};
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -139,19 +126,9 @@ pub mod types {
     }
 }
 
-pub mod ui {
-    //! Components that provide and coordinate the user interface.
-    pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{DragDropManager, DragSource, DropTarget};
-    }
-}
-
 pub mod utils {
     //! Various helpers.
-    pub use ensnare_core::utils::Paths;
+    pub use crate::core::utils::Paths;
 
     /// The most commonly used imports.
     pub mod prelude {
@@ -162,20 +139,26 @@ pub mod utils {
 pub use all_entities::EnsnareEntities;
 pub use version::app_version;
 
-pub use ensnare_drag_drop::{DragDropManager, DragSource, DropTarget};
-
 mod all_entities;
 mod version;
 
 pub mod automation;
 pub mod composition;
+pub mod core;
+pub mod cores;
 pub mod egui;
 pub mod entities_future;
 pub mod midi;
 pub mod orchestration;
 pub mod project;
 pub mod services;
+pub mod traits_future;
 pub mod types_future;
+pub mod uid;
+
+pub mod time {
+    pub use crate::core::time::*;
+}
 
 //pub use project::{ProjectAction, ProjectWidget};
 // pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
@@ -184,11 +167,10 @@ pub mod types_future;
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
-        entities::prelude::*, entities_future::prelude::*, midi::prelude::*,
+        automation::prelude::*, composition::prelude::*, core::prelude::*, egui::prelude::*,
+        elements::prelude::*, entities::prelude::*, entities_future::prelude::*, midi::prelude::*,
         orchestration::prelude::*, project::prelude::*, services::prelude::*, traits::prelude::*,
-        transport::prelude::*, types::prelude::*, ui::prelude::*, utils::prelude::*,
+        traits_future::prelude::*, transport::prelude::*, types::prelude::*, utils::prelude::*,
         EnsnareEntities,
     };
-    pub use ensnare_cores_egui::prelude::*;
 }

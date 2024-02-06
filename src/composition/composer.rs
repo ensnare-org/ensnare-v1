@@ -1,12 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::types::{ArrangementUid, ArrangementUidFactory};
-use anyhow::{anyhow, Result};
-use ensnare_core::{
+use crate::core::{
     prelude::*,
     selection_set::SelectionSet,
     types::{ColorScheme, ModSerial},
 };
+use crate::types::{ArrangementUid, ArrangementUidFactory};
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use strum::EnumCount;

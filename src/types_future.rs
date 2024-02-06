@@ -2,10 +2,9 @@
 
 //! Common data types used throughout the system.
 
+use crate::prelude::*;
 use delegate::delegate;
 use derive_more::Display;
-use ensnare_core::prelude::*;
-use ensnare_entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]

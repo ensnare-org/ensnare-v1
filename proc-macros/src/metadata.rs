@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::entity_crate_name;
+use crate::main_crate_name;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -13,16 +13,15 @@ pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
     let generics = input.generics;
     let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
-    // let core_crate = format_ident!("{}", core_crate_name());
-    let entity_crate = format_ident!("{}", entity_crate_name());
+    let crate_name = format_ident!("{}", main_crate_name());
     TokenStream::from(quote! {
         #[automatically_derived]
-        impl #generics #entity_crate::traits::HasMetadata for #name #ty_generics {
-            fn uid(&self) -> #entity_crate::Uid {
+        impl #generics #crate_name::traits_future::HasMetadata for #name #ty_generics {
+            fn uid(&self) -> #crate_name::uid::Uid {
                 self.uid
             }
 
-            fn set_uid(&mut self, uid: #entity_crate::Uid) {
+            fn set_uid(&mut self, uid: #crate_name::uid::Uid) {
                 self.uid = uid;
             }
 

@@ -1,11 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use crate::core::time::{MusicalTime, ViewRange};
 use eframe::{
     egui::{vec2, Widget},
     emath::RectTransform,
     epaint::pos2,
 };
-use ensnare_core::time::{MusicalTime, ViewRange};
 
 /// An egui widget that draws a representation of the playback cursor.
 #[derive(Debug, Default)]

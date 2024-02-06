@@ -8,8 +8,7 @@
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
-use ensnare::prelude::*;
-use ensnare_core::{time::TimeRange, types::AudioQueue};
+use ensnare::{prelude::*, types::AudioQueue};
 use std::sync::{Arc, Mutex};
 
 mod calculator;

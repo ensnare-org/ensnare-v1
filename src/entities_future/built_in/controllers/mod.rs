@@ -1,8 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{generators::Oscillator, prelude::*};
-use ensnare_cores_egui::{ArpeggiatorWidget, LfoControllerWidget};
-use ensnare_entity::prelude::*;
+use crate::core::{generators::Oscillator, prelude::*};
+use crate::{
+    egui::{ArpeggiatorWidget, LfoControllerWidget},
+    prelude::*,
+};
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,
@@ -26,7 +28,7 @@ pub enum SequencerInput {
 )]
 pub struct Arpeggiator {
     uid: Uid,
-    inner: ensnare_cores::Arpeggiator,
+    inner: crate::cores::Arpeggiator,
 }
 impl Displays for Arpeggiator {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -37,7 +39,7 @@ impl Arpeggiator {
     pub fn new_with(uid: Uid, bpm: Tempo) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Arpeggiator::new_with(bpm, MidiChannel::default()),
+            inner: crate::cores::Arpeggiator::new_with(bpm, MidiChannel::default()),
         }
     }
 }
@@ -56,7 +58,7 @@ impl Arpeggiator {
 // )]
 // pub struct PatternSequencer {
 //     uid: Uid,
-//     inner: ensnare_cores::PatternSequencer,
+//     inner: crate::cores::PatternSequencer,
 //     #[serde(skip)]
 //     view_range: ViewRange,
 // }
@@ -111,7 +113,7 @@ mod obsolete {
     #[entity(Controllable, GeneratesStereoSample, Ticks, TransformsAudio)]
     pub struct LivePatternSequencer {
         uid: Uid,
-        inner: ensnare_cores::LivePatternSequencer,
+        inner: crate::cores::LivePatternSequencer,
         #[serde(skip)]
         input_channels: ChannelPair<SequencerInput>,
         #[serde(skip)]
@@ -144,7 +146,7 @@ mod obsolete {
         pub fn new_with(uid: Uid, composer: &Arc<RwLock<Composer>>) -> Self {
             Self {
                 uid,
-                inner: ensnare_cores::LivePatternSequencer::new_with(composer),
+                inner: crate::cores::LivePatternSequencer::new_with(composer),
                 view_range: Default::default(),
                 input_channels: Default::default(),
             }
@@ -208,7 +210,7 @@ mod obsolete {
     pub struct NoteSequencer {
         uid: Uid,
         #[serde(skip)]
-        inner: ensnare_cores::NoteSequencer,
+        inner: crate::cores::NoteSequencer,
         #[serde(skip)]
         view_range: ViewRange,
     }
@@ -218,7 +220,7 @@ mod obsolete {
         }
     }
     impl NoteSequencer {
-        pub fn new_with_inner(uid: Uid, inner: ensnare_cores::NoteSequencer) -> Self {
+        pub fn new_with_inner(uid: Uid, inner: crate::cores::NoteSequencer) -> Self {
             Self {
                 uid,
                 inner,
@@ -244,13 +246,13 @@ mod obsolete {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct LfoController {
     uid: Uid,
-    inner: ensnare_cores::LfoController,
+    inner: crate::cores::LfoController,
 }
 impl LfoController {
     pub fn new_with(uid: Uid, oscillator: Oscillator) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::LfoController::new_with(oscillator),
+            inner: crate::cores::LfoController::new_with(oscillator),
         }
     }
 }
@@ -284,7 +286,7 @@ impl Displays for LfoController {
 #[entity(GeneratesStereoSample, Ticks)]
 pub struct SignalPassthroughController {
     uid: Uid,
-    inner: ensnare_cores::controllers::SignalPassthroughController,
+    inner: crate::cores::controllers::SignalPassthroughController,
 }
 impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
@@ -292,21 +294,21 @@ impl SignalPassthroughController {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::controllers::SignalPassthroughController::new(),
+            inner: crate::cores::controllers::SignalPassthroughController::new(),
         }
     }
 
     pub fn new_amplitude_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::controllers::SignalPassthroughController::new_amplitude_passthrough_type(),
+            inner: crate::cores::controllers::SignalPassthroughController::new_amplitude_passthrough_type(),
         }
     }
 
     pub fn new_amplitude_inverted_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
+            inner: crate::cores::controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
         }
     }
 }
@@ -327,14 +329,14 @@ impl SignalPassthroughController {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
-    inner: ensnare_core::controllers::Timer,
+    inner: crate::core::controllers::Timer,
 }
 impl Displays for Timer {}
 impl Timer {
     pub fn new_with(uid: Uid, duration: MusicalTime) -> Self {
         Self {
             uid,
-            inner: ensnare_core::controllers::Timer::new_with(duration),
+            inner: crate::core::controllers::Timer::new_with(duration),
         }
     }
 }
@@ -355,18 +357,14 @@ impl Timer {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,
-    inner: ensnare_core::controllers::Trigger,
+    inner: crate::core::controllers::Trigger,
 }
 impl Displays for Trigger {}
 impl Trigger {
-    pub fn new_with(
-        uid: Uid,
-        timer: ensnare_core::controllers::Timer,
-        value: ControlValue,
-    ) -> Self {
+    pub fn new_with(uid: Uid, timer: crate::core::controllers::Timer, value: ControlValue) -> Self {
         Self {
             uid,
-            inner: ensnare_core::controllers::Trigger::new_with(timer, value),
+            inner: crate::core::controllers::Trigger::new_with(timer, value),
         }
     }
 }

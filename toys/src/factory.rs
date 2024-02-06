@@ -1,11 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare_core::{
-    generators::{Envelope, Oscillator},
-    modulators::Dca,
-};
-use ensnare_entity::{prelude::*, traits::EntityBounds};
+use ensnare::prelude::*;
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very
 /// simple but working instruments. They're helpful when you think you're going
@@ -20,7 +16,7 @@ impl ToyEntities {
         factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
             Box::new(ToySynth::new_with(
                 uid,
-                Oscillator::new_with_waveform(ensnare_core::generators::Waveform::Triangle),
+                Oscillator::new_with_waveform(Waveform::Triangle),
                 Envelope::safe_default(),
                 Dca::default(),
             ))

@@ -2,7 +2,7 @@
 
 //! A digital audio workstation.
 
-use ::ensnare::EnsnareEntities;
+use ::ensnare::{egui::DragDropManager, prelude::*};
 use anyhow::anyhow;
 use eframe::egui::{ViewportBuilder, Visuals};
 use eframe::{
@@ -10,8 +10,6 @@ use eframe::{
     epaint::{Color32, FontFamily, FontId},
 };
 use ensnare::Ensnare;
-use ensnare_drag_drop::DragDropManager;
-use ensnare_entity::factory::EntityFactory;
 use env_logger;
 
 mod ensnare;

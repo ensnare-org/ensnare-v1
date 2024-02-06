@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use eframe::egui::Slider;
-use ensnare_core::prelude::*;
-use ensnare_entity::prelude::*;
+use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
     IsEntity, Metadata,
@@ -25,7 +24,7 @@ use serde::{Deserialize, Serialize};
 pub struct ToyController {
     uid: Uid,
     #[serde(skip)]
-    inner: ensnare_cores::toys::ToyController,
+    inner: crate::cores::ToyController,
 }
 impl Generates<StereoSample> for ToyController {}
 impl Ticks for ToyController {}
@@ -45,48 +44,14 @@ impl ToyController {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyController::new_with(MidiChannel::default()),
-        }
-    }
-}
-
-#[derive(
-    Debug,
-    Default,
-    InnerConfigurable,
-    InnerControls,
-    InnerHandlesMidi,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
-    Serialize,
-    Deserialize,
-)]
-#[entity(
-    Controllable,
-    Displays,
-    GeneratesStereoSample,
-    SkipInner,
-    Ticks,
-    TransformsAudio
-)]
-pub struct ToyControllerAlwaysSendsMidiMessage {
-    uid: Uid,
-    #[serde(skip)]
-    inner: ensnare_cores::toys::ToyControllerAlwaysSendsMidiMessage,
-}
-impl ToyControllerAlwaysSendsMidiMessage {
-    pub fn new_with(uid: Uid) -> Self {
-        Self {
-            uid,
-            inner: ensnare_cores::toys::ToyControllerAlwaysSendsMidiMessage::default(),
+            inner: crate::cores::ToyController::new_with(MidiChannel::default()),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // use ensnare_cores::controllers::sequencers::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
+    // use crate::cores::controllers::sequencers::tests::{validate_sequences_midi_trait, validate_sequences_notes_trait};
 
     // #[test]
     // fn toy_passes_sequences_trait_validation() {

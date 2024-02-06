@@ -13,7 +13,6 @@ use crate::{
     prelude::*,
     utils::Paths,
 };
-use ensnare_entity::{factory::EntityFactory, traits::EntityBounds};
 use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.
@@ -121,7 +120,7 @@ impl EnsnareEntities {
             factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
                 Box::new(Trigger::new_with(
                     uid,
-                    ensnare_core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
+                    crate::core::controllers::Timer::new_with(MusicalTime::DURATION_QUARTER),
                     ControlValue(1.0),
                 ))
             });

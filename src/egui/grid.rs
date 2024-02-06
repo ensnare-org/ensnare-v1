@@ -1,12 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::legend::LegendWidget;
+use crate::core::time::ViewRange;
 use eframe::{
     egui::{vec2, Widget},
     emath::RectTransform,
     epaint::{pos2, RectShape, Shape},
 };
-use ensnare_core::time::ViewRange;
 
 /// An egui widget that draws a grid in the timeline view.
 #[derive(Debug, Default)]

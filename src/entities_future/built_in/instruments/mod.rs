@@ -1,14 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
+use crate::core::{
     generators::{Envelope, Oscillator, Waveform},
     modulators::Dca,
     prelude::*,
     utils::Paths,
 };
-use ensnare_cores::LfoRouting;
-use ensnare_cores_egui::instruments::{FmSynthWidget, SamplerWidget, WelshWidget};
-use ensnare_entity::prelude::*;
+use crate::cores::LfoRouting;
+use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
+use crate::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
     InnerSerializable, IsEntity, Metadata,
@@ -32,7 +32,7 @@ use std::path::PathBuf;
 
 pub struct Drumkit {
     uid: Uid,
-    inner: ensnare_cores::Drumkit,
+    inner: crate::cores::Drumkit,
 }
 impl Displays for Drumkit {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -43,7 +43,7 @@ impl Drumkit {
     pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Drumkit::new_with(name, paths),
+            inner: crate::cores::Drumkit::new_with(name, paths),
         }
     }
 }
@@ -63,7 +63,7 @@ impl Drumkit {
 #[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
-    inner: ensnare_cores::FmSynth,
+    inner: crate::cores::FmSynth,
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -84,7 +84,7 @@ impl FmSynth {
     ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::FmSynth::new_with(
+            inner: crate::cores::FmSynth::new_with(
                 carrier_oscillator,
                 carrier_envelope,
                 modulator_oscillator,
@@ -113,7 +113,7 @@ impl FmSynth {
 #[entity(Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
-    inner: ensnare_cores::Sampler,
+    inner: crate::cores::Sampler,
 }
 impl Displays for Sampler {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -124,7 +124,7 @@ impl Sampler {
     pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::Sampler::new_with(path, root),
+            inner: crate::cores::Sampler::new_with(path, root),
         }
     }
 
@@ -148,7 +148,7 @@ impl Sampler {
 #[entity(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
-    inner: ensnare_cores::WelshSynth,
+    inner: crate::cores::WelshSynth,
 }
 impl Displays for WelshSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -167,14 +167,14 @@ impl WelshSynth {
         lfo: Oscillator,
         lfo_routing: LfoRouting,
         lfo_depth: Normal,
-        filter: ensnare_cores::BiQuadFilterLowPass24db,
+        filter: crate::cores::BiQuadFilterLowPass24db,
         filter_cutoff_start: Normal,
         filter_cutoff_end: Normal,
         filter_envelope: Envelope,
     ) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::WelshSynth::new_with(
+            inner: crate::cores::WelshSynth::new_with(
                 oscillator_1,
                 oscillator_2,
                 oscillator_2_sync,
@@ -202,9 +202,9 @@ impl WelshSynth {
             Envelope::safe_default(),
             Dca::default(),
             Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
-            ensnare_cores::LfoRouting::FilterCutoff,
+            crate::cores::LfoRouting::FilterCutoff,
             Normal::from(0.5),
-            ensnare_cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+            crate::cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
             Normal::from(0.1),
             Normal::from(0.8),
             Envelope::safe_default(),

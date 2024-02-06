@@ -140,37 +140,12 @@ pub fn derive_inner_transforms_audio(input: TokenStream) -> TokenStream {
     inner::impl_inner_transforms_audio_derive(input)
 }
 
-// Some of the code generated in these macros uses the ensnare-core crate, but
+// Some of the code generated in these macros uses the ensnare crate, but
 // that crate also uses this proc-macro lib. So we need to correct the reference
 // to sometimes be just `crate`.
-fn core_crate_name() -> String {
-    const CRATE_NAME: &'static str = "ensnare-core"; // if you named it with dashes -- my-crate
-    const CRATE_NAME_FOR_USE: &'static str = "ensnare_core"; // substitute underscores for dashes -- my_crate
-
-    if let Ok(found_crate) = crate_name(CRATE_NAME) {
-        match found_crate {
-            proc_macro_crate::FoundCrate::Itself => {
-                // We aren't importing the crate by name, so we must be it.
-                quote!(crate).to_string()
-            }
-            proc_macro_crate::FoundCrate::Name(_) => {
-                // We're importing the crate by name, which means we aren't the
-                // crate.
-                let ident = format_ident!("{}", CRATE_NAME_FOR_USE);
-                quote!(#ident).to_string()
-            }
-        }
-    } else {
-        panic!("forgot to import {}", CRATE_NAME);
-    }
-}
-
-// Some of the code generated in these macros uses the ensnare-entity crate, but
-// that crate also uses this proc-macro lib. So we need to correct the reference
-// to sometimes be just `crate`.
-fn entity_crate_name() -> String {
-    const CRATE_NAME: &'static str = "ensnare-entity"; // if you named it with dashes -- my-crate
-    const CRATE_NAME_FOR_USE: &'static str = "ensnare_entity"; // substitute underscores for dashes -- my_crate
+fn main_crate_name() -> String {
+    const CRATE_NAME: &'static str = "ensnare"; // if you named it with dashes -- my-crate
+    const CRATE_NAME_FOR_USE: &'static str = "ensnare"; // substitute underscores for dashes -- my_crate
 
     if let Ok(found_crate) = crate_name(CRATE_NAME) {
         match found_crate {

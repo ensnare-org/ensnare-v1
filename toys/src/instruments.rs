@@ -1,13 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::{
-    generators::{Envelope, Oscillator},
-    modulators::Dca,
+use ensnare::{
+    egui::{DcaWidget, EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
-use ensnare_cores_egui::modulators::DcaWidget;
-use ensnare_egui_widgets::{EnvelopeWidget, OscillatorWidget};
-use ensnare_entity::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsEntity, Metadata,
@@ -30,7 +26,7 @@ use serde::{Deserialize, Serialize};
 #[entity(Controls, TransformsAudio)]
 pub struct ToyInstrument {
     uid: Uid,
-    inner: ensnare_cores::toys::ToyInstrument,
+    inner: crate::cores::ToyInstrument,
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -42,7 +38,7 @@ impl ToyInstrument {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyInstrument::new(),
+            inner: crate::cores::ToyInstrument::new(),
         }
     }
 }
@@ -61,7 +57,7 @@ impl ToyInstrument {
 #[entity(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct ToySynth {
     uid: Uid,
-    inner: ensnare_cores::toys::ToySynth,
+    inner: crate::cores::ToySynth,
 }
 impl ToySynth {
     fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -82,7 +78,7 @@ impl ToySynth {
     pub fn new_with(uid: Uid, oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToySynth::new_with(oscillator, envelope, dca),
+            inner: crate::cores::ToySynth::new_with(oscillator, envelope, dca),
         }
     }
 }

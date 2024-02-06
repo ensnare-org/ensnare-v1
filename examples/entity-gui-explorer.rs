@@ -11,8 +11,7 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
-use ensnare::{app_version, entities::EntityUidFactory, prelude::*};
-use ensnare_entity::traits::EntityBounds; // TODO clean up
+use ensnare::{app_version, egui::DragDropManager, prelude::*};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};

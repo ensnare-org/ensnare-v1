@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::core::{prelude::*, types::AudioQueue};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,
@@ -8,7 +9,6 @@ use cpal::{
 use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
-use ensnare_core::{prelude::*, types::AudioQueue};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,

@@ -1,8 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare_core::prelude::*;
-use ensnare_egui_widgets::DragNormalWidget;
-use ensnare_entity::prelude::*;
+use ensnare::{egui::DragNormalWidget, prelude::*};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
@@ -24,7 +22,7 @@ use serde::{Deserialize, Serialize};
 pub struct ToyEffect {
     uid: Uid,
     #[serde(skip)]
-    inner: ensnare_cores::toys::ToyEffect,
+    inner: crate::cores::ToyEffect,
 }
 impl Displays for ToyEffect {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -38,7 +36,7 @@ impl ToyEffect {
     pub fn new_with(uid: Uid, magnitude: Normal) -> Self {
         Self {
             uid,
-            inner: ensnare_cores::toys::ToyEffect::new_with(magnitude),
+            inner: crate::cores::ToyEffect::new_with(magnitude),
         }
     }
 }
