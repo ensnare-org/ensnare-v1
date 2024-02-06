@@ -36,7 +36,9 @@ pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
 
         #[automatically_derived]
         impl #name #ty_generics {
+            /// A human-readable identifier for this entity type.
             pub const ENTITY_NAME: &'static str = stringify!(#name);
+            /// A unique, long-lived string that represents this entity type.
             pub const ENTITY_KEY: &'static str = #kebab_case_name;
         }
     })

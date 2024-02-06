@@ -15,6 +15,7 @@ pub use version::app_version;
 pub mod automation;
 pub mod composition;
 pub mod cores;
+#[cfg(feature = "egui")]
 pub mod egui;
 pub mod elements;
 pub mod entities;
@@ -32,8 +33,10 @@ mod version;
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
+    #[cfg(feature = "egui")]
+    pub use super::egui::prelude::*;
     pub use super::{
-        automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
+        automation::prelude::*, composition::prelude::*, elements::prelude::*,
         entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
         services::prelude::*, traits::prelude::*, types::prelude::*, util::prelude::*,
         EnsnareEntities,

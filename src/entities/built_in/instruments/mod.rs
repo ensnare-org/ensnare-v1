@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::cores::{effects, instruments};
-use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
 use crate::{prelude::*, util::Paths};
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
@@ -28,11 +27,6 @@ pub struct Drumkit {
     uid: Uid,
     inner: instruments::Drumkit,
 }
-impl Displays for Drumkit {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label("Coming soon!")
-    }
-}
 impl Drumkit {
     pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
@@ -58,11 +52,6 @@ impl Drumkit {
 pub struct FmSynth {
     uid: Uid,
     inner: instruments::FmSynth,
-}
-impl Displays for FmSynth {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(FmSynthWidget::widget(&mut self.inner, self.uid))
-    }
 }
 impl FmSynth {
     pub fn new_with(
@@ -109,11 +98,6 @@ pub struct Sampler {
     uid: Uid,
     inner: instruments::Sampler,
 }
-impl Displays for Sampler {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(SamplerWidget::widget(&mut self.inner))
-    }
-}
 impl Sampler {
     pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
@@ -143,11 +127,6 @@ impl Sampler {
 pub struct WelshSynth {
     uid: Uid,
     inner: instruments::WelshSynth,
-}
-impl Displays for WelshSynth {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(WelshWidget::widget(self.uid, &mut self.inner))
-    }
 }
 impl WelshSynth {
     pub fn new_with(
@@ -203,5 +182,35 @@ impl WelshSynth {
             Normal::from(0.8),
             Envelope::safe_default(),
         )
+    }
+}
+
+#[cfg(feature = "egui")]
+mod egui {
+    use super::*;
+    use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
+
+    impl Displays for Drumkit {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.label("Coming soon!")
+        }
+    }
+
+    impl Displays for FmSynth {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.add(FmSynthWidget::widget(&mut self.inner, self.uid))
+        }
+    }
+
+    impl Displays for Sampler {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.add(SamplerWidget::widget(&mut self.inner))
+        }
+    }
+
+    impl Displays for WelshSynth {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.add(WelshWidget::widget(self.uid, &mut self.inner))
+        }
     }
 }

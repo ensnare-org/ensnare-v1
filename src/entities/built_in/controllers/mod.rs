@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    cores::controllers,
-    egui::{ArpeggiatorWidget, LfoControllerWidget},
-    prelude::*,
-};
+use crate::{cores::controllers, prelude::*};
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,
@@ -27,11 +23,6 @@ use serde::{Deserialize, Serialize};
 pub struct Arpeggiator {
     uid: Uid,
     inner: controllers::Arpeggiator,
-}
-impl Displays for Arpeggiator {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(ArpeggiatorWidget::widget(&mut self.inner))
-    }
 }
 impl Arpeggiator {
     pub fn new_with(uid: Uid) -> Self {
@@ -68,18 +59,6 @@ impl LfoController {
         }
     }
 }
-impl Displays for LfoController {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(LfoControllerWidget::widget(
-            &mut self.inner.oscillator.waveform,
-            &mut self.inner.oscillator.frequency,
-        ));
-        if response.changed() {
-            self.inner.notify_change_oscillator();
-        }
-        response
-    }
-}
 
 #[derive(
     Control,
@@ -100,7 +79,6 @@ pub struct SignalPassthroughController {
     uid: Uid,
     inner: controllers::SignalPassthroughController,
 }
-impl Displays for SignalPassthroughController {}
 impl SignalPassthroughController {
     #[allow(unused_variables)]
     pub fn new_with(uid: Uid) -> Self {
@@ -144,7 +122,6 @@ pub struct Timer {
     uid: Uid,
     inner: crate::automation::Timer,
 }
-impl Displays for Timer {}
 impl Timer {
     pub fn new_with(uid: Uid, duration: MusicalTime) -> Self {
         Self {
@@ -172,7 +149,6 @@ pub struct Trigger {
     uid: Uid,
     inner: crate::automation::Trigger,
 }
-impl Displays for Trigger {}
 impl Trigger {
     pub fn new_with(uid: Uid, timer: crate::automation::Timer, value: ControlValue) -> Self {
         Self {
@@ -180,4 +156,31 @@ impl Trigger {
             inner: crate::automation::Trigger::new_with(timer, value),
         }
     }
+}
+
+#[cfg(feature = "egui")]
+mod egui {
+    use super::*;
+    use crate::egui::{ArpeggiatorWidget, LfoControllerWidget};
+
+    impl Displays for Arpeggiator {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            ui.add(ArpeggiatorWidget::widget(&mut self.inner))
+        }
+    }
+    impl Displays for LfoController {
+        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+            let response = ui.add(LfoControllerWidget::widget(
+                &mut self.inner.oscillator.waveform,
+                &mut self.inner.oscillator.frequency,
+            ));
+            if response.changed() {
+                self.inner.notify_change_oscillator();
+            }
+            response
+        }
+    }
+    impl Displays for SignalPassthroughController {}
+    impl Displays for Timer {}
+    impl Displays for Trigger {}
 }

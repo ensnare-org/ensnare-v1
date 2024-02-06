@@ -5,12 +5,14 @@
 
 /// Quick import of all important traits.
 pub mod prelude {
+    #[cfg(feature = "egui")]
+    pub use super::Displays;
     pub use super::{
         CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
-        Controllable, Controls, ControlsAsProxy, Displays, EntityBounds, Generates,
-        GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
-        IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
-        Ticks, TransformsAudio, WorkEvent,
+        Controllable, Controls, ControlsAsProxy, EntityBounds, Generates, GeneratesEnvelope,
+        HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice, IsVoice,
+        MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices, Ticks,
+        TransformsAudio, WorkEvent,
     };
 }
 
@@ -452,6 +454,7 @@ pub trait Entity:
     + Sync
 {
 }
+
 #[typetag::serde(tag = "type")]
 pub trait EntityBounds: Entity {}
 
@@ -472,6 +475,7 @@ pub trait HasMetadata {
     fn key(&self) -> &'static str;
 }
 
+#[cfg(feature = "egui")]
 /// Something that can be called during egui rendering to display a view of
 /// itself.
 //
@@ -487,6 +491,8 @@ pub trait Displays {
     #[allow(unused_variables)]
     fn set_view_range(&mut self, view_range: &ViewRange) {}
 }
+#[cfg(not(feature = "egui"))]
+pub trait Displays {}
 
 #[cfg(test)]
 pub(crate) mod tests {
