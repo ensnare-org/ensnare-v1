@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Various long-running services that are useful to a music application.
+//! Long-running services that are useful to a music application.
 
 /// The most commonly used imports.
 pub mod prelude {

@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Combines a composition with musical instruments and effects to produce a
-//! rendition of the composition.
+//! Renders compositions with musical instruments and effects.
 
 /// The most commonly used imports.
 pub mod prelude {

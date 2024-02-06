@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Elements are building blocks for other parts of the system, especially
-//! musical instruments and effects.
+//! Building blocks for other parts of the system, especially musical
+//! instruments and effects.
 
 /// The most commonly used imports.
 pub mod prelude {

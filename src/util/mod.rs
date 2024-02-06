@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Various useful things that don't have anything to do with digital audio.
+//! Useful things that don't have anything to do with digital audio.
 
 pub mod prelude {
     pub use super::{ChannelPair, ModSerial};

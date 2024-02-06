@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! egui widgets for system components.
+//! Widgets that work with the [egui](https://www.egui.rs/) GUI library.
 
 /// The most commonly used imports.
 pub mod prelude {
