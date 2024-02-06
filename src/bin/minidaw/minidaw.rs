@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! Main struct for Ensnare DAW application.
+//! Main struct for MiniDaw application.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crate::{
-    events::{EnsnareEvent, EnsnareEventAggregationService, EnsnareInput},
+    events::{MiniDawEvent, MiniDawEventAggregationService, MiniDawInput},
     menu::{MenuBar, MenuBarAction},
     settings::Settings,
 };
@@ -42,17 +42,17 @@ pub(super) struct RenderingState {
 }
 
 #[derive(Debug, Default)]
-pub(super) struct EnsnareEphemeral {
+pub(super) struct MiniDawEphemeral {
     pub(super) is_project_performing: bool,
 }
 
-pub(super) struct Ensnare {
+pub(super) struct MiniDaw {
     // factory creates new entities.
     factory: Arc<EntityFactory<dyn EntityBounds>>,
 
     // Takes a number of individual services' event channels and aggregates them
     // into a single stream that the app can consume.
-    aggregator: EnsnareEventAggregationService,
+    aggregator: MiniDawEventAggregationService,
 
     // Channels for sending commands to services.
     #[allow(dead_code)]
@@ -76,14 +76,14 @@ pub(super) struct Ensnare {
 
     rendering_state: RenderingState,
 
-    e: EnsnareEphemeral,
+    e: MiniDawEphemeral,
 
     // Copy of keyboard modifier state at top of frame
     modifiers: Modifiers,
 }
-impl Ensnare {
+impl MiniDaw {
     /// The user-visible name of the application.
-    pub(super) const NAME: &'static str = "Ensnare";
+    pub(super) const NAME: &'static str = "MiniDaw";
 
     pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         let factory = Arc::new(factory);
@@ -99,7 +99,7 @@ impl Ensnare {
             audio_sender: audio_service.sender().clone(),
             midi_sender: midi_service.input_channels.sender.clone(),
             project_sender: project_service.sender().clone(),
-            aggregator: EnsnareEventAggregationService::new_with(
+            aggregator: MiniDawEventAggregationService::new_with(
                 audio_service,
                 midi_service,
                 project_service,
@@ -152,6 +152,14 @@ impl Ensnare {
         });
     }
 
+    fn set_window_title(ctx: &eframe::egui::Context, title: &ProjectTitle) {
+        ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(format!(
+            "{} - {}",
+            Self::NAME,
+            title.as_str()
+        )));
+    }
+
     /// Processes all the aggregated events.
     fn handle_events(&mut self, ctx: &eframe::egui::Context) {
         // As long the channel has messages in it, we'll keep handling them. We
@@ -159,7 +167,7 @@ impl Ensnare {
         // blocking the UI.
         while let Ok(event) = self.aggregator.receiver().try_recv() {
             match event {
-                EnsnareEvent::MidiPanelEvent(event) => {
+                MiniDawEvent::MidiPanelEvent(event) => {
                     match event {
                         MidiServiceEvent::Midi(..) => {
                             // This was already forwarded to Orchestrator. Here we update the UI.
@@ -182,7 +190,7 @@ impl Ensnare {
                         }
                     }
                 }
-                EnsnareEvent::AudioServiceEvent(event) => match event {
+                MiniDawEvent::AudioServiceEvent(event) => match event {
                     AudioServiceEvent::Reset(_sample_rate, _channel_count, _queue) => {
                         // Already forwarded by aggregator to project.
                         self.update_orchestrator_audio_interface_config();
@@ -194,9 +202,9 @@ impl Ensnare {
                         eprintln!("Warning: audio buffer underrun")
                     }
                 },
-                EnsnareEvent::ProjectServiceEvent(event) => match event {
+                MiniDawEvent::ProjectServiceEvent(event) => match event {
                     ProjectServiceEvent::TitleChanged(title) => {
-                        ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(title));
+                        Self::set_window_title(ctx, &title);
                     }
                     ProjectServiceEvent::IsPerformingChanged(is_performing) => {
                         self.e.is_project_performing = is_performing;
@@ -211,9 +219,7 @@ impl Ensnare {
                             // TODO: this duplicates TitleChanged. Should
                             // the service be in charge of sending that
                             // event after Loaded? Whose responsibility is it?
-                            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(
-                                title.to_string(),
-                            ));
+                            Self::set_window_title(ctx, &title);
 
                             if let Some(load_path) = project.load_path() {
                                 self.toasts.add(Toast {
@@ -279,8 +285,8 @@ impl Ensnare {
                         panic!("ProjectServiceEvent::Midi should be handled by the aggregation service and never forwarded")
                     }
                 },
-                EnsnareEvent::Quit => {
-                    eprintln!("EnsnareEvent::Quit");
+                MiniDawEvent::Quit => {
+                    eprintln!("MiniDawEvent::Quit");
                 }
             }
         }
@@ -513,14 +519,14 @@ impl Ensnare {
             MenuBarAction::ProjectNew => self.send_to_project(ProjectServiceInput::ProjectNew),
             MenuBarAction::ProjectOpen => {
                 self.send_to_project(ProjectServiceInput::ProjectLoad(PathBuf::from(
-                    "ensnare-project.json",
+                    "minidaw-project.json",
                 )));
             }
             MenuBarAction::ProjectSave => {
                 self.send_to_project(ProjectServiceInput::ProjectSave(None))
             }
             MenuBarAction::ProjectExportToWav => self.send_to_project(
-                ProjectServiceInput::ProjectExportToWav(Some(PathBuf::from("ensnare-project.wav"))),
+                ProjectServiceInput::ProjectExportToWav(Some(PathBuf::from("minidaw-project.wav"))),
             ),
             MenuBarAction::TrackNewMidi => {
                 self.send_to_project(ProjectServiceInput::TrackNewMidi);
@@ -605,7 +611,7 @@ impl Ensnare {
         ViewRange(extent.0.start..extent.0.end + MusicalTime::new_with_bars(time_signature, 1))
     }
 }
-impl App for Ensnare {
+impl App for MiniDaw {
     fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
         self.handle_events(ctx);
         self.handle_input_events(ctx);
@@ -643,6 +649,6 @@ impl App for Ensnare {
         if !self.settings.has_been_saved() {
             let _ = self.settings.save();
         }
-        let _ = self.aggregator.sender().send(EnsnareInput::Quit);
+        let _ = self.aggregator.sender().send(MiniDawInput::Quit);
     }
 }

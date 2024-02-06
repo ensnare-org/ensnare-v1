@@ -2,23 +2,23 @@
 
 //! A digital audio workstation.
 
-use ::ensnare::{egui::DragDropManager, prelude::*};
 use anyhow::anyhow;
 use eframe::egui::{ViewportBuilder, Visuals};
 use eframe::{
     egui::{Context, FontData, FontDefinitions, TextStyle},
     epaint::{Color32, FontFamily, FontId},
 };
-use ensnare::Ensnare;
+use ensnare::{egui::DragDropManager, prelude::*};
 use env_logger;
+use minidaw::MiniDaw;
 
-mod ensnare;
 mod events;
 mod menu;
+mod minidaw;
 mod settings;
 
-struct EnsnareVisuals {}
-impl EnsnareVisuals {
+struct MiniDawVisuals {}
+impl MiniDawVisuals {
     /// internal-only key for regular font.
     const FONT_REGULAR: &'static str = "font-regular";
     /// internal-only key for bold font.
@@ -30,19 +30,19 @@ impl EnsnareVisuals {
 fn initialize_fonts(ctx: &Context) {
     let mut fonts = FontDefinitions::default();
     fonts.font_data.insert(
-        EnsnareVisuals::FONT_REGULAR.to_owned(),
+        MiniDawVisuals::FONT_REGULAR.to_owned(),
         FontData::from_static(include_bytes!(
             "../../../res/fonts/jost/static/Jost-Regular.ttf"
         )),
     );
     fonts.font_data.insert(
-        EnsnareVisuals::FONT_BOLD.to_owned(),
+        MiniDawVisuals::FONT_BOLD.to_owned(),
         FontData::from_static(include_bytes!(
             "../../../res/fonts/jost/static/Jost-Bold.ttf"
         )),
     );
     fonts.font_data.insert(
-        EnsnareVisuals::FONT_MONO.to_owned(),
+        MiniDawVisuals::FONT_MONO.to_owned(),
         FontData::from_static(include_bytes!(
             "../../../res/fonts/roboto-mono/RobotoMono-VariableFont_wght.ttf"
         )),
@@ -53,17 +53,17 @@ fn initialize_fonts(ctx: &Context) {
         .families
         .get_mut(&FontFamily::Proportional)
         .unwrap()
-        .insert(0, EnsnareVisuals::FONT_REGULAR.to_owned());
+        .insert(0, MiniDawVisuals::FONT_REGULAR.to_owned());
     fonts
         .families
         .get_mut(&FontFamily::Monospace)
         .unwrap()
-        .insert(0, EnsnareVisuals::FONT_MONO.to_owned());
+        .insert(0, MiniDawVisuals::FONT_MONO.to_owned());
     fonts
         .families
-        .entry(FontFamily::Name(EnsnareVisuals::FONT_BOLD.into()))
+        .entry(FontFamily::Name(MiniDawVisuals::FONT_BOLD.into()))
         .or_default()
-        .insert(0, EnsnareVisuals::FONT_BOLD.to_owned());
+        .insert(0, MiniDawVisuals::FONT_BOLD.to_owned());
 
     ctx.set_fonts(fonts);
 }
@@ -112,27 +112,27 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_title(Ensnare::NAME)
+            .with_title(MiniDaw::NAME)
             .with_inner_size(eframe::epaint::vec2(1280.0, 720.0))
             .to_owned(),
         ..Default::default()
     };
 
-    let factory = EnsnareEntities::register(EntityFactory::default()).finalize();
+    let factory = MiniDawEntities::register(EntityFactory::default()).finalize();
 
     if DragDropManager::initialize(DragDropManager::default()).is_err() {
         panic!("Couldn't set DragDropManager once_cell");
     }
 
     if let Err(e) = eframe::run_native(
-        Ensnare::NAME,
+        MiniDaw::NAME,
         options,
         Box::new(|cc| {
             initialize_fonts(&cc.egui_ctx);
             initialize_visuals(&cc.egui_ctx);
             initialize_style(&cc.egui_ctx);
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Box::new(Ensnare::new(cc, factory))
+            Box::new(MiniDaw::new(cc, factory))
         }),
     ) {
         return Err(anyhow!("eframe::run_native(): {:?}", e));

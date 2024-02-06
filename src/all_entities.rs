@@ -16,8 +16,8 @@ use crate::{
 use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.
-pub struct EnsnareEntities {}
-impl EnsnareEntities {
+pub struct MiniDawEntities {}
+impl MiniDawEntities {
     /// Registers all the entities in this collection.
     pub fn register(
         mut factory: EntityFactory<dyn EntityBounds>,

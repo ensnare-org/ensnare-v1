@@ -67,16 +67,16 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ensnare-${{ matrix.target }}
+          name: ensnare-minidaw-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/ensnare-daw*
+            target/${{ matrix.target }}/release/minidaw*
       - name: Upload binaries
         uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: ensnare-daw
+          bin: minidaw
           include: README.md,LICENSE.md,assets,projects
           leading_dir: true
-          archive: ensnare-$tag-$target
+          archive: ensnare-minidaw-$tag-$target
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload installer
         uses: softprops/action-gh-release@v1
@@ -121,16 +121,16 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ensnare-${{ matrix.target }}
+          name: ensnare-minidaw-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/ensnare-daw*
+            target/${{ matrix.target }}/release/minidaw*
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: ensnare-daw
+          bin: minidaw
           include: README.md,LICENSE.md,assets,projects
           target: ${{ matrix.target }}
           leading_dir: true
-          archive: ensnare-$tag-$target
+          archive: ensnare-minidaw-$tag-$target
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload installer
         uses: softprops/action-gh-release@v1

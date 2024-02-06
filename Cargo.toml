@@ -11,7 +11,7 @@ version = "0.0.3"
 [package]
 name = "ensnare"
 description = "Audio tools"
-default-run = "ensnare-daw"
+default-run = "minidaw"
 homepage = "https://ensnare.rs"
 readme = "README.md"
 authors.workspace = true
@@ -73,7 +73,7 @@ strum = "0.26"
 typetag = "0.2.13"
 
 [[bin]]
-name = "ensnare-daw"
+name = "minidaw"
 required-features = ["std", "egui"]
 
 [lib]
@@ -110,24 +110,28 @@ image = "ghcr.io/iced-rs/armv7:latest"
 xargo = false
 
 [package.metadata.deb]
+name = "ensnare-minidaw"
 assets = [
     # "You can use target/release/ in asset paths, even if Cargo is configured
     # to cross-compile or use custom CARGO_TARGET_DIR. The target dir paths will
     # be automatically corrected." https://github.com/kornelski/cargo-deb
     ["LICENSE.md", "usr/share/doc/ensnare/LICENSE.md", "644"],
     ["README.md", "usr/share/doc/ensnare/README.md", "644"],
-    ["assets-nodist/os/ensnare.desktop", "usr/share/applications/", "644"],
+    ["assets-nodist/os/minidaw.desktop", "usr/share/applications/", "644"],
     ["assets/patches/**/*.json", "usr/share/ensnare/patches/", "644"],
     ["assets/samples/**/*.wav", "usr/share/ensnare/samples/", "644"],
     ["projects/**/*.json", "usr/share/ensnare/projects/", "644"],
-    ["target/release/ensnare-daw", "usr/bin/", "755"],
+    ["target/release/minidaw", "usr/bin/", "755"],
 ]
 
 [[example]]
 name = "pocket-calculator"
-required-features = ["std"]
-
+required-features = ["std", "egui"]
 
 [[example]]
-name = "minidaw"
-required-features = ["std"]
+name = "entity-gui-explorer"
+required-features = ["std", "egui"]
+
+[[example]]
+name = "widget-explorer"
+required-features = ["std", "egui"]

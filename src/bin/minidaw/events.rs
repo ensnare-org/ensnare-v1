@@ -27,14 +27,13 @@ pub(super) enum SaveError {
 }
 
 #[derive(Debug)]
-pub(super) enum EnsnareInput {
+pub(super) enum MiniDawInput {
     Quit,
 }
 
-/// An aggregation of all the service events that the Ensnare app might want to
-/// process.
+/// An aggregation of all the service events that the app might want to process.
 #[derive(Debug)]
-pub(super) enum EnsnareEvent {
+pub(super) enum MiniDawEvent {
     MidiPanelEvent(MidiServiceEvent),
     AudioServiceEvent(AudioServiceEvent),
     ProjectServiceEvent(ProjectServiceEvent),
@@ -42,9 +41,9 @@ pub(super) enum EnsnareEvent {
 }
 
 #[derive(Debug)]
-pub(super) struct EnsnareEventAggregationService {
-    input_channels: ChannelPair<EnsnareInput>,
-    event_channels: ChannelPair<EnsnareEvent>,
+pub(super) struct MiniDawEventAggregationService {
+    input_channels: ChannelPair<MiniDawInput>,
+    event_channels: ChannelPair<MiniDawEvent>,
 
     // The aggregated services. Avoid speaking directly to them; use the
     // channels instead.
@@ -54,7 +53,7 @@ pub(super) struct EnsnareEventAggregationService {
 
     settings_receiver: Receiver<SettingsEvent>,
 }
-impl EnsnareEventAggregationService {
+impl MiniDawEventAggregationService {
     pub fn new_with(
         audio_service: AudioService,
         midi_service: MidiService,
@@ -78,10 +77,10 @@ impl EnsnareEventAggregationService {
     /// channel.
     fn spawn_thread(&self) {
         // Sends aggregated events for the app to handle.
-        let ensnare_sender = self.event_channels.sender.clone();
+        let app_sender = self.event_channels.sender.clone();
 
         // Takes commands from the app.
-        let ensnare_receiver = self.input_channels.receiver.clone();
+        let app_receiver = self.input_channels.receiver.clone();
 
         // Each of these pairs communicates with a service.
         let audio_sender = self.audio_service.sender().clone();
@@ -99,7 +98,7 @@ impl EnsnareEventAggregationService {
 
         let _ = std::thread::spawn(move || {
             let mut sel = Select::new();
-            let ensnare_index = sel.recv(&ensnare_receiver);
+            let app_index = sel.recv(&app_receiver);
             let midi_index = sel.recv(&midi_receiver);
             let audio_index = sel.recv(&audio_receiver);
             let project_index = sel.recv(&project_receiver);
@@ -109,14 +108,14 @@ impl EnsnareEventAggregationService {
             loop {
                 let operation = sel.select();
                 match operation.index() {
-                    index if index == ensnare_index => {
-                        if let Ok(input) = operation.recv(&ensnare_receiver) {
+                    index if index == app_index => {
+                        if let Ok(input) = operation.recv(&app_receiver) {
                             match input {
-                                EnsnareInput::Quit => {
+                                MiniDawInput::Quit => {
                                     let _ = audio_sender.send(AudioServiceInput::Quit);
                                     let _ = midi_sender.send(MidiServiceInput::Quit);
                                     let _ = project_sender.send(ProjectServiceInput::ServiceQuit);
-                                    let _ = ensnare_sender.send(EnsnareEvent::Quit);
+                                    let _ = app_sender.send(MiniDawEvent::Quit);
                                     return;
                                 }
                             }
@@ -135,7 +134,7 @@ impl EnsnareEventAggregationService {
                                 }
                                 AudioServiceEvent::Underrun => {}
                             }
-                            let _ = ensnare_sender.send(EnsnareEvent::AudioServiceEvent(event));
+                            let _ = app_sender.send(MiniDawEvent::AudioServiceEvent(event));
                         }
                     }
                     index if index == midi_index => {
@@ -153,7 +152,7 @@ impl EnsnareEventAggregationService {
                                     // fall through and forward to the app.
                                 }
                             }
-                            let _ = ensnare_sender.send(EnsnareEvent::MidiPanelEvent(event));
+                            let _ = app_sender.send(MiniDawEvent::MidiPanelEvent(event));
                         }
                     }
                     index if index == project_index => {
@@ -172,8 +171,8 @@ impl EnsnareEventAggregationService {
                                     }
                                 }
                                 _ => {
-                                    let _ = ensnare_sender
-                                        .send(EnsnareEvent::ProjectServiceEvent(event));
+                                    let _ =
+                                        app_sender.send(MiniDawEvent::ProjectServiceEvent(event));
                                 }
                             }
                         }
@@ -195,11 +194,11 @@ impl EnsnareEventAggregationService {
         });
     }
 
-    pub fn sender(&self) -> &Sender<EnsnareInput> {
+    pub fn sender(&self) -> &Sender<MiniDawInput> {
         &self.input_channels.sender
     }
 
-    pub fn receiver(&self) -> &Receiver<EnsnareEvent> {
+    pub fn receiver(&self) -> &Receiver<MiniDawEvent> {
         &self.event_channels.receiver
     }
 }

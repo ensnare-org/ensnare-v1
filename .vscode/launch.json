@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Ensnare DAW",
+            "name": "MiniDaw",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=ensnare-daw",
+                    "--bin=minidaw",
                     "--package=ensnare",
                     "--features=",
                 ],
                 "filter": {
-                    "name": "ensnare-daw",
+                    "name": "minidaw",
                     "kind": "bin"
                 }
             },
@@ -72,24 +72,6 @@
                 ],
                 "filter": {
                     "name": "pocket-calculator",
-                    "kind": "example"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "MiniDAW example",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--example=minidaw",
-                    "--package=ensnare",
-                ],
-                "filter": {
-                    "name": "minidaw",
                     "kind": "example"
                 }
             },

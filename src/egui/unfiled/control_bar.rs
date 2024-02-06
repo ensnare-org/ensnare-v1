@@ -137,7 +137,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .clicked()
             {
                 *self.action = Some(ControlBarAction::Open(PathBuf::from(
-                    "ensnare-project.json",
+                    "minidaw-project.json",
                 )));
             }
             if ui
@@ -151,7 +151,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .clicked()
             {
                 *self.action = Some(ControlBarAction::Save(PathBuf::from(
-                    "ensnare-project.json",
+                    "minidaw-project.json",
                 )));
             }
             if ui
@@ -165,7 +165,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .clicked()
             {
                 *self.action = Some(ControlBarAction::ExportToWav(PathBuf::from(
-                    "ensnare-project.wav",
+                    "minidaw-project.wav",
                 )));
             }
             ui.separator();

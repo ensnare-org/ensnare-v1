@@ -51,7 +51,7 @@ pub enum ProjectServiceEvent {
     Quit,
     SaveFailed(Error),
     Saved(PathBuf),
-    TitleChanged(String),
+    TitleChanged(ProjectTitle),
 }
 
 /// A wrapper around a [Project] that provides a channel-based interface to it.

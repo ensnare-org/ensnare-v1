@@ -31,6 +31,11 @@ impl From<&str> for ProjectTitle {
         Self(value.to_string())
     }
 }
+impl ProjectTitle {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -365,7 +370,7 @@ impl Project {
             } else if let Some(path) = self.e.load_path.as_ref() {
                 path.clone()
             } else {
-                PathBuf::from("ensnare-project.json")
+                PathBuf::from("ensnare-minidaw-project.json")
             }
         };
 

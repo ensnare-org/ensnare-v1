@@ -67,14 +67,14 @@ jobs:
       - name: Build and test release
         run: cargo test --workspace --release --target ${{ matrix.target }}
 
-        # Upload build products. Unstripped binaries are > 0.5GB, so we skip.
-      - name: Upload test suite artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: "perf-output-${{ matrix.target }}-${{github.sha}}"
-          path: |
-            target/perf-1.wav
-            target/perf-output.txt
+      #   # Upload build products. Unstripped binaries are > 0.5GB, so we skip.
+      # - name: Upload test suite artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: "perf-output-${{ matrix.target }}-${{github.sha}}"
+      #     path: |
+      #       target/perf-1.wav
+      #       target/perf-output.txt
 
   build-cross:
     name: Build (but don't test) ${{matrix.target}}
