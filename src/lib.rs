@@ -9,6 +9,7 @@ pub use all_entities::EnsnareEntities;
 pub use automation::Automator;
 pub use composition::Composer;
 pub use orchestration::Orchestrator;
+pub use project::Project;
 pub use version::app_version;
 
 pub mod automation;
