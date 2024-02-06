@@ -6,12 +6,8 @@ use super::{
     signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
 };
 use super::{DragDropManager, DragSource, DropTarget, GridWidget};
-use crate::core::{
-    prelude::*,
-    types::{ColorScheme, TrackTitle},
-};
-use crate::egui::unfiled::fill_remaining_ui_space;
 use crate::prelude::*;
+use crate::{egui::unfiled::fill_remaining_ui_space, types::ColorScheme};
 use eframe::{
     egui::{style::WidgetVisuals, Frame, Margin, Modifiers, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},

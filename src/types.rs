@@ -1,12 +1,24 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::midi::{u7, MidiNote};
+//! Common data types used throughout the system.
+
+pub mod prelude {
+    pub use super::{
+        BipolarNormal, ChannelPair, FrequencyHz, FrequencyRange, Normal, ParameterType, Ratio,
+        Sample, SampleType, SignalType, StereoSample, TrackTitle,
+    };
+    pub use crate::uid::*;
+}
+
+use crate::prelude::*;
 use bounded_vec_deque::BoundedVecDeque;
 use crossbeam::{
     channel::{Receiver, Sender},
     queue::ArrayQueue,
 };
+use delegate::delegate;
 use derivative::Derivative;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
@@ -16,13 +28,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strum_macros::{EnumCount, EnumIter, FromRepr};
-
-pub mod prelude {
-    pub use super::{
-        BipolarNormal, ChannelPair, FrequencyHz, FrequencyRange, Normal, ParameterType, Ratio,
-        Sample, SampleType, SignalType, StereoSample, TrackTitle,
-    };
-}
 
 /// [SampleType] is the underlying primitive that makes up [StereoSample].
 pub type SampleType = f64;
@@ -850,6 +855,41 @@ pub enum ColorScheme {
     Gray6,
     Gray7,
     Gray8,
+}
+
+#[derive(Clone, Copy, Debug, Default, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArrangementUid(usize);
+impl IsUid for ArrangementUid {
+    fn as_usize(&self) -> usize {
+        self.0
+    }
+}
+impl From<usize> for ArrangementUid {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct ArrangementUidFactory(UidFactory<ArrangementUid>);
+impl Default for ArrangementUidFactory {
+    fn default() -> Self {
+        Self(UidFactory::<ArrangementUid>::new(262144))
+    }
+}
+impl ArrangementUidFactory {
+    delegate! {
+        to self.0 {
+            pub fn mint_next(&self) -> ArrangementUid;
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct ControlLink {
+    pub uid: Uid,
+    pub param: ControlIndex,
 }
 
 #[cfg(test)]

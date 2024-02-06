@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::types::ColorScheme;
+use crate::{prelude::*, types::ColorScheme};
 use eframe::epaint::Color32;
 
 pub struct ColorSchemeConverter {}

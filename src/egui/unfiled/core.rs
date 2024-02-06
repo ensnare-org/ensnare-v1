@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::types::Normal;
+use crate::prelude::*;
 use eframe::egui::DragValue;
 
 /// An egui widget that makes it easier to work with a [DragValue] and a Normal.

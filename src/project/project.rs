@@ -2,14 +2,13 @@
 
 //! Representation of a whole music project, including support for serialization.
 
-use crate::core::{
+use crate::{
+    automation::Automator,
+    composition::Composer,
+    orchestration::{MidiRouter, Orchestrator},
     prelude::*,
     selection_set::SelectionSet,
-    types::{AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
-};
-use crate::{
-    automation::Automator, composition::Composer, orchestration::MidiRouter,
-    orchestration::Orchestrator, prelude::*, types::ArrangementUid,
+    types::{ArrangementUid, AudioQueue, ColorScheme, TrackTitle, VisualizationQueue},
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;

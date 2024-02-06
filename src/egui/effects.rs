@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{prelude::*, types::FrequencyRange};
+use crate::prelude::*;
 use eframe::egui::{Slider, Widget};
 
 pub struct BiQuadFilterBandPassWidget<'a> {

@@ -17,12 +17,8 @@ pub mod controllers;
 pub mod midi;
 /// Provides a random-number generator for debugging and testing.
 pub mod rng;
-/// A set of things that the user can select.
-pub mod selection_set;
 /// The data backing all project sequences.
 pub mod sequence_repository;
-/// Common structures and constants used across the library.
-pub mod types;
 /// Unique identifiers.
 pub mod uid;
 /// Helper functions.
@@ -33,7 +29,6 @@ pub use rng::Rng;
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        composition::prelude::*, control::prelude::*, midi::prelude::*, types::prelude::*,
-        uid::prelude::*,
+        composition::prelude::*, control::prelude::*, midi::prelude::*, uid::prelude::*,
     };
 }

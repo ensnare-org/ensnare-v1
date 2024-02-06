@@ -68,25 +68,6 @@ pub mod entities {
     }
 }
 
-pub mod types {
-    //! Common data types used throughout the system.
-    pub use crate::core::{
-        types::*,
-        uid::{TrackUid, TrackUidFactory, UidFactory},
-    };
-    pub use crate::time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange};
-    pub use crate::{types_future::*, uid::Uid};
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{
-            BipolarNormal, ChannelPair, FrequencyHz, MusicalTime, Normal, Ratio, Sample,
-            SampleRate, StereoSample, Tempo, TimeRange, TimeSignature, TrackTitle, TrackUid,
-            TrackUidFactory, Uid, UidFactory, ViewRange,
-        };
-    }
-}
-
 pub mod utils {
     //! Various helpers.
     pub use crate::core::utils::Paths;
@@ -113,14 +94,12 @@ pub mod entities_future;
 pub mod midi;
 pub mod orchestration;
 pub mod project;
+pub mod selection_set;
 pub mod services;
 pub mod time;
 pub mod traits;
-pub mod types_future;
+pub mod types;
 pub mod uid;
-
-//pub use project::{ProjectAction, ProjectWidget};
-// pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.

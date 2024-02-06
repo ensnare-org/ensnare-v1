@@ -1,10 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::{
-    prelude::*,
-    types::{AudioQueue, VisualizationQueue},
-};
 use crate::prelude::*;
+use crate::types::{AudioQueue, VisualizationQueue};
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;

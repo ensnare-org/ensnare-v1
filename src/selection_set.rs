@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! A set of things that the user can select.
+
 use crate::core::uid::IsUid;
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_set::Iter, HashSet};
