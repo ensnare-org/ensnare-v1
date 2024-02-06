@@ -13,7 +13,7 @@ pub mod instruments;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{control::ControlIndex, traits::Controllable};
+    use crate::prelude::*;
     use std::collections::HashSet;
 
     // This could be a test specific to the Control proc macro, but we'd like to

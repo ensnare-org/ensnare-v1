@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::midi::MidiSequencer;
-use crate::core::{rng::Rng, traits::Sequences};
+use crate::core::rng::Rng;
 use crate::prelude::*;
 use delegate::delegate;
 use derive_builder::Builder;

@@ -3,11 +3,7 @@
 use super::midi_interface::{
     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
 };
-use crate::core::{
-    midi::{MidiChannel, MidiMessage},
-    traits::HasSettings,
-    types::ChannelPair,
-};
+use crate::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};

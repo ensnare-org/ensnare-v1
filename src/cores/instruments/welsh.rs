@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use crate::{
-    core::traits::{CanPrototype, GeneratesEnvelope},
-    cores::effects::BiQuadFilterLowPass24db,
-};
+use crate::{cores::effects::BiQuadFilterLowPass24db, prelude::*};
 use core::fmt::Debug;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};

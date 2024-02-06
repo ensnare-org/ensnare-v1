@@ -1,10 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{
-    prelude::*,
-    traits_future::{ControlProxyEventsFn, ControlsAsProxy, EntityBounds},
-    uid::Uid,
-};
+use crate::prelude::*;
 use anyhow::anyhow;
 use delegate::delegate;
 use derive_more::Display;
@@ -382,8 +378,7 @@ impl Default for EntityUidFactory {
 
 #[cfg(test)]
 mod tests {
-    use super::EntityStore;
-    use crate::{prelude::*, traits_future::EntityBounds};
+    use super::*;
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use serde::{Deserialize, Serialize};
 

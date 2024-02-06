@@ -16,7 +16,7 @@ pub(crate) fn impl_metadata(input: TokenStream) -> TokenStream {
     let crate_name = main_crate_name();
     TokenStream::from(quote! {
         #[automatically_derived]
-        impl #generics #crate_name::traits_future::HasMetadata for #name #ty_generics {
+        impl #generics #crate_name::traits::HasMetadata for #name #ty_generics {
             fn uid(&self) -> #crate_name::uid::Uid {
                 self.uid
             }

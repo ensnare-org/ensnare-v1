@@ -21,8 +21,6 @@ pub mod rng;
 pub mod selection_set;
 /// The data backing all project sequences.
 pub mod sequence_repository;
-/// Describes major system interfaces.
-pub mod traits;
 /// Common structures and constants used across the library.
 pub mod types;
 /// Unique identifiers.
@@ -35,7 +33,7 @@ pub use rng::Rng;
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        composition::prelude::*, control::prelude::*, midi::prelude::*, traits::prelude::*,
-        types::prelude::*, uid::prelude::*,
+        composition::prelude::*, control::prelude::*, midi::prelude::*, types::prelude::*,
+        uid::prelude::*,
     };
 }

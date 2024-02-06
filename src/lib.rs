@@ -68,19 +68,6 @@ pub mod entities {
     }
 }
 
-pub mod traits {
-    //! Common behaviors of system components.
-    pub use crate::core::traits::*;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::{
-            Configurable, ControlEventsFn, Controllable, Controls, Generates, HandlesMidi,
-            HasExtent, HasSettings, MidiMessagesFn, Sequences, Serializable, WorkEvent,
-        };
-    }
-}
-
 pub mod types {
     //! Common data types used throughout the system.
     pub use crate::core::{
@@ -128,7 +115,7 @@ pub mod orchestration;
 pub mod project;
 pub mod services;
 pub mod time;
-pub mod traits_future;
+pub mod traits;
 pub mod types_future;
 pub mod uid;
 
@@ -142,7 +129,6 @@ pub mod prelude {
         automation::prelude::*, composition::prelude::*, core::prelude::*, egui::prelude::*,
         elements::prelude::*, entities::prelude::*, entities_future::prelude::*, midi::prelude::*,
         orchestration::prelude::*, project::prelude::*, services::prelude::*, time::prelude::*,
-        traits::prelude::*, traits_future::prelude::*, types::prelude::*, utils::prelude::*,
-        EnsnareEntities,
+        traits::prelude::*, types::prelude::*, utils::prelude::*, EnsnareEntities,
     };
 }

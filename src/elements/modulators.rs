@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{prelude::*, traits::CanPrototype};
+use crate::prelude::*;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 

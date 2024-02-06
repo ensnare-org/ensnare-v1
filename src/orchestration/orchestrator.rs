@@ -5,7 +5,7 @@ use super::{
     repositories::{EntityRepository, TrackRepository},
     BusStation,
 };
-use crate::core::prelude::*;
+use crate::prelude::*;
 use crate::prelude::*;
 use anyhow::Result;
 use delegate::delegate;

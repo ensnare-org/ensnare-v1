@@ -9,10 +9,7 @@ pub mod prelude {
     };
 }
 
-use crate::core::{
-    traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
-    types::ParameterType,
-};
+use crate::prelude::*;
 use anyhow::{anyhow, Error};
 use derivative::Derivative;
 use derive_builder::Builder;

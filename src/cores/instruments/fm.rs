@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::traits::{CanPrototype, GeneratesEnvelope};
 use crate::prelude::*;
 use delegate::delegate;
 use ensnare_proc_macros::Control;

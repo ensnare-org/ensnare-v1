@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::midi::MidiSequencer;
-use crate::core::traits::Sequences;
 use crate::prelude::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};

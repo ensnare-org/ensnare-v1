@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::prelude::*;
+use crate::prelude::*;
 use crate::prelude::*;
 use ensnare_proc_macros::{InnerInstrument, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};

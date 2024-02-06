@@ -28,10 +28,12 @@ pub mod prelude {
     pub use super::{ControlIndex, ControlName, ControlValue};
 }
 
-pub use crate::core::{
-    control::{ControlIndex, ControlName, ControlValue},
-    controllers::{
-        ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+pub use crate::{
+    core::{
+        control::{ControlIndex, ControlName, ControlValue},
+        controllers::{
+            ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath,
+        },
     },
     traits::{ControlEventsFn, Controllable, Controls},
 };
