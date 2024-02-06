@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{DragDropManager, DragSource, DropTarget};
-use crate::core::uid::TrackUid;
 use crate::prelude::*;
 use eframe::egui::{Image, ImageButton, Widget};
 use strum_macros::Display;

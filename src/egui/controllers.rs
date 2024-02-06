@@ -1,13 +1,14 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::{
-    composition::sequencers::{NoteSequencer, PatternSequencer},
-    controllers::ControlTripPath,
+use crate::composition::NoteSequencer;
+use crate::core::controllers::ControlTripPath;
+use crate::{
+    composition::PatternSequencer,
+    cores::controllers::{Arpeggiator, ArpeggioMode},
+    egui::unfiled::{FrequencyWidget, WaveformWidget},
     prelude::*,
 };
-use crate::cores::controllers::{Arpeggiator, ArpeggioMode};
-use crate::egui::unfiled::{FrequencyWidget, WaveformWidget};
-use crate::prelude::*;
+
 use eframe::{
     egui::{Sense, Widget},
     emath::RectTransform,

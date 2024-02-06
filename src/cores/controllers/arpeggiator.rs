@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{core::composition::sequencers::NoteSequencer, prelude::*};
+use crate::{composition::NoteSequencer, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};

@@ -7,7 +7,6 @@ use super::{
     },
     LegendWidget,
 };
-use crate::core::uid::TrackUid;
 use crate::prelude::*;
 use eframe::{egui::Widget, epaint::Galley};
 use std::sync::Arc;

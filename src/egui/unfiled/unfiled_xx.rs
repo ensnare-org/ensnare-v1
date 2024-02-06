@@ -2,6 +2,7 @@
 
 use crate::{
     egui::{colors::ColorSchemeConverter, DragDropManager, DragSource},
+    midi::MidiNote,
     prelude::*,
     selection_set::SelectionSet,
 };
@@ -16,11 +17,11 @@ use std::collections::HashMap;
 /// this is in reverse order, because vertically-oriented piano rolls show the
 /// highest notes at the top of the screen.
 pub const MIDI_NOTE_F32_RANGE: std::ops::RangeInclusive<f32> =
-    crate::core::midi::MidiNote::MAX as u8 as f32..=crate::core::midi::MidiNote::MIN as u8 as f32;
+    MidiNote::MAX as u8 as f32..=MidiNote::MIN as u8 as f32;
 
 /// A range that covers all MIDI note values in ascending order.
 pub const MIDI_NOTE_U8_RANGE: std::ops::RangeInclusive<u8> =
-    crate::core::midi::MidiNote::MIN as u8..=crate::core::midi::MidiNote::MAX as u8;
+    MidiNote::MIN as u8..=MidiNote::MAX as u8;
 
 /// Displays an iconic representation of a sequence of [Note]s. Intended to be a
 /// drag-and-drop source.

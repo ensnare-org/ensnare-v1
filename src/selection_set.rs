@@ -2,7 +2,7 @@
 
 //! A set of things that the user can select.
 
-use crate::core::uid::IsUid;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_set::Iter, HashSet};
 
@@ -102,7 +102,6 @@ impl<T: IsUid> SelectionSet<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::prelude::TrackUid;
 
     #[test]
     fn select_mainline() {

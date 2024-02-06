@@ -4,7 +4,7 @@
 //! create a [MidiInterfaceService], then use its sender and receiver channels
 //! to exchange [MidiHandlerInput] and [MidiHandlerEvent] messages.
 
-use crate::core::midi::{u4, LiveEvent, MidiChannel, MidiMessage};
+use crate::midi::{u4, LiveEvent, MidiChannel, MidiMessage};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection, SendError};
 use std::{fmt::Debug, thread::JoinHandle};

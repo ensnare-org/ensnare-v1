@@ -2,8 +2,8 @@
 
 use super::sampler::{Sampler, SamplerVoice};
 use crate::{
-    core::midi::{prelude::*, GeneralMidiPercussionProgram},
     elements::VoicePerNoteStore,
+    midi::{prelude::*, GeneralMidiPercussionProgram},
     prelude::*,
 };
 use anyhow::anyhow;

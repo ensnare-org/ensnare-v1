@@ -65,7 +65,7 @@ impl Configurable for MidiNoteMinder {}
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::core::midi::{new_note_off, new_note_on, MidiChannel, MidiMessage};
+    use crate::midi::{new_note_off, new_note_on, MidiChannel, MidiMessage};
 
     fn gather_all_messages(mnm: &mut MidiNoteMinder) -> Vec<MidiMessage> {
         let mut v = Vec::default();

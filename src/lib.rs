@@ -36,9 +36,9 @@ mod version;
 /// ensnare::prelude::*;` for easier onboarding.
 pub mod prelude {
     pub use super::{
-        automation::prelude::*, composition::prelude::*, core::prelude::*, egui::prelude::*,
-        elements::prelude::*, entities::prelude::*, midi::prelude::*, orchestration::prelude::*,
-        project::prelude::*, services::prelude::*, time::prelude::*, traits::prelude::*,
-        types::prelude::*, utils::prelude::*, EnsnareEntities,
+        automation::prelude::*, composition::prelude::*, egui::prelude::*, elements::prelude::*,
+        entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
+        services::prelude::*, time::prelude::*, traits::prelude::*, types::prelude::*,
+        utils::prelude::*, EnsnareEntities,
     };
 }

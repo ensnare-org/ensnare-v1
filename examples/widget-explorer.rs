@@ -16,12 +16,13 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
-use ensnare::{app_version, prelude::*};
 use ensnare::{
-    core::{
-        composition::sequencers::{NoteSequencer, NoteSequencerBuilder},
-        Rng,
-    },
+    app_version,
+    composition::{NoteSequencer, NoteSequencerBuilder},
+    prelude::*,
+};
+use ensnare::{
+    core::Rng,
     egui::{
         analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, DragDropManager,
         DragSource, DropTarget, FrequencyDomainWidget, GridWidget, LegendWidget,
