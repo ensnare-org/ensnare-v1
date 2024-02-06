@@ -81,23 +81,13 @@ pub mod traits {
     }
 }
 
-pub mod transport {
-    //! Time management.
-    pub use crate::core::time::Transport;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::Transport;
-    }
-}
-
 pub mod types {
     //! Common data types used throughout the system.
     pub use crate::core::{
-        time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange},
         types::*,
         uid::{TrackUid, TrackUidFactory, UidFactory},
     };
+    pub use crate::time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, ViewRange};
     pub use crate::{types_future::*, uid::Uid};
 
     /// The most commonly used imports.
@@ -137,13 +127,10 @@ pub mod midi;
 pub mod orchestration;
 pub mod project;
 pub mod services;
+pub mod time;
 pub mod traits_future;
 pub mod types_future;
 pub mod uid;
-
-pub mod time {
-    pub use crate::core::time::*;
-}
 
 //pub use project::{ProjectAction, ProjectWidget};
 // pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
@@ -154,8 +141,8 @@ pub mod prelude {
     pub use super::{
         automation::prelude::*, composition::prelude::*, core::prelude::*, egui::prelude::*,
         elements::prelude::*, entities::prelude::*, entities_future::prelude::*, midi::prelude::*,
-        orchestration::prelude::*, project::prelude::*, services::prelude::*, traits::prelude::*,
-        traits_future::prelude::*, transport::prelude::*, types::prelude::*, utils::prelude::*,
+        orchestration::prelude::*, project::prelude::*, services::prelude::*, time::prelude::*,
+        traits::prelude::*, traits_future::prelude::*, types::prelude::*, utils::prelude::*,
         EnsnareEntities,
     };
 }

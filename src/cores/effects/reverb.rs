@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
-use crate::core::{prelude::*, time::Seconds};
+use crate::prelude::*;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 

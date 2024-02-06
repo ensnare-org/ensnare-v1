@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::time::MusicalTime;
+use crate::prelude::*;
 use derive_more::Display as DeriveDisplay;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

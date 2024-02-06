@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::prelude::*;
 use crate::{
+    prelude::*,
     traits_future::{ControlProxyEventsFn, ControlsAsProxy, EntityBounds},
     uid::Uid,
 };
@@ -383,12 +383,12 @@ impl Default for EntityUidFactory {
 #[cfg(test)]
 mod tests {
     use super::EntityStore;
-    use crate::{core::prelude::*, traits_future::EntityBounds, uid::Uid};
+    use crate::{prelude::*, traits_future::EntityBounds};
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use serde::{Deserialize, Serialize};
 
     mod cores {
-        use crate::core::{time::SampleRate, traits::Configurable};
+        use crate::prelude::*;
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]

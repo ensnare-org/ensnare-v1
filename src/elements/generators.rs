@@ -1,9 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{
+use crate::{
+    core::traits::{CanPrototype, GeneratesEnvelope},
     prelude::*,
-    time::Seconds,
-    traits::{CanPrototype, GeneratesEnvelope},
 };
 use delegate::delegate;
 use derivative::Derivative;

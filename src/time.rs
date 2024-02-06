@@ -1,5 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! Handles digital-audio, wall-clock, and musical time.
+
+pub mod prelude {
+    pub use super::{
+        BeatValue, MusicalTime, SampleRate, Seconds, Tempo, TimeRange, TimeSignature, Transport,
+        ViewRange,
+    };
+}
+
 use crate::core::{
     traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, Serializable},
     types::ParameterType,
@@ -15,12 +24,6 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Range, Sub, SubAssign},
 };
 use strum_macros::{FromRepr, IntoStaticStr};
-
-pub mod prelude {
-    pub use super::{
-        BeatValue, MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature, Transport, ViewRange,
-    };
-}
 
 /// Beats per minute.
 #[derive(Clone, Copy, Debug, Derivative, Serialize, Deserialize, PartialEq)]

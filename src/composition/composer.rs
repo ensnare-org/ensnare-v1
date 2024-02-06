@@ -1,10 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::core::{
-    prelude::*,
     selection_set::SelectionSet,
     types::{ColorScheme, ModSerial},
 };
+use crate::prelude::*;
 use crate::types::{ArrangementUid, ArrangementUidFactory};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};

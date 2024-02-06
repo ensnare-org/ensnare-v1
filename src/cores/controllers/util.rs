@@ -2,9 +2,9 @@
 
 use crate::core::{
     midi::{u7, MidiChannel, MidiMessage},
-    time::TimeRange,
     traits::{Configurable, ControlEventsFn, Controls, HandlesMidi, MidiMessagesFn, WorkEvent},
 };
+use crate::prelude::*;
 use bit_vec::BitVec;
 use std::fmt::Debug;
 

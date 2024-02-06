@@ -6,13 +6,7 @@
 // Are you making a change to this file? Consider enforcing new trait behavior
 // in tests/entity_validator.rs.
 
-use crate::{
-    automation::{ControlIndex, ControlValue},
-    core::time::{MusicalTime, SampleRate, Tempo, TimeRange, TimeSignature},
-    midi::{u7, MidiChannel, MidiEvent, MidiMessage},
-    types::TrackUid,
-    types::{Normal, Sample, StereoSample},
-};
+use crate::prelude::*;
 
 /// Quick import of all important traits.
 pub mod prelude {

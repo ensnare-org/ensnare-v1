@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::{prelude::*, rng::Rng, types::ColorScheme};
+use crate::core::{rng::Rng, types::ColorScheme};
+use crate::prelude::*;
 use anyhow::anyhow;
 use delegate::delegate;
 use derive_builder::Builder;

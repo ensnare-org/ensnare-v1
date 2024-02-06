@@ -1,8 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    core::{prelude::*, selection_set::SelectionSet},
+    core::selection_set::SelectionSet,
     egui::{colors::ColorSchemeConverter, DragDropManager, DragSource},
+    prelude::*,
 };
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},

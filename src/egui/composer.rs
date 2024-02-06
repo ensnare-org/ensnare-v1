@@ -1,13 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::composition::Composer;
-use crate::core::{
-    composition::{Note, Pattern, PatternBuilder},
-    midi::MidiNote,
-    time::{MusicalTime, TimeSignature},
-    traits::Configurable,
-};
 use crate::egui::unfiled::fill_remaining_ui_space;
+use crate::prelude::*;
 use eframe::{
     egui::{Frame, PointerButton, Sense, Widget},
     emath::{Align2, RectTransform},

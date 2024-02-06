@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::core::time::{MusicalTime, ViewRange};
+use crate::time::{MusicalTime, ViewRange};
 use eframe::{
     egui::{vec2, Widget},
     emath::{Align2, RectTransform},

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{prelude::*, time::Seconds};
+use crate::prelude::*;
 use derivative::Derivative;
 use ensnare_proc_macros::Control;
 

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::{prelude::*, types::AudioQueue};
+use crate::{prelude::*, types::AudioQueue};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,

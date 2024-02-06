@@ -5,8 +5,7 @@ pub mod prelude {
     pub use super::{ControlProxyEventsFn, ControlsAsProxy, Displays, EntityBounds, HasMetadata};
 }
 
-use crate::core::prelude::*;
-use crate::uid::Uid;
+use crate::prelude::*;
 
 /// An [Entity] is a generic musical instrument, which includes MIDI
 /// instruments like synths, effects like reverb, and controllers like MIDI

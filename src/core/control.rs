@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::prelude::*;
-use crate::core::time::Seconds;
+use crate::prelude::*;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul};
