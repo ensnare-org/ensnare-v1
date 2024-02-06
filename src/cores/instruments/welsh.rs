@@ -2,6 +2,7 @@
 
 use crate::{cores::effects::BiQuadFilterLowPass24db, prelude::*};
 use core::fmt::Debug;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount, FromRepr};
@@ -437,12 +438,15 @@ impl Serializable for WelshSynth {
     }
 }
 impl Configurable for WelshSynth {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner.update_sample_rate(sample_rate);
-    }
-
-    fn sample_rate(&self) -> SampleRate {
-        self.inner.sample_rate()
+    delegate! {
+        to self.inner {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Ticks for WelshSynth {

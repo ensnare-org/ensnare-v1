@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
@@ -22,11 +23,15 @@ pub struct LfoController {
 }
 impl Serializable for LfoController {}
 impl Configurable for LfoController {
-    fn sample_rate(&self) -> SampleRate {
-        self.oscillator.sample_rate()
-    }
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.oscillator.update_sample_rate(sample_rate);
+    delegate! {
+        to self.oscillator {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Controls for LfoController {

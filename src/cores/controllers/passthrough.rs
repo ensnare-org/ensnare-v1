@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::Configurables};
+use delegate::delegate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -28,30 +29,45 @@ pub enum SignalPassthroughType {
 pub struct SignalPassthroughController {
     passthrough_type: SignalPassthroughType,
 
+    #[serde(skip)]
+    e: SignalPassthroughControllerEphemerals,
+}
+#[derive(Debug, Default)]
+pub struct SignalPassthroughControllerEphemerals {
     control_value: ControlValue,
-
     // We don't issue consecutive identical events, so we need to remember
     // whether we've sent the current value.
-    #[serde(skip)]
     has_value_been_issued: bool,
 
-    #[serde(skip)]
     is_performing: bool,
+
+    c: Configurables,
 }
 impl Serializable for SignalPassthroughController {}
-impl Configurable for SignalPassthroughController {}
+impl Configurable for SignalPassthroughController {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+}
 impl Controls for SignalPassthroughController {
     fn update_time_range(&mut self, _range: &TimeRange) {
         // We can ignore because we already have our own de-duplicating logic.
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        if !self.is_performing {
+        if !self.e.is_performing {
             return;
         }
-        if !self.has_value_been_issued {
-            self.has_value_been_issued = true;
-            control_events_fn(WorkEvent::Control(self.control_value))
+        if !self.e.has_value_been_issued {
+            self.e.has_value_been_issued = true;
+            control_events_fn(WorkEvent::Control(self.e.control_value))
         }
     }
 
@@ -60,17 +76,17 @@ impl Controls for SignalPassthroughController {
     }
 
     fn play(&mut self) {
-        self.is_performing = true;
+        self.e.is_performing = true;
     }
 
     fn stop(&mut self) {
-        self.is_performing = false;
+        self.e.is_performing = false;
     }
 
     fn skip_to_start(&mut self) {}
 
     fn is_performing(&self) -> bool {
-        self.is_performing
+        self.e.is_performing
     }
 }
 impl HandlesMidi for SignalPassthroughController {}
@@ -85,9 +101,9 @@ impl TransformsAudio for SignalPassthroughController {
             SignalPassthroughType::Amplitude => ControlValue(sample.0.abs()),
             SignalPassthroughType::AmplitudeInverted => ControlValue(1.0 - sample.0.abs()),
         };
-        if self.control_value != control_value {
-            self.has_value_been_issued = false;
-            self.control_value = control_value;
+        if self.e.control_value != control_value {
+            self.e.has_value_been_issued = false;
+            self.e.control_value = control_value;
         }
         input_sample
     }

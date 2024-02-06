@@ -10,15 +10,15 @@ use eframe::egui::{CollapsingHeader, Slider, Widget};
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
     uid: Uid,
-    inner: &'a mut crate::cores::FmSynth,
+    inner: &'a mut crate::cores::instruments::FmSynth,
 }
 impl<'a> FmSynthWidget<'a> {
-    fn new(inner: &'a mut crate::cores::FmSynth, uid: Uid) -> Self {
+    fn new(inner: &'a mut crate::cores::instruments::FmSynth, uid: Uid) -> Self {
         Self { uid, inner }
     }
 
     pub fn widget(
-        inner: &'a mut crate::cores::FmSynth,
+        inner: &'a mut crate::cores::instruments::FmSynth,
         controllable_uid: Uid,
     ) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, controllable_uid).ui(ui)

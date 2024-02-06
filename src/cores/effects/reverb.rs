@@ -2,6 +2,7 @@
 
 use super::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
 use crate::prelude::*;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
@@ -18,10 +19,10 @@ pub struct Reverb {
     seconds: Seconds,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
+    channels: [ReverbChannel; 2],
 
     #[serde(skip)]
-    channels: [ReverbChannel; 2],
+    c: Configurables,
 }
 impl Serializable for Reverb {
     fn before_ser(&mut self) {}
@@ -34,12 +35,18 @@ impl Serializable for Reverb {
     }
 }
 impl Configurable for Reverb {
-    fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.c.update_sample_rate(sample_rate);
         self.channels[0].update_sample_rate(sample_rate);
         self.channels[1].update_sample_rate(sample_rate);
     }

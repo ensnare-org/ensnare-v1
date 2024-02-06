@@ -1,45 +1,58 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
+use derivative::Derivative;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// TODO: this is a pretty lame bitcrusher. It is hardly noticeable for values
 /// below 13, and it destroys the waveform at 15. It doesn't do any simulation
 /// of sample-rate reduction, either.
-#[derive(Debug, Control, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Bitcrusher {
     /// The number of bits to preserve
     #[control]
+    #[derivative(Default(value = "8"))]
     bits: u8,
 
     /// A cached representation of `bits` for optimization.
     #[serde(skip)]
-    c: SampleType,
-}
-impl Default for Bitcrusher {
-    fn default() -> Self {
-        Self::new_with(8)
-    }
+    bits_cached: SampleType,
+
+    #[serde(skip)]
+    c: Configurables,
 }
 impl TransformsAudio for Bitcrusher {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         const I16_SCALE: SampleType = i16::MAX as SampleType;
         let sign = input_sample.0.signum();
         let input = (input_sample * I16_SCALE).0.abs();
-        (((input / self.c).floor() * self.c / I16_SCALE) * sign).into()
+        (((input / self.bits_cached).floor() * self.bits_cached / I16_SCALE) * sign).into()
     }
 }
-impl Configurable for Bitcrusher {}
+impl Configurable for Bitcrusher {
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+}
 #[allow(missing_docs)]
 impl Bitcrusher {
     pub fn new_with(bits: u8) -> Self {
         let mut r = Self {
             bits,
-            c: Default::default(),
+            ..Default::default()
         };
-        r.update_c();
+        r.update_cache();
         r
     }
 
@@ -49,11 +62,11 @@ impl Bitcrusher {
 
     pub fn set_bits(&mut self, n: u8) {
         self.bits = n;
-        self.update_c();
+        self.update_cache();
     }
 
-    fn update_c(&mut self) {
-        self.c = 2.0f64.powi(self.bits() as i32);
+    fn update_cache(&mut self) {
+        self.bits_cached = 2.0f64.powi(self.bits() as i32);
     }
 
     // TODO - write a custom type for range 0..16
@@ -66,7 +79,7 @@ impl Serializable for Bitcrusher {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        self.update_c();
+        self.update_cache();
     }
 }
 

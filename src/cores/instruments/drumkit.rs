@@ -8,6 +8,7 @@ use crate::{
     util::Paths,
 };
 use anyhow::anyhow;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
@@ -42,12 +43,15 @@ impl Generates<StereoSample> for Drumkit {
 }
 impl Serializable for Drumkit {}
 impl Configurable for Drumkit {
-    fn sample_rate(&self) -> SampleRate {
-        self.inner_synth.sample_rate()
-    }
-
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner_synth.update_sample_rate(sample_rate);
+    delegate! {
+        to self.inner_synth {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Ticks for Drumkit {

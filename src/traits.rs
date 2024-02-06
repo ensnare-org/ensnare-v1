@@ -9,11 +9,11 @@
 /// Quick import of all important traits.
 pub mod prelude {
     pub use super::{
-        CanPrototype, Configurable, ControlEventsFn, ControlProxyEventsFn, Controllable, Controls,
-        ControlsAsProxy, Displays, EntityBounds, Generates, GeneratesEnvelope, HandlesMidi,
-        HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice, IsVoice, MidiMessagesFn,
-        PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices, Ticks, TransformsAudio,
-        WorkEvent,
+        CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
+        Controllable, Controls, ControlsAsProxy, Displays, EntityBounds, Generates,
+        GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
+        IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
+        Ticks, TransformsAudio, WorkEvent,
     };
 }
 
@@ -45,6 +45,41 @@ pub trait Generates<V: Default>: Send + std::fmt::Debug + Ticks {
     fn get_next_value(&mut self) -> V {
         self.tick(1);
         self.value()
+    }
+}
+
+/// A convenience struct for the fields implied by [Configurable]. Note that
+/// this struct is not serde-compliant, because these fields typically aren't
+/// meant to be serialized.
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct Configurables {
+    sample_rate: SampleRate,
+    tempo: Tempo,
+    time_signature: TimeSignature,
+}
+impl Configurable for Configurables {
+    fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
+    }
+
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.sample_rate = sample_rate
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.tempo
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.tempo = tempo
+    }
+
+    fn time_signature(&self) -> TimeSignature {
+        self.time_signature
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.time_signature = time_signature
     }
 }
 

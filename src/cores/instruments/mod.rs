@@ -1,5 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! Instruments produce digital audio, usually in response to MIDI messages. All
+//! synthesizers and samplers are examples of instruments.
+
 pub use {
     drumkit::Drumkit,
     fm::FmSynth,

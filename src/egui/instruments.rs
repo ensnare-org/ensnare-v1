@@ -9,14 +9,16 @@ use eframe::egui::{CollapsingHeader, Slider, Widget};
 
 #[derive(Debug)]
 pub struct SamplerWidget<'a> {
-    inner: &'a mut crate::cores::Sampler,
+    inner: &'a mut crate::cores::instruments::Sampler,
 }
 impl<'a> SamplerWidget<'a> {
-    fn new(inner: &'a mut crate::cores::Sampler) -> Self {
+    fn new(inner: &'a mut crate::cores::instruments::Sampler) -> Self {
         Self { inner }
     }
 
-    pub fn widget(inner: &'a mut crate::cores::Sampler) -> impl eframe::egui::Widget + '_ {
+    pub fn widget(
+        inner: &'a mut crate::cores::instruments::Sampler,
+    ) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner).ui(ui)
     }
 }
@@ -29,16 +31,16 @@ impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
 #[derive(Debug)]
 pub struct WelshWidget<'a> {
     uid: Uid,
-    inner: &'a mut crate::cores::WelshSynth,
+    inner: &'a mut crate::cores::instruments::WelshSynth,
 }
 impl<'a> WelshWidget<'a> {
-    fn new(uid: Uid, inner: &'a mut crate::cores::WelshSynth) -> Self {
+    fn new(uid: Uid, inner: &'a mut crate::cores::instruments::WelshSynth) -> Self {
         Self { uid, inner }
     }
 
     pub fn widget(
         uid: Uid,
-        inner: &'a mut crate::cores::WelshSynth,
+        inner: &'a mut crate::cores::instruments::WelshSynth,
     ) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| WelshWidget::new(uid, inner).ui(ui)
     }

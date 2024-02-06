@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::cores::LfoRouting;
+use crate::cores::{effects, instruments};
 use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
 use crate::{prelude::*, util::Paths};
 use ensnare_proc_macros::{
@@ -26,7 +26,7 @@ use std::path::PathBuf;
 
 pub struct Drumkit {
     uid: Uid,
-    inner: crate::cores::Drumkit,
+    inner: instruments::Drumkit,
 }
 impl Displays for Drumkit {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -37,7 +37,7 @@ impl Drumkit {
     pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
             uid,
-            inner: crate::cores::Drumkit::new_with(name, paths),
+            inner: instruments::Drumkit::new_with(name, paths),
         }
     }
 }
@@ -57,7 +57,7 @@ impl Drumkit {
 #[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
-    inner: crate::cores::FmSynth,
+    inner: instruments::FmSynth,
 }
 impl Displays for FmSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -78,7 +78,7 @@ impl FmSynth {
     ) -> Self {
         Self {
             uid,
-            inner: crate::cores::FmSynth::new_with(
+            inner: instruments::FmSynth::new_with(
                 carrier_oscillator,
                 carrier_envelope,
                 modulator_oscillator,
@@ -107,7 +107,7 @@ impl FmSynth {
 #[entity(Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
-    inner: crate::cores::Sampler,
+    inner: instruments::Sampler,
 }
 impl Displays for Sampler {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -118,7 +118,7 @@ impl Sampler {
     pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
-            inner: crate::cores::Sampler::new_with(path, root),
+            inner: instruments::Sampler::new_with(path, root),
         }
     }
 
@@ -142,7 +142,7 @@ impl Sampler {
 #[entity(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
-    inner: crate::cores::WelshSynth,
+    inner: instruments::WelshSynth,
 }
 impl Displays for WelshSynth {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -159,16 +159,16 @@ impl WelshSynth {
         amp_envelope: Envelope,
         dca: Dca,
         lfo: Oscillator,
-        lfo_routing: LfoRouting,
+        lfo_routing: instruments::LfoRouting,
         lfo_depth: Normal,
-        filter: crate::cores::BiQuadFilterLowPass24db,
+        filter: effects::BiQuadFilterLowPass24db,
         filter_cutoff_start: Normal,
         filter_cutoff_end: Normal,
         filter_envelope: Envelope,
     ) -> Self {
         Self {
             uid,
-            inner: crate::cores::WelshSynth::new_with(
+            inner: instruments::WelshSynth::new_with(
                 oscillator_1,
                 oscillator_2,
                 oscillator_2_sync,
@@ -196,9 +196,9 @@ impl WelshSynth {
             Envelope::safe_default(),
             Dca::default(),
             Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
-            crate::cores::LfoRouting::FilterCutoff,
+            instruments::LfoRouting::FilterCutoff,
             Normal::from(0.5),
-            crate::cores::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+            effects::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
             Normal::from(0.1),
             Normal::from(0.8),
             Envelope::safe_default(),

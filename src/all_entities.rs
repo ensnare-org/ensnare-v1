@@ -92,7 +92,7 @@ impl EnsnareEntities {
         if false {
             // Controllers
             factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
-                Box::new(Arpeggiator::new_with(uid, Tempo::default()))
+                Box::new(Arpeggiator::new_with(uid))
             });
             factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
                 Box::new(LfoController::new_with(

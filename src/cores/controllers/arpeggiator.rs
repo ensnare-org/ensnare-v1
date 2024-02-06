@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{composition::NoteSequencer, prelude::*};
+use delegate::delegate;
 use serde::{Deserialize, Serialize};
 use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
@@ -35,12 +36,16 @@ pub enum ArpeggioMode {
 #[serde(rename_all = "kebab-case")]
 pub struct Arpeggiator {
     midi_channel_out: MidiChannel,
-    sequencer: NoteSequencer,
-    is_sequencer_enabled: bool,
-
-    pub bpm: Tempo,
 
     pub mode: ArpeggioMode,
+
+    #[serde(skip)]
+    e: ArpeggiatorEphemerals,
+}
+#[derive(Debug, Default)]
+pub struct ArpeggiatorEphemerals {
+    sequencer: NoteSequencer,
+    is_sequencer_enabled: bool,
 
     // A poor-man's semaphore that allows note-off events to overlap with the
     // current note without causing it to shut off. Example is a legato
@@ -49,42 +54,57 @@ pub struct Arpeggiator {
     // arpeggiator would frequently get clipped.
     note_semaphore: i16,
 }
-impl Configurable for Arpeggiator {
-    fn sample_rate(&self) -> SampleRate {
-        self.sequencer.sample_rate()
+impl Configurable for ArpeggiatorEphemerals {
+    delegate! {
+        to self.sequencer {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
-
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sequencer.update_sample_rate(sample_rate);
+}
+impl Configurable for Arpeggiator {
+    delegate! {
+        to self.e {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Controls for Arpeggiator {
     fn update_time_range(&mut self, range: &TimeRange) {
-        self.sequencer.update_time_range(range);
+        self.e.sequencer.update_time_range(range);
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
-        self.sequencer.work(control_events_fn)
+        self.e.sequencer.work(control_events_fn)
     }
 
     fn is_finished(&self) -> bool {
-        self.sequencer.is_finished()
+        self.e.sequencer.is_finished()
     }
 
     fn play(&mut self) {
-        self.sequencer.play();
+        self.e.sequencer.play();
     }
 
     fn stop(&mut self) {
-        self.sequencer.stop();
+        self.e.sequencer.stop();
     }
 
     fn skip_to_start(&mut self) {
-        self.sequencer.skip_to_start();
+        self.e.sequencer.skip_to_start();
     }
 
     fn is_performing(&self) -> bool {
-        self.sequencer.is_performing()
+        self.e.sequencer.is_performing()
     }
 }
 impl HandlesMidi for Arpeggiator {
@@ -96,16 +116,16 @@ impl HandlesMidi for Arpeggiator {
     ) {
         match message {
             MidiMessage::NoteOff { key: _, vel: _ } => {
-                self.note_semaphore -= 1;
-                if self.note_semaphore < 0 {
-                    self.note_semaphore = 0;
+                self.e.note_semaphore -= 1;
+                if self.e.note_semaphore < 0 {
+                    self.e.note_semaphore = 0;
                 }
-                self.is_sequencer_enabled = self.note_semaphore > 0;
+                self.e.is_sequencer_enabled = self.e.note_semaphore > 0;
             }
             MidiMessage::NoteOn { key, vel } => {
-                self.note_semaphore += 1;
+                self.e.note_semaphore += 1;
                 self.rebuild_sequence(key.as_int(), vel.as_int());
-                self.is_sequencer_enabled = true;
+                self.e.is_sequencer_enabled = true;
 
                 // TODO: this scratches the itch of needing to respond to a
                 // note-down with a note *during this slice*, but it also has an
@@ -117,7 +137,7 @@ impl HandlesMidi for Arpeggiator {
                 // memory of which notes we've asked the downstream to play.
                 // TODO TODO TODO
                 //
-                // self.sequencer.generate_midi_messages_for_current_frame(midi_messages_fn);
+                // self.e.sequencer.generate_midi_messages_for_current_frame(midi_messages_fn);
                 //
                 // TODO 10-2023: I don't understand the prior comment. I should
                 // have just written a unit test. I think that
@@ -137,16 +157,15 @@ impl HandlesMidi for Arpeggiator {
     }
 }
 impl Arpeggiator {
-    pub fn new_with(bpm: Tempo, midi_channel_out: MidiChannel) -> Self {
+    pub fn new_with(midi_channel_out: MidiChannel) -> Self {
         Self {
-            bpm,
             midi_channel_out,
             ..Default::default()
         }
     }
 
     fn insert_one_note(&mut self, when: &MusicalTime, duration: &MusicalTime, key: u8, _vel: u8) {
-        let _ = self.sequencer.record(
+        let _ = self.e.sequencer.record(
             self.midi_channel_out,
             &Note::new_with(key, MusicalTime::START, *duration),
             *when,
@@ -154,7 +173,7 @@ impl Arpeggiator {
     }
 
     fn rebuild_sequence(&mut self, key: u8, vel: u8) {
-        self.sequencer.clear();
+        self.e.sequencer.clear();
 
         let start_beat = MusicalTime::START; // TODO: this is wrong, but I'm just trying to get this code to build for now
         let duration = MusicalTime::new_with_parts(4); // TODO: we're ignoring time signature!
@@ -167,14 +186,6 @@ impl Arpeggiator {
             let when = start_beat + MusicalTime::new_with_parts(4 * index);
             self.insert_one_note(&when, &duration, key + offset, vel);
         }
-    }
-
-    pub fn bpm(&self) -> Tempo {
-        self.bpm
-    }
-
-    pub fn set_bpm(&mut self, bpm: Tempo) {
-        self.bpm = bpm;
     }
 
     pub fn mode(&self) -> ArpeggioMode {

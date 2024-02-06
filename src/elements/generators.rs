@@ -82,9 +82,6 @@ pub struct OscillatorEphemerals {
     #[derivative(Default(value = "0xe1e9f0a7"))]
     noise_x2: u32,
 
-    /// An internal copy of the current sample rate.
-    sample_rate: SampleRate,
-
     /// The internal clock. Advances once per tick().
     ///
     ticks: usize,
@@ -112,6 +109,8 @@ pub struct OscillatorEphemerals {
 
     // Set on init and reset().
     reset_handled: bool,
+
+    c: Configurables,
 }
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
@@ -157,12 +156,18 @@ impl Generates<BipolarNormal> for Oscillator {
     }
 }
 impl Configurable for Oscillator {
-    fn sample_rate(&self) -> SampleRate {
-        self.e.sample_rate
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.e.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.e.reset_handled = false;
     }
 }
@@ -282,7 +287,8 @@ impl Oscillator {
 
     fn update_delta(&mut self) {
         if !self.e.delta_updated {
-            self.e.delta = (self.adjusted_frequency() / FrequencyHz::from(self.e.sample_rate.0)).0;
+            self.e.delta =
+                (self.adjusted_frequency() / FrequencyHz::from(self.e.c.sample_rate().0)).0;
 
             // This resets the accumulated error.
             self.e.cycle_position = KahanSum::new_with_value(self.e.cycle_position.sum());

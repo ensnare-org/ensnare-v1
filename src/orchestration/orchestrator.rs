@@ -11,6 +11,9 @@ use delegate::delegate;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, option::Option};
 
+/// [Orchestrator] brings together all a project's musical instruments and
+/// effects. Working mainly with [Composer] and [Automator](crate::Automator),
+/// it converts abstract musical notes into actual digital audio.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Orchestrator {
@@ -290,7 +293,7 @@ impl Mixer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cores::TestEffectNegatesInput, entities::TestInstrument};
+    use crate::{cores::effects::TestEffectNegatesInput, entities::TestInstrument};
 
     #[test]
     fn orchestrator_mainline() {

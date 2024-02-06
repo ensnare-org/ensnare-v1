@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::CanPrototype};
+use delegate::delegate;
 use derivative::Derivative;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
@@ -18,19 +19,26 @@ pub struct BiQuadFilterLowPass24db {
     passband_ripple: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
     channels: [BiQuadFilterLowPass24dbChannel; 2],
+
+    #[serde(skip)]
+    c: Configurables,
 }
 impl Serializable for BiQuadFilterLowPass24db {}
 impl Configurable for BiQuadFilterLowPass24db {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
-        self.update_coefficients();
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 
-    fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.c.update_sample_rate(sample_rate);
+        self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterLowPass24db {
@@ -46,19 +54,19 @@ impl BiQuadFilterLowPass24db {
         let mut r = Self {
             cutoff,
             passband_ripple,
-            sample_rate: Default::default(),
             channels: [
                 BiQuadFilterLowPass24dbChannel::default(),
                 BiQuadFilterLowPass24dbChannel::default(),
             ],
+            ..Default::default()
         };
         r.update_coefficients();
         r
     }
 
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.passband_ripple);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.passband_ripple);
+        self.channels[0].update_coefficients(self.sample_rate(), self.cutoff, self.passband_ripple);
+        self.channels[1].update_coefficients(self.sample_rate(), self.cutoff, self.passband_ripple);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {

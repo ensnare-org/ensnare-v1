@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
 use derivative::Derivative;
 use ensnare_proc_macros::Control;
 
@@ -13,7 +14,6 @@ pub(crate) trait Delays {
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub(crate) struct DelayLine {
-    sample_rate: SampleRate,
     #[derivative(Default(value = "0.1.into()"))]
     delay: Seconds,
     #[derivative(Default(value = "0.1"))]
@@ -22,10 +22,22 @@ pub(crate) struct DelayLine {
     buffer_size: usize,
     buffer_pointer: usize,
     buffer: Vec<Sample>,
+
+    c: Configurables,
 }
 impl Configurable for DelayLine {
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.c.update_sample_rate(sample_rate);
         self.resize_buffer();
     }
 }
@@ -53,7 +65,7 @@ impl DelayLine {
     }
 
     fn resize_buffer(&mut self) {
-        self.buffer_size = (self.sample_rate * self.delay).into();
+        self.buffer_size = (self.c.sample_rate() * self.delay).into();
         self.buffer = Vec::with_capacity(self.buffer_size);
         self.buffer.resize(self.buffer_size, Sample::SILENCE);
         self.buffer_pointer = 0;

@@ -4,15 +4,15 @@ use crate::prelude::*;
 use eframe::egui::{Slider, Widget};
 
 pub struct BiQuadFilterBandPassWidget<'a> {
-    filter: &'a mut crate::cores::BiQuadFilterBandPass,
+    filter: &'a mut crate::cores::effects::BiQuadFilterBandPass,
 }
 impl<'a> BiQuadFilterBandPassWidget<'a> {
-    fn new_with(filter: &'a mut crate::cores::BiQuadFilterBandPass) -> Self {
+    fn new_with(filter: &'a mut crate::cores::effects::BiQuadFilterBandPass) -> Self {
         Self { filter }
     }
 
     pub fn widget(
-        filter: &'a mut crate::cores::BiQuadFilterBandPass,
+        filter: &'a mut crate::cores::effects::BiQuadFilterBandPass,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| BiQuadFilterBandPassWidget::new_with(filter).ui(ui)
     }
@@ -37,15 +37,15 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandPassWidget<'a> {
     }
 }
 pub struct BiQuadFilterBandStopWidget<'a> {
-    filter: &'a mut crate::cores::BiQuadFilterBandStop,
+    filter: &'a mut crate::cores::effects::BiQuadFilterBandStop,
 }
 impl<'a> BiQuadFilterBandStopWidget<'a> {
-    fn new_with(filter: &'a mut crate::cores::BiQuadFilterBandStop) -> Self {
+    fn new_with(filter: &'a mut crate::cores::effects::BiQuadFilterBandStop) -> Self {
         Self { filter }
     }
 
     pub fn widget(
-        filter: &'a mut crate::cores::BiQuadFilterBandStop,
+        filter: &'a mut crate::cores::effects::BiQuadFilterBandStop,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| BiQuadFilterBandStopWidget::new_with(filter).ui(ui)
     }
@@ -70,15 +70,15 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandStopWidget<'a> {
     }
 }
 pub struct BiQuadFilterLowPass24dbWidget<'a> {
-    filter: &'a mut crate::cores::BiQuadFilterLowPass24db,
+    filter: &'a mut crate::cores::effects::BiQuadFilterLowPass24db,
 }
 impl<'a> BiQuadFilterLowPass24dbWidget<'a> {
-    fn new_with(filter: &'a mut crate::cores::BiQuadFilterLowPass24db) -> Self {
+    fn new_with(filter: &'a mut crate::cores::effects::BiQuadFilterLowPass24db) -> Self {
         Self { filter }
     }
 
     pub fn widget(
-        filter: &'a mut crate::cores::BiQuadFilterLowPass24db,
+        filter: &'a mut crate::cores::effects::BiQuadFilterLowPass24db,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| BiQuadFilterLowPass24dbWidget::new_with(filter).ui(ui)
     }
@@ -104,15 +104,15 @@ impl<'a> eframe::egui::Widget for BiQuadFilterLowPass24dbWidget<'a> {
 }
 
 pub struct BiQuadFilterHighPassWidget<'a> {
-    filter: &'a mut crate::cores::BiQuadFilterHighPass,
+    filter: &'a mut crate::cores::effects::BiQuadFilterHighPass,
 }
 impl<'a> BiQuadFilterHighPassWidget<'a> {
-    fn new_with(filter: &'a mut crate::cores::BiQuadFilterHighPass) -> Self {
+    fn new_with(filter: &'a mut crate::cores::effects::BiQuadFilterHighPass) -> Self {
         Self { filter }
     }
 
     pub fn widget(
-        filter: &'a mut crate::cores::BiQuadFilterHighPass,
+        filter: &'a mut crate::cores::effects::BiQuadFilterHighPass,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| BiQuadFilterHighPassWidget::new_with(filter).ui(ui)
     }
@@ -138,15 +138,15 @@ impl<'a> eframe::egui::Widget for BiQuadFilterHighPassWidget<'a> {
 }
 
 pub struct BiQuadFilterAllPassWidget<'a> {
-    filter: &'a mut crate::cores::BiQuadFilterAllPass,
+    filter: &'a mut crate::cores::effects::BiQuadFilterAllPass,
 }
 impl<'a> BiQuadFilterAllPassWidget<'a> {
-    fn new(filter: &'a mut crate::cores::BiQuadFilterAllPass) -> Self {
+    fn new(filter: &'a mut crate::cores::effects::BiQuadFilterAllPass) -> Self {
         Self { filter }
     }
 
     pub fn widget(
-        filter: &'a mut crate::cores::BiQuadFilterAllPass,
+        filter: &'a mut crate::cores::effects::BiQuadFilterAllPass,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| BiQuadFilterAllPassWidget::new(filter).ui(ui)
     }

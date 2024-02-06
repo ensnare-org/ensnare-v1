@@ -13,6 +13,9 @@ pub struct MidiSequencer {
     is_recording: bool,
     is_performing: bool,
     max_event_time: MusicalTime,
+
+    #[builder(default)]
+    c: Configurables,
 }
 impl SequencesMidi for MidiSequencer {
     fn clear(&mut self) {
@@ -43,17 +46,16 @@ impl SequencesMidi for MidiSequencer {
     }
 }
 impl Configurable for MidiSequencer {
-    fn sample_rate(&self) -> SampleRate {
-        // I was too lazy to add this everywhere when I added this to the trait,
-        // but I didn't want unexpected usage to go undetected.
-        panic!("Someone asked for a SampleRate but we provided default");
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
-
-    fn update_sample_rate(&mut self, _sample_rate: SampleRate) {}
-
-    fn update_tempo(&mut self, _tempo: Tempo) {}
-
-    fn update_time_signature(&mut self, _time_signature: TimeSignature) {}
 }
 impl Controls for MidiSequencer {
     fn update_time_range(&mut self, range: &TimeRange) {

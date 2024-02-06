@@ -75,7 +75,7 @@ impl EntityGuiExplorer {
             if ui.button(key.to_string()).clicked() && self.selected_key != Some(key.clone()) {
                 if !self.entities.contains_key(key) {
                     let uid = self.uid_factory.mint_next();
-                    if let Some(entity) = self.factory.new_entity(key.clone(), uid) {
+                    if let Some(entity) = self.factory.new_entity(key, uid) {
                         self.entities.insert(key.clone(), entity);
                     } else {
                         panic!("Couldn't create new entity {key}")

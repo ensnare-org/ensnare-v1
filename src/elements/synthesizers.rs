@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
 use serde::{Deserialize, Serialize};
 
 /// [Synthesizer] provides the smallest possible functional core of a
@@ -15,8 +16,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Synthesizer<V: IsStereoSampleVoice> {
-    sample_rate: SampleRate,
-
     #[serde(skip)]
     voice_store: Option<Box<dyn StoresVoices<Voice = V>>>,
 
@@ -30,7 +29,11 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
 
     pan: BipolarNormal,
 
+    #[serde(skip)]
     ticks_since_last_midi_input: usize,
+
+    #[serde(skip)]
+    c: Configurables,
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
     fn value(&self) -> StereoSample {
@@ -52,14 +55,32 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
-    fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn time_signature(&self) -> TimeSignature;
+        }
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.c.update_sample_rate(sample_rate);
         if let Some(vs) = self.voice_store.as_mut() {
             vs.update_sample_rate(sample_rate);
+        }
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.c.update_tempo(tempo);
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.update_tempo(tempo);
+        }
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.c.update_time_signature(time_signature);
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.update_time_signature(time_signature);
         }
     }
 }
@@ -76,7 +97,7 @@ impl<V: IsStereoSampleVoice> Synthesizer<V> {
     pub fn new_with(voice_store: Box<dyn StoresVoices<Voice = V>>) -> Self {
         Self {
             voice_store: Some(voice_store),
-            sample_rate: Default::default(),
+            c: Default::default(),
             pitch_bend: Default::default(),
             channel_aftertouch: Default::default(),
             gain: Default::default(),

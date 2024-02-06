@@ -102,9 +102,13 @@ impl SamplerVoice {
             sample_pointer_delta: Default::default(),
         }
     }
+
+    pub fn set_root_frequency(&mut self, root_frequency: FrequencyHz) {
+        self.root_frequency = root_frequency;
+    }
 }
 
-#[derive(Control, Default, Serialize, Deserialize)]
+#[derive(Debug, Control, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Sampler {
     path: PathBuf,
@@ -113,19 +117,15 @@ pub struct Sampler {
     root: FrequencyHz,
 
     #[serde(skip)]
+    e: SamplerEphemerals,
+}
+#[derive(Debug, Default)]
+pub struct SamplerEphemerals {
     calculated_root: FrequencyHz,
 
-    #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
-}
-impl std::fmt::Debug for Sampler {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Sampler")
-            .field("filename", &self.path)
-            .field("root", &self.root)
-            .field("calculated_root", &self.calculated_root)
-            .finish()
-    }
+
+    c: Configurables,
 }
 impl HandlesMidi for Sampler {
     fn handle_midi_message(
@@ -134,29 +134,50 @@ impl HandlesMidi for Sampler {
         message: MidiMessage,
         midi_messages_fn: &mut MidiMessagesFn,
     ) {
-        self.inner_synth
+        self.e
+            .inner_synth
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
 impl Generates<StereoSample> for Sampler {
     fn value(&self) -> StereoSample {
-        self.inner_synth.value()
+        self.e.inner_synth.value()
     }
 
     #[allow(dead_code, unused_variables)]
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate(values);
+        self.e.inner_synth.generate(values);
     }
 }
 impl Ticks for Sampler {
     fn tick(&mut self, tick_count: usize) {
-        self.inner_synth.tick(tick_count)
+        self.e.inner_synth.tick(tick_count)
     }
 }
 impl Serializable for Sampler {}
 impl Configurable for Sampler {
+    fn sample_rate(&self) -> SampleRate {
+        self.e.inner_synth.sample_rate()
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.inner_synth.update_sample_rate(sample_rate)
+        self.e.inner_synth.update_sample_rate(sample_rate)
+    }
+
+    fn tempo(&self) -> Tempo {
+        self.e.c.tempo()
+    }
+
+    fn update_tempo(&mut self, tempo: Tempo) {
+        self.e.c.update_tempo(tempo)
+    }
+
+    fn time_signature(&self) -> TimeSignature {
+        self.e.c.time_signature()
+    }
+
+    fn update_time_signature(&mut self, time_signature: TimeSignature) {
+        self.e.c.update_time_signature(time_signature)
     }
 }
 impl Sampler {
@@ -166,7 +187,7 @@ impl Sampler {
         let samples = Self::read_samples_from_file(&file)?;
         let samples = Arc::new(samples);
 
-        self.calculated_root = if self.root.0 > 0.0 {
+        self.e.calculated_root = if self.root.0 > 0.0 {
             self.root
         } else
         // if let Ok(embedded_root_note) = Self::read_riff_metadata(&mut f2) {
@@ -176,11 +197,11 @@ impl Sampler {
             FrequencyHz::from(440.0)
         };
 
-        self.inner_synth = Synthesizer::<SamplerVoice>::new_with(Box::new(VoiceStore::<
+        self.e.inner_synth = Synthesizer::<SamplerVoice>::new_with(Box::new(VoiceStore::<
             SamplerVoice,
         >::new_with_voice(
             VoiceCount::from(8),
-            || SamplerVoice::new_with_samples(Arc::clone(&samples), self.calculated_root),
+            || SamplerVoice::new_with_samples(Arc::clone(&samples), self.e.calculated_root),
         )));
 
         Ok(())
@@ -189,15 +210,20 @@ impl Sampler {
     pub fn new_with(path: PathBuf, root: Option<FrequencyHz>) -> Self {
         let samples = Arc::new(Vec::default());
         let calculated_root = root.unwrap_or_default();
-        Self {
+        let e = SamplerEphemerals {
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
                 VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
                     SamplerVoice::new_with_samples(Arc::clone(&samples), calculated_root)
                 }),
             )),
+            calculated_root,
+            ..Default::default()
+        };
+
+        Self {
+            e,
             path,
             root: calculated_root,
-            calculated_root,
         }
     }
 
@@ -319,15 +345,18 @@ impl Sampler {
 
     pub fn set_root(&mut self, root: FrequencyHz) {
         self.root = root;
-        todo!("propagate to voices")
+        self.e
+            .inner_synth
+            .voices_mut()
+            .for_each(|v| v.set_root_frequency(root));
     }
 
     pub fn calculated_root(&self) -> FrequencyHz {
-        self.calculated_root
+        self.e.calculated_root
     }
 
     pub fn set_calculated_root(&mut self, calculated_root: FrequencyHz) {
-        self.calculated_root = calculated_root;
+        self.e.calculated_root = calculated_root;
     }
 
     pub fn path(&self) -> &PathBuf {

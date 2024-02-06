@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use crate::prelude::*;
+use crate::{cores::effects, prelude::*};
 use ensnare_proc_macros::{InnerTransformsAudio, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +44,7 @@ impl TestEffect {
 #[serde(rename_all = "kebab-case")]
 pub struct TestEffectNegatesInput {
     uid: Uid,
-    inner: crate::cores::TestEffectNegatesInput,
+    inner: effects::TestEffectNegatesInput,
 }
 impl TestEffectNegatesInput {
     pub fn new_with(uid: Uid) -> Self {

@@ -2,6 +2,7 @@
 
 use super::delay::{DelayLine, Delays};
 use crate::prelude::*;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
@@ -41,8 +42,15 @@ impl TransformsAudio for Chorus {
     }
 }
 impl Configurable for Chorus {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.delay_line.update_sample_rate(sample_rate);
+    delegate! {
+        to self.delay_line {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl Chorus {

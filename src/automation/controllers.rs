@@ -5,6 +5,7 @@
 //! useful for testing and for programmatic song composition.
 
 use crate::{prelude::*, util::Rng};
+use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
@@ -16,9 +17,15 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub struct Timer {
     duration: MusicalTime,
+
+    #[serde(skip)]
     is_performing: bool,
+    #[serde(skip)]
     is_finished: bool,
+    #[serde(skip)]
     end_time: Option<MusicalTime>,
+    #[serde(skip)]
+    c: Configurables,
 }
 impl Serializable for Timer {}
 #[allow(missing_docs)]
@@ -39,7 +46,18 @@ impl Timer {
     }
 }
 impl HandlesMidi for Timer {}
-impl Configurable for Timer {}
+impl Configurable for Timer {
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+}
 impl Controls for Timer {
     fn update_time_range(&mut self, range: &TimeRange) {
         if self.is_performing {
@@ -124,11 +142,15 @@ impl Controls for Trigger {
     }
 }
 impl Configurable for Trigger {
-    fn sample_rate(&self) -> SampleRate {
-        self.timer.sample_rate()
-    }
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.timer.update_sample_rate(sample_rate)
+    delegate! {
+        to self.timer {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl HandlesMidi for Trigger {}

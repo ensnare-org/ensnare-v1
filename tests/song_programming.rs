@@ -54,7 +54,7 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .add_entity(
             track_uid,
             factory
-                .new_entity(EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
+                .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
             None,
         )
@@ -68,7 +68,7 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .add_entity(
             track_uid,
             factory
-                .new_entity(EntityKey::from("filter-low-pass-24db"), Uid::default())
+                .new_entity(&EntityKey::from("filter-low-pass-24db"), Uid::default())
                 .unwrap(),
             None,
         )
@@ -111,7 +111,7 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .add_entity(
             track_uid,
             factory
-                .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
             None,
         )
@@ -125,7 +125,7 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .add_entity(
             track_uid,
             factory
-                .new_entity(EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
+                .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                 .unwrap(),
             None,
         )

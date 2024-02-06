@@ -61,7 +61,7 @@ fn aux_bus() {
             .add_entity(
                 track_uid_1,
                 factory
-                    .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None
             )
@@ -70,7 +70,7 @@ fn aux_bus() {
             .add_entity(
                 track_uid_1,
                 factory
-                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None,
             )
@@ -88,7 +88,7 @@ fn aux_bus() {
             .add_entity(
                 track_uid_2,
                 factory
-                    .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None
             )
@@ -97,7 +97,7 @@ fn aux_bus() {
             .add_entity(
                 track_uid_2,
                 factory
-                    .new_entity(EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None,
             )
@@ -112,7 +112,7 @@ fn aux_bus() {
             .add_entity(
                 aux_track_uid,
                 factory
-                    .new_entity(EntityKey::from(Gain::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None,
             )
@@ -121,7 +121,7 @@ fn aux_bus() {
             .add_entity(
                 aux_track_uid,
                 factory
-                    .new_entity(EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
+                    .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                     .unwrap(),
                 None,
             )

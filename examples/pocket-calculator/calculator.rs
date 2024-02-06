@@ -18,7 +18,7 @@ use eframe::{
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
 use ensnare::{
-    cores::{Sampler, SamplerVoice},
+    cores::instruments::{Sampler, SamplerVoice},
     elements::VoicePerNoteStore,
     prelude::*,
     util::Paths,

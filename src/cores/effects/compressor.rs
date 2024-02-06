@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +31,9 @@ pub struct Compressor {
     /// Expressed as a [Normal] that is scaled to an amount of time.
     #[control]
     release: Normal,
+
+    #[serde(skip)]
+    c: Configurables,
 }
 impl Serializable for Compressor {}
 impl TransformsAudio for Compressor {
@@ -49,7 +53,18 @@ impl TransformsAudio for Compressor {
         }
     }
 }
-impl Configurable for Compressor {}
+impl Configurable for Compressor {
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+}
 impl Compressor {
     pub fn new_with(threshold: Normal, ratio: Ratio, attack: Normal, release: Normal) -> Self {
         Self {

@@ -2,7 +2,7 @@
 
 pub mod filter;
 
-use crate::prelude::*;
+use crate::{cores::effects, prelude::*};
 use eframe::egui::Slider;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
@@ -24,13 +24,13 @@ use serde::{Deserialize, Serialize};
 #[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 pub struct Bitcrusher {
     uid: Uid,
-    inner: crate::cores::Bitcrusher,
+    inner: effects::Bitcrusher,
 }
 impl Displays for Bitcrusher {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut bits = self.inner.bits();
         let response =
-            ui.add(Slider::new(&mut bits, crate::cores::Bitcrusher::bits_range()).suffix(" bits"));
+            ui.add(Slider::new(&mut bits, effects::Bitcrusher::bits_range()).suffix(" bits"));
         if response.changed() {
             self.inner.set_bits(bits);
         };
@@ -41,7 +41,7 @@ impl Bitcrusher {
     pub fn new_with(uid: Uid, bits: u8) -> Self {
         Self {
             uid,
-            inner: crate::cores::Bitcrusher::new_with(bits),
+            inner: effects::Bitcrusher::new_with(bits),
         }
     }
 }
@@ -62,7 +62,7 @@ impl Bitcrusher {
 
 pub struct Chorus {
     uid: Uid,
-    inner: crate::cores::Chorus,
+    inner: effects::Chorus,
 }
 impl Displays for Chorus {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -73,7 +73,7 @@ impl Chorus {
     pub fn new_with(uid: Uid, voices: usize, delay: Seconds) -> Self {
         Self {
             uid,
-            inner: crate::cores::Chorus::new_with(voices, delay),
+            inner: effects::Chorus::new_with(voices, delay),
         }
     }
 }
@@ -94,7 +94,7 @@ impl Chorus {
 
 pub struct Compressor {
     uid: Uid,
-    inner: crate::cores::Compressor,
+    inner: effects::Compressor,
 }
 impl Displays for Compressor {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -147,7 +147,7 @@ impl Compressor {
     ) -> Self {
         Self {
             uid,
-            inner: crate::cores::Compressor::new_with(threshold, ratio, attack, release),
+            inner: effects::Compressor::new_with(threshold, ratio, attack, release),
         }
     }
 }
@@ -168,7 +168,7 @@ impl Compressor {
 
 pub struct Gain {
     uid: Uid,
-    inner: crate::cores::Gain,
+    inner: effects::Gain,
 }
 impl Displays for Gain {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -189,7 +189,7 @@ impl Gain {
     pub fn new_with(uid: Uid, ceiling: Normal) -> Self {
         Self {
             uid,
-            inner: crate::cores::Gain::new_with(ceiling),
+            inner: effects::Gain::new_with(ceiling),
         }
     }
 }
@@ -210,7 +210,7 @@ impl Gain {
 
 pub struct Limiter {
     uid: Uid,
-    inner: crate::cores::Limiter,
+    inner: effects::Limiter,
 }
 impl Displays for Limiter {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -241,7 +241,7 @@ impl Limiter {
     pub fn new_with(uid: Uid, minimum: Normal, maximum: Normal) -> Self {
         Self {
             uid,
-            inner: crate::cores::Limiter::new_with(minimum, maximum),
+            inner: effects::Limiter::new_with(minimum, maximum),
         }
     }
 }
@@ -262,7 +262,7 @@ impl Limiter {
 
 pub struct Reverb {
     uid: Uid,
-    inner: crate::cores::Reverb,
+    inner: effects::Reverb,
 }
 impl Displays for Reverb {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -273,7 +273,7 @@ impl Reverb {
     pub fn new_with(uid: Uid, attenuation: Normal, seconds: Seconds) -> Self {
         Self {
             uid,
-            inner: crate::cores::Reverb::new_with(attenuation, seconds),
+            inner: effects::Reverb::new_with(attenuation, seconds),
         }
     }
 }

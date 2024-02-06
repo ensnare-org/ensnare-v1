@@ -86,8 +86,8 @@ impl<E: EntityBounds + ?Sized> EntityFactory<E> {
 
     /// Creates a new entity of the type corresponding to the given [EntityKey]
     /// with the given [Uid].
-    pub fn new_entity(&self, key: EntityKey, uid: Uid) -> Option<Box<E>> {
-        if let Some(f) = self.entities.get(&key) {
+    pub fn new_entity(&self, key: &EntityKey, uid: Uid) -> Option<Box<E>> {
+        if let Some(f) = self.entities.get(key) {
             let mut entity = f(uid);
             entity.set_uid(uid);
             Some(entity)
