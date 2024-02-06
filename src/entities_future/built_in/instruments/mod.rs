@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::utils::Paths;
 use crate::cores::LfoRouting;
 use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
 use crate::prelude::*;

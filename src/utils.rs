@@ -1,5 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! Various helpers.
+
+/// The most commonly used imports.
+pub mod prelude {
+    pub use super::Paths;
+}
+
 use app_dirs2::{AppDataType, AppInfo};
 use std::{
     env::{current_dir, current_exe},

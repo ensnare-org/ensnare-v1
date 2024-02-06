@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::core::utils::Paths;
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use ensnare_proc_macros::Control;
@@ -343,7 +342,7 @@ impl Sampler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::utils::FileType;
+    use crate::utils::FileType;
     use std::path::PathBuf;
 
     fn paths_with_test_data_dir() -> Paths {

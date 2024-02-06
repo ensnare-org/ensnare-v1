@@ -9,17 +9,6 @@ pub use automation::Automator;
 pub use composition::Composer;
 pub use orchestration::Orchestrator;
 
-// pub mod compositionx {
-//     //! Creation and representation of music scores.
-
-//     pub use ensnare_core::composition::{Note, Pattern, PatternBuilder, PatternUid};
-
-//     /// The most commonly used imports.
-//     pub mod prelude {
-//         pub use super::{Note, PatternBuilder, PatternUid};
-//     }
-// }
-
 pub mod entities {
     //! Built-in musical instruments and supporting infrastructure.
     //!
@@ -68,16 +57,6 @@ pub mod entities {
     }
 }
 
-pub mod utils {
-    //! Various helpers.
-    pub use crate::core::utils::Paths;
-
-    /// The most commonly used imports.
-    pub mod prelude {
-        pub use super::Paths;
-    }
-}
-
 pub use all_entities::EnsnareEntities;
 pub use version::app_version;
 
@@ -100,6 +79,7 @@ pub mod time;
 pub mod traits;
 pub mod types;
 pub mod uid;
+pub mod utils;
 
 /// A collection of imports that are useful to users of this crate. `use
 /// ensnare::prelude::*;` for easier onboarding.

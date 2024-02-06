@@ -21,8 +21,6 @@ pub mod rng;
 pub mod sequence_repository;
 /// Unique identifiers.
 pub mod uid;
-/// Helper functions.
-pub mod utils;
 
 pub use rng::Rng;
 
