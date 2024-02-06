@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities_future::{Drumkit, Reverb},
+    entities::{Drumkit, Reverb},
     prelude::*,
 };
 use ensnare_toys::prelude::*;

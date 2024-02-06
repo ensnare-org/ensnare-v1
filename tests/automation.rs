@@ -2,7 +2,7 @@
 
 use ensnare::{
     automation::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
-    entities_future::{BuiltInEntities, LfoController},
+    entities::{BuiltInEntities, LfoController},
     prelude::*,
 };
 use ensnare_toys::prelude::*;

@@ -4,14 +4,13 @@
 //! use them.
 
 use crate::{
-    entities_future::{
+    entities::{
         Arpeggiator, BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
         BiQuadFilterHighPass, BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Drumkit,
         FmSynth, Gain, LfoController, Limiter, Reverb, Sampler, SignalPassthroughController, Timer,
         Trigger, WelshSynth,
     },
     prelude::*,
-    utils::Paths,
 };
 use std::path::PathBuf;
 

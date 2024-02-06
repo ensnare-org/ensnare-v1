@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
-use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use delegate::delegate;
 use serde::{Deserialize, Serialize};
@@ -310,7 +309,7 @@ impl Serializable for EntityRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities_future::TestInstrument;
+    use crate::entities::TestInstrument;
     use more_asserts::assert_gt;
 
     #[test]

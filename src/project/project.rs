@@ -543,7 +543,7 @@ impl Serializable for Project {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities_future::{
+    use crate::entities::{
         TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
         TestInstrument, TestInstrumentCountsMidiMessages,
     };

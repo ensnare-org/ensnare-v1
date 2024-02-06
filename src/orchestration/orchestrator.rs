@@ -6,7 +6,6 @@ use super::{
     BusStation,
 };
 use crate::prelude::*;
-use crate::prelude::*;
 use anyhow::Result;
 use delegate::delegate;
 use serde::{Deserialize, Serialize};
@@ -291,7 +290,7 @@ impl Mixer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cores::TestEffectNegatesInput, entities_future::TestInstrument};
+    use crate::{cores::TestEffectNegatesInput, entities::TestInstrument};
 
     #[test]
     fn orchestrator_mainline() {
