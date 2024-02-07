@@ -105,13 +105,14 @@ pub struct TrackWidgetInfo<'a> {
 
 #[derive(Debug, Display)]
 pub enum TrackWidgetAction {
-    /// The user selected an entity with the given uid and name. The UI should
-    /// show that entity's detail view.
+    /// Show the entity's detail view.
     SelectEntity(Uid, String),
-    /// The user wants to remove the specified entity from the signal chain.
+    /// Remove the specified entity from the signal chain.
     RemoveEntity(Uid),
-    /// This track's title bar was clicked.
+    /// Respond to a click on the track's title bar.
     Clicked,
+    /// Add a new device to this track.
+    NewDevice(String),
 }
 
 /// An egui component that draws a track.
@@ -326,6 +327,9 @@ impl<'a> Widget for TrackWidget<'a> {
                                     }
                                     SignalChainWidgetAction::Remove(uid) => {
                                         *self.action = Some(TrackWidgetAction::RemoveEntity(uid));
+                                    }
+                                    SignalChainWidgetAction::NewDevice(key) => {
+                                        *self.action = Some(TrackWidgetAction::NewDevice(key))
                                     }
                                 }
                             }

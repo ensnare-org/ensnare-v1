@@ -15,7 +15,7 @@ use strum_macros::Display;
 /// Actions that widgets might need the parent to perform.
 #[derive(Clone, Debug, Display)]
 pub enum ProjectAction {
-    /// A track wants a new device of type [Key].
+    /// A track wants a new device of type [EntityKey].
     NewDeviceForTrack(TrackUid, EntityKey),
     /// The user selected an entity with the given uid and name. The UI should
     /// show that entity's detail view.
@@ -113,6 +113,12 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                     .view_state
                                     .track_selection_set
                                     .click(&track_uid, implement_this_bool_please);
+                            }
+                            TrackWidgetAction::NewDevice(key) => {
+                                *self.action = Some(ProjectAction::NewDeviceForTrack(
+                                    track_uid,
+                                    EntityKey::from(key),
+                                ));
                             }
                         }
                     }

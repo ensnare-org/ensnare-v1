@@ -20,6 +20,7 @@ pub fn signal_chain_widget<'a>(
 pub enum SignalChainWidgetAction {
     Select(Uid, String),
     Remove(Uid),
+    NewDevice(String),
 }
 
 struct SignalChainWidget<'a> {
@@ -83,8 +84,14 @@ impl<'a> Widget for SignalChainWidget<'a> {
                         );
                     });
                     if let Some(payload) = payload {
-                        eprintln!("{payload:?}");
-                        //DropTarget::Track(self.track_uid),
+                        match payload.as_ref() {
+                            DragSource::NewDevice(key) => {
+                                *self.action =
+                                    Some(SignalChainWidgetAction::NewDevice(key.clone()));
+                            }
+                            DragSource::Pattern(_) => todo!(),
+                            DragSource::ControlSource(_) => todo!(),
+                        }
                     }
                     ui.allocate_space(ui.available_size());
                 })
