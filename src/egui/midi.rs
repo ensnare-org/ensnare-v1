@@ -28,6 +28,7 @@ impl<'a> MidiSettingsWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         settings: &'a mut MidiSettings,
         inputs: &'a [MidiPortDescriptor],

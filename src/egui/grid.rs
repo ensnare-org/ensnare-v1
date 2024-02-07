@@ -27,6 +27,7 @@ impl GridWidget {
         self
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(range: ViewRange, view_range: ViewRange) -> impl eframe::egui::Widget {
         move |ui: &mut eframe::egui::Ui| {
             GridWidget::default()

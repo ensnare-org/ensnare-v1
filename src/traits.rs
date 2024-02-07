@@ -24,6 +24,7 @@ pub use crate::automation::{
 };
 
 use crate::prelude::*;
+use strum_macros::Display;
 
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
@@ -476,6 +477,14 @@ pub trait HasMetadata {
 }
 
 #[cfg(feature = "egui")]
+#[derive(Debug, Display)]
+pub enum DisplaysAction {
+    // During the ui() call, the entity determined that controller entity Uid
+    // wants to link with us at control param index ControlIndex.
+    Link(Uid, ControlIndex),
+}
+
+#[cfg(feature = "egui")]
 /// Something that can be called during egui rendering to display a view of
 /// itself.
 //
@@ -484,6 +493,12 @@ pub trait Displays {
     /// Renders this Entity. Returns a [Response](egui::Response).
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.label("Coming soon!")
+    }
+
+    fn set_action(&mut self, action: DisplaysAction) {}
+    /// Also resets the action to None
+    fn take_action(&mut self) -> Option<DisplaysAction> {
+        None
     }
 
     /// Indicates which section of the timeline is being displayed. Entities

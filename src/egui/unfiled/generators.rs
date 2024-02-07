@@ -23,6 +23,7 @@ impl<'a> OscillatorWidget<'a> {
         Self { oscillator }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
     }
@@ -38,6 +39,7 @@ impl<'a> EnvelopeWidget<'a> {
         Self { envelope }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(envelope: &'a mut Envelope) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| EnvelopeWidget::new(envelope).ui(ui)
     }
@@ -225,6 +227,7 @@ impl<'a> EnvelopeShaperWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         attack: &'a mut Normal,
         decay: &'a mut Normal,

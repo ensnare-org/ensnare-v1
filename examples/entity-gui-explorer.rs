@@ -11,7 +11,7 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
-use ensnare::{app_version, egui::DragDropManager, prelude::*};
+use ensnare::{app_version, prelude::*};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -187,9 +187,6 @@ fn main() -> anyhow::Result<()> {
     // result to register_factory_entities().
     let factory = EntityFactory::<dyn EntityBounds>::default();
     let factory = BuiltInEntities::register(factory).finalize();
-    if DragDropManager::initialize(DragDropManager::default()).is_err() {
-        return Err(anyhow!("Couldn't set DragDropManager once_cell"));
-    }
 
     if let Err(e) = eframe::run_native(
         EntityGuiExplorer::NAME,

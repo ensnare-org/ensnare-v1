@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    egui::{DcaWidget, EnvelopeWidget, OscillatorWidget},
+    egui::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
 use ensnare_proc_macros::{
@@ -27,11 +27,17 @@ use serde::{Deserialize, Serialize};
 pub struct ToyInstrument {
     uid: Uid,
     inner: crate::cores::ToyInstrument,
+
+    #[serde(skip)]
+    dca_widget_action: Option<DcaWidgetAction>,
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.add(OscillatorWidget::widget(&mut self.inner.oscillator))
-            | ui.add(DcaWidget::widget(&mut self.inner.dca, self.uid))
+            | ui.add(DcaWidget::widget(
+                &mut self.inner.dca,
+                &mut self.dca_widget_action,
+            ))
     }
 }
 impl ToyInstrument {
@@ -39,6 +45,7 @@ impl ToyInstrument {
         Self {
             uid,
             inner: crate::cores::ToyInstrument::new(),
+            dca_widget_action: Default::default(),
         }
     }
 }

@@ -15,6 +15,7 @@ impl<'a> TransportWidget<'a> {
         Self { transport }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(transport: &'a mut Transport) -> impl Widget + 'a {
         move |ui: &mut Ui| TransportWidget::new_with(transport).ui(ui)
     }
@@ -106,6 +107,7 @@ impl<'a> TimeSignatureWidget<'a> {
         Self { time_signature }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(time_signature: &'a mut TimeSignature) -> impl Widget + 'a {
         move |ui: &mut Ui| TimeSignatureWidget::new_with(time_signature).ui(ui)
     }

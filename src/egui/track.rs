@@ -3,8 +3,8 @@
 use super::{
     colors::ColorSchemeConverter,
     cursor::CursorWidget,
-    signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
-    DragSource, DropTarget, GridWidget,
+    signal_chain::{SignalChainItem, SignalChainWidget, SignalChainWidgetAction},
+    GridWidget,
 };
 use crate::{
     egui::unfiled::fill_remaining_ui_space, orchestration::TrackTitle, prelude::*,
@@ -112,7 +112,7 @@ pub enum TrackWidgetAction {
     /// Respond to a click on the track's title bar.
     Clicked,
     /// Add a new device to this track.
-    NewDevice(String),
+    NewDevice(EntityKey),
 }
 
 /// An egui component that draws a track.
@@ -142,6 +142,7 @@ impl<'a> TrackWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         track_info: &'a TrackWidgetInfo<'a>,
         composer: &'a mut Composer,
@@ -151,18 +152,6 @@ impl<'a> TrackWidget<'a> {
         move |ui: &mut eframe::egui::Ui| {
             TrackWidget::new(track_info, composer, view_state, action).ui(ui)
         }
-    }
-
-    // Looks at what's being dragged, if anything, and updates any state needed
-    // to handle it. Returns whether we are interested in this drag source.
-    fn check_drag_source_for_timeline() -> bool {
-        // if let Some(source) = DragDropManager::source() {
-        //     if matches!(source, DragSource::Pattern(..)) {
-        //         return true;
-        //     }
-        // }
-        // false
-        true
     }
 }
 impl<'a> Widget for TrackWidget<'a> {
@@ -209,9 +198,8 @@ impl<'a> Widget for TrackWidget<'a> {
 
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
-                        let can_accept = Self::check_drag_source_for_timeline();
                         let mut time = None;
-                        let (_, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
+                        let (_, payload) = ui.dnd_drop_zone::<PatternUid>(Frame::default(), |ui| {
                             // Determine the rectangle that all the composited
                             // layers will use.
                             let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
@@ -300,21 +288,22 @@ impl<'a> Widget for TrackWidget<'a> {
                                 None
                             };
                         });
-                        // Note drag/drop position
-                        let (a, b) = if let Some(time) = time {
-                            ((), DropTarget::TrackPosition(track_uid, time))
-                        } else {
-                            ((), DropTarget::Track(track_uid))
-                        };
-                        if let Some(payload) = payload {
-                            eprintln!("{payload:?} {b:?}");
+                        if let Some(pattern_uid) = payload {
+                            if let Some(time) = time {
+                                let position =
+                                    time.quantized_to_measure(&self.composer.time_signature());
+                                let _ = self.composer.arrange_pattern(
+                                    track_uid,
+                                    *pattern_uid,
+                                    position,
+                                );
+                            }
                         }
 
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {
                             let mut action = None;
-                            ui.add(signal_chain_widget(
-                                track_uid,
+                            ui.add(SignalChainWidget::widget(
                                 self.track_info.signal_items,
                                 &mut action,
                             ));
@@ -513,6 +502,7 @@ impl<'a> TrackArrangementWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         track_uid: TrackUid,
         composer: &'a mut Composer,

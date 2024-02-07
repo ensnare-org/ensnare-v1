@@ -21,6 +21,7 @@ impl<'a> TimelineIconStripWidget<'a> {
         Self { action }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         action: &'a mut Option<TimelineIconStripAction>,
     ) -> impl eframe::egui::Widget + 'a {

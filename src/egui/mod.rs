@@ -13,18 +13,17 @@ pub use controllers::{
     ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,
 };
 pub use cursor::CursorWidget;
-pub use drag_drop::{DragSource, DropTarget};
 pub use effects::{
     BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
     BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget,
 };
 pub use entities::EntityPaletteWidget;
-pub use fm::FmSynthWidget;
+pub use fm::{FmSynthWidget, FmSynthWidgetAction};
 pub use grid::GridWidget;
-pub use instruments::{SamplerWidget, WelshWidget};
+pub use instruments::{SamplerWidget, WelshWidget, WelshWidgetAction};
 pub use legend::LegendWidget;
 pub use midi::MidiSettingsWidget;
-pub use modulators::DcaWidget;
+pub use modulators::{DcaWidget, DcaWidgetAction};
 pub use project::{ProjectAction, ProjectWidget};
 pub use signal_chain::SignalChainItem;
 pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
@@ -37,7 +36,6 @@ mod colors;
 mod composer;
 mod controllers;
 mod cursor;
-mod drag_drop;
 mod effects;
 mod entities;
 mod fm;

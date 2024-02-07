@@ -1,10 +1,15 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::cores::{effects, instruments};
+#[cfg(feature = "egui")]
+use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
+use crate::{
+    cores::{effects, instruments},
+    traits::DisplaysAction,
+};
 use crate::{prelude::*, util::Paths};
 use ensnare_proc_macros::{
-    Control, InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument,
-    InnerSerializable, IsEntity, Metadata,
+    InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
+    IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -37,9 +42,9 @@ impl Drumkit {
 }
 
 #[derive(
-    Control,
     Debug,
     InnerConfigurable,
+    InnerControllable,
     InnerHandlesMidi,
     InnerInstrument,
     InnerSerializable,
@@ -52,6 +57,14 @@ impl Drumkit {
 pub struct FmSynth {
     uid: Uid,
     inner: instruments::FmSynth,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    widget_action: Option<FmSynthWidgetAction>,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    action: Option<DisplaysAction>,
 }
 impl FmSynth {
     pub fn new_with(
@@ -77,6 +90,8 @@ impl FmSynth {
                 beta,
                 dca,
             ),
+            widget_action: Default::default(),
+            action: Default::default(),
         }
     }
 }
@@ -127,6 +142,10 @@ impl Sampler {
 pub struct WelshSynth {
     uid: Uid,
     inner: instruments::WelshSynth,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    widget_action: Option<WelshWidgetAction>,
 }
 impl WelshSynth {
     pub fn new_with(
@@ -162,6 +181,7 @@ impl WelshSynth {
                 filter_cutoff_end,
                 filter_envelope,
             ),
+            widget_action: Default::default(),
         }
     }
 
@@ -188,7 +208,10 @@ impl WelshSynth {
 #[cfg(feature = "egui")]
 mod egui {
     use super::*;
-    use crate::egui::{FmSynthWidget, SamplerWidget, WelshWidget};
+    use crate::{
+        egui::{FmSynthWidget, SamplerWidget, WelshWidget},
+        traits::DisplaysAction,
+    };
 
     impl Displays for Drumkit {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -198,7 +221,26 @@ mod egui {
 
     impl Displays for FmSynth {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.add(FmSynthWidget::widget(&mut self.inner, self.uid))
+            let response = ui.add(FmSynthWidget::widget(
+                &mut self.inner,
+                &mut self.widget_action,
+            ));
+            if let Some(action) = self.widget_action.take() {
+                match action {
+                    FmSynthWidgetAction::Link(uid, index) => {
+                        self.set_action(DisplaysAction::Link(uid, index));
+                    }
+                }
+            }
+            response
+        }
+
+        fn set_action(&mut self, action: DisplaysAction) {
+            self.action = Some(action);
+        }
+
+        fn take_action(&mut self) -> Option<DisplaysAction> {
+            self.action.take()
         }
     }
 
@@ -210,7 +252,10 @@ mod egui {
 
     impl Displays for WelshSynth {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.add(WelshWidget::widget(self.uid, &mut self.inner))
+            ui.add(WelshWidget::widget(
+                &mut self.inner,
+                &mut self.widget_action,
+            ))
         }
     }
 }

@@ -19,6 +19,7 @@ impl<'a> WaveformWidget<'a> {
         Self { waveform }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(waveform: &'a mut Waveform) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| WaveformWidget::new(waveform).ui(ui)
     }
@@ -56,6 +57,7 @@ impl<'a> FrequencyWidget<'a> {
         Self { range, frequency }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         range: FrequencyRange,
         frequency: &'a mut FrequencyHz,
@@ -122,6 +124,7 @@ impl<'a> TimeDomainWidget<'a> {
         Self { slice_1, slice_2 }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(slice_1: &'a [Sample], slice_2: &'a [Sample]) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| TimeDomainWidget::new(slice_1, slice_2).ui(ui)
     }
@@ -175,6 +178,7 @@ impl<'a> FrequencyDomainWidget<'a> {
         Self { values }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(values: &[f32]) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| FrequencyDomainWidget::new(values).ui(ui)
     }

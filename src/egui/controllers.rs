@@ -36,6 +36,7 @@ impl<'a> TripWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         uid: Uid,
         trip: &'a mut ControlTrip,
@@ -283,6 +284,7 @@ impl<'a> PatternSequencerWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         sequencer: &'a mut PatternSequencer,
         view_range: &'a ViewRange,
@@ -311,6 +313,7 @@ impl<'a> NoteSequencerWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         sequencer: &'a mut NoteSequencer,
         view_range: &'a ViewRange,
@@ -334,6 +337,7 @@ impl<'a> ArpeggiatorWidget<'a> {
         Self { inner: entity }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(entity: &'a mut Arpeggiator) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| ArpeggiatorWidget::new(entity).ui(ui)
     }
@@ -386,6 +390,7 @@ impl<'a> LfoControllerWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         waveform: &'a mut Waveform,
         frequency: &'a mut FrequencyHz,

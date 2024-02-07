@@ -26,6 +26,7 @@ use ensnare::{
         TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
     },
     prelude::*,
+    traits::DisplaysAction,
 };
 use std::{
     path::PathBuf,
@@ -363,8 +364,17 @@ impl MiniDaw {
                     if let Ok(mut project) = project.write() {
                         ui.heading(self.rendering_state.detail_title.as_str());
                         ui.separator();
+                        let mut action = None;
                         if let Some(entity) = project.orchestrator.entity_repo.entity_mut(uid) {
                             entity.ui(ui);
+                            action = entity.take_action();
+                        }
+                        if let Some(action) = action {
+                            match action {
+                                DisplaysAction::Link(controller_uid, index) => {
+                                    let _ = project.link(controller_uid, uid, index);
+                                }
+                            }
                         }
                     }
                 }

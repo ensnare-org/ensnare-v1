@@ -17,6 +17,7 @@ impl<'a> DragNormalWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(normal: &'a mut Normal, prefix: &'a str) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| DragNormalWidget::new(normal).prefix(prefix).ui(ui)
     }

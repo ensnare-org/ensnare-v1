@@ -1,27 +1,40 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::modulators::DcaWidget;
+use super::modulators::{DcaWidget, DcaWidgetAction};
 use crate::{
+    cores::instruments,
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
 use eframe::egui::{CollapsingHeader, Slider, Widget};
+use strum_macros::Display;
+
+#[derive(Debug, Display)]
+pub enum FmSynthWidgetAction {
+    /// Link the current entity's ControlIndex parameter to the output of entity
+    /// Uid.
+    Link(Uid, ControlIndex),
+}
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
-    uid: Uid,
-    inner: &'a mut crate::cores::instruments::FmSynth,
+    inner: &'a mut instruments::FmSynth,
+    action: &'a mut Option<FmSynthWidgetAction>,
 }
 impl<'a> FmSynthWidget<'a> {
-    fn new(inner: &'a mut crate::cores::instruments::FmSynth, uid: Uid) -> Self {
-        Self { uid, inner }
+    fn new(
+        inner: &'a mut instruments::FmSynth,
+        action: &'a mut Option<FmSynthWidgetAction>,
+    ) -> Self {
+        Self { inner, action }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut crate::cores::instruments::FmSynth,
-        controllable_uid: Uid,
-    ) -> impl eframe::egui::Widget + '_ {
-        move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, controllable_uid).ui(ui)
+        inner: &'a mut instruments::FmSynth,
+        action: &'a mut Option<FmSynthWidgetAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, action).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
@@ -94,7 +107,18 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
-                let response = ui.add(DcaWidget::widget(&mut self.inner.dca, self.uid));
+                let mut action = None;
+                let response = ui.add(DcaWidget::widget(&mut self.inner.dca, &mut action));
+                if let Some(action) = action {
+                    match action {
+                        DcaWidgetAction::Link(uid, index) => {
+                            *self.action = Some(FmSynthWidgetAction::Link(
+                                uid,
+                                index + instruments::FmSynth::DCA_INDEX,
+                            ));
+                        }
+                    }
+                }
                 if response.changed() {
                     self.inner.notify_change_dca();
                 }

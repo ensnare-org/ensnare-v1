@@ -87,6 +87,7 @@ impl<'a> ComposerWidget<'a> {
         Self { composer }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(composer: &'a mut Composer) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| ComposerWidget::new(composer).ui(ui)
     }
@@ -202,6 +203,7 @@ impl PatternGridWidget {
         self
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         time_signature: TimeSignature,
         note_range: RangeInclusive<u8>,
@@ -366,6 +368,7 @@ impl<'a> PatternEditorWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         pattern: &'a mut Pattern,
         note_range: RangeInclusive<u8>,

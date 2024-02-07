@@ -1,38 +1,32 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use core::borrow::Borrow;
-
-use super::{DragSource, DropTarget};
 use crate::prelude::*;
 use eframe::egui::{Frame, Slider, Widget};
+use strum_macros::Display;
+
+#[derive(Debug, Display)]
+pub enum DcaWidgetAction {
+    Link(Uid, ControlIndex),
+}
 
 /// An egui widget for [Dca].
 #[derive(Debug)]
 pub struct DcaWidget<'a> {
     dca: &'a mut Dca,
-    controllable_uid: Uid,
+    action: &'a mut Option<DcaWidgetAction>,
 }
 impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;
-            let (response, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
+            let (response, payload) = ui.dnd_drop_zone::<Uid>(Frame::default(), |ui| {
                 ui.add(Slider::new(&mut value, Normal::range()).text("Gain"));
-                // Some(DropTarget::Controllable(
-                //     self.controllable_uid,
-                //     Dca::GAIN_INDEX.into(),
-                // )),
             });
-            if let Some(payload) = payload {
-                match payload.borrow() {
-                    DragSource::NewDevice(_) => todo!(),
-                    DragSource::Pattern(_) => todo!(),
-                    DragSource::ControlSource(uid) => eprintln!(
-                        "connect source {uid} to {}:{}",
-                        self.controllable_uid,
-                        Dca::GAIN_INDEX
-                    ),
-                }
+            if let Some(controller_uid) = payload {
+                *self.action = Some(DcaWidgetAction::Link(
+                    *controller_uid,
+                    Dca::GAIN_INDEX.into(),
+                ));
             }
             ui.end_row();
             if response.changed() {
@@ -41,19 +35,14 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
             response
         } | {
             let mut value = self.dca.pan().0;
-            let (response, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
+            let (response, payload) = ui.dnd_drop_zone::<Uid>(Frame::default(), |ui| {
                 ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"));
             });
-            if let Some(payload) = payload {
-                match payload.borrow() {
-                    DragSource::NewDevice(_) => todo!(),
-                    DragSource::Pattern(_) => todo!(),
-                    DragSource::ControlSource(uid) => eprintln!(
-                        "connect source {uid} to {}:{}",
-                        self.controllable_uid,
-                        Dca::PAN_INDEX
-                    ),
-                }
+            if let Some(controller_uid) = payload {
+                *self.action = Some(DcaWidgetAction::Link(
+                    *controller_uid,
+                    Dca::PAN_INDEX.into(),
+                ));
             }
             ui.end_row();
             if response.changed() {
@@ -66,14 +55,15 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     }
 }
 impl<'a> DcaWidget<'a> {
-    fn new(dca: &'a mut Dca, controllable_uid: Uid) -> Self {
-        Self {
-            dca,
-            controllable_uid,
-        }
+    fn new(dca: &'a mut Dca, action: &'a mut Option<DcaWidgetAction>) -> Self {
+        Self { dca, action }
     }
 
-    pub fn widget(dca: &'a mut Dca, controllable_uid: Uid) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, controllable_uid).ui(ui)
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
+    pub fn widget(
+        dca: &'a mut Dca,
+        action: &'a mut Option<DcaWidgetAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| DcaWidget::new(dca, action).ui(ui)
     }
 }

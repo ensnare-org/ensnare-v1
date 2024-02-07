@@ -1,10 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{
-    egui::{colors::ColorSchemeConverter, DragSource},
-    prelude::*,
-    util::SelectionSet,
-};
+use crate::{egui::colors::ColorSchemeConverter, prelude::*, util::SelectionSet};
 use eframe::{
     egui::{Id as EguiId, Image, ImageButton, Sense, Widget},
     emath::RectTransform,
@@ -57,6 +53,7 @@ impl<'a> IconWidget<'a> {
         self
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         duration: MusicalTime,
         notes: &[Note],
@@ -76,7 +73,8 @@ impl<'a> IconWidget<'a> {
 impl<'a> eframe::egui::Widget for IconWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.spacing().interact_size.y * eframe::egui::vec2(3.0, 3.0);
-        let (rect, response) = ui.allocate_exact_size(desired_size, eframe::egui::Sense::click());
+        let (rect, response) =
+            ui.allocate_exact_size(desired_size, eframe::egui::Sense::click_and_drag());
 
         let visuals = if ui.is_enabled() {
             ui.ctx().style().visuals.widgets.active
@@ -175,6 +173,7 @@ impl<'a> CarouselWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         pattern_uids: &'a [PatternUid],
         uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
@@ -204,6 +203,7 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                             colors,
                             self.selection_set.contains(pattern_uid),
                         ));
+                        icon_response.dnd_set_drag_payload(pattern_uid.clone());
                         let context_response = icon_response.context_menu(|ui| {
                             if ui.button("Delete pattern").clicked() {
                                 *self.action = Some(CarouselAction::DeletePattern(*pattern_uid));
@@ -214,9 +214,6 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                         };
                     }
                     let dd_id = EguiId::new("piano roll").with(pattern_uid);
-                    ui.dnd_drag_source(dd_id, DragSource::Pattern(*pattern_uid), |ui| {
-                        ui.add(DraggableIconWidget::widget())
-                    });
                 });
             });
         })
@@ -236,6 +233,7 @@ impl GridWidget {
         self
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(duration: MusicalTime) -> impl eframe::egui::Widget {
         move |ui: &mut eframe::egui::Ui| Self::default().duration(duration).ui(ui)
     }
@@ -299,6 +297,7 @@ impl<'a> PatternWidget<'a> {
         Self { inner }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(inner: &'a mut Pattern) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| PatternWidget::new(inner).ui(ui)
     }

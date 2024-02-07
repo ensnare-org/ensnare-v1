@@ -1,118 +1,77 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{DragSource, DropTarget};
+use super::fill_remaining_ui_space;
 use crate::prelude::*;
-use eframe::egui::{Frame, Image, ImageButton, Widget};
+use eframe::egui::{Button, Frame, Sense, Widget};
 use strum_macros::Display;
 
+/// Utility
 pub type SignalChainItem = (Uid, String, bool);
-
-pub fn signal_chain_widget<'a>(
-    track_uid: TrackUid,
-    items: &'a [SignalChainItem],
-
-    action: &'a mut Option<SignalChainWidgetAction>,
-) -> impl Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(track_uid, items, action).ui(ui)
-}
 
 #[derive(Debug, Display)]
 pub enum SignalChainWidgetAction {
     Select(Uid, String),
     Remove(Uid),
-    NewDevice(String),
+    NewDevice(EntityKey),
 }
 
-struct SignalChainWidget<'a> {
-    track_uid: TrackUid,
+pub struct SignalChainWidget<'a> {
     items: &'a [SignalChainItem],
     action: &'a mut Option<SignalChainWidgetAction>,
 }
 impl<'a> SignalChainWidget<'a> {
-    pub fn new(
-        track_uid: TrackUid,
-        items: &'a [SignalChainItem],
-        action: &'a mut Option<SignalChainWidgetAction>,
-    ) -> Self {
-        Self {
-            track_uid,
-            items,
-            action,
-        }
+    fn new(items: &'a [SignalChainItem], action: &'a mut Option<SignalChainWidgetAction>) -> Self {
+        Self { items, action }
     }
 
-    // fn can_accept(&self) -> bool {
-    //     if let Some(source) = DragDropManager::source() {
-    //         matches!(source, DragSource::NewDevice(_))
-    //     } else {
-    //         false
-    //     }
-    // }
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
+    pub fn widget(
+        items: &'a [SignalChainItem],
+
+        action: &'a mut Option<SignalChainWidgetAction>,
+    ) -> impl Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| SignalChainWidget::new(items, action).ui(ui)
+    }
 }
 impl<'a> Widget for SignalChainWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let stroke = ui.ctx().style().visuals.noninteractive().bg_stroke;
-        let response = eframe::egui::Frame::default()
-            .stroke(stroke)
-            .inner_margin(eframe::egui::Margin::same(stroke.width / 2.0))
-            .show(ui, |ui| {
-                ui.horizontal_top(|ui| {
-                    self.items
-                        .iter()
-                        .for_each(|(uid, name, is_control_source)| {
-                            let item_response =
-                                ui.add(signal_item(*uid, name.clone(), *is_control_source));
-                            let _ = item_response.context_menu(|ui| {
-                                if ui.button("Remove").clicked() {
-                                    *self.action = Some(SignalChainWidgetAction::Remove(*uid));
-                                }
-                            });
-                            if item_response.clicked() {
-                                *self.action =
-                                    Some(SignalChainWidgetAction::Select(*uid, name.clone()));
+        let (response, payload) = ui.dnd_drop_zone::<EntityKey>(Frame::default(), |ui| {
+            ui.horizontal_centered(|ui| {
+                self.items
+                    .iter()
+                    .for_each(|(uid, name, is_control_source)| {
+                        let item_response = ui.add(SignalItemWidget::widget(
+                            *uid,
+                            name.clone(),
+                            *is_control_source,
+                        ));
+                        let _ = item_response.context_menu(|ui| {
+                            if ui.button("Remove").clicked() {
+                                *self.action = Some(SignalChainWidgetAction::Remove(*uid));
                             }
                         });
-                    let (r, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
-                        ui.add_enabled(
-                            false,
-                            ImageButton::new(
-                                Image::new(eframe::egui::include_image!(
-                                    "../../res/images/md-symbols/playlist_add_circle.png"
-                                ))
-                                .fit_to_original_size(1.0),
-                            ),
-                        );
-                    });
-                    if let Some(payload) = payload {
-                        match payload.as_ref() {
-                            DragSource::NewDevice(key) => {
-                                *self.action =
-                                    Some(SignalChainWidgetAction::NewDevice(key.clone()));
-                            }
-                            DragSource::Pattern(_) => todo!(),
-                            DragSource::ControlSource(_) => todo!(),
+                        if item_response.clicked() {
+                            *self.action =
+                                Some(SignalChainWidgetAction::Select(*uid, name.clone()));
                         }
-                    }
-                    ui.allocate_space(ui.available_size());
-                })
-                .inner
+                    });
+                fill_remaining_ui_space(ui);
             })
-            .response;
+            .inner
+        });
+        if let Some(payload) = payload {
+            *self.action = Some(SignalChainWidgetAction::NewDevice(payload.as_ref().clone()));
+        }
         response
     }
 }
 
-/// Wraps a [SignalItem] as a [Widget](eframe::egui::Widget).
-fn signal_item<'a>(uid: Uid, name: String, is_control_source: bool) -> impl Widget + 'a {
-    move |ui: &mut eframe::egui::Ui| SignalItem::new(uid, name, is_control_source).ui(ui)
-}
-
-struct SignalItem {
+struct SignalItemWidget {
     uid: Uid,
     name: String,
     is_control_source: bool,
 }
-impl SignalItem {
+impl SignalItemWidget {
     fn new(uid: Uid, name: String, is_control_source: bool) -> Self {
         Self {
             uid,
@@ -120,24 +79,19 @@ impl SignalItem {
             is_control_source,
         }
     }
+
+    fn widget(uid: Uid, name: String, is_control_source: bool) -> impl Widget {
+        move |ui: &mut eframe::egui::Ui| SignalItemWidget::new(uid, name, is_control_source).ui(ui)
+    }
 }
-impl Widget for SignalItem {
+impl Widget for SignalItemWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.is_control_source {
-            ui.horizontal(|ui| {
-                let icon = Image::new(eframe::egui::include_image!(
-                    "../../res/images/md-symbols/drag_indicator.png"
-                ))
-                .fit_to_original_size(1.0);
-                let response = ui.button(&self.name);
-                ui.dnd_drag_source(
-                    eframe::egui::Id::new(self.uid),
-                    DragSource::ControlSource(self.uid),
-                    |ui| ui.add(ImageButton::new(icon).tint(ui.ctx().style().visuals.text_color())),
-                );
-                response
-            })
-            .inner
+            let response = ui.add(Button::new(&self.name).sense(Sense::click_and_drag()));
+            // We do this rather than wrapping with Ui::dnd_drag_source()
+            // because of https://github.com/emilk/egui/issues/2730.
+            response.dnd_set_drag_payload(self.uid);
+            response
         } else {
             ui.button(self.name)
         }

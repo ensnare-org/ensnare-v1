@@ -24,9 +24,8 @@ use ensnare::{
 };
 use ensnare::{
     egui::{
-        analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, DragDropManager,
-        DragSource, DropTarget, FrequencyDomainWidget, GridWidget, LegendWidget,
-        NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
+        analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, FrequencyDomainWidget,
+        GridWidget, LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
     },
     types::VisualizationQueue,
     util::Rng,
@@ -157,12 +156,9 @@ impl Widget for PretendDevicePalette {
                 .show(ui, |ui| {
                     ui.horizontal_centered(|ui| {
                         for key in self.keys.iter() {
-                            DragDropManager::drag_source(
-                                ui,
-                                Id::new(key),
-                                DragSource::NewDevice(key.to_string()),
-                                |ui| ui.label(key.to_string()),
-                            );
+                            ui.dnd_drag_source(Id::new(key), key.clone(), |ui| {
+                                ui.label(key.to_string())
+                            });
                         }
                     })
                     .response
@@ -791,15 +787,6 @@ impl eframe::App for WidgetExplorer {
         center.show(ctx, |ui| {
             self.show_center(ui);
         });
-
-        if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            if let DragSource::NewDevice(_) = source {
-                todo!()
-            }
-            if let DropTarget::Controllable(_, _) = target {
-                todo!()
-            }
-        }
     }
 }
 
@@ -815,9 +802,6 @@ fn main() -> anyhow::Result<()> {
     };
 
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
-    if DragDropManager::initialize(DragDropManager::default()).is_err() {
-        return Err(anyhow!("Couldn't set DragDropManager once_cell"));
-    }
 
     if let Err(e) = eframe::run_native(
         WidgetExplorer::NAME,

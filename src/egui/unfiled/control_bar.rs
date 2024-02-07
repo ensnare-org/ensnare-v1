@@ -79,6 +79,7 @@ impl<'a> ControlBarWidget<'a> {
         }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         control_bar: &'a mut ControlBar,
         action: &'a mut Option<ControlBarAction>,

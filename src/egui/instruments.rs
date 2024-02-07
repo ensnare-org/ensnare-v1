@@ -1,11 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{effects::BiQuadFilterLowPass24dbWidget, modulators::DcaWidget};
+use super::{
+    effects::BiQuadFilterLowPass24dbWidget,
+    modulators::{DcaWidget, DcaWidgetAction},
+};
 use crate::{
+    cores::instruments::WelshSynth,
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
 use eframe::egui::{CollapsingHeader, Slider, Widget};
+use strum_macros::Display;
 
 #[derive(Debug)]
 pub struct SamplerWidget<'a> {
@@ -16,6 +21,7 @@ impl<'a> SamplerWidget<'a> {
         Self { inner }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         inner: &'a mut crate::cores::instruments::Sampler,
     ) -> impl eframe::egui::Widget + '_ {
@@ -28,21 +34,30 @@ impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
     }
 }
 
+#[derive(Debug, Display)]
+pub enum WelshWidgetAction {
+    Link(Uid, ControlIndex),
+}
+
 #[derive(Debug)]
 pub struct WelshWidget<'a> {
-    uid: Uid,
     inner: &'a mut crate::cores::instruments::WelshSynth,
+    action: &'a mut Option<WelshWidgetAction>,
 }
 impl<'a> WelshWidget<'a> {
-    fn new(uid: Uid, inner: &'a mut crate::cores::instruments::WelshSynth) -> Self {
-        Self { uid, inner }
+    fn new(
+        inner: &'a mut crate::cores::instruments::WelshSynth,
+        action: &'a mut Option<WelshWidgetAction>,
+    ) -> Self {
+        Self { inner, action }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        uid: Uid,
         inner: &'a mut crate::cores::instruments::WelshSynth,
-    ) -> impl eframe::egui::Widget + '_ {
-        move |ui: &mut eframe::egui::Ui| WelshWidget::new(uid, inner).ui(ui)
+        action: &'a mut Option<WelshWidgetAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| WelshWidget::new(inner, action).ui(ui)
     }
 }
 impl<'a> eframe::egui::Widget for WelshWidget<'a> {
@@ -83,11 +98,22 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
+                let mut action = None;
                 if ui
-                    .add(DcaWidget::widget(&mut self.inner.dca, self.uid))
+                    .add(DcaWidget::widget(&mut self.inner.dca, &mut action))
                     .changed()
                 {
                     self.inner.notify_change_dca();
+                }
+                if let Some(action) = action {
+                    match action {
+                        DcaWidgetAction::Link(controller_uid, index) => {
+                            *self.action = Some(WelshWidgetAction::Link(
+                                controller_uid,
+                                index + WelshSynth::DCA_INDEX,
+                            ))
+                        }
+                    }
                 }
             })
             .header_response;

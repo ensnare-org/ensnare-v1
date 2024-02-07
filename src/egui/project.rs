@@ -135,6 +135,7 @@ impl<'a> ProjectWidget<'a> {
         Self { project, action }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         project: &'a mut Project,
         action: &'a mut Option<ProjectAction>,

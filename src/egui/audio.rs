@@ -12,6 +12,7 @@ impl<'a> AudioSettingsWidget<'a> {
         Self { settings }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(settings: &mut AudioSettings) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| AudioSettingsWidget::new_with(settings).ui(ui)
     }

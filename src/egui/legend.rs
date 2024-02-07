@@ -19,6 +19,7 @@ impl<'a> LegendWidget<'a> {
         Self { view_range }
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(view_range: &mut ViewRange) -> impl eframe::egui::Widget + '_ {
         move |ui: &mut eframe::egui::Ui| LegendWidget::new(view_range).ui(ui)
     }
@@ -54,10 +55,6 @@ impl<'a> eframe::egui::Widget for LegendWidget<'a> {
                 ui.style().noninteractive().text_color(),
             );
         }
-        ui.painter().line_segment(
-            [rect.left_bottom(), rect.right_bottom()],
-            ui.style().noninteractive().bg_stroke,
-        );
 
         response.context_menu(|ui| {
             if ui.button("Start x2").clicked() {

@@ -89,6 +89,17 @@ impl MiniDawEntities {
             Box::new(WelshSynth::new_with_factory_patch(uid))
         });
 
+        // Temp so we have a control source
+        factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
+            Box::new(LfoController::new_with(
+                uid,
+                Oscillator::new_with_waveform_and_frequency(
+                    Waveform::Sawtooth,
+                    FrequencyHz::from(0.2),
+                ),
+            ))
+        });
+
         if false {
             // Controllers
             factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
