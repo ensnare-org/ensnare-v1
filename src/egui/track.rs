@@ -4,7 +4,7 @@ use super::{
     colors::ColorSchemeConverter,
     cursor::CursorWidget,
     signal_chain::{signal_chain_widget, SignalChainItem, SignalChainWidgetAction},
-    DragDropManager, DragSource, DropTarget, GridWidget,
+    DragSource, DropTarget, GridWidget,
 };
 use crate::{
     egui::unfiled::fill_remaining_ui_space, orchestration::TrackTitle, prelude::*,
@@ -73,6 +73,7 @@ impl eframe::egui::Widget for TitleBarWidget {
                             override_text_color: None,
                             angle: 2.0 * PI * 0.75,
                             fallback_color: Color32::YELLOW,
+                            opacity_factor: 1.0,
                         });
                         painter.add(t);
                     }
@@ -154,12 +155,13 @@ impl<'a> TrackWidget<'a> {
     // Looks at what's being dragged, if anything, and updates any state needed
     // to handle it. Returns whether we are interested in this drag source.
     fn check_drag_source_for_timeline() -> bool {
-        if let Some(source) = DragDropManager::source() {
-            if matches!(source, DragSource::Pattern(..)) {
-                return true;
-            }
-        }
-        false
+        // if let Some(source) = DragDropManager::source() {
+        //     if matches!(source, DragSource::Pattern(..)) {
+        //         return true;
+        //     }
+        // }
+        // false
+        true
     }
 }
 impl<'a> Widget for TrackWidget<'a> {
@@ -207,7 +209,8 @@ impl<'a> Widget for TrackWidget<'a> {
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
                         let can_accept = Self::check_drag_source_for_timeline();
-                        let _ = DragDropManager::drop_target(ui, can_accept, |ui| {
+                        let mut time = None;
+                        let (_, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
                             // Determine the rectangle that all the composited
                             // layers will use.
                             let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
@@ -278,7 +281,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                 }
                             }
 
-                            let time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                            time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
                                 let time_pos = from_screen * pointer_pos;
                                 let time = MusicalTime::new_with_units(time_pos.x as usize);
                                 if self.view_state.view_range.0.contains(&time) {
@@ -295,15 +298,16 @@ impl<'a> Widget for TrackWidget<'a> {
                             } else {
                                 None
                             };
-
-                            // Note drag/drop position
-                            if let Some(time) = time {
-                                ((), DropTarget::TrackPosition(track_uid, time))
-                            } else {
-                                ((), DropTarget::Track(track_uid))
-                            }
-                        })
-                        .response;
+                        });
+                        // Note drag/drop position
+                        let (a, b) = if let Some(time) = time {
+                            ((), DropTarget::TrackPosition(track_uid, time))
+                        } else {
+                            ((), DropTarget::Track(track_uid))
+                        };
+                        if let Some(payload) = payload {
+                            eprintln!("{payload:?} {b:?}");
+                        }
 
                         // Draw the signal chain view for every kind of track.
                         ui.scope(|ui| {

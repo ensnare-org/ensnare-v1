@@ -1,13 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{DragDropManager, DragSource, DropTarget};
+use super::{DragSource, DropTarget};
 use crate::prelude::*;
-use eframe::egui::{Image, ImageButton, Widget};
+use eframe::egui::{Frame, Image, ImageButton, Widget};
 use strum_macros::Display;
 
 pub type SignalChainItem = (Uid, String, bool);
 
-/// Wraps a [SignalChainWidget] as a [Widget](eframe::egui::Widget).
 pub fn signal_chain_widget<'a>(
     track_uid: TrackUid,
     items: &'a [SignalChainItem],
@@ -41,13 +40,13 @@ impl<'a> SignalChainWidget<'a> {
         }
     }
 
-    fn can_accept(&self) -> bool {
-        if let Some(source) = DragDropManager::source() {
-            matches!(source, DragSource::NewDevice(_))
-        } else {
-            false
-        }
-    }
+    // fn can_accept(&self) -> bool {
+    //     if let Some(source) = DragDropManager::source() {
+    //         matches!(source, DragSource::NewDevice(_))
+    //     } else {
+    //         false
+    //     }
+    // }
 }
 impl<'a> Widget for SignalChainWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -60,33 +59,33 @@ impl<'a> Widget for SignalChainWidget<'a> {
                     self.items
                         .iter()
                         .for_each(|(uid, name, is_control_source)| {
-                            let item_response = ui
-                                .add(signal_item(*uid, name.clone(), *is_control_source))
-                                .context_menu(|ui| {
-                                    if ui.button("Remove").clicked() {
-                                        *self.action = Some(SignalChainWidgetAction::Remove(*uid));
-                                    }
-                                });
+                            let item_response =
+                                ui.add(signal_item(*uid, name.clone(), *is_control_source));
+                            let _ = item_response.context_menu(|ui| {
+                                if ui.button("Remove").clicked() {
+                                    *self.action = Some(SignalChainWidgetAction::Remove(*uid));
+                                }
+                            });
                             if item_response.clicked() {
                                 *self.action =
                                     Some(SignalChainWidgetAction::Select(*uid, name.clone()));
                             }
                         });
-                    let _ = DragDropManager::drop_target(ui, self.can_accept(), |ui| {
-                        (
-                            ui.add_enabled(
-                                false,
-                                ImageButton::new(
-                                    Image::new(eframe::egui::include_image!(
-                                        "../../res/images/md-symbols/playlist_add_circle.png"
-                                    ))
-                                    .fit_to_original_size(1.0),
-                                ),
+                    let (r, payload) = ui.dnd_drop_zone::<DragSource>(Frame::default(), |ui| {
+                        ui.add_enabled(
+                            false,
+                            ImageButton::new(
+                                Image::new(eframe::egui::include_image!(
+                                    "../../res/images/md-symbols/playlist_add_circle.png"
+                                ))
+                                .fit_to_original_size(1.0),
                             ),
-                            DropTarget::Track(self.track_uid),
-                        )
-                    })
-                    .response;
+                        );
+                    });
+                    if let Some(payload) = payload {
+                        eprintln!("{payload:?}");
+                        //DropTarget::Track(self.track_uid),
+                    }
                     ui.allocate_space(ui.available_size());
                 })
                 .inner
@@ -124,8 +123,7 @@ impl Widget for SignalItem {
                 ))
                 .fit_to_original_size(1.0);
                 let response = ui.button(&self.name);
-                DragDropManager::drag_source(
-                    ui,
+                ui.dnd_drag_source(
                     eframe::egui::Id::new(self.uid),
                     DragSource::ControlSource(self.uid),
                     |ui| ui.add(ImageButton::new(icon).tint(ui.ctx().style().visuals.text_color())),

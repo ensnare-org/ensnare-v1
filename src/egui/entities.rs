@@ -1,8 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{DragDropManager, DragSource};
+//use super::{DragDropManager, DragSource};
 use crate::prelude::*;
 use eframe::egui::Widget;
+
+use super::DragSource;
 
 /// A tree view of devices that can be placed in tracks.
 #[derive(Debug)]
@@ -21,8 +23,7 @@ impl<'a> eframe::egui::Widget for EntityPaletteWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
             for key in self.keys {
-                DragDropManager::drag_source(
-                    ui,
+                ui.dnd_drag_source(
                     eframe::egui::Id::new(key),
                     DragSource::NewDevice(key.to_string()),
                     |ui| ui.label(key.to_string()),

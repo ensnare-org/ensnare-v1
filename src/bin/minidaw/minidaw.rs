@@ -22,7 +22,7 @@ use egui_toast::{Toast, ToastOptions, Toasts};
 use ensnare::{
     app_version,
     egui::{
-        ControlBar, ControlBarAction, ControlBarWidget, DragDropManager, DragSource, DropTarget,
+        ControlBar, ControlBarAction, ControlBarWidget,  DragSource, DropTarget,
         ObliqueStrategiesWidget, TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
     },
     prelude::*,
@@ -546,42 +546,42 @@ impl MiniDaw {
     }
 
     fn check_drag_and_drop(&mut self) {
-        if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
-            match source {
-                DragSource::NewDevice(ref key) => match target {
-                    DropTarget::Controllable(_, _) => todo!(),
-                    DropTarget::Track(track_uid) => {
-                        self.send_to_project(ProjectServiceInput::TrackAddEntity(
-                            track_uid,
-                            EntityKey::from(key),
-                        ));
-                    }
-                    DropTarget::TrackPosition(_, _) => {
-                        eprintln!("DropTarget::TrackPosition not implemented - ignoring");
-                    }
-                },
-                DragSource::Pattern(pattern_uid) => match target {
-                    DropTarget::Controllable(_, _) => todo!(),
-                    DropTarget::Track(_) => todo!(),
-                    DropTarget::TrackPosition(track_uid, position) => {
-                        self.send_to_project(ProjectServiceInput::PatternArrange(
-                            track_uid,
-                            pattern_uid,
-                            position,
-                        ));
-                    }
-                },
-                DragSource::ControlSource(source_uid) => match target {
-                    DropTarget::Controllable(target_uid, index) => {
-                        self.send_to_project(ProjectServiceInput::ProjectLinkControl(
-                            source_uid, target_uid, index,
-                        ));
-                    }
-                    DropTarget::Track(_) => todo!(),
-                    DropTarget::TrackPosition(_, _) => todo!(),
-                },
-            }
-        }
+        // if let Some((source, target)) = DragDropManager::check_and_clear_drop_event() {
+        //     match source {
+        //         DragSource::NewDevice(ref key) => match target {
+        //             DropTarget::Controllable(_, _) => todo!(),
+        //             DropTarget::Track(track_uid) => {
+        //                 self.send_to_project(ProjectServiceInput::TrackAddEntity(
+        //                     track_uid,
+        //                     EntityKey::from(key),
+        //                 ));
+        //             }
+        //             DropTarget::TrackPosition(_, _) => {
+        //                 eprintln!("DropTarget::TrackPosition not implemented - ignoring");
+        //             }
+        //         },
+        //         DragSource::Pattern(pattern_uid) => match target {
+        //             DropTarget::Controllable(_, _) => todo!(),
+        //             DropTarget::Track(_) => todo!(),
+        //             DropTarget::TrackPosition(track_uid, position) => {
+        //                 self.send_to_project(ProjectServiceInput::PatternArrange(
+        //                     track_uid,
+        //                     pattern_uid,
+        //                     position,
+        //                 ));
+        //             }
+        //         },
+        //         DragSource::ControlSource(source_uid) => match target {
+        //             DropTarget::Controllable(target_uid, index) => {
+        //                 self.send_to_project(ProjectServiceInput::ProjectLinkControl(
+        //                     source_uid, target_uid, index,
+        //                 ));
+        //             }
+        //             DropTarget::Track(_) => todo!(),
+        //             DropTarget::TrackPosition(_, _) => todo!(),
+        //         },
+        //     }
+        // }
     }
 
     #[allow(dead_code)]

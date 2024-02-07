@@ -72,6 +72,7 @@ impl<'a> eframe::egui::Widget for LegendWidget<'a> {
                 self.view_range.0.start += MusicalTime::new_with_beats(4);
                 ui.close_menu();
             }
-        })
+        });
+        response
     }
 }

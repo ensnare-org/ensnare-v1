@@ -13,7 +13,7 @@ pub use controllers::{
     ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,
 };
 pub use cursor::CursorWidget;
-pub use drag_drop::{DragDropManager, DragSource, DropTarget};
+pub use drag_drop::{DragSource, DropTarget};
 pub use effects::{
     BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
     BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget,

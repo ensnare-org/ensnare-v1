@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    egui::{colors::ColorSchemeConverter, DragDropManager, DragSource},
+    egui::{colors::ColorSchemeConverter, DragSource},
     prelude::*,
     util::SelectionSet,
 };
@@ -198,30 +198,25 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                     if let Some(pattern) = self.uids_to_patterns.get(pattern_uid) {
                         let colors: (Color32, Color32) =
                             ColorSchemeConverter::to_color32(pattern.color_scheme);
-                        let icon_response = ui
-                            .add(IconWidget::widget(
-                                pattern.duration(),
-                                pattern.notes(),
-                                colors,
-                                self.selection_set.contains(pattern_uid),
-                            ))
-                            .context_menu(|ui| {
-                                if ui.button("Delete pattern").clicked() {
-                                    *self.action =
-                                        Some(CarouselAction::DeletePattern(*pattern_uid));
-                                }
-                            });
+                        let icon_response = ui.add(IconWidget::widget(
+                            pattern.duration(),
+                            pattern.notes(),
+                            colors,
+                            self.selection_set.contains(pattern_uid),
+                        ));
+                        let context_response = icon_response.context_menu(|ui| {
+                            if ui.button("Delete pattern").clicked() {
+                                *self.action = Some(CarouselAction::DeletePattern(*pattern_uid));
+                            }
+                        });
                         if icon_response.clicked() {
                             self.selection_set.click(pattern_uid, false);
                         };
                     }
                     let dd_id = EguiId::new("piano roll").with(pattern_uid);
-                    DragDropManager::drag_source(
-                        ui,
-                        dd_id,
-                        DragSource::Pattern(*pattern_uid),
-                        |ui| ui.add(DraggableIconWidget::widget()),
-                    );
+                    ui.dnd_drag_source(dd_id, DragSource::Pattern(*pattern_uid), |ui| {
+                        ui.add(DraggableIconWidget::widget())
+                    });
                 });
             });
         })

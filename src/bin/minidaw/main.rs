@@ -8,7 +8,7 @@ use eframe::{
     egui::{Context, FontData, FontDefinitions, TextStyle},
     epaint::{Color32, FontFamily, FontId},
 };
-use ensnare::{egui::DragDropManager, prelude::*};
+use ensnare::prelude::*;
 use env_logger;
 use minidaw::MiniDaw;
 
@@ -120,9 +120,9 @@ fn main() -> anyhow::Result<()> {
 
     let factory = MiniDawEntities::register(EntityFactory::default()).finalize();
 
-    if DragDropManager::initialize(DragDropManager::default()).is_err() {
-        panic!("Couldn't set DragDropManager once_cell");
-    }
+    // if DragDropManager::initialize(DragDropManager::default()).is_err() {
+    //     panic!("Couldn't set DragDropManager once_cell");
+    // }
 
     if let Err(e) = eframe::run_native(
         MiniDaw::NAME,

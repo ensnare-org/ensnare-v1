@@ -29,7 +29,7 @@ pub enum DropTarget {
 // TODO: a way to express rules about what can and can't be dropped
 #[allow(missing_docs)]
 #[derive(Debug, Default)]
-pub struct DragDropManager {
+struct DragDropManager {
     source: Option<DragSource>,
     target: Option<DropTarget>,
 }
