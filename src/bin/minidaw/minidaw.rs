@@ -18,18 +18,19 @@ use eframe::{
     epaint::Vec2,
     App, CreationContext,
 };
-use egui_toast::{Toast, ToastOptions, Toasts};
+use egui_notify::Toasts;
 use ensnare::{
     app_version,
     egui::{
-        ControlBar, ControlBarAction, ControlBarWidget,  DragSource, DropTarget,
-        ObliqueStrategiesWidget, TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
+        ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
+        TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
     },
     prelude::*,
 };
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
+    time::Duration,
 };
 
 #[derive(Debug, Default)]
@@ -110,9 +111,7 @@ impl MiniDaw {
             factory,
             settings,
             control_bar,
-            toasts: Toasts::new()
-                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, (-10.0, -10.0))
-                .direction(eframe::egui::Direction::BottomUp),
+            toasts: Toasts::default(),
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
             rendering_state: Default::default(),
@@ -222,64 +221,43 @@ impl MiniDaw {
                             Self::set_window_title(ctx, &title);
 
                             if let Some(load_path) = project.load_path() {
-                                self.toasts.add(Toast {
-                                    kind: egui_toast::ToastKind::Success,
-                                    text: format!(
+                                self.toasts
+                                    .success(format!(
                                         "Loaded {} from {}",
                                         title,
                                         load_path.display().to_string()
-                                    )
-                                    .into(),
-                                    options: ToastOptions::default()
-                                        .duration_in_seconds(2.0)
-                                        .show_progress(false),
-                                });
+                                    ))
+                                    .set_duration(Some(Duration::from_secs(2)));
                             }
                         }
                         self.project = Some(new_project);
                     }
                     ProjectServiceEvent::LoadFailed(path, e) => {
-                        self.toasts.add(Toast {
-                            kind: egui_toast::ToastKind::Error,
-                            text: format!("Error loading from {path:?}: {e:?}").into(),
-                            options: ToastOptions::default()
-                                .duration_in_seconds(5.0)
-                                .show_progress(false),
-                        });
+                        self.toasts
+                            .error(format!("Error loading from {path:?}: {e:?}").to_string())
+                            .set_duration(Some(Duration::from_secs(5)));
                     }
                     ProjectServiceEvent::Saved(save_path) => {
                         // TODO: this should happen only if the save operation was
                         // explicit. Autosaves should be invisible.
-                        self.toasts.add(Toast {
-                            kind: egui_toast::ToastKind::Success,
-                            text: format!("Saved to {}", save_path.display()).into(),
-                            options: ToastOptions::default()
-                                .duration_in_seconds(1.0)
-                                .show_progress(false),
-                        });
+                        self.toasts
+                            .success(format!("Saved to {}", save_path.display()).to_string())
+                            .set_duration(Some(Duration::from_secs(2)));
                     }
                     ProjectServiceEvent::SaveFailed(e) => {
-                        self.toasts.add(Toast {
-                            kind: egui_toast::ToastKind::Error,
-                            text: format!("Error saving {}", e).into(),
-                            options: ToastOptions::default().duration_in_seconds(5.0),
-                        });
+                        self.toasts
+                            .error(format!("Error saving {}", e).to_string())
+                            .set_duration(Some(Duration::from_secs(5)));
                     }
                     ProjectServiceEvent::Exported(export_path) => {
-                        self.toasts.add(Toast {
-                            kind: egui_toast::ToastKind::Success,
-                            text: format!("Exported to {}", export_path.display()).into(),
-                            options: ToastOptions::default()
-                                .duration_in_seconds(1.0)
-                                .show_progress(false),
-                        });
+                        self.toasts
+                            .success(format!("Exported to {}", export_path.display()).to_string())
+                            .set_duration(Some(Duration::from_secs(2)));
                     }
                     ProjectServiceEvent::ExportFailed(e) => {
-                        self.toasts.add(Toast {
-                            kind: egui_toast::ToastKind::Error,
-                            text: format!("Error exporting {}", e).into(),
-                            options: ToastOptions::default().duration_in_seconds(5.0),
-                        });
+                        self.toasts
+                            .error(format!("Error exporting {}", e).to_string())
+                            .set_duration(Some(Duration::from_secs(5)));
                     }
                     ProjectServiceEvent::Midi(..) => {
                         panic!("ProjectServiceEvent::Midi should be handled by the aggregation service and never forwarded")
