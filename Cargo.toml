@@ -6,7 +6,7 @@ documentation = "https://docs.rs/ensnare/"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/ensnare-org/ensnare"
-version = "0.0.3"
+version = "0.0.4"
 
 [package]
 name = "ensnare"
@@ -66,7 +66,7 @@ egui_extras_xt = { git = "https://github.com/xTibor/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
-ensnare-toys = { version = "0.0.3", path = "toys" }
+ensnare-toys = { version = "0.0.4", path = "toys" }
 more-asserts = "0.3.1"
 regex = "1.7"
 strum = "0.26"
