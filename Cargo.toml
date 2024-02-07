@@ -83,6 +83,9 @@ path = "src/lib.rs"
 [workspace]
 members = ["toys", "proc-macros"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [profile.release]
 strip = true
 lto = true
