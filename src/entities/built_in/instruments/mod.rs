@@ -6,7 +6,7 @@ use crate::{
     cores::{
         effects::{BiQuadFilterLowPass24dbCore, BiQuadFilterLowPass24dbCoreBuilder},
         instruments::{
-            DrumkitCore, FmSynthCore, LfoRouting, SamplerCore, WelshSynthCore,
+            DrumkitCore, FmSynthCore, FmSynthCoreBuilder, LfoRouting, SamplerCore, WelshSynthCore,
             WelshSynthCoreBuilder,
         },
     },
@@ -92,6 +92,50 @@ impl FmSynth {
             widget_action: Default::default(),
             action: Default::default(),
         }
+    }
+
+    // A crisp, classic FM sound that brings me back to 1985.
+    pub(crate) fn new_with_factory_patch(uid: Uid) -> Self {
+        Self::new_with(
+            uid,
+            FmSynthCoreBuilder::default()
+                .carrier(
+                    OscillatorBuilder::default()
+                        .waveform(Waveform::Sine)
+                        .build()
+                        .unwrap(),
+                )
+                .carrier_envelope(
+                    EnvelopeBuilder::default()
+                        .attack(0.0001.into())
+                        .decay(0.0005.into())
+                        .sustain(0.60.into())
+                        .release(0.25.into())
+                        .build()
+                        .unwrap(),
+                )
+                .modulator(
+                    OscillatorBuilder::default()
+                        .waveform(Waveform::Sine)
+                        .build()
+                        .unwrap(),
+                )
+                .modulator_envelope(
+                    EnvelopeBuilder::default()
+                        .attack(0.0001.into())
+                        .decay(0.0005.into())
+                        .sustain(0.30.into())
+                        .release(0.25.into())
+                        .build()
+                        .unwrap(),
+                )
+                .depth(0.35.into())
+                .ratio(4.5.into())
+                .beta(40.0.into())
+                .dca(Dca::default())
+                .build()
+                .unwrap(),
+        )
     }
 }
 
@@ -188,7 +232,7 @@ impl WelshSynth {
                 )
                 .oscillator_2_sync(true)
                 .oscillator_mix(0.8.into())
-                .amp_envelope(Envelope::safe_default())
+                .amp_envelope(EnvelopeBuilder::safe_default().build().unwrap())
                 .dca(Dca::default())
                 .lfo(
                     OscillatorBuilder::default()
@@ -208,7 +252,7 @@ impl WelshSynth {
                 )
                 .filter_cutoff_start(Normal::from(0.1))
                 .filter_cutoff_end(Normal::from(0.8))
-                .filter_envelope(Envelope::safe_default())
+                .filter_envelope(EnvelopeBuilder::safe_default().build().unwrap())
                 .build()
                 .unwrap(),
         )

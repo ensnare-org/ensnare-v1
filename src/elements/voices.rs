@@ -437,12 +437,13 @@ pub(crate) mod tests {
             Self {
                 sample_rate: Default::default(),
                 oscillator: OscillatorBuilder::default().build().unwrap(),
-                envelope: Envelope::new_with(
-                    Normal::minimum(),
-                    Normal::minimum(),
-                    Normal::maximum(),
-                    Normal::minimum(),
-                ),
+                envelope: EnvelopeBuilder::default()
+                    .attack(Normal::minimum())
+                    .decay(Normal::minimum())
+                    .sustain(Normal::maximum())
+                    .release(Normal::minimum())
+                    .build()
+                    .unwrap(),
                 sample: Default::default(),
                 note_on_key: Default::default(),
                 note_on_velocity: Default::default(),

@@ -177,31 +177,7 @@ impl BuiltInEntities {
             Box::new(Drumkit::new_with(uid, "feed-me-seymour", &Paths::default()))
         });
         factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |uid| {
-            // A crisp, classic FM sound that brings me back to 1985.
-            Box::new(FmSynth::new_with(
-                uid,
-                FmSynthCoreBuilder::default()
-                    .carrier(
-                        OscillatorBuilder::default()
-                            .waveform(Waveform::Sine)
-                            .build()
-                            .unwrap(),
-                    )
-                    .carrier_envelope(Envelope::safe_default())
-                    .modulator(
-                        OscillatorBuilder::default()
-                            .waveform(Waveform::Square)
-                            .build()
-                            .unwrap(),
-                    )
-                    .modulator_envelope(Envelope::default())
-                    .depth(1.0.into())
-                    .ratio(16.0.into())
-                    .beta(10.0.into())
-                    .dca(Dca::default())
-                    .build()
-                    .unwrap(),
-            ))
+            Box::new(FmSynth::new_with_factory_patch(uid))
         });
         factory.register_entity_with_str_key(Sampler::ENTITY_KEY, |uid| {
             let mut sampler = Sampler::new_with(uid, PathBuf::from("stereo-pluck.wav"), None);

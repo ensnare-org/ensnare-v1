@@ -191,7 +191,7 @@ mod tests {
     fn toy_synth_control() {
         let mut synth = ToySynthCore::new_with(
             OscillatorBuilder::default().build().unwrap(),
-            Envelope::safe_default(),
+            EnvelopeBuilder::safe_default().build().unwrap(),
             Dca::default(),
         );
 

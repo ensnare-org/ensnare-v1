@@ -312,8 +312,8 @@ struct ToySynthSettings {
     hide: bool,
     #[derivative(Default(value = "ToySynth::new_with(
         Uid::default(),
-        Oscillator::default(),
-        Envelope::safe_default(),
+        OscillatorBuilder::default().build().unwrap(),
+        EnvelopeBuilder::safe_default().build().unwrap(),
         Dca::default(),
     )"))]
     toy_synth: ToySynth,

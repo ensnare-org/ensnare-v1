@@ -433,8 +433,9 @@ enum State {
     Shutdown,
 }
 
-#[derive(Clone, Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Clone, Builder, Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default)]
 pub struct Envelope {
     #[control]
     attack: Normal,
@@ -446,7 +447,19 @@ pub struct Envelope {
     release: Normal,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     e: EnvelopeEphemerals,
+}
+impl EnvelopeBuilder {
+    pub fn safe_default() -> Self {
+        Self {
+            attack: Some(0.002.into()),
+            decay: Some(0.005.into()),
+            sustain: Some(0.8.into()),
+            release: Some(0.01.into()),
+            e: Default::default(),
+        }
+    }
 }
 #[derive(Clone, Debug, Default)]
 pub struct EnvelopeEphemerals {
@@ -550,20 +563,6 @@ impl Ticks for Envelope {
 impl Envelope {
     pub const MIN_SECONDS: f64 = 0.0;
     pub const MAX_SECONDS: f64 = 30.0;
-
-    pub fn new_with(attack: Normal, decay: Normal, sustain: Normal, release: Normal) -> Self {
-        Self {
-            attack,
-            decay,
-            sustain,
-            release,
-            e: Default::default(),
-        }
-    }
-
-    pub fn safe_default() -> Self {
-        Self::new_with(0.002.into(), 0.005.into(), 0.8.into(), 0.01.into())
-    }
 
     pub fn from_seconds_to_normal(seconds: Seconds) -> Normal {
         Normal::new(seconds.0 / Self::MAX_SECONDS)
@@ -1511,8 +1510,13 @@ mod tests {
     fn get_ge_trait_stuff() -> (Transport, impl GeneratesEnvelope) {
         let mut transport = Transport::default();
         transport.play();
-        let envelope =
-            Envelope::new_with((0.1).into(), (0.2).into(), Normal::new(0.8), (0.3).into());
+        let envelope = EnvelopeBuilder::default()
+            .attack((0.1).into())
+            .decay(0.2.into())
+            .sustain(0.8.into())
+            .release(0.3.into())
+            .build()
+            .unwrap();
         (transport, envelope)
     }
 
@@ -1600,7 +1604,13 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.2));
         const SUSTAIN: Normal = Normal::new_const(0.8);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.3));
-        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
+        let mut envelope = EnvelopeBuilder::default()
+            .attack(attack)
+            .decay(decay)
+            .sustain(SUSTAIN)
+            .release(release)
+            .build()
+            .unwrap();
 
         // An even sample rate means we can easily calculate how much time was spent in each state.
         transport.update_sample_rate(SampleRate::from(100));
@@ -1675,7 +1685,13 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.2));
         const SUSTAIN: Normal = Normal::new_const(0.8);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.3));
-        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
+        let mut envelope = EnvelopeBuilder::default()
+            .attack(attack)
+            .decay(decay)
+            .sustain(SUSTAIN)
+            .release(release)
+            .build()
+            .unwrap();
 
         envelope.trigger_attack();
         envelope.tick(1);
@@ -1752,7 +1768,13 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(5.22));
         const SUSTAIN: Normal = Normal::new_const(0.25);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.5));
-        let mut envelope = Envelope::new_with(attack, decay, SUSTAIN, release);
+        let mut envelope = EnvelopeBuilder::default()
+            .attack(attack)
+            .decay(decay)
+            .sustain(SUSTAIN)
+            .release(release)
+            .build()
+            .unwrap();
 
         transport.update_sample_rate(SampleRate::DEFAULT);
         envelope.update_sample_rate(SampleRate::DEFAULT);
@@ -1866,7 +1888,13 @@ mod tests {
         let decay: Normal = Envelope::from_seconds_to_normal(Seconds(0.8));
         let sustain = Normal::new_const(0.5);
         let release: Normal = Envelope::from_seconds_to_normal(Seconds(0.4));
-        let mut envelope = Envelope::new_with(ATTACK, decay, sustain, release);
+        let mut envelope = EnvelopeBuilder::default()
+            .attack(ATTACK)
+            .decay(decay)
+            .sustain(sustain)
+            .release(release)
+            .build()
+            .unwrap();
 
         transport.update_sample_rate(SampleRate::DEFAULT);
         envelope.update_sample_rate(SampleRate::DEFAULT);
@@ -1932,12 +1960,13 @@ mod tests {
 
     #[test]
     fn envelope_amplitude_batching() {
-        let mut e = Envelope::new_with(
-            Envelope::from_seconds_to_normal(Seconds(0.1)),
-            Envelope::from_seconds_to_normal(Seconds(0.2)),
-            Normal::new(0.5),
-            Envelope::from_seconds_to_normal(Seconds(0.3)),
-        );
+        let mut e = EnvelopeBuilder::default()
+            .attack(Envelope::from_seconds_to_normal(Seconds(0.1)))
+            .decay(Envelope::from_seconds_to_normal(Seconds(0.2)))
+            .sustain(0.5.into())
+            .release(Envelope::from_seconds_to_normal(Seconds(0.3)))
+            .build()
+            .unwrap();
 
         // Initialize the buffer with a nonsense value so we know it got
         // overwritten by the method we're about to call.
@@ -1967,12 +1996,13 @@ mod tests {
 
     #[test]
     fn envelope_shutdown_state() {
-        let mut e = Envelope::new_with(
-            Normal::minimum(),
-            Normal::minimum(),
-            Normal::maximum(),
-            Envelope::from_seconds_to_normal(Seconds(0.5)),
-        );
+        let mut e = EnvelopeBuilder::default()
+            .attack(Normal::minimum())
+            .decay(Normal::minimum())
+            .sustain(Normal::maximum())
+            .release(Envelope::from_seconds_to_normal(Seconds(0.5)))
+            .build()
+            .unwrap();
         e.update_sample_rate(SampleRate::from(2000));
 
         // With sample rate 1000, each sample is 0.5 millisecond.
@@ -2013,12 +2043,13 @@ mod tests {
     // away.
     #[test]
     fn sustain_full() {
-        let mut e = Envelope::new_with(
-            Normal::minimum(),
-            Envelope::from_seconds_to_normal(Seconds(0.67)),
-            Normal::maximum(),
-            Envelope::from_seconds_to_normal(Seconds(0.5)),
-        );
+        let mut e = EnvelopeBuilder::default()
+            .attack(Normal::minimum())
+            .decay(Envelope::from_seconds_to_normal(Seconds(0.67)))
+            .sustain(Normal::maximum())
+            .release(Envelope::from_seconds_to_normal(Seconds(0.5)))
+            .build()
+            .unwrap();
         e.update_sample_rate(SampleRate::from(44100));
         assert_eq!(e.value().0, 0.0);
         assert_eq!(e.get_next_value().0, 0.0);

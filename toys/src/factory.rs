@@ -21,7 +21,7 @@ impl ToyEntities {
                     .waveform(Waveform::Triangle)
                     .build()
                     .unwrap(),
-                Envelope::safe_default(),
+                EnvelopeBuilder::safe_default().build().unwrap(),
                 Dca::default(),
             ))
         });
