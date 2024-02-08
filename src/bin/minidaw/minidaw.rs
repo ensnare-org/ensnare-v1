@@ -85,7 +85,7 @@ pub(super) struct MiniDaw {
 }
 impl MiniDaw {
     /// The user-visible name of the application.
-    pub(super) const NAME: &'static str = "MiniDaw";
+    pub(super) const NAME: &'static str = "MiniDAW";
 
     pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
         let factory = Arc::new(factory);
