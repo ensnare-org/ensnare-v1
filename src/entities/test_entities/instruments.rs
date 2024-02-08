@@ -120,10 +120,7 @@ impl TestAudioSource {
     pub const QUIET: SampleType = -1.0;
     pub const TOO_QUIET: SampleType = -1.1;
 
-    pub fn new_with(uid: Uid, level: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: TestAudioSourceCore::new_with(level),
-        }
+    pub fn new_with(uid: Uid, inner: TestAudioSourceCore) -> Self {
+        Self { uid, inner }
     }
 }

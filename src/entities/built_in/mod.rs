@@ -9,7 +9,7 @@ pub use {
             BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop, BiQuadFilterHighPass,
             BiQuadFilterLowPass24db,
         },
-        Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
+        Bitcrusher, Chorus, Compressor, Delay, Gain, Limiter, Reverb,
     },
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
     //EntityFactory,

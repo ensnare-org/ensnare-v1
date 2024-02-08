@@ -1,13 +1,16 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use delegate::delegate;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// Produces a constant audio signal. Used for ensuring that a known signal
 /// value gets all the way through the pipeline.
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Clone, Builder, Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default)]
 pub struct TestAudioSourceCore {
     // This should be a Normal, but we use this audio source for testing
     // edge conditions. Thus we need to let it go out of range.
@@ -15,7 +18,8 @@ pub struct TestAudioSourceCore {
     level: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
+    #[builder(setter(skip))]
+    c: Configurables,
 }
 impl Ticks for TestAudioSourceCore {}
 impl Generates<StereoSample> for TestAudioSourceCore {
@@ -28,15 +32,17 @@ impl Generates<StereoSample> for TestAudioSourceCore {
     }
 }
 impl Configurable for TestAudioSourceCore {
-    fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
-    }
-
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+    delegate! {
+        to self.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
-#[allow(dead_code)]
 impl TestAudioSourceCore {
     pub const TOO_LOUD: SampleType = 1.1;
     pub const LOUD: SampleType = 1.0;
@@ -44,13 +50,6 @@ impl TestAudioSourceCore {
     pub const SILENT: SampleType = 0.0;
     pub const QUIET: SampleType = -1.0;
     pub const TOO_QUIET: SampleType = -1.1;
-
-    pub fn new_with(level: ParameterType) -> Self {
-        Self {
-            level,
-            ..Default::default()
-        }
-    }
 
     pub fn level(&self) -> f64 {
         self.level

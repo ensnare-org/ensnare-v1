@@ -3,30 +3,55 @@
 use super::delay::{DelayLine, Delays};
 use crate::prelude::*;
 use delegate::delegate;
+use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Debug, Builder, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct ChorusCore {
     /// The number of voices in the chorus.
     #[control]
+    #[derivative(Default(value = "4"))]
     voices: usize,
 
     /// The number of seconds to delay.
     #[control]
+    #[derivative(Default(value = "1.0.into()"))]
     delay: Seconds,
 
+    /// How soon the chorus fades. 1.0 = never
+    #[control]
+    #[derivative(Default(value = "1.0.into()"))]
+    decay: Normal,
+
     #[serde(skip)]
+    #[builder(setter(skip))]
     delay_line: DelayLine,
 }
+impl ChorusCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<ChorusCore, ChorusCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 impl Serializable for ChorusCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        self.delay_line = DelayLine::new_with(self.delay, 1.0);
+        self.delay_line = DelayLine::new_with(self.delay, 0.5.into());
     }
 }
 impl TransformsAudio for ChorusCore {
@@ -54,16 +79,6 @@ impl Configurable for ChorusCore {
     }
 }
 impl ChorusCore {
-    pub fn new_with(voices: usize, delay: Seconds) -> Self {
-        let mut r = Self {
-            voices,
-            delay,
-            delay_line: Default::default(),
-        };
-        r.after_deser();
-        r
-    }
-
     pub fn voices(&self) -> usize {
         self.voices
     }
@@ -78,10 +93,11 @@ impl ChorusCore {
 
     pub fn set_delay(&mut self, delay: Seconds) {
         self.delay = delay;
+        self.delay_line.set_delay(delay);
     }
-}
 
-#[cfg(test)]
-mod tests {
-    //TODO
+    pub fn set_decay(&mut self, decay: Normal) {
+        self.decay = decay;
+        self.delay_line.set_decay(decay);
+    }
 }

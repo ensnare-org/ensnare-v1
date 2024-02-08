@@ -5,7 +5,9 @@
 
 pub use arpeggiator::{ArpeggiatorCore, ArpeggiatorCoreBuilder, ArpeggioMode};
 pub use lfo::{LfoControllerCore, LfoControllerCoreBuilder};
-pub use passthrough::{SignalPassthroughControllerCore, SignalPassthroughType};
+pub use passthrough::{
+    SignalPassthroughControllerCore, SignalPassthroughControllerCoreBuilder, SignalPassthroughType,
+};
 
 mod arpeggiator;
 mod lfo;

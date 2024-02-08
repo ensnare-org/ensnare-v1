@@ -30,11 +30,8 @@ pub struct BiQuadFilterBandPass {
     inner: BiQuadFilterBandPassCore,
 }
 impl BiQuadFilterBandPass {
-    pub fn new_with(uid: Uid, cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: BiQuadFilterBandPassCore::new_with(cutoff, bandwidth),
-        }
+    pub fn new_with(uid: Uid, inner: BiQuadFilterBandPassCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -56,11 +53,8 @@ pub struct BiQuadFilterBandStop {
     inner: BiQuadFilterBandStopCore,
 }
 impl BiQuadFilterBandStop {
-    pub fn new_with(uid: Uid, cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: BiQuadFilterBandStopCore::new_with(cutoff, bandwidth),
-        }
+    pub fn new_with(uid: Uid, inner: BiQuadFilterBandStopCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -82,11 +76,8 @@ pub struct BiQuadFilterLowPass24db {
     inner: BiQuadFilterLowPass24dbCore,
 }
 impl BiQuadFilterLowPass24db {
-    pub fn new_with(uid: Uid, cutoff: FrequencyHz, passband_ripple: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: BiQuadFilterLowPass24dbCore::new_with(cutoff, passband_ripple),
-        }
+    pub fn new_with(uid: Uid, inner: BiQuadFilterLowPass24dbCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -108,11 +99,8 @@ pub struct BiQuadFilterHighPass {
     inner: BiQuadFilterHighPassCore,
 }
 impl BiQuadFilterHighPass {
-    pub fn new_with(uid: Uid, cutoff: FrequencyHz, q: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: BiQuadFilterHighPassCore::new_with(cutoff, q),
-        }
+    pub fn new_with(uid: Uid, inner: BiQuadFilterHighPassCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -134,11 +122,8 @@ pub struct BiQuadFilterAllPass {
     inner: BiQuadFilterAllPassCore,
 }
 impl BiQuadFilterAllPass {
-    pub fn new_with(uid: Uid, cutoff: FrequencyHz, q: ParameterType) -> Self {
-        Self {
-            uid,
-            inner: BiQuadFilterAllPassCore::new_with(cutoff, q),
-        }
+    pub fn new_with(uid: Uid, inner: BiQuadFilterAllPassCore) -> Self {
+        Self { uid, inner }
     }
 }
 

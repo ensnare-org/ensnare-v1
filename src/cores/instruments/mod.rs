@@ -7,8 +7,10 @@ pub use {
     drumkit::DrumkitCore,
     fm::{FmSynthCore, FmSynthCoreBuilder},
     sampler::{SamplerCore, SamplerVoice},
-    test::{TestAudioSourceCore, TestControllerAlwaysSendsMidiMessageCore},
-    welsh::{LfoRouting, WelshSynthCore, WelshVoice},
+    test::{
+        TestAudioSourceCore, TestAudioSourceCoreBuilder, TestControllerAlwaysSendsMidiMessageCore,
+    },
+    welsh::{LfoRouting, WelshSynthCore, WelshSynthCoreBuilder, WelshVoice},
 };
 
 mod drumkit;

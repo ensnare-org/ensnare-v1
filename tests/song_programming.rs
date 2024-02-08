@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{Drumkit, Reverb},
+    entities::{BiQuadFilterLowPass24db, Drumkit, Reverb},
     prelude::*,
 };
 use ensnare_toys::prelude::*;
@@ -68,7 +68,10 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .add_entity(
             track_uid,
             factory
-                .new_entity(&EntityKey::from("filter-low-pass-24db"), Uid::default())
+                .new_entity(
+                    &EntityKey::from(BiQuadFilterLowPass24db::ENTITY_KEY),
+                    Uid::default(),
+                )
                 .unwrap(),
             None,
         )

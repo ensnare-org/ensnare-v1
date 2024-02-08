@@ -2,7 +2,7 @@
 
 use super::modulators::{DcaWidget, DcaWidgetAction};
 use crate::{
-    cores::instruments::{self, FmSynthCore},
+    cores::instruments::FmSynthCore,
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };

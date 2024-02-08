@@ -3,6 +3,7 @@
 use crate::{cores::effects::BiQuadFilterLowPass24dbCore, prelude::*};
 use core::fmt::Debug;
 use delegate::delegate;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumCount, FromRepr};
@@ -301,8 +302,9 @@ impl WelshVoice {
 
 /// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
-#[derive(Debug, Control, Deserialize, Serialize)]
+#[derive(Debug, Default, Builder, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct WelshSynthCore {
     #[control]
     pub oscillator_1: Oscillator,
@@ -333,61 +335,23 @@ pub struct WelshSynthCore {
     pub filter_envelope: Envelope,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     pub inner: Synthesizer<WelshVoice>,
+}
+impl WelshSynthCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<WelshSynthCore, WelshSynthCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
 }
 impl WelshSynthCore {
     const VOICE_CAPACITY: usize = 8;
-
-    pub fn new_with(
-        oscillator_1: Oscillator,
-        oscillator_2: Oscillator,
-        oscillator_2_sync: bool,
-        oscillator_mix: Normal,
-        amp_envelope: Envelope,
-        dca: Dca,
-        lfo: Oscillator,
-        lfo_routing: LfoRouting,
-        lfo_depth: Normal,
-        filter: BiQuadFilterLowPass24dbCore,
-        filter_cutoff_start: Normal,
-        filter_cutoff_end: Normal,
-        filter_envelope: Envelope,
-    ) -> Self {
-        let voice_store =
-            StealingVoiceStore::<WelshVoice>::new_with_voice(Self::VOICE_CAPACITY, || {
-                WelshVoice::new_with(
-                    &oscillator_1,
-                    &oscillator_2,
-                    oscillator_2_sync,
-                    oscillator_mix,
-                    &amp_envelope,
-                    &dca,
-                    &lfo,
-                    lfo_routing,
-                    lfo_depth,
-                    &filter,
-                    filter_cutoff_start,
-                    filter_cutoff_end,
-                    &filter_envelope,
-                )
-            });
-        Self {
-            inner: Synthesizer::<WelshVoice>::new_with(Box::new(voice_store)),
-            oscillator_1,
-            oscillator_2,
-            oscillator_2_sync,
-            oscillator_mix,
-            amp_envelope,
-            dca,
-            lfo,
-            lfo_routing,
-            lfo_depth,
-            filter,
-            filter_cutoff_start,
-            filter_cutoff_end,
-            filter_envelope,
-        }
-    }
 
     fn new_voice_store(&self) -> StealingVoiceStore<WelshVoice> {
         StealingVoiceStore::<WelshVoice>::new_with_voice(Self::VOICE_CAPACITY, || {

@@ -3,31 +3,55 @@
 use crate::{prelude::*, traits::CanPrototype};
 use delegate::delegate;
 use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterLowPass24dbCore {
     #[control]
-    #[derivative(Default(value = "1000.0.into()"))]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
-    #[derivative(Default(value = "1.0"))]
+    #[derivative(Default(value = "0.85"))]
     passband_ripple: ParameterType,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterLowPass24dbCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterLowPass24dbCoreEphemerals {
     channels: [BiQuadFilterLowPass24dbChannel; 2],
 
-    #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for BiQuadFilterLowPass24dbCore {}
+impl BiQuadFilterLowPass24dbCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(
+        &self,
+    ) -> Result<BiQuadFilterLowPass24dbCore, BiQuadFilterLowPass24dbCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl Serializable for BiQuadFilterLowPass24dbCore {
+    fn after_deser(&mut self) {
+        self.update_coefficients()
+    }
+}
 impl Configurable for BiQuadFilterLowPass24dbCore {
     delegate! {
-        to self.c {
+        to self.e.c {
             fn sample_rate(&self) -> SampleRate;
             fn tempo(&self) -> Tempo;
             fn update_tempo(&mut self, tempo: Tempo);
@@ -37,36 +61,30 @@ impl Configurable for BiQuadFilterLowPass24dbCore {
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.c.update_sample_rate(sample_rate);
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterLowPass24dbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterLowPass24dbCore {
-    pub fn new_with(cutoff: FrequencyHz, passband_ripple: ParameterType) -> Self {
-        let mut r = Self {
-            cutoff,
-            passband_ripple,
-            channels: [
-                BiQuadFilterLowPass24dbChannel::default(),
-                BiQuadFilterLowPass24dbChannel::default(),
-            ],
-            ..Default::default()
-        };
-        r.update_coefficients();
-        r
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate(), self.cutoff, self.passband_ripple);
-        self.channels[1].update_coefficients(self.sample_rate(), self.cutoff, self.passband_ripple);
+        self.e.channels[0].update_coefficients(
+            self.e.c.sample_rate(),
+            self.cutoff,
+            self.passband_ripple,
+        );
+        self.e.channels[1].update_coefficients(
+            self.e.c.sample_rate(),
+            self.cutoff,
+            self.passband_ripple,
+        );
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -101,7 +119,7 @@ impl CanPrototype for BiQuadFilterLowPass24dbCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 struct BiQuadFilterLowPass24dbChannel {
     inner: BiQuadFilter,
     coefficients2: CoefficientSet2,
@@ -166,51 +184,69 @@ impl BiQuadFilterLowPass24dbChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterLowPass12dbCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     q: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterLowPass12dbCoreEphemerals,
+}
+#[derive(Debug, Default, Clone)]
+pub struct BiQuadFilterLowPass12dbCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterLowPass12dbChannel; 2],
+}
+impl BiQuadFilterLowPass12dbCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(
+        &self,
+    ) -> Result<BiQuadFilterLowPass12dbCore, BiQuadFilterLowPass12dbCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
 }
 impl Serializable for BiQuadFilterLowPass12dbCore {}
 impl Configurable for BiQuadFilterLowPass12dbCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterLowPass12dbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterLowPass12dbCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
-        Self {
-            cutoff,
-            q,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterLowPass12dbChannel::default(),
-                BiQuadFilterLowPass12dbChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.q);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.q);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -233,7 +269,7 @@ impl BiQuadFilterLowPass12dbCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterLowPass12dbChannel {
     inner: BiQuadFilter,
 }
@@ -263,53 +299,68 @@ impl BiQuadFilterLowPass12dbChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterHighPassCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     q: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterHighPassCoreEphemerals,
+}
+#[derive(Debug, Default, Clone)]
+pub struct BiQuadFilterHighPassCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterHighPassChannel; 2],
 }
+impl BiQuadFilterHighPassCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<BiQuadFilterHighPassCore, BiQuadFilterHighPassCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 impl Serializable for BiQuadFilterHighPassCore {}
 impl Configurable for BiQuadFilterHighPassCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterHighPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterHighPassCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
-        let mut r = Self {
-            cutoff,
-            q,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterHighPassChannel::default(),
-                BiQuadFilterHighPassChannel::default(),
-            ],
-        };
-        r.update_coefficients();
-        r
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.q);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.q);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -332,7 +383,7 @@ impl BiQuadFilterHighPassCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterHighPassChannel {
     inner: BiQuadFilter,
 }
@@ -362,52 +413,68 @@ impl BiQuadFilterHighPassChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterAllPassCore {
     #[control]
-    #[derivative(Default(value = "1000.0.into()"))]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     #[derivative(Default(value = "1.0"))]
     q: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterAllPassCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterAllPassCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterAllPassChannel; 2],
+}
+impl BiQuadFilterAllPassCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<BiQuadFilterAllPassCore, BiQuadFilterAllPassCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
 }
 impl Serializable for BiQuadFilterAllPassCore {}
 impl Configurable for BiQuadFilterAllPassCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterAllPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterAllPassCore {
-    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
-        Self {
-            cutoff,
-            q,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterAllPassChannel::default(),
-                BiQuadFilterAllPassChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.q);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.q);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -442,7 +509,7 @@ impl CanPrototype for BiQuadFilterAllPassCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterAllPassChannel {
     inner: BiQuadFilter,
 }
@@ -471,50 +538,71 @@ impl BiQuadFilterAllPassChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterBandPassCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterBandPassCoreEphemerals,
+}
+#[derive(Debug, Default, Clone)]
+pub struct BiQuadFilterBandPassCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterBandPassChannel; 2],
 }
-impl Serializable for BiQuadFilterBandPassCore {}
+impl BiQuadFilterBandPassCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<BiQuadFilterBandPassCore, BiQuadFilterBandPassCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl Serializable for BiQuadFilterBandPassCore {
+    fn after_deser(&mut self) {
+        self.update_coefficients()
+    }
+}
 impl Configurable for BiQuadFilterBandPassCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterBandPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterBandPassCore {
-    pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
-        Self {
-            cutoff,
-            bandwidth,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterBandPassChannel::default(),
-                BiQuadFilterBandPassChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.bandwidth);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.bandwidth);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.bandwidth);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.bandwidth);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -537,7 +625,7 @@ impl BiQuadFilterBandPassCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterBandPassChannel {
     inner: BiQuadFilter,
 }
@@ -566,8 +654,10 @@ impl BiQuadFilterBandPassChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterBandStopCore {
     #[control]
     cutoff: FrequencyHz,
@@ -575,42 +665,56 @@ pub struct BiQuadFilterBandStopCore {
     bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterBandStopCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterBandStopCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterBandStopChannel; 2],
 }
+impl BiQuadFilterBandStopCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<BiQuadFilterBandStopCore, BiQuadFilterBandStopCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 impl Serializable for BiQuadFilterBandStopCore {}
 impl Configurable for BiQuadFilterBandStopCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterBandStopCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterBandStopCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
-        Self {
-            cutoff,
-            bandwidth,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterBandStopChannel::default(),
-                BiQuadFilterBandStopChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.bandwidth);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.bandwidth);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.bandwidth);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.bandwidth);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -633,7 +737,7 @@ impl BiQuadFilterBandStopCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterBandStopChannel {
     inner: BiQuadFilter,
 }
@@ -663,10 +767,13 @@ impl BiQuadFilterBandStopChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterPeakingEqCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
 
     // I didn't know what to call this. RBJ says "...except for peakingEQ in
@@ -675,44 +782,43 @@ pub struct BiQuadFilterPeakingEqCore {
     q: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterPeakingEqCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterPeakingEqCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterPeakingEqChannel; 2],
 }
 impl Serializable for BiQuadFilterPeakingEqCore {}
 impl Configurable for BiQuadFilterPeakingEqCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterPeakingEqCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterPeakingEqCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
-        let mut r = Self {
-            cutoff,
-            q,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterPeakingEqChannel::default(),
-                BiQuadFilterPeakingEqChannel::default(),
-            ],
-        };
-        r.update_coefficients();
-        r
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.q);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.q);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.q);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -735,7 +841,7 @@ impl BiQuadFilterPeakingEqCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterPeakingEqChannel {
     inner: BiQuadFilter,
 }
@@ -769,51 +875,56 @@ impl BiQuadFilterPeakingEqChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterLowShelfCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     db_gain: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterLowShelfCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterLowShelfCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterLowShelfChannel; 2],
 }
+
 impl Serializable for BiQuadFilterLowShelfCore {}
 impl Configurable for BiQuadFilterLowShelfCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterLowShelfCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterLowShelfCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
-        Self {
-            cutoff,
-            db_gain,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterLowShelfChannel::default(),
-                BiQuadFilterLowShelfChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.db_gain);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.db_gain);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.db_gain);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.db_gain);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -836,7 +947,7 @@ impl BiQuadFilterLowShelfCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterLowShelfChannel {
     inner: BiQuadFilter,
 }
@@ -867,51 +978,56 @@ impl BiQuadFilterLowShelfChannel {
     }
 }
 
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterHighShelfCore {
     #[control]
+    #[derivative(Default(value = "500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
     db_gain: ParameterType,
 
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterHighShelfCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterHighShelfCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilterHighShelfChannel; 2],
 }
+
 impl Serializable for BiQuadFilterHighShelfCore {}
 impl Configurable for BiQuadFilterHighShelfCore {
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
+    }
+
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+        self.e.c.update_sample_rate(sample_rate);
         self.update_coefficients();
     }
 }
 impl TransformsAudio for BiQuadFilterHighShelfCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
         }
     }
 }
 impl BiQuadFilterHighShelfCore {
-    #[allow(dead_code)]
-    pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
-        Self {
-            cutoff,
-            db_gain,
-            sample_rate: Default::default(),
-            channels: [
-                BiQuadFilterHighShelfChannel::default(),
-                BiQuadFilterHighShelfChannel::default(),
-            ],
-        }
-    }
-
     fn update_coefficients(&mut self) {
-        self.channels[0].update_coefficients(self.sample_rate, self.cutoff, self.db_gain);
-        self.channels[1].update_coefficients(self.sample_rate, self.cutoff, self.db_gain);
+        self.e.channels[0].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.db_gain);
+        self.e.channels[1].update_coefficients(self.e.c.sample_rate(), self.cutoff, self.db_gain);
     }
 
     pub fn cutoff(&self) -> FrequencyHz {
@@ -934,7 +1050,7 @@ impl BiQuadFilterHighShelfCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct BiQuadFilterHighShelfChannel {
     inner: BiQuadFilter,
 }
@@ -967,34 +1083,39 @@ impl BiQuadFilterHighShelfChannel {
 
 /// This filter does nothing, expensively. It exists for debugging. I might
 /// delete it later.
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterNoneCore {
     #[serde(skip)]
-    sample_rate: SampleRate,
-    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BiQuadFilterNoneCoreEphemerals,
+}
+#[derive(Debug, Clone, Default)]
+pub struct BiQuadFilterNoneCoreEphemerals {
+    c: Configurables,
     channels: [BiQuadFilter; 2],
 }
+
 impl Serializable for BiQuadFilterNoneCore {}
 impl Configurable for BiQuadFilterNoneCore {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
+    delegate! {
+        to self.e.c {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl TransformsAudio for BiQuadFilterNoneCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
-            0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
+            0 | 1 => self.e.channels[channel].transform_channel(channel, input_sample),
             _ => panic!(),
-        }
-    }
-}
-impl BiQuadFilterNoneCore {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Self {
-            sample_rate: Default::default(),
-            channels: [BiQuadFilter::default(), BiQuadFilter::default()],
         }
     }
 }

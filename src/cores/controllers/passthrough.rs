@@ -2,8 +2,11 @@
 
 use crate::{prelude::*, traits::Configurables};
 use delegate::delegate;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+/// Describes the transformation that takes place to convert the signal into the
+/// control event.
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SignalPassthroughType {
@@ -24,15 +27,18 @@ pub enum SignalPassthroughType {
 /// Uses an input signal as a control source. Transformation depends on
 /// configuration. Uses the standard Sample::from(StereoSample) methodology of
 /// averaging the two channels to create a single signal.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Builder, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignalPassthroughControllerCore {
+    /// Which kind of transformation takes place.
+    #[builder(default)]
     passthrough_type: SignalPassthroughType,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     e: SignalPassthroughControllerEphemerals,
 }
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SignalPassthroughControllerEphemerals {
     control_value: ControlValue,
     // We don't issue consecutive identical events, so we need to remember
@@ -42,6 +48,29 @@ pub struct SignalPassthroughControllerEphemerals {
     is_performing: bool,
 
     c: Configurables,
+}
+impl SignalPassthroughControllerCoreBuilder {
+    /// Returns a default Builder with SignalPassthroughType::Compressed
+    pub fn compressed() -> Self {
+        Self {
+            passthrough_type: Some(SignalPassthroughType::Compressed),
+            ..Default::default()
+        }
+    }
+    /// Returns a default Builder with SignalPassthroughType::Amplitude
+    pub fn amplitude() -> Self {
+        Self {
+            passthrough_type: Some(SignalPassthroughType::Amplitude),
+            ..Default::default()
+        }
+    }
+    /// Returns a default Builder with SignalPassthroughType::AmplitudeInverted
+    pub fn amplitude_inverted() -> Self {
+        Self {
+            passthrough_type: Some(SignalPassthroughType::AmplitudeInverted),
+            ..Default::default()
+        }
+    }
 }
 impl Serializable for SignalPassthroughControllerCore {}
 impl Configurable for SignalPassthroughControllerCore {
@@ -109,23 +138,4 @@ impl TransformsAudio for SignalPassthroughControllerCore {
     }
 
     // We've overridden transform_audio(), so nobody should be calling transform_channel()
-}
-impl SignalPassthroughControllerCore {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn new_amplitude_passthrough_type() -> Self {
-        Self {
-            passthrough_type: SignalPassthroughType::Amplitude,
-            ..Default::default()
-        }
-    }
-
-    pub fn new_amplitude_inverted_passthrough_type() -> Self {
-        Self {
-            passthrough_type: SignalPassthroughType::AmplitudeInverted,
-            ..Default::default()
-        }
-    }
 }

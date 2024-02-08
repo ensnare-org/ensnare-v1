@@ -2,7 +2,10 @@
 
 use crate::{
     automation::{TimerCore, TriggerCore},
-    cores::controllers::{ArpeggiatorCore, LfoControllerCore, SignalPassthroughControllerCore},
+    cores::controllers::{
+        ArpeggiatorCore, LfoControllerCore, SignalPassthroughControllerCore,
+        SignalPassthroughControllerCoreBuilder,
+    },
     prelude::*,
 };
 use ensnare_proc_macros::{
@@ -78,25 +81,30 @@ pub struct SignalPassthroughController {
     inner: SignalPassthroughControllerCore,
 }
 impl SignalPassthroughController {
-    #[allow(unused_variables)]
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: SignalPassthroughControllerCore::new(),
+            inner: SignalPassthroughControllerCoreBuilder::default()
+                .build()
+                .unwrap(),
         }
     }
 
     pub fn new_amplitude_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: SignalPassthroughControllerCore::new_amplitude_passthrough_type(),
+            inner: SignalPassthroughControllerCoreBuilder::amplitude()
+                .build()
+                .unwrap(),
         }
     }
 
     pub fn new_amplitude_inverted_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: SignalPassthroughControllerCore::new_amplitude_inverted_passthrough_type(),
+            inner: SignalPassthroughControllerCoreBuilder::amplitude_inverted()
+                .build()
+                .unwrap(),
         }
     }
 }

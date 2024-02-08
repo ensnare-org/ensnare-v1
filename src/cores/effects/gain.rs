@@ -2,16 +2,19 @@
 
 use crate::prelude::*;
 use delegate::delegate;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Debug, Builder, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[builder(default)]
 pub struct GainCore {
     #[control]
     ceiling: Normal,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     c: Configurables,
 }
 impl Serializable for GainCore {}
@@ -33,13 +36,6 @@ impl TransformsAudio for GainCore {
     }
 }
 impl GainCore {
-    pub fn new_with(ceiling: Normal) -> Self {
-        Self {
-            ceiling,
-            ..Default::default()
-        }
-    }
-
     pub fn ceiling(&self) -> Normal {
         self.ceiling
     }
@@ -52,13 +48,22 @@ impl GainCore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cores::instruments::TestAudioSourceCore;
+    use crate::cores::instruments::{TestAudioSourceCore, TestAudioSourceCoreBuilder};
 
     #[test]
     fn gain_mainline() {
-        let mut gain = GainCore::new_with(Normal::new(0.5));
+        let mut gain = GainCoreBuilder::default()
+            .ceiling(0.5.into())
+            .build()
+            .unwrap();
         assert_eq!(
-            gain.transform_audio(TestAudioSourceCore::new_with(TestAudioSourceCore::LOUD).value()),
+            gain.transform_audio(
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::LOUD)
+                    .build()
+                    .unwrap()
+                    .value()
+            ),
             StereoSample::from(0.5)
         );
     }

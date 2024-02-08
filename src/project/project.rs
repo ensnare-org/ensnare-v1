@@ -548,9 +548,12 @@ impl Serializable for Project {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::{
-        TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
-        TestInstrument, TestInstrumentCountsMidiMessages,
+    use crate::{
+        cores::instruments::{TestAudioSourceCore, TestAudioSourceCoreBuilder},
+        entities::{
+            TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
+            TestInstrument, TestInstrumentCountsMidiMessages,
+        },
     };
     use ensnare_proc_macros::{IsEntity, Metadata};
     use std::sync::Arc;
@@ -615,7 +618,10 @@ mod tests {
                 track_uid,
                 Box::new(TestAudioSource::new_with(
                     Uid::default(),
-                    TestAudioSource::MEDIUM,
+                    TestAudioSourceCoreBuilder::default()
+                        .level(TestAudioSource::MEDIUM)
+                        .build()
+                        .unwrap(),
                 )),
                 None,
             )
@@ -826,7 +832,13 @@ mod tests {
 
         let _ = project.add_entity(
             midi_track_uid,
-            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            Box::new(TestAudioSource::new_with(
+                Uid::default(),
+                TestAudioSourceCoreBuilder::default()
+                    .level(EXPECTED_LEVEL)
+                    .build()
+                    .unwrap(),
+            )),
             None,
         );
         let mut samples = [StereoSample::SILENCE; 64];
@@ -871,12 +883,24 @@ mod tests {
 
         let _ = project.add_entity(
             track_1_uid,
-            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            Box::new(TestAudioSource::new_with(
+                Uid::default(),
+                TestAudioSourceCoreBuilder::default()
+                    .level(EXPECTED_LEVEL)
+                    .build()
+                    .unwrap(),
+            )),
             None,
         );
         let _ = project.add_entity(
             track_2_uid,
-            Box::new(TestAudioSource::new_with(Uid::default(), EXPECTED_LEVEL)),
+            Box::new(TestAudioSource::new_with(
+                Uid::default(),
+                TestAudioSourceCoreBuilder::default()
+                    .level(EXPECTED_LEVEL)
+                    .build()
+                    .unwrap(),
+            )),
             None,
         );
 

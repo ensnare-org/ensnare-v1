@@ -1,17 +1,21 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::{
-    controllers::{Arpeggiator, LfoController, SignalPassthroughController, Timer, Trigger},
-    effects::{
-        filter::BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Gain, Limiter, Reverb,
-    },
-    instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
+    Arpeggiator, BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
+    BiQuadFilterHighPass, BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Delay, Drumkit,
+    FmSynth, Gain, LfoController, Limiter, Reverb, Sampler, SignalPassthroughController, Timer,
+    Trigger, WelshSynth,
 };
 use crate::{
     cores::{
         controllers::{ArpeggiatorCoreBuilder, LfoControllerCoreBuilder},
-        effects::{self, BitcrusherCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder},
-        instruments::{self, FmSynthCoreBuilder},
+        effects::{
+            BiQuadFilterAllPassCoreBuilder, BiQuadFilterBandPassCoreBuilder,
+            BiQuadFilterBandStopCoreBuilder, BiQuadFilterHighPassCoreBuilder,
+            BiQuadFilterLowPass24dbCoreBuilder, BitcrusherCoreBuilder, DelayCoreBuilder,
+            GainCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder,
+        },
+        instruments::FmSynthCoreBuilder,
     },
     elements::OscillatorBuilder,
     prelude::*,
@@ -19,6 +23,9 @@ use crate::{
 };
 use std::path::PathBuf;
 
+/// A collection of all entities that are suitable for normal use. Allows the
+/// creation of an [EntityFactory] that lets apps refer to entities by
+/// [EntityKey] rather than having to import and instantiate each one
 pub struct BuiltInEntities {}
 impl BuiltInEntities {
     /// Registers all the entities in this collection.
@@ -74,11 +81,68 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| {
             Box::<Compressor>::default()
         });
-        factory.register_entity_with_str_key("filter-low-pass-24db", |uid| {
-            Box::new(BiQuadFilterLowPass24db::new_with(uid, 300.0.into(), 0.85))
+        factory.register_entity_with_str_key(Delay::ENTITY_KEY, |uid| {
+            Box::new(Delay::new_with(
+                uid,
+                DelayCoreBuilder::default().build().unwrap(),
+            ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterLowPass24db::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterLowPass24db::new_with(
+                uid,
+                BiQuadFilterLowPass24dbCoreBuilder::default()
+                    .build()
+                    .unwrap(),
+            ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterAllPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterAllPass::new_with(
+                uid,
+                BiQuadFilterAllPassCoreBuilder::default()
+                    .cutoff(500.0.into())
+                    .q(1.0)
+                    .build()
+                    .unwrap(),
+            ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterHighPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterHighPass::new_with(
+                uid,
+                BiQuadFilterHighPassCoreBuilder::default()
+                    .cutoff(500.0.into())
+                    .q(1.0)
+                    .build()
+                    .unwrap(),
+            ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterBandPass::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterBandPass::new_with(
+                uid,
+                BiQuadFilterBandPassCoreBuilder::default()
+                    .cutoff(500.0.into())
+                    .bandwidth(5.0)
+                    .build()
+                    .unwrap(),
+            ))
+        });
+        factory.register_entity_with_str_key(BiQuadFilterBandStop::ENTITY_KEY, |uid| {
+            Box::new(BiQuadFilterBandStop::new_with(
+                uid,
+                BiQuadFilterBandStopCoreBuilder::default()
+                    .cutoff(500.0.into())
+                    .bandwidth(5.0)
+                    .build()
+                    .unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(Gain::ENTITY_KEY, |uid| {
-            Box::new(Gain::new_with(uid, Normal::from(0.5)))
+            Box::new(Gain::new_with(
+                uid,
+                GainCoreBuilder::default()
+                    .ceiling(0.5.into())
+                    .build()
+                    .unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |uid| {
             Box::new(Limiter::new_with(
@@ -89,7 +153,13 @@ impl BuiltInEntities {
         // TODO: this is lazy. It's too hard right now to adjust parameters within
         // code, so I'm creating a special instrument with the parameters I want.
         factory.register_entity_with_str_key("mute", |uid| {
-            Box::new(Gain::new_with(uid, Normal::minimum()))
+            Box::new(Gain::new_with(
+                uid,
+                GainCoreBuilder::default()
+                    .ceiling(Normal::minimum())
+                    .build()
+                    .unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |uid| {
             Box::new(Reverb::new_with(
@@ -99,13 +169,6 @@ impl BuiltInEntities {
                     .seconds(1.0.into())
                     .build()
                     .unwrap(),
-            ))
-        });
-        factory.register_entity_with_str_key(BiQuadFilterLowPass24db::ENTITY_KEY, |uid| {
-            Box::new(BiQuadFilterLowPass24db::new_with(
-                uid,
-                FrequencyHz(500.0),
-                1.0,
             ))
         });
 
@@ -146,32 +209,7 @@ impl BuiltInEntities {
             Box::new(sampler)
         });
         factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
-            Box::new(WelshSynth::new_with(
-                uid,
-                OscillatorBuilder::default()
-                    .waveform(Waveform::Sine)
-                    .build()
-                    .unwrap(),
-                OscillatorBuilder::default()
-                    .waveform(Waveform::Sawtooth)
-                    .build()
-                    .unwrap(),
-                true,
-                0.8.into(),
-                Envelope::safe_default(),
-                Dca::default(),
-                OscillatorBuilder::default()
-                    .waveform(Waveform::Sine)
-                    .frequency(0.2.into())
-                    .build()
-                    .unwrap(),
-                instruments::LfoRouting::FilterCutoff,
-                Normal::from(0.5),
-                effects::BiQuadFilterLowPass24dbCore::new_with(FrequencyHz(250.0), 1.0),
-                Normal::from(0.1),
-                Normal::from(0.8),
-                Envelope::safe_default(),
-            ))
+            Box::new(WelshSynth::new_with_factory_patch(uid))
         });
 
         factory
@@ -181,7 +219,6 @@ impl BuiltInEntities {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{entities::Bitcrusher, prelude::*};
     use std::collections::HashSet;
 
     // TODO: if we want to re-enable this, then we need to change

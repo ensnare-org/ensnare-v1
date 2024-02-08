@@ -4,7 +4,8 @@ pub mod filter;
 
 use crate::{
     cores::effects::{
-        self, BitcrusherCore, ChorusCore, CompressorCore, GainCore, LimiterCore, ReverbCore,
+        self, BitcrusherCore, ChorusCore, CompressorCore, DelayCore, GainCore, LimiterCore,
+        ReverbCore,
     },
     prelude::*,
 };
@@ -55,11 +56,8 @@ pub struct Chorus {
     inner: ChorusCore,
 }
 impl Chorus {
-    pub fn new_with(uid: Uid, voices: usize, delay: Seconds) -> Self {
-        Self {
-            uid,
-            inner: ChorusCore::new_with(voices, delay),
-        }
+    pub fn new_with(uid: Uid, inner: ChorusCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -82,17 +80,32 @@ pub struct Compressor {
     inner: CompressorCore,
 }
 impl Compressor {
-    pub fn new_with(
-        uid: Uid,
-        threshold: Normal,
-        ratio: Ratio,
-        attack: Normal,
-        release: Normal,
-    ) -> Self {
-        Self {
-            uid,
-            inner: CompressorCore::new_with(threshold, ratio, attack, release),
-        }
+    pub fn new_with(uid: Uid, inner: CompressorCore) -> Self {
+        Self { uid, inner }
+    }
+}
+
+#[derive(
+    Debug,
+    Default,
+    InnerControllable,
+    InnerConfigurable,
+    InnerEffect,
+    InnerSerializable,
+    IsEntity,
+    Metadata,
+    Serialize,
+    Deserialize,
+)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+
+pub struct Delay {
+    uid: Uid,
+    inner: DelayCore,
+}
+impl Delay {
+    pub fn new_with(uid: Uid, inner: DelayCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -115,11 +128,8 @@ pub struct Gain {
     inner: GainCore,
 }
 impl Gain {
-    pub fn new_with(uid: Uid, ceiling: Normal) -> Self {
-        Self {
-            uid,
-            inner: GainCore::new_with(ceiling),
-        }
+    pub fn new_with(uid: Uid, inner: GainCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -237,6 +247,8 @@ mod egui {
         }
     }
 
+    impl Displays for Delay {}
+
     impl Displays for Gain {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
             let mut ceiling = self.inner.ceiling().to_percentage();
@@ -252,6 +264,7 @@ mod egui {
             response
         }
     }
+
     impl Displays for Limiter {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
             let mut min = self.inner.minimum().to_percentage();

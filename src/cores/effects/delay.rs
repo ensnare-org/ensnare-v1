@@ -3,7 +3,9 @@
 use crate::prelude::*;
 use delegate::delegate;
 use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 pub(crate) trait Delays {
     fn peek_output(&self, apply_decay: bool) -> Sample;
@@ -16,8 +18,8 @@ pub(crate) trait Delays {
 pub(crate) struct DelayLine {
     #[derivative(Default(value = "0.1.into()"))]
     delay: Seconds,
-    #[derivative(Default(value = "0.1"))]
-    decay_factor: SignalType,
+    #[derivative(Default(value = "0.5.into()"))]
+    decay: Normal,
 
     buffer_size: usize,
     buffer_pointer: usize,
@@ -42,11 +44,11 @@ impl Configurable for DelayLine {
     }
 }
 impl DelayLine {
-    /// decay_factor: 1.0 = no decay
-    pub(super) fn new_with(delay: Seconds, decay_factor: SignalType) -> Self {
+    /// decay: 1.0 = no decay
+    pub(super) fn new_with(delay: Seconds, decay: Normal) -> Self {
         let mut r = Self {
             delay,
-            decay_factor,
+            decay,
             ..Default::default()
         };
         r.resize_buffer();
@@ -71,8 +73,12 @@ impl DelayLine {
         self.buffer_pointer = 0;
     }
 
-    pub(super) fn decay_factor(&self) -> SignalType {
-        self.decay_factor
+    pub(super) fn decay(&self) -> Normal {
+        self.decay
+    }
+
+    pub(super) fn set_decay(&mut self, decay: Normal) {
+        self.decay = decay;
     }
 }
 impl Delays for DelayLine {
@@ -80,7 +86,7 @@ impl Delays for DelayLine {
         if self.buffer_size == 0 {
             Sample::SILENCE
         } else if apply_decay {
-            self.buffer[self.buffer_pointer] * self.decay_factor()
+            self.buffer[self.buffer_pointer] * self.decay()
         } else {
             self.buffer[self.buffer_pointer]
         }
@@ -127,13 +133,15 @@ impl RecirculatingDelayLine {
         Self {
             delay: DelayLine::new_with(
                 delay,
-                (peak_amplitude.0 * final_amplitude.0).powf((delay / decay).into()) as SignalType,
+                (peak_amplitude.0 * final_amplitude.0)
+                    .powf((delay / decay).into())
+                    .into(),
             ),
         }
     }
 
-    pub(super) fn decay_factor(&self) -> SignalType {
-        self.delay.decay_factor()
+    pub(super) fn decay_factor(&self) -> Normal {
+        self.delay.decay()
     }
 }
 impl Delays for RecirculatingDelayLine {
@@ -196,18 +204,48 @@ impl Configurable for AllPassDelayLine {
     }
 }
 
-#[derive(Debug, Default, Control)]
+#[derive(Clone, Debug, Builder, Derivative, Control, Deserialize, Serialize)]
+#[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+#[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct DelayCore {
     #[control]
-    #[allow(dead_code)] // TODO
     seconds: Seconds,
 
+    #[control]
+    decay: Normal,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
     delay: DelayLine,
 }
-impl Serializable for DelayCore {}
+impl DelayCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<DelayCore, DelayCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl Serializable for DelayCore {
+    fn after_deser(&mut self) {
+        self.delay = DelayLine::new_with(self.seconds, self.decay)
+    }
+}
 impl Configurable for DelayCore {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.delay.update_sample_rate(sample_rate);
+    delegate! {
+        to self.delay {
+            fn sample_rate(&self) -> SampleRate;
+            fn update_sample_rate(&mut self, sample_rate: SampleRate);
+            fn tempo(&self) -> Tempo;
+            fn update_tempo(&mut self, tempo: Tempo);
+            fn time_signature(&self) -> TimeSignature;
+            fn update_time_signature(&mut self, time_signature: TimeSignature);
+        }
     }
 }
 impl TransformsAudio for DelayCore {
@@ -216,25 +254,20 @@ impl TransformsAudio for DelayCore {
     }
 }
 impl DelayCore {
-    #[allow(dead_code)]
-    fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn new_with(seconds: Seconds) -> Self {
-        Self {
-            seconds,
-            delay: DelayLine::new_with(seconds, 1.0),
-            ..Default::default()
-        }
-    }
-
     pub fn seconds(&self) -> Seconds {
         self.delay.delay()
     }
 
     pub fn set_seconds(&mut self, seconds: Seconds) {
         self.delay.set_delay(seconds);
+    }
+
+    pub fn decay(&self) -> Normal {
+        self.decay
+    }
+
+    pub fn set_decay(&mut self, decay: Normal) {
+        self.delay.set_decay(decay);
     }
 }
 
@@ -251,7 +284,10 @@ mod tests {
 
     #[test]
     fn basic_delay() {
-        let mut fx = DelayCore::new_with(1.0.into());
+        let mut fx = DelayCoreBuilder::default()
+            .seconds(1.0.into())
+            .build()
+            .unwrap();
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // Add a unique first sample.
@@ -276,7 +312,10 @@ mod tests {
 
     #[test]
     fn delay_zero() {
-        let mut fx = DelayCore::new_with(0.0.into());
+        let mut fx = DelayCoreBuilder::default()
+            .seconds(0.0.into())
+            .build()
+            .unwrap();
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // We should keep getting back what we put in.
@@ -297,7 +336,7 @@ mod tests {
     fn delay_line() {
         // It's very simple: it should return an input sample, attenuated, after
         // the specified delay.
-        let mut delay = DelayLine::new_with(1.0.into(), 0.3);
+        let mut delay = DelayLine::new_with(1.0.into(), 0.3.into());
         delay.update_sample_rate(CURIOUSLY_SMALL_SAMPLE_RATE);
 
         assert_eq!(delay.pop_output(Sample::from(0.5)), Sample::SILENCE);

@@ -4,8 +4,11 @@
 use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
 use crate::{
     cores::{
-        effects::BiQuadFilterLowPass24dbCore,
-        instruments::{DrumkitCore, FmSynthCore, LfoRouting, SamplerCore, WelshSynthCore},
+        effects::{BiQuadFilterLowPass24dbCore, BiQuadFilterLowPass24dbCoreBuilder},
+        instruments::{
+            DrumkitCore, FmSynthCore, LfoRouting, SamplerCore, WelshSynthCore,
+            WelshSynthCoreBuilder,
+        },
     },
     egui::{DrumkitWidgetAction, SamplerWidgetAction},
     elements::OscillatorBuilder,
@@ -158,39 +161,10 @@ pub struct WelshSynth {
     action: Option<DisplaysAction>,
 }
 impl WelshSynth {
-    pub fn new_with(
-        uid: Uid,
-        oscillator_1: Oscillator,
-        oscillator_2: Oscillator,
-        oscillator_2_sync: bool,
-        oscillator_mix: Normal,
-        amp_envelope: Envelope,
-        dca: Dca,
-        lfo: Oscillator,
-        lfo_routing: LfoRouting,
-        lfo_depth: Normal,
-        filter: BiQuadFilterLowPass24dbCore,
-        filter_cutoff_start: Normal,
-        filter_cutoff_end: Normal,
-        filter_envelope: Envelope,
-    ) -> Self {
+    pub fn new_with(uid: Uid, inner: WelshSynthCore) -> Self {
         Self {
             uid,
-            inner: WelshSynthCore::new_with(
-                oscillator_1,
-                oscillator_2,
-                oscillator_2_sync,
-                oscillator_mix,
-                amp_envelope,
-                dca,
-                lfo,
-                lfo_routing,
-                lfo_depth,
-                filter,
-                filter_cutoff_start,
-                filter_cutoff_end,
-                filter_envelope,
-            ),
+            inner,
             widget_action: Default::default(),
             action: Default::default(),
         }
@@ -199,29 +173,44 @@ impl WelshSynth {
     pub fn new_with_factory_patch(uid: Uid) -> Self {
         WelshSynth::new_with(
             uid,
-            OscillatorBuilder::default()
-                .waveform(Waveform::Sine)
+            WelshSynthCoreBuilder::default()
+                .oscillator_1(
+                    OscillatorBuilder::default()
+                        .waveform(Waveform::Sine)
+                        .build()
+                        .unwrap(),
+                )
+                .oscillator_2(
+                    OscillatorBuilder::default()
+                        .waveform(Waveform::Sawtooth)
+                        .build()
+                        .unwrap(),
+                )
+                .oscillator_2_sync(true)
+                .oscillator_mix(0.8.into())
+                .amp_envelope(Envelope::safe_default())
+                .dca(Dca::default())
+                .lfo(
+                    OscillatorBuilder::default()
+                        .waveform(Waveform::Sine)
+                        .frequency(0.2.into())
+                        .build()
+                        .unwrap(),
+                )
+                .lfo_routing(LfoRouting::FilterCutoff)
+                .lfo_depth(Normal::from(0.5))
+                .filter(
+                    BiQuadFilterLowPass24dbCoreBuilder::default()
+                        .cutoff(250.0.into())
+                        .passband_ripple(1.0)
+                        .build()
+                        .unwrap(),
+                )
+                .filter_cutoff_start(Normal::from(0.1))
+                .filter_cutoff_end(Normal::from(0.8))
+                .filter_envelope(Envelope::safe_default())
                 .build()
                 .unwrap(),
-            OscillatorBuilder::default()
-                .waveform(Waveform::Sawtooth)
-                .build()
-                .unwrap(),
-            true,
-            0.8.into(),
-            Envelope::safe_default(),
-            Dca::default(),
-            OscillatorBuilder::default()
-                .waveform(Waveform::Sine)
-                .frequency(0.2.into())
-                .build()
-                .unwrap(),
-            LfoRouting::FilterCutoff,
-            Normal::from(0.5),
-            BiQuadFilterLowPass24dbCore::new_with(FrequencyHz(250.0), 1.0),
-            Normal::from(0.1),
-            Normal::from(0.8),
-            Envelope::safe_default(),
         )
     }
 }

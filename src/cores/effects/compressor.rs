@@ -2,10 +2,12 @@
 
 use crate::prelude::*;
 use delegate::delegate;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Debug, Default, Builder, Control, Serialize, Deserialize)]
+#[builder(default)]
 #[serde(rename_all = "kebab-case")]
 pub struct CompressorCore {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
@@ -33,6 +35,7 @@ pub struct CompressorCore {
     release: Normal,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     c: Configurables,
 }
 impl Serializable for CompressorCore {}
@@ -66,16 +69,6 @@ impl Configurable for CompressorCore {
     }
 }
 impl CompressorCore {
-    pub fn new_with(threshold: Normal, ratio: Ratio, attack: Normal, release: Normal) -> Self {
-        Self {
-            threshold,
-            ratio,
-            attack,
-            release,
-            ..Default::default()
-        }
-    }
-
     pub fn threshold(&self) -> Normal {
         self.threshold
     }
@@ -116,7 +109,13 @@ mod tests {
     #[test]
     fn basic_compressor() {
         const THRESHOLD: SampleType = 0.25;
-        let mut fx = CompressorCore::new_with(THRESHOLD.into(), 0.5.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCoreBuilder::default()
+            .threshold(THRESHOLD.into())
+            .ratio(0.5.into())
+            .attack(0.0.into())
+            .release(0.0.into())
+            .build()
+            .unwrap();
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from((0.35 - THRESHOLD) * 0.5 + THRESHOLD)
@@ -125,7 +124,13 @@ mod tests {
 
     #[test]
     fn nothing_compressor() {
-        let mut fx = CompressorCore::new_with(0.25.into(), 1.0.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCoreBuilder::default()
+            .threshold(0.25.into())
+            .ratio(1.0.into())
+            .attack(0.0.into())
+            .release(0.0.into())
+            .build()
+            .unwrap();
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35f32)),
             Sample::from(0.35f32)
@@ -134,7 +139,13 @@ mod tests {
 
     #[test]
     fn infinite_compressor() {
-        let mut fx = CompressorCore::new_with(0.25.into(), 0.0.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCoreBuilder::default()
+            .threshold(0.25.into())
+            .ratio(0.0.into())
+            .attack(0.0.into())
+            .release(0.0.into())
+            .build()
+            .unwrap();
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from(0.25)

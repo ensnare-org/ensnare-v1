@@ -43,14 +43,6 @@ impl TransformsAudio for LimiterCore {
     }
 }
 impl LimiterCore {
-    pub fn new_with(minimum: Normal, maximum: Normal) -> Self {
-        Self {
-            minimum,
-            maximum,
-            ..Default::default()
-        }
-    }
-
     pub fn maximum(&self) -> Normal {
         self.maximum
     }
@@ -72,30 +64,50 @@ impl LimiterCore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cores::instruments::TestAudioSourceCore;
+    use crate::cores::instruments::{TestAudioSourceCore, TestAudioSourceCoreBuilder};
     use more_asserts::{assert_gt, assert_lt};
 
     #[test]
     fn limiter_mainline() {
         // audio sources are at or past boundaries
         assert_gt!(
-            TestAudioSourceCore::new_with(TestAudioSourceCore::TOO_LOUD).value(),
+            TestAudioSourceCoreBuilder::default()
+                .level(TestAudioSourceCore::TOO_LOUD)
+                .build()
+                .unwrap()
+                .value(),
             StereoSample::MAX
         );
         assert_eq!(
-            TestAudioSourceCore::new_with(TestAudioSourceCore::LOUD).value(),
+            TestAudioSourceCoreBuilder::default()
+                .level(TestAudioSourceCore::LOUD)
+                .build()
+                .unwrap()
+                .value(),
             StereoSample::MAX
         );
         assert_eq!(
-            TestAudioSourceCore::new_with(TestAudioSourceCore::SILENT).value(),
+            TestAudioSourceCoreBuilder::default()
+                .level(TestAudioSourceCore::SILENT)
+                .build()
+                .unwrap()
+                .value(),
             StereoSample::SILENCE
         );
         assert_eq!(
-            TestAudioSourceCore::new_with(TestAudioSourceCore::QUIET).value(),
+            TestAudioSourceCoreBuilder::default()
+                .level(TestAudioSourceCore::QUIET)
+                .build()
+                .unwrap()
+                .value(),
             StereoSample::MIN
         );
         assert_lt!(
-            TestAudioSourceCore::new_with(TestAudioSourceCore::TOO_QUIET).value(),
+            TestAudioSourceCoreBuilder::default()
+                .level(TestAudioSourceCore::TOO_QUIET)
+                .build()
+                .unwrap()
+                .value(),
             StereoSample::MIN
         );
 
@@ -103,29 +115,51 @@ mod tests {
         let mut limiter = LimiterCore::default();
         assert_eq!(
             limiter.transform_audio(
-                TestAudioSourceCore::new_with(TestAudioSourceCore::TOO_LOUD).value()
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::TOO_LOUD)
+                    .build()
+                    .unwrap()
+                    .value()
             ),
             StereoSample::MAX
         );
         assert_eq!(
-            limiter
-                .transform_audio(TestAudioSourceCore::new_with(TestAudioSourceCore::LOUD).value()),
+            limiter.transform_audio(
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::LOUD)
+                    .build()
+                    .unwrap()
+                    .value()
+            ),
             StereoSample::MAX
         );
         assert_eq!(
             limiter.transform_audio(
-                TestAudioSourceCore::new_with(TestAudioSourceCore::SILENT).value()
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::SILENT)
+                    .build()
+                    .unwrap()
+                    .value()
             ),
             StereoSample::SILENCE
         );
         assert_eq!(
-            limiter
-                .transform_audio(TestAudioSourceCore::new_with(TestAudioSourceCore::QUIET).value()),
+            limiter.transform_audio(
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::QUIET)
+                    .build()
+                    .unwrap()
+                    .value()
+            ),
             StereoSample::MIN
         );
         assert_eq!(
             limiter.transform_audio(
-                TestAudioSourceCore::new_with(TestAudioSourceCore::TOO_QUIET).value()
+                TestAudioSourceCoreBuilder::default()
+                    .level(TestAudioSourceCore::TOO_QUIET)
+                    .build()
+                    .unwrap()
+                    .value()
             ),
             StereoSample::MIN
         );
@@ -133,7 +167,11 @@ mod tests {
 
     #[test]
     fn limiter_bias() {
-        let mut limiter = LimiterCore::new_with(0.2.into(), 0.8.into());
+        let mut limiter = LimiterCoreBuilder::default()
+            .minimum(0.2.into())
+            .maximum(0.8.into())
+            .build()
+            .unwrap();
         assert_eq!(
             limiter.transform_channel(0, Sample::from(0.1)),
             Sample::from(0.2),
