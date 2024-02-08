@@ -58,7 +58,7 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
             Box::new(Trigger::new_with(
                 uid,
-                crate::automation::Timer::new_with(MusicalTime::DURATION_QUARTER),
+                crate::automation::TimerCore::new_with(MusicalTime::DURATION_QUARTER),
                 ControlValue(1.0),
             ))
         });
@@ -167,7 +167,7 @@ impl BuiltInEntities {
                     .unwrap(),
                 instruments::LfoRouting::FilterCutoff,
                 Normal::from(0.5),
-                effects::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+                effects::BiQuadFilterLowPass24dbCore::new_with(FrequencyHz(250.0), 1.0),
                 Normal::from(0.1),
                 Normal::from(0.8),
                 Envelope::safe_default(),

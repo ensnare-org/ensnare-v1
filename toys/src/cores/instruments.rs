@@ -24,7 +24,7 @@ pub struct ToyInstrumentEphemerals {
 /// responds to MIDI NoteOn/NoteOff. Unlike [super::ToySynth], it is monophonic.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ToyInstrument {
+pub struct ToyInstrumentCore {
     pub oscillator: Oscillator,
 
     #[control]
@@ -33,7 +33,7 @@ pub struct ToyInstrument {
     #[serde(skip)]
     e: ToyInstrumentEphemerals,
 }
-impl Generates<StereoSample> for ToyInstrument {
+impl Generates<StereoSample> for ToyInstrumentCore {
     fn value(&self) -> StereoSample {
         self.e.sample
     }
@@ -44,7 +44,7 @@ impl Generates<StereoSample> for ToyInstrument {
         }
     }
 }
-impl Configurable for ToyInstrument {
+impl Configurable for ToyInstrumentCore {
     fn sample_rate(&self) -> SampleRate {
         self.oscillator.sample_rate()
     }
@@ -53,7 +53,7 @@ impl Configurable for ToyInstrument {
         self.oscillator.update_sample_rate(sample_rate);
     }
 }
-impl Ticks for ToyInstrument {
+impl Ticks for ToyInstrumentCore {
     fn tick(&mut self, tick_count: usize) {
         self.oscillator.tick(tick_count);
         self.e.sample = if self.e.is_playing {
@@ -64,7 +64,7 @@ impl Ticks for ToyInstrument {
         };
     }
 }
-impl HandlesMidi for ToyInstrument {
+impl HandlesMidi for ToyInstrumentCore {
     fn handle_midi_message(
         &mut self,
         _channel: MidiChannel,
@@ -88,8 +88,8 @@ impl HandlesMidi for ToyInstrument {
         }
     }
 }
-impl Serializable for ToyInstrument {}
-impl ToyInstrument {
+impl Serializable for ToyInstrumentCore {}
+impl ToyInstrumentCore {
     pub fn new() -> Self {
         Self {
             oscillator: Oscillator::default(),

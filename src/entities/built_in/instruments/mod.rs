@@ -4,8 +4,8 @@
 use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
 use crate::{
     cores::{
-        effects,
-        instruments::{self, FmSynthCore},
+        effects::BiQuadFilterLowPass24dbCore,
+        instruments::{DrumkitCore, FmSynthCore, LfoRouting, SamplerCore, WelshSynthCore},
     },
     egui::{DrumkitWidgetAction, SamplerWidgetAction},
     elements::OscillatorBuilder,
@@ -35,7 +35,7 @@ use std::path::PathBuf;
 
 pub struct Drumkit {
     uid: Uid,
-    inner: instruments::Drumkit,
+    inner: DrumkitCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
@@ -49,7 +49,7 @@ impl Drumkit {
     pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
             uid,
-            inner: instruments::Drumkit::new_with(name, paths),
+            inner: DrumkitCore::new_with(name, paths),
             widget_action: Default::default(),
             action: Default::default(),
         }
@@ -71,7 +71,7 @@ impl Drumkit {
 #[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
-    inner: instruments::FmSynthCore,
+    inner: FmSynthCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
@@ -107,7 +107,7 @@ impl FmSynth {
 #[entity(Controls, TransformsAudio)]
 pub struct Sampler {
     uid: Uid,
-    inner: instruments::Sampler,
+    inner: SamplerCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
@@ -121,7 +121,7 @@ impl Sampler {
     pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
-            inner: instruments::Sampler::new_with(path, root),
+            inner: SamplerCore::new_with(path, root),
             widget_action: Default::default(),
             action: Default::default(),
         }
@@ -147,7 +147,7 @@ impl Sampler {
 #[entity(Controls, TransformsAudio)]
 pub struct WelshSynth {
     uid: Uid,
-    inner: instruments::WelshSynth,
+    inner: WelshSynthCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
@@ -167,16 +167,16 @@ impl WelshSynth {
         amp_envelope: Envelope,
         dca: Dca,
         lfo: Oscillator,
-        lfo_routing: instruments::LfoRouting,
+        lfo_routing: LfoRouting,
         lfo_depth: Normal,
-        filter: effects::BiQuadFilterLowPass24db,
+        filter: BiQuadFilterLowPass24dbCore,
         filter_cutoff_start: Normal,
         filter_cutoff_end: Normal,
         filter_envelope: Envelope,
     ) -> Self {
         Self {
             uid,
-            inner: instruments::WelshSynth::new_with(
+            inner: WelshSynthCore::new_with(
                 oscillator_1,
                 oscillator_2,
                 oscillator_2_sync,
@@ -216,9 +216,9 @@ impl WelshSynth {
                 .frequency(0.2.into())
                 .build()
                 .unwrap(),
-            instruments::LfoRouting::FilterCutoff,
+            LfoRouting::FilterCutoff,
             Normal::from(0.5),
-            effects::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),
+            BiQuadFilterLowPass24dbCore::new_with(FrequencyHz(250.0), 1.0),
             Normal::from(0.1),
             Normal::from(0.8),
             Envelope::safe_default(),

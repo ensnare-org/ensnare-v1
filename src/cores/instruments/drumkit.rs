@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::sampler::{Sampler, SamplerVoice};
+use super::sampler::{SamplerCore, SamplerVoice};
 use crate::{
     elements::VoicePerNoteStore,
     midi::{prelude::*, GeneralMidiPercussionProgram},
@@ -15,7 +15,7 @@ use std::{path::Path, sync::Arc};
 
 #[derive(Control, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Drumkit {
+pub struct DrumkitCore {
     name: String,
 
     #[serde(skip)]
@@ -23,7 +23,7 @@ pub struct Drumkit {
     #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
-impl std::fmt::Debug for Drumkit {
+impl std::fmt::Debug for DrumkitCore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Drumkit")
             .field("name", &self.name)
@@ -32,7 +32,7 @@ impl std::fmt::Debug for Drumkit {
     }
 }
 
-impl Generates<StereoSample> for Drumkit {
+impl Generates<StereoSample> for DrumkitCore {
     fn value(&self) -> StereoSample {
         self.inner_synth.value()
     }
@@ -41,8 +41,8 @@ impl Generates<StereoSample> for Drumkit {
         self.inner_synth.generate(values);
     }
 }
-impl Serializable for Drumkit {}
-impl Configurable for Drumkit {
+impl Serializable for DrumkitCore {}
+impl Configurable for DrumkitCore {
     delegate! {
         to self.inner_synth {
             fn sample_rate(&self) -> SampleRate;
@@ -54,12 +54,12 @@ impl Configurable for Drumkit {
         }
     }
 }
-impl Ticks for Drumkit {
+impl Ticks for DrumkitCore {
     fn tick(&mut self, tick_count: usize) {
         self.inner_synth.tick(tick_count);
     }
 }
-impl HandlesMidi for Drumkit {
+impl HandlesMidi for DrumkitCore {
     fn handle_midi_message(
         &mut self,
         channel: MidiChannel,
@@ -70,7 +70,7 @@ impl HandlesMidi for Drumkit {
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
-impl Drumkit {
+impl DrumkitCore {
     fn new_from_files(paths: &Paths, kit_name: &str) -> Self {
         let samples = vec![
             (GeneralMidiPercussionProgram::AcousticBassDrum, "Kick 1 R1"),
@@ -103,7 +103,7 @@ impl Drumkit {
                 let filename =
                     paths.build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
                 if let Ok(file) = paths.search_and_open(filename.as_path()) {
-                    if let Ok(samples) = Sampler::read_samples_from_file(&file) {
+                    if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
                         let program = program as u8;
                         Ok((
                             u7::from(program),

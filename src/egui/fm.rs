@@ -2,7 +2,7 @@
 
 use super::modulators::{DcaWidget, DcaWidgetAction};
 use crate::{
-    cores::instruments,
+    cores::instruments::{self, FmSynthCore},
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
@@ -18,20 +18,17 @@ pub enum FmSynthWidgetAction {
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
-    inner: &'a mut instruments::FmSynthCore,
+    inner: &'a mut FmSynthCore,
     action: &'a mut Option<FmSynthWidgetAction>,
 }
 impl<'a> FmSynthWidget<'a> {
-    fn new(
-        inner: &'a mut instruments::FmSynthCore,
-        action: &'a mut Option<FmSynthWidgetAction>,
-    ) -> Self {
+    fn new(inner: &'a mut FmSynthCore, action: &'a mut Option<FmSynthWidgetAction>) -> Self {
         Self { inner, action }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut instruments::FmSynthCore,
+        inner: &'a mut FmSynthCore,
         action: &'a mut Option<FmSynthWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, action).ui(ui)
@@ -114,7 +111,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
                         DcaWidgetAction::Link(uid, index) => {
                             *self.action = Some(FmSynthWidgetAction::Link(
                                 uid,
-                                index + instruments::FmSynthCore::DCA_INDEX,
+                                index + FmSynthCore::DCA_INDEX,
                             ));
                         }
                     }

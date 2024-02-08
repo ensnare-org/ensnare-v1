@@ -6,14 +6,14 @@
 
 pub use {
     bitcrusher::{BitcrusherCore, BitcrusherCoreBuilder},
-    chorus::Chorus,
-    compressor::Compressor,
-    delay::{Delay, RecirculatingDelayLine},
+    chorus::ChorusCore,
+    compressor::CompressorCore,
+    delay::{DelayCore, RecirculatingDelayLine},
     filter::{
-        BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop, BiQuadFilterHighPass,
-        BiQuadFilterLowPass24db,
+        BiQuadFilterAllPassCore, BiQuadFilterBandPassCore, BiQuadFilterBandStopCore,
+        BiQuadFilterHighPassCore, BiQuadFilterLowPass24dbCore,
     },
-    gain::Gain,
+    gain::GainCore,
     limiter::{LimiterCore, LimiterCoreBuilder},
     reverb::{ReverbCore, ReverbCoreBuilder},
     test::*,

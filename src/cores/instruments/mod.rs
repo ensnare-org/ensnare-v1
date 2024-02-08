@@ -4,11 +4,11 @@
 //! synthesizers and samplers are examples of instruments.
 
 pub use {
-    drumkit::Drumkit,
+    drumkit::DrumkitCore,
     fm::{FmSynthCore, FmSynthCoreBuilder},
-    sampler::{Sampler, SamplerVoice},
-    test::{TestAudioSource, TestControllerAlwaysSendsMidiMessage},
-    welsh::{LfoRouting, WelshSynth, WelshVoice},
+    sampler::{SamplerCore, SamplerVoice},
+    test::{TestAudioSourceCore, TestControllerAlwaysSendsMidiMessageCore},
+    welsh::{LfoRouting, WelshSynthCore, WelshVoice},
 };
 
 mod drumkit;

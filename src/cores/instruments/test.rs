@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// value gets all the way through the pipeline.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct TestAudioSource {
+pub struct TestAudioSourceCore {
     // This should be a Normal, but we use this audio source for testing
     // edge conditions. Thus we need to let it go out of range.
     #[control]
@@ -17,8 +17,8 @@ pub struct TestAudioSource {
     #[serde(skip)]
     sample_rate: SampleRate,
 }
-impl Ticks for TestAudioSource {}
-impl Generates<StereoSample> for TestAudioSource {
+impl Ticks for TestAudioSourceCore {}
+impl Generates<StereoSample> for TestAudioSourceCore {
     fn value(&self) -> StereoSample {
         StereoSample::from(self.level)
     }
@@ -27,7 +27,7 @@ impl Generates<StereoSample> for TestAudioSource {
         values.fill(self.value());
     }
 }
-impl Configurable for TestAudioSource {
+impl Configurable for TestAudioSourceCore {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -37,7 +37,7 @@ impl Configurable for TestAudioSource {
     }
 }
 #[allow(dead_code)]
-impl TestAudioSource {
+impl TestAudioSourceCore {
     pub const TOO_LOUD: SampleType = 1.1;
     pub const LOUD: SampleType = 1.0;
     pub const MEDIUM: SampleType = 0.5;
@@ -62,12 +62,12 @@ impl TestAudioSource {
 }
 
 #[derive(Debug, Default)]
-pub struct TestControllerAlwaysSendsMidiMessage {
+pub struct TestControllerAlwaysSendsMidiMessageCore {
     midi_note: u8,
     is_performing: bool,
 }
-impl HandlesMidi for TestControllerAlwaysSendsMidiMessage {}
-impl Controls for TestControllerAlwaysSendsMidiMessage {
+impl HandlesMidi for TestControllerAlwaysSendsMidiMessageCore {}
+impl Controls for TestControllerAlwaysSendsMidiMessageCore {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         if self.is_performing {
             control_events_fn(WorkEvent::Midi(
@@ -100,5 +100,5 @@ impl Controls for TestControllerAlwaysSendsMidiMessage {
         self.is_performing
     }
 }
-impl Configurable for TestControllerAlwaysSendsMidiMessage {}
-impl Serializable for TestControllerAlwaysSendsMidiMessage {}
+impl Configurable for TestControllerAlwaysSendsMidiMessageCore {}
+impl Serializable for TestControllerAlwaysSendsMidiMessageCore {}

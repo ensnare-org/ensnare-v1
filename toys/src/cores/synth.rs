@@ -78,7 +78,7 @@ impl ToyVoice {
 /// Implements a small but complete synthesizer.
 #[derive(Control, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ToySynth {
+pub struct ToySynthCore {
     voice_count: VoiceCount,
 
     #[control]
@@ -93,8 +93,8 @@ pub struct ToySynth {
     #[serde(skip)]
     pub inner: Synthesizer<ToyVoice>,
 }
-impl Serializable for ToySynth {}
-impl Generates<StereoSample> for ToySynth {
+impl Serializable for ToySynthCore {}
+impl Generates<StereoSample> for ToySynthCore {
     delegate! {
         to self.inner {
             fn value(&self) -> StereoSample;
@@ -102,7 +102,7 @@ impl Generates<StereoSample> for ToySynth {
         }
     }
 }
-impl HandlesMidi for ToySynth {
+impl HandlesMidi for ToySynthCore {
     delegate! {
         to self.inner {
             fn handle_midi_message(
@@ -114,14 +114,14 @@ impl HandlesMidi for ToySynth {
         }
     }
 }
-impl Ticks for ToySynth {
+impl Ticks for ToySynthCore {
     delegate! {
         to self.inner {
             fn tick(&mut self, tick_count: usize);
         }
     }
 }
-impl Configurable for ToySynth {
+impl Configurable for ToySynthCore {
     delegate! {
         to self.inner {
             fn sample_rate(&self) -> SampleRate;
@@ -129,7 +129,7 @@ impl Configurable for ToySynth {
         }
     }
 }
-impl ToySynth {
+impl ToySynthCore {
     pub fn new_with(oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
         let voice_store = VoiceStore::<ToyVoice>::new_with_voice(VoiceCount::default(), || {
             ToyVoice::new_with(&oscillator, &envelope, &dca)
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn toy_synth_control() {
-        let mut synth = ToySynth::new_with(
+        let mut synth = ToySynthCore::new_with(
             OscillatorBuilder::default().build().unwrap(),
             Envelope::safe_default(),
             Dca::default(),

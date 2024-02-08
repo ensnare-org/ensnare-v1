@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{cores::instruments::TestControllerAlwaysSendsMidiMessageCore, prelude::*};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable, IsEntity, Metadata,
 };
@@ -53,13 +53,13 @@ impl TestController {
 pub struct TestControllerAlwaysSendsMidiMessage {
     uid: Uid,
     #[serde(skip)]
-    inner: crate::cores::instruments::TestControllerAlwaysSendsMidiMessage,
+    inner: TestControllerAlwaysSendsMidiMessageCore,
 }
 impl TestControllerAlwaysSendsMidiMessage {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: crate::cores::instruments::TestControllerAlwaysSendsMidiMessage::default(),
+            inner: TestControllerAlwaysSendsMidiMessageCore::default(),
         }
     }
 }

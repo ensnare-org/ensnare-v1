@@ -7,15 +7,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Gain {
+pub struct GainCore {
     #[control]
     ceiling: Normal,
 
     #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for Gain {}
-impl Configurable for Gain {
+impl Serializable for GainCore {}
+impl Configurable for GainCore {
     delegate! {
         to self.c {
             fn sample_rate(&self) -> SampleRate;
@@ -27,12 +27,12 @@ impl Configurable for Gain {
         }
     }
 }
-impl TransformsAudio for Gain {
+impl TransformsAudio for GainCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         Sample(input_sample.0 * self.ceiling.0)
     }
 }
-impl Gain {
+impl GainCore {
     pub fn new_with(ceiling: Normal) -> Self {
         Self {
             ceiling,
@@ -52,13 +52,13 @@ impl Gain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cores::instruments::TestAudioSource;
+    use crate::cores::instruments::TestAudioSourceCore;
 
     #[test]
     fn gain_mainline() {
-        let mut gain = Gain::new_with(Normal::new(0.5));
+        let mut gain = GainCore::new_with(Normal::new(0.5));
         assert_eq!(
-            gain.transform_audio(TestAudioSource::new_with(TestAudioSource::LOUD).value()),
+            gain.transform_audio(TestAudioSourceCore::new_with(TestAudioSourceCore::LOUD).value()),
             StereoSample::from(0.5)
         );
     }

@@ -1,6 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::effects, prelude::*};
+use crate::{
+    cores::effects::{
+        BiQuadFilterAllPassCore, BiQuadFilterBandPassCore, BiQuadFilterBandStopCore,
+        BiQuadFilterHighPassCore, BiQuadFilterLowPass24dbCore,
+    },
+    prelude::*,
+};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
@@ -21,13 +27,13 @@ use serde::{Deserialize, Serialize};
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
 pub struct BiQuadFilterBandPass {
     uid: Uid,
-    inner: effects::BiQuadFilterBandPass,
+    inner: BiQuadFilterBandPassCore,
 }
 impl BiQuadFilterBandPass {
     pub fn new_with(uid: Uid, cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
             uid,
-            inner: effects::BiQuadFilterBandPass::new_with(cutoff, bandwidth),
+            inner: BiQuadFilterBandPassCore::new_with(cutoff, bandwidth),
         }
     }
 }
@@ -47,13 +53,13 @@ impl BiQuadFilterBandPass {
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
 pub struct BiQuadFilterBandStop {
     uid: Uid,
-    inner: effects::BiQuadFilterBandStop,
+    inner: BiQuadFilterBandStopCore,
 }
 impl BiQuadFilterBandStop {
     pub fn new_with(uid: Uid, cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
             uid,
-            inner: effects::BiQuadFilterBandStop::new_with(cutoff, bandwidth),
+            inner: BiQuadFilterBandStopCore::new_with(cutoff, bandwidth),
         }
     }
 }
@@ -73,13 +79,13 @@ impl BiQuadFilterBandStop {
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
 pub struct BiQuadFilterLowPass24db {
     uid: Uid,
-    inner: effects::BiQuadFilterLowPass24db,
+    inner: BiQuadFilterLowPass24dbCore,
 }
 impl BiQuadFilterLowPass24db {
     pub fn new_with(uid: Uid, cutoff: FrequencyHz, passband_ripple: ParameterType) -> Self {
         Self {
             uid,
-            inner: effects::BiQuadFilterLowPass24db::new_with(cutoff, passband_ripple),
+            inner: BiQuadFilterLowPass24dbCore::new_with(cutoff, passband_ripple),
         }
     }
 }
@@ -99,13 +105,13 @@ impl BiQuadFilterLowPass24db {
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
 pub struct BiQuadFilterHighPass {
     uid: Uid,
-    inner: effects::BiQuadFilterHighPass,
+    inner: BiQuadFilterHighPassCore,
 }
 impl BiQuadFilterHighPass {
     pub fn new_with(uid: Uid, cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
             uid,
-            inner: effects::BiQuadFilterHighPass::new_with(cutoff, q),
+            inner: BiQuadFilterHighPassCore::new_with(cutoff, q),
         }
     }
 }
@@ -125,13 +131,13 @@ impl BiQuadFilterHighPass {
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
 pub struct BiQuadFilterAllPass {
     uid: Uid,
-    inner: effects::BiQuadFilterAllPass,
+    inner: BiQuadFilterAllPassCore,
 }
 impl BiQuadFilterAllPass {
     pub fn new_with(uid: Uid, cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
             uid,
-            inner: effects::BiQuadFilterAllPass::new_with(cutoff, q),
+            inner: BiQuadFilterAllPassCore::new_with(cutoff, q),
         }
     }
 }

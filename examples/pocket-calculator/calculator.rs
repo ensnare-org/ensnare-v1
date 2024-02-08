@@ -18,7 +18,7 @@ use eframe::{
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
 use ensnare::{
-    cores::instruments::{Sampler, SamplerVoice},
+    cores::instruments::{SamplerCore, SamplerVoice},
     elements::VoicePerNoteStore,
     prelude::*,
     util::Paths,
@@ -453,7 +453,7 @@ impl CalculatorEphemerals {
                 let filename =
                     paths.build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
                 if let Ok(file) = paths.search_and_open(filename.as_path()) {
-                    if let Ok(samples) = Sampler::read_samples_from_file(&file) {
+                    if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
                         (
                             (index as u8).into(),
                             SamplerVoice::new_with_samples(

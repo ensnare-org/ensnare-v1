@@ -2,11 +2,10 @@
 
 //! Controllers are musical devices that emit control events rather than audio.
 //! A good example is an arpeggiator, which produces MIDI messages.
-//!
-//! Controllers implement the [Controls](crate::traits::Controls) trait.
-pub use arpeggiator::*;
+
+pub use arpeggiator::{ArpeggiatorCore, ArpeggiatorCoreBuilder, ArpeggioMode};
 pub use lfo::{LfoControllerCore, LfoControllerCoreBuilder};
-pub use passthrough::*;
+pub use passthrough::{SignalPassthroughControllerCore, SignalPassthroughType};
 
 mod arpeggiator;
 mod lfo;

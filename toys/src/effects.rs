@@ -6,6 +6,8 @@ use ensnare_proc_macros::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::cores::ToyEffectCore;
+
 #[derive(
     Debug,
     Default,
@@ -22,7 +24,7 @@ use serde::{Deserialize, Serialize};
 pub struct ToyEffect {
     uid: Uid,
     #[serde(skip)]
-    inner: crate::cores::ToyEffect,
+    inner: ToyEffectCore,
 }
 impl Displays for ToyEffect {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -36,7 +38,7 @@ impl ToyEffect {
     pub fn new_with(uid: Uid, magnitude: Normal) -> Self {
         Self {
             uid,
-            inner: crate::cores::ToyEffect::new_with(magnitude),
+            inner: ToyEffectCore::new_with(magnitude),
         }
     }
 }

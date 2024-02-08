@@ -197,25 +197,25 @@ impl Configurable for AllPassDelayLine {
 }
 
 #[derive(Debug, Default, Control)]
-pub struct Delay {
+pub struct DelayCore {
     #[control]
     #[allow(dead_code)] // TODO
     seconds: Seconds,
 
     delay: DelayLine,
 }
-impl Serializable for Delay {}
-impl Configurable for Delay {
+impl Serializable for DelayCore {}
+impl Configurable for DelayCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.delay.update_sample_rate(sample_rate);
     }
 }
-impl TransformsAudio for Delay {
+impl TransformsAudio for DelayCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         self.delay.pop_output(input_sample)
     }
 }
-impl Delay {
+impl DelayCore {
     #[allow(dead_code)]
     fn new() -> Self {
         Self::default()
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn basic_delay() {
-        let mut fx = Delay::new_with(1.0.into());
+        let mut fx = DelayCore::new_with(1.0.into());
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // Add a unique first sample.
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn delay_zero() {
-        let mut fx = Delay::new_with(0.0.into());
+        let mut fx = DelayCore::new_with(0.0.into());
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // We should keep getting back what we put in.

@@ -26,7 +26,7 @@ pub enum SignalPassthroughType {
 /// averaging the two channels to create a single signal.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct SignalPassthroughController {
+pub struct SignalPassthroughControllerCore {
     passthrough_type: SignalPassthroughType,
 
     #[serde(skip)]
@@ -43,8 +43,8 @@ pub struct SignalPassthroughControllerEphemerals {
 
     c: Configurables,
 }
-impl Serializable for SignalPassthroughController {}
-impl Configurable for SignalPassthroughController {
+impl Serializable for SignalPassthroughControllerCore {}
+impl Configurable for SignalPassthroughControllerCore {
     delegate! {
         to self.e.c {
             fn sample_rate(&self) -> SampleRate;
@@ -56,7 +56,7 @@ impl Configurable for SignalPassthroughController {
         }
     }
 }
-impl Controls for SignalPassthroughController {
+impl Controls for SignalPassthroughControllerCore {
     fn update_time_range(&mut self, _range: &TimeRange) {
         // We can ignore because we already have our own de-duplicating logic.
     }
@@ -89,8 +89,8 @@ impl Controls for SignalPassthroughController {
         self.e.is_performing
     }
 }
-impl HandlesMidi for SignalPassthroughController {}
-impl TransformsAudio for SignalPassthroughController {
+impl HandlesMidi for SignalPassthroughControllerCore {}
+impl TransformsAudio for SignalPassthroughControllerCore {
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
         let sample: Sample = input_sample.into();
         let control_value = match self.passthrough_type {
@@ -110,7 +110,7 @@ impl TransformsAudio for SignalPassthroughController {
 
     // We've overridden transform_audio(), so nobody should be calling transform_channel()
 }
-impl SignalPassthroughController {
+impl SignalPassthroughControllerCore {
     pub fn new() -> Self {
         Default::default()
     }

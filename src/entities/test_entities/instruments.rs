@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::instruments, prelude::*};
+use crate::{cores::instruments::TestAudioSourceCore, prelude::*};
 use ensnare_proc_macros::{InnerInstrument, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -110,7 +110,7 @@ impl TestInstrumentCountsMidiMessages {
 #[serde(rename_all = "kebab-case")]
 pub struct TestAudioSource {
     uid: Uid,
-    inner: instruments::TestAudioSource,
+    inner: TestAudioSourceCore,
 }
 impl TestAudioSource {
     pub const TOO_LOUD: SampleType = 1.1;
@@ -123,7 +123,7 @@ impl TestAudioSource {
     pub fn new_with(uid: Uid, level: ParameterType) -> Self {
         Self {
             uid,
-            inner: instruments::TestAudioSource::new_with(level),
+            inner: TestAudioSourceCore::new_with(level),
         }
     }
 }

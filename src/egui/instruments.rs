@@ -5,7 +5,7 @@ use super::{
     modulators::{DcaWidget, DcaWidgetAction},
 };
 use crate::{
-    cores::instruments::{self, WelshSynth},
+    cores::instruments::{self, DrumkitCore, SamplerCore, WelshSynthCore},
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
@@ -19,20 +19,17 @@ pub enum SamplerWidgetAction {
 
 #[derive(Debug)]
 pub struct SamplerWidget<'a> {
-    inner: &'a mut instruments::Sampler,
+    inner: &'a mut SamplerCore,
     action: &'a mut Option<SamplerWidgetAction>,
 }
 impl<'a> SamplerWidget<'a> {
-    fn new(
-        inner: &'a mut instruments::Sampler,
-        action: &'a mut Option<SamplerWidgetAction>,
-    ) -> Self {
+    fn new(inner: &'a mut SamplerCore, action: &'a mut Option<SamplerWidgetAction>) -> Self {
         Self { inner, action }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut instruments::Sampler,
+        inner: &'a mut SamplerCore,
         action: &'a mut Option<SamplerWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner, action).ui(ui)
@@ -51,20 +48,17 @@ pub enum DrumkitWidgetAction {
 
 #[derive(Debug)]
 pub struct DrumkitWidget<'a> {
-    inner: &'a mut instruments::Drumkit,
+    inner: &'a mut DrumkitCore,
     action: &'a mut Option<DrumkitWidgetAction>,
 }
 impl<'a> DrumkitWidget<'a> {
-    fn new(
-        inner: &'a mut instruments::Drumkit,
-        action: &'a mut Option<DrumkitWidgetAction>,
-    ) -> Self {
+    fn new(inner: &'a mut DrumkitCore, action: &'a mut Option<DrumkitWidgetAction>) -> Self {
         Self { inner, action }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut instruments::Drumkit,
+        inner: &'a mut DrumkitCore,
         action: &'a mut Option<DrumkitWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| DrumkitWidget::new(inner, action).ui(ui)
@@ -83,20 +77,17 @@ pub enum WelshWidgetAction {
 
 #[derive(Debug)]
 pub struct WelshWidget<'a> {
-    inner: &'a mut instruments::WelshSynth,
+    inner: &'a mut WelshSynthCore,
     action: &'a mut Option<WelshWidgetAction>,
 }
 impl<'a> WelshWidget<'a> {
-    fn new(
-        inner: &'a mut instruments::WelshSynth,
-        action: &'a mut Option<WelshWidgetAction>,
-    ) -> Self {
+    fn new(inner: &'a mut WelshSynthCore, action: &'a mut Option<WelshWidgetAction>) -> Self {
         Self { inner, action }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut instruments::WelshSynth,
+        inner: &'a mut WelshSynthCore,
         action: &'a mut Option<WelshWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| WelshWidget::new(inner, action).ui(ui)
@@ -152,7 +143,7 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                         DcaWidgetAction::Link(controller_uid, index) => {
                             *self.action = Some(WelshWidgetAction::Link(
                                 controller_uid,
-                                index + WelshSynth::DCA_INDEX,
+                                index + WelshSynthCore::DCA_INDEX,
                             ))
                         }
                     }

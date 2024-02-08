@@ -5,7 +5,7 @@ use ensnare_proc_macros::Control;
 
 /// An effect that applies a negative gain.
 #[derive(Debug, Default, Control)]
-pub struct ToyEffect {
+pub struct ToyEffectCore {
     /// The [ToyEffect] transformation is signal * -magnitude.
     #[control]
     pub magnitude: Normal,
@@ -14,7 +14,7 @@ pub struct ToyEffect {
     tempo: Tempo,
     time_signature: TimeSignature,
 }
-impl ToyEffect {
+impl ToyEffectCore {
     pub fn new_with(magnitude: Normal) -> Self {
         Self {
             magnitude,
@@ -30,12 +30,12 @@ impl ToyEffect {
         self.magnitude
     }
 }
-impl TransformsAudio for ToyEffect {
+impl TransformsAudio for ToyEffectCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         input_sample * self.magnitude * -1.0
     }
 }
-impl Configurable for ToyEffect {
+impl Configurable for ToyEffectCore {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -60,5 +60,5 @@ impl Configurable for ToyEffect {
         self.time_signature = time_signature;
     }
 }
-impl Serializable for ToyEffect {}
-impl HandlesMidi for ToyEffect {}
+impl Serializable for ToyEffectCore {}
+impl HandlesMidi for ToyEffectCore {}

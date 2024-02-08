@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Compressor {
+pub struct CompressorCore {
     /// The level above which compression takes effect. Range is 0.0..=1.0, 0.0
     /// corresponds to quietest, and 1.0 corresponds to 0dB.
     #[control]
@@ -35,8 +35,8 @@ pub struct Compressor {
     #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for Compressor {}
-impl TransformsAudio for Compressor {
+impl Serializable for CompressorCore {}
+impl TransformsAudio for CompressorCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let input_sample_positive = input_sample.0.abs();
         let threshold = self.threshold.0;
@@ -53,7 +53,7 @@ impl TransformsAudio for Compressor {
         }
     }
 }
-impl Configurable for Compressor {
+impl Configurable for CompressorCore {
     delegate! {
         to self.c {
             fn sample_rate(&self) -> SampleRate;
@@ -65,7 +65,7 @@ impl Configurable for Compressor {
         }
     }
 }
-impl Compressor {
+impl CompressorCore {
     pub fn new_with(threshold: Normal, ratio: Ratio, attack: Normal, release: Normal) -> Self {
         Self {
             threshold,
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn basic_compressor() {
         const THRESHOLD: SampleType = 0.25;
-        let mut fx = Compressor::new_with(THRESHOLD.into(), 0.5.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCore::new_with(THRESHOLD.into(), 0.5.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from((0.35 - THRESHOLD) * 0.5 + THRESHOLD)
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn nothing_compressor() {
-        let mut fx = Compressor::new_with(0.25.into(), 1.0.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCore::new_with(0.25.into(), 1.0.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35f32)),
             Sample::from(0.35f32)
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn infinite_compressor() {
-        let mut fx = Compressor::new_with(0.25.into(), 0.0.into(), 0.0.into(), 0.0.into());
+        let mut fx = CompressorCore::new_with(0.25.into(), 0.0.into(), 0.0.into(), 0.0.into());
         assert_eq!(
             fx.transform_channel(0, Sample::from(0.35)),
             Sample::from(0.25)

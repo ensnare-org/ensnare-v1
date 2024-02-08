@@ -34,8 +34,8 @@ pub mod prelude {
 
 pub use automator::Automator;
 pub use controllers::{
-    ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, Timer,
-    Trigger,
+    ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, TimerCore,
+    TriggerCore,
 };
 pub use traits::{ControlEventsFn, ControlProxyEventsFn, Controllable, Controls, ControlsAsProxy};
 pub use types::{ControlIndex, ControlLink, ControlName, ControlValue};

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::effects::BiQuadFilterLowPass24db, prelude::*};
+use crate::{cores::effects::BiQuadFilterLowPass24dbCore, prelude::*};
 use core::fmt::Debug;
 use delegate::delegate;
 use ensnare_proc_macros::Control;
@@ -40,7 +40,7 @@ pub struct WelshVoice {
     pub lfo_routing: LfoRouting,
     pub lfo_depth: Normal,
 
-    pub filter: BiQuadFilterLowPass24db,
+    pub filter: BiQuadFilterLowPass24dbCore,
     pub filter_cutoff_start: Normal,
     pub filter_cutoff_end: Normal,
     pub filter_envelope: Envelope,
@@ -190,7 +190,7 @@ impl WelshVoice {
         lfo: &Oscillator,
         lfo_routing: LfoRouting,
         lfo_depth: Normal,
-        filter: &BiQuadFilterLowPass24db,
+        filter: &BiQuadFilterLowPass24dbCore,
         filter_cutoff_start: Normal,
         filter_cutoff_end: Normal,
         filter_envelope: &Envelope,
@@ -264,7 +264,7 @@ impl WelshVoice {
         &mut self.amp_envelope
     }
 
-    pub fn filter_mut(&mut self) -> &mut BiQuadFilterLowPass24db {
+    pub fn filter_mut(&mut self) -> &mut BiQuadFilterLowPass24dbCore {
         &mut self.filter
     }
 
@@ -303,7 +303,7 @@ impl WelshVoice {
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
 #[derive(Debug, Control, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct WelshSynth {
+pub struct WelshSynthCore {
     #[control]
     pub oscillator_1: Oscillator,
     #[control]
@@ -324,7 +324,7 @@ pub struct WelshSynth {
     pub lfo_depth: Normal,
 
     #[control]
-    pub filter: BiQuadFilterLowPass24db,
+    pub filter: BiQuadFilterLowPass24dbCore,
     #[control]
     pub filter_cutoff_start: Normal,
     #[control]
@@ -335,7 +335,7 @@ pub struct WelshSynth {
     #[serde(skip)]
     pub inner: Synthesizer<WelshVoice>,
 }
-impl WelshSynth {
+impl WelshSynthCore {
     const VOICE_CAPACITY: usize = 8;
 
     pub fn new_with(
@@ -348,7 +348,7 @@ impl WelshSynth {
         lfo: Oscillator,
         lfo_routing: LfoRouting,
         lfo_depth: Normal,
-        filter: BiQuadFilterLowPass24db,
+        filter: BiQuadFilterLowPass24dbCore,
         filter_cutoff_start: Normal,
         filter_cutoff_end: Normal,
         filter_envelope: Envelope,
@@ -409,7 +409,7 @@ impl WelshSynth {
         })
     }
 }
-impl Generates<StereoSample> for WelshSynth {
+impl Generates<StereoSample> for WelshSynthCore {
     fn value(&self) -> StereoSample {
         self.inner.value()
     }
@@ -418,14 +418,14 @@ impl Generates<StereoSample> for WelshSynth {
         self.inner.generate(values);
     }
 }
-impl Serializable for WelshSynth {
+impl Serializable for WelshSynthCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
         self.inner = Synthesizer::<WelshVoice>::new_with(Box::new(self.new_voice_store()));
     }
 }
-impl Configurable for WelshSynth {
+impl Configurable for WelshSynthCore {
     delegate! {
         to self.inner {
             fn sample_rate(&self) -> SampleRate;
@@ -437,12 +437,12 @@ impl Configurable for WelshSynth {
         }
     }
 }
-impl Ticks for WelshSynth {
+impl Ticks for WelshSynthCore {
     fn tick(&mut self, tick_count: usize) {
         self.inner.tick(tick_count);
     }
 }
-impl HandlesMidi for WelshSynth {
+impl HandlesMidi for WelshSynthCore {
     fn handle_midi_message(
         &mut self,
         channel: MidiChannel,
@@ -468,7 +468,7 @@ impl HandlesMidi for WelshSynth {
         }
     }
 }
-impl WelshSynth {
+impl WelshSynthCore {
     pub fn preset_name(&self) -> &str {
         "none"
         //        self.preset.name.as_str()

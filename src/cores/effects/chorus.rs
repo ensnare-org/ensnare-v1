@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// a series of two all-pass delay lines.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Chorus {
+pub struct ChorusCore {
     /// The number of voices in the chorus.
     #[control]
     voices: usize,
@@ -22,14 +22,14 @@ pub struct Chorus {
     #[serde(skip)]
     delay_line: DelayLine,
 }
-impl Serializable for Chorus {
+impl Serializable for ChorusCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
         self.delay_line = DelayLine::new_with(self.delay, 1.0);
     }
 }
-impl TransformsAudio for Chorus {
+impl TransformsAudio for ChorusCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let index_offset: f64 = (self.delay / self.voices).into();
         let mut sum = self.delay_line.pop_output(input_sample);
@@ -41,7 +41,7 @@ impl TransformsAudio for Chorus {
         sum
     }
 }
-impl Configurable for Chorus {
+impl Configurable for ChorusCore {
     delegate! {
         to self.delay_line {
             fn sample_rate(&self) -> SampleRate;
@@ -53,7 +53,7 @@ impl Configurable for Chorus {
         }
     }
 }
-impl Chorus {
+impl ChorusCore {
     pub fn new_with(voices: usize, delay: Seconds) -> Self {
         let mut r = Self {
             voices,

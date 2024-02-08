@@ -110,7 +110,7 @@ impl SamplerVoice {
 
 #[derive(Debug, Control, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Sampler {
+pub struct SamplerCore {
     path: PathBuf,
 
     #[control]
@@ -127,7 +127,7 @@ pub struct SamplerEphemerals {
 
     c: Configurables,
 }
-impl HandlesMidi for Sampler {
+impl HandlesMidi for SamplerCore {
     fn handle_midi_message(
         &mut self,
         channel: MidiChannel,
@@ -139,7 +139,7 @@ impl HandlesMidi for Sampler {
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
-impl Generates<StereoSample> for Sampler {
+impl Generates<StereoSample> for SamplerCore {
     fn value(&self) -> StereoSample {
         self.e.inner.value()
     }
@@ -149,13 +149,13 @@ impl Generates<StereoSample> for Sampler {
         self.e.inner.generate(values);
     }
 }
-impl Ticks for Sampler {
+impl Ticks for SamplerCore {
     fn tick(&mut self, tick_count: usize) {
         self.e.inner.tick(tick_count)
     }
 }
-impl Serializable for Sampler {}
-impl Configurable for Sampler {
+impl Serializable for SamplerCore {}
+impl Configurable for SamplerCore {
     fn sample_rate(&self) -> SampleRate {
         self.e.inner.sample_rate()
     }
@@ -180,7 +180,7 @@ impl Configurable for Sampler {
         self.e.c.update_time_signature(time_signature)
     }
 }
-impl Sampler {
+impl SamplerCore {
     pub fn load(&mut self, paths: &Paths) -> anyhow::Result<()> {
         let path = paths.build_sample(&Vec::default(), Path::new(&self.path));
         let file = paths.search_and_open(path.as_path())?;
@@ -382,7 +382,7 @@ mod tests {
     #[test]
     fn loading() {
         let paths = paths_with_test_data_dir();
-        let mut sampler = Sampler::new_with(PathBuf::from("stereo-pluck.wav"), None);
+        let mut sampler = SamplerCore::new_with(PathBuf::from("stereo-pluck.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(sampler.calculated_root(), FrequencyHz::from(440.0));
     }
@@ -392,13 +392,13 @@ mod tests {
     fn reading_acidized_metadata() {
         let filename = PathBuf::from("riff-acidized.wav");
         let mut file = std::fs::File::open(filename).unwrap();
-        let root_note = Sampler::read_riff_metadata(&mut file);
+        let root_note = SamplerCore::read_riff_metadata(&mut file);
         assert!(root_note.is_ok());
         assert_eq!(root_note.unwrap(), 57);
 
         let filename = PathBuf::from("riff-not-acidized.wav");
         let mut file = std::fs::File::open(filename).unwrap();
-        let root_note = Sampler::read_riff_metadata(&mut file);
+        let root_note = SamplerCore::read_riff_metadata(&mut file);
         assert!(root_note.is_err());
     }
 
@@ -407,7 +407,7 @@ mod tests {
     fn reading_smpl_metadata() {
         let filename = PathBuf::from("riff-with-smpl.wav");
         let mut file = std::fs::File::open(filename).unwrap();
-        let root_note = Sampler::read_riff_metadata(&mut file);
+        let root_note = SamplerCore::read_riff_metadata(&mut file);
         assert!(root_note.is_ok());
         assert_eq!(root_note.unwrap(), 255);
     }
@@ -416,7 +416,7 @@ mod tests {
     #[ignore = "riff_io crate is disabled, so we can't read root frequencies from files"]
     fn loading_with_root_frequency() {
         let paths = paths_with_test_data_dir();
-        let mut sampler = Sampler::new_with(PathBuf::from("riff-acidized.wav"), None);
+        let mut sampler = SamplerCore::new_with(PathBuf::from("riff-acidized.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         eprintln!("calculated {} ", sampler.calculated_root());
         assert_eq!(
@@ -425,7 +425,8 @@ mod tests {
             "acidized WAV should produce sample with embedded root note"
         );
 
-        let mut sampler = Sampler::new_with(PathBuf::from("riff-acidized.wav"), Some(123.0.into()));
+        let mut sampler =
+            SamplerCore::new_with(PathBuf::from("riff-acidized.wav"), Some(123.0.into()));
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
@@ -434,7 +435,7 @@ mod tests {
         );
 
         let mut sampler =
-            Sampler::new_with(PathBuf::from("riff-not-acidized.wav"), Some(123.0.into()));
+            SamplerCore::new_with(PathBuf::from("riff-not-acidized.wav"), Some(123.0.into()));
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
@@ -442,7 +443,7 @@ mod tests {
             "specified parameter should be used for non-acidized WAV"
         );
 
-        let mut sampler = Sampler::new_with(PathBuf::from("riff-not-acidized.wav"), None);
+        let mut sampler = SamplerCore::new_with(PathBuf::from("riff-not-acidized.wav"), None);
         assert!(sampler.load(&paths).is_ok());
         assert_eq!(
             sampler.calculated_root(),
@@ -459,7 +460,7 @@ mod tests {
             Path::new("square-440Hz-1-second-mono-24-bit-PCM.wav"),
         );
         assert!(file.is_ok());
-        let samples = Sampler::read_samples_from_file(&file.unwrap());
+        let samples = SamplerCore::read_samples_from_file(&file.unwrap());
         assert!(samples.is_ok());
         let samples = samples.unwrap();
         let mut voice = SamplerVoice::new_with_samples(Arc::new(samples), FrequencyHz::from(440.0));

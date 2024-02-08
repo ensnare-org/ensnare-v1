@@ -378,6 +378,8 @@ impl Default for EntityUidFactory {
 
 #[cfg(test)]
 mod tests {
+    use self::cores::ExampleEntityCore;
+
     use super::*;
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use serde::{Deserialize, Serialize};
@@ -388,10 +390,10 @@ mod tests {
 
         #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
         #[serde(rename_all = "kebab-case")]
-        pub(super) struct ExampleEntity {
+        pub(super) struct ExampleEntityCore {
             pub sample_rate: SampleRate,
         }
-        impl Configurable for ExampleEntity {
+        impl Configurable for ExampleEntityCore {
             fn sample_rate(&self) -> SampleRate {
                 self.sample_rate
             }
@@ -415,7 +417,7 @@ mod tests {
     #[serde(rename_all = "kebab-case")]
     struct ExampleEntity {
         pub uid: Uid,
-        inner: cores::ExampleEntity,
+        inner: ExampleEntityCore,
     }
     impl Configurable for ExampleEntity {
         fn sample_rate(&self) -> SampleRate {

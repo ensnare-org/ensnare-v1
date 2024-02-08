@@ -3,7 +3,9 @@
 pub mod filter;
 
 use crate::{
-    cores::effects::{self, BitcrusherCore, LimiterCore, ReverbCore},
+    cores::effects::{
+        self, BitcrusherCore, ChorusCore, CompressorCore, GainCore, LimiterCore, ReverbCore,
+    },
     prelude::*,
 };
 use ensnare_proc_macros::{
@@ -50,13 +52,13 @@ impl Bitcrusher {
 
 pub struct Chorus {
     uid: Uid,
-    inner: effects::Chorus,
+    inner: ChorusCore,
 }
 impl Chorus {
     pub fn new_with(uid: Uid, voices: usize, delay: Seconds) -> Self {
         Self {
             uid,
-            inner: effects::Chorus::new_with(voices, delay),
+            inner: ChorusCore::new_with(voices, delay),
         }
     }
 }
@@ -77,7 +79,7 @@ impl Chorus {
 
 pub struct Compressor {
     uid: Uid,
-    inner: effects::Compressor,
+    inner: CompressorCore,
 }
 impl Compressor {
     pub fn new_with(
@@ -89,7 +91,7 @@ impl Compressor {
     ) -> Self {
         Self {
             uid,
-            inner: effects::Compressor::new_with(threshold, ratio, attack, release),
+            inner: CompressorCore::new_with(threshold, ratio, attack, release),
         }
     }
 }
@@ -110,13 +112,13 @@ impl Compressor {
 
 pub struct Gain {
     uid: Uid,
-    inner: effects::Gain,
+    inner: GainCore,
 }
 impl Gain {
     pub fn new_with(uid: Uid, ceiling: Normal) -> Self {
         Self {
             uid,
-            inner: effects::Gain::new_with(ceiling),
+            inner: GainCore::new_with(ceiling),
         }
     }
 }
@@ -171,14 +173,15 @@ impl Reverb {
 
 #[cfg(feature = "egui")]
 mod egui {
+    use self::effects::BitcrusherCore;
     use super::*;
     use eframe::egui::Slider;
 
     impl Displays for Bitcrusher {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
             let mut bits = self.inner.bits();
-            let response = ui
-                .add(Slider::new(&mut bits, effects::BitcrusherCore::bits_range()).suffix(" bits"));
+            let response =
+                ui.add(Slider::new(&mut bits, BitcrusherCore::bits_range()).suffix(" bits"));
             if response.changed() {
                 self.inner.set_bits(bits);
             };

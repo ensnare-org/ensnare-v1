@@ -8,6 +8,8 @@ use ensnare_proc_macros::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::cores::ToyControllerCore;
+
 #[derive(
     Debug,
     Default,
@@ -24,7 +26,7 @@ use serde::{Deserialize, Serialize};
 pub struct ToyController {
     uid: Uid,
     #[serde(skip)]
-    inner: crate::cores::ToyController,
+    inner: ToyControllerCore,
 }
 impl Generates<StereoSample> for ToyController {}
 impl Ticks for ToyController {}
@@ -44,7 +46,7 @@ impl ToyController {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: crate::cores::ToyController::new_with(MidiChannel::default()),
+            inner: ToyControllerCore::new_with(MidiChannel::default()),
         }
     }
 }

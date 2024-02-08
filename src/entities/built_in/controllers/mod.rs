@@ -1,7 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{
-    cores::controllers::{self, ArpeggiatorCore, LfoControllerCore},
+    automation::{TimerCore, TriggerCore},
+    cores::controllers::{ArpeggiatorCore, LfoControllerCore, SignalPassthroughControllerCore},
     prelude::*,
 };
 use ensnare_proc_macros::{
@@ -74,29 +75,28 @@ impl LfoController {
 #[entity(GeneratesStereoSample, Ticks)]
 pub struct SignalPassthroughController {
     uid: Uid,
-    inner: controllers::SignalPassthroughController,
+    inner: SignalPassthroughControllerCore,
 }
 impl SignalPassthroughController {
     #[allow(unused_variables)]
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: controllers::SignalPassthroughController::new(),
+            inner: SignalPassthroughControllerCore::new(),
         }
     }
 
     pub fn new_amplitude_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner: controllers::SignalPassthroughController::new_amplitude_passthrough_type(),
+            inner: SignalPassthroughControllerCore::new_amplitude_passthrough_type(),
         }
     }
 
     pub fn new_amplitude_inverted_passthrough_type(uid: Uid) -> Self {
         Self {
             uid,
-            inner:
-                controllers::SignalPassthroughController::new_amplitude_inverted_passthrough_type(),
+            inner: SignalPassthroughControllerCore::new_amplitude_inverted_passthrough_type(),
         }
     }
 }
@@ -117,13 +117,13 @@ impl SignalPassthroughController {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
-    inner: crate::automation::Timer,
+    inner: TimerCore,
 }
 impl Timer {
     pub fn new_with(uid: Uid, duration: MusicalTime) -> Self {
         Self {
             uid,
-            inner: crate::automation::Timer::new_with(duration),
+            inner: TimerCore::new_with(duration),
         }
     }
 }
@@ -144,13 +144,13 @@ impl Timer {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,
-    inner: crate::automation::Trigger,
+    inner: TriggerCore,
 }
 impl Trigger {
-    pub fn new_with(uid: Uid, timer: crate::automation::Timer, value: ControlValue) -> Self {
+    pub fn new_with(uid: Uid, timer: TimerCore, value: ControlValue) -> Self {
         Self {
             uid,
-            inner: crate::automation::Trigger::new_with(timer, value),
+            inner: TriggerCore::new_with(timer, value),
         }
     }
 }

@@ -293,7 +293,7 @@ impl Mixer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cores::effects::TestEffectNegatesInput, entities::TestInstrument};
+    use crate::{cores::effects::TestEffectNegatesInputCore, entities::TestInstrument};
 
     #[test]
     fn orchestrator_mainline() {
@@ -413,7 +413,7 @@ mod tests {
     fn humidifier_mainline() {
         let mut humidifier = Humidifier::default();
 
-        let mut effect = TestEffectNegatesInput::default();
+        let mut effect = TestEffectNegatesInputCore::default();
         assert_eq!(
             effect.transform_channel(0, Sample::MAX),
             Sample::MIN,

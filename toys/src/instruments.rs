@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::cores::{ToyInstrumentCore, ToySynthCore};
 use ensnare::{
     egui::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget},
     prelude::*,
@@ -26,7 +27,7 @@ use serde::{Deserialize, Serialize};
 #[entity(Controls, TransformsAudio)]
 pub struct ToyInstrument {
     uid: Uid,
-    inner: crate::cores::ToyInstrument,
+    inner: ToyInstrumentCore,
 
     #[serde(skip)]
     dca_widget_action: Option<DcaWidgetAction>,
@@ -44,7 +45,7 @@ impl ToyInstrument {
     pub fn new_with(uid: Uid) -> Self {
         Self {
             uid,
-            inner: crate::cores::ToyInstrument::new(),
+            inner: ToyInstrumentCore::new(),
             dca_widget_action: Default::default(),
         }
     }
@@ -64,7 +65,7 @@ impl ToyInstrument {
 #[entity(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct ToySynth {
     uid: Uid,
-    inner: crate::cores::ToySynth,
+    inner: ToySynthCore,
 }
 impl ToySynth {
     fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -85,7 +86,7 @@ impl ToySynth {
     pub fn new_with(uid: Uid, oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
         Self {
             uid,
-            inner: crate::cores::ToySynth::new_with(oscillator, envelope, dca),
+            inner: ToySynthCore::new_with(oscillator, envelope, dca),
         }
     }
 }

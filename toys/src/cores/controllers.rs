@@ -12,7 +12,7 @@ enum TestControllerAction {
 /// An [IsEntity] that emits a MIDI note-on event on each beat, and a note-off
 /// event on each half-beat.
 #[derive(Debug, Default, Control)]
-pub struct ToyController {
+pub struct ToyControllerCore {
     pub midi_channel_out: MidiChannel,
     pub is_enabled: bool,
     is_playing: bool,
@@ -20,8 +20,8 @@ pub struct ToyController {
     time_range: TimeRange,
     last_time_handled: MusicalTime,
 }
-impl Serializable for ToyController {}
-impl Controls for ToyController {
+impl Serializable for ToyControllerCore {}
+impl Controls for ToyControllerCore {
     fn update_time_range(&mut self, range: &TimeRange) {
         self.time_range = range.clone();
     }
@@ -64,10 +64,10 @@ impl Controls for ToyController {
         self.is_performing
     }
 }
-impl Configurable for ToyController {
+impl Configurable for ToyControllerCore {
     fn update_sample_rate(&mut self, _sample_rate: SampleRate) {}
 }
-impl HandlesMidi for ToyController {
+impl HandlesMidi for ToyControllerCore {
     fn handle_midi_message(
         &mut self,
         _channel: MidiChannel,
@@ -82,7 +82,7 @@ impl HandlesMidi for ToyController {
         }
     }
 }
-impl ToyController {
+impl ToyControllerCore {
     // TODO: `midi_channel_out` might be obsolete as a regular controller
     // parameter. The owner should take care of receiver/sender channels, which
     // might mean that WorkEvent::Midi's channel parameter would be Option<>.

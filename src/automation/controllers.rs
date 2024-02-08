@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// wall-clock time, rather than musical time.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Timer {
+pub struct TimerCore {
     duration: MusicalTime,
 
     #[serde(skip)]
@@ -27,9 +27,9 @@ pub struct Timer {
     #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for Timer {}
+impl Serializable for TimerCore {}
 #[allow(missing_docs)]
-impl Timer {
+impl TimerCore {
     pub fn new_with(duration: MusicalTime) -> Self {
         Self {
             duration,
@@ -45,8 +45,8 @@ impl Timer {
         self.duration = duration;
     }
 }
-impl HandlesMidi for Timer {}
-impl Configurable for Timer {
+impl HandlesMidi for TimerCore {}
+impl Configurable for TimerCore {
     delegate! {
         to self.c {
             fn sample_rate(&self) -> SampleRate;
@@ -58,7 +58,7 @@ impl Configurable for Timer {
         }
     }
 }
-impl Controls for Timer {
+impl Controls for TimerCore {
     fn update_time_range(&mut self, range: &TimeRange) {
         if self.is_performing {
             if self.duration == MusicalTime::default() {
@@ -97,16 +97,16 @@ impl Controls for Timer {
 /// [Trigger] issues a control signal after a specified amount of time.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Trigger {
-    timer: Timer,
+pub struct TriggerCore {
+    timer: TimerCore,
 
     pub value: ControlValue,
 
     has_triggered: bool,
     is_performing: bool,
 }
-impl Serializable for Trigger {}
-impl Controls for Trigger {
+impl Serializable for TriggerCore {}
+impl Controls for TriggerCore {
     fn update_time_range(&mut self, range: &TimeRange) {
         self.timer.update_time_range(range)
     }
@@ -141,7 +141,7 @@ impl Controls for Trigger {
         self.is_performing
     }
 }
-impl Configurable for Trigger {
+impl Configurable for TriggerCore {
     delegate! {
         to self.timer {
             fn sample_rate(&self) -> SampleRate;
@@ -153,9 +153,9 @@ impl Configurable for Trigger {
         }
     }
 }
-impl HandlesMidi for Trigger {}
-impl Trigger {
-    pub fn new_with(timer: Timer, value: ControlValue) -> Self {
+impl HandlesMidi for TriggerCore {}
+impl TriggerCore {
+    pub fn new_with(timer: TimerCore, value: ControlValue) -> Self {
         Self {
             timer,
             value,
@@ -475,8 +475,8 @@ mod tests {
     #[test]
     fn instantiate_trigger() {
         let ts = TimeSignature::default();
-        let mut trigger = Trigger::new_with(
-            Timer::new_with(MusicalTime::new_with_bars(&ts, 1)),
+        let mut trigger = TriggerCore::new_with(
+            TimerCore::new_with(MusicalTime::new_with_bars(&ts, 1)),
             ControlValue::from(0.5),
         );
         trigger.update_sample_rate(SampleRate::DEFAULT);

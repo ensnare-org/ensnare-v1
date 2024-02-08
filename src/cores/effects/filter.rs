@@ -10,7 +10,7 @@ use std::f64::consts::PI;
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct BiQuadFilterLowPass24db {
+pub struct BiQuadFilterLowPass24dbCore {
     #[control]
     #[derivative(Default(value = "1000.0.into()"))]
     cutoff: FrequencyHz,
@@ -24,8 +24,8 @@ pub struct BiQuadFilterLowPass24db {
     #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for BiQuadFilterLowPass24db {}
-impl Configurable for BiQuadFilterLowPass24db {
+impl Serializable for BiQuadFilterLowPass24dbCore {}
+impl Configurable for BiQuadFilterLowPass24dbCore {
     delegate! {
         to self.c {
             fn sample_rate(&self) -> SampleRate;
@@ -41,7 +41,7 @@ impl Configurable for BiQuadFilterLowPass24db {
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterLowPass24db {
+impl TransformsAudio for BiQuadFilterLowPass24dbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -49,7 +49,7 @@ impl TransformsAudio for BiQuadFilterLowPass24db {
         }
     }
 }
-impl BiQuadFilterLowPass24db {
+impl BiQuadFilterLowPass24dbCore {
     pub fn new_with(cutoff: FrequencyHz, passband_ripple: ParameterType) -> Self {
         let mut r = Self {
             cutoff,
@@ -88,7 +88,7 @@ impl BiQuadFilterLowPass24db {
         }
     }
 }
-impl CanPrototype for BiQuadFilterLowPass24db {
+impl CanPrototype for BiQuadFilterLowPass24dbCore {
     fn make_another(&self) -> Self {
         let mut r = Self::default();
         r.update_from_prototype(self);
@@ -168,7 +168,7 @@ impl BiQuadFilterLowPass24dbChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterLowPass12db {
+pub struct BiQuadFilterLowPass12dbCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -179,14 +179,14 @@ pub struct BiQuadFilterLowPass12db {
     #[serde(skip)]
     channels: [BiQuadFilterLowPass12dbChannel; 2],
 }
-impl Serializable for BiQuadFilterLowPass12db {}
-impl Configurable for BiQuadFilterLowPass12db {
+impl Serializable for BiQuadFilterLowPass12dbCore {}
+impl Configurable for BiQuadFilterLowPass12dbCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterLowPass12db {
+impl TransformsAudio for BiQuadFilterLowPass12dbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -194,7 +194,7 @@ impl TransformsAudio for BiQuadFilterLowPass12db {
         }
     }
 }
-impl BiQuadFilterLowPass12db {
+impl BiQuadFilterLowPass12dbCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
@@ -265,7 +265,7 @@ impl BiQuadFilterLowPass12dbChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterHighPass {
+pub struct BiQuadFilterHighPassCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -276,14 +276,14 @@ pub struct BiQuadFilterHighPass {
     #[serde(skip)]
     channels: [BiQuadFilterHighPassChannel; 2],
 }
-impl Serializable for BiQuadFilterHighPass {}
-impl Configurable for BiQuadFilterHighPass {
+impl Serializable for BiQuadFilterHighPassCore {}
+impl Configurable for BiQuadFilterHighPassCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterHighPass {
+impl TransformsAudio for BiQuadFilterHighPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -291,7 +291,7 @@ impl TransformsAudio for BiQuadFilterHighPass {
         }
     }
 }
-impl BiQuadFilterHighPass {
+impl BiQuadFilterHighPassCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         let mut r = Self {
@@ -364,7 +364,7 @@ impl BiQuadFilterHighPassChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterAllPass {
+pub struct BiQuadFilterAllPassCore {
     #[control]
     #[derivative(Default(value = "1000.0.into()"))]
     cutoff: FrequencyHz,
@@ -377,14 +377,14 @@ pub struct BiQuadFilterAllPass {
     #[serde(skip)]
     channels: [BiQuadFilterAllPassChannel; 2],
 }
-impl Serializable for BiQuadFilterAllPass {}
-impl Configurable for BiQuadFilterAllPass {
+impl Serializable for BiQuadFilterAllPassCore {}
+impl Configurable for BiQuadFilterAllPassCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterAllPass {
+impl TransformsAudio for BiQuadFilterAllPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -392,7 +392,7 @@ impl TransformsAudio for BiQuadFilterAllPass {
         }
     }
 }
-impl BiQuadFilterAllPass {
+impl BiQuadFilterAllPassCore {
     pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         Self {
             cutoff,
@@ -429,7 +429,7 @@ impl BiQuadFilterAllPass {
         }
     }
 }
-impl CanPrototype for BiQuadFilterAllPass {
+impl CanPrototype for BiQuadFilterAllPassCore {
     fn make_another(&self) -> Self {
         let mut r = Self::default();
         r.update_from_prototype(self);
@@ -473,7 +473,7 @@ impl BiQuadFilterAllPassChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterBandPass {
+pub struct BiQuadFilterBandPassCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -484,14 +484,14 @@ pub struct BiQuadFilterBandPass {
     #[serde(skip)]
     channels: [BiQuadFilterBandPassChannel; 2],
 }
-impl Serializable for BiQuadFilterBandPass {}
-impl Configurable for BiQuadFilterBandPass {
+impl Serializable for BiQuadFilterBandPassCore {}
+impl Configurable for BiQuadFilterBandPassCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterBandPass {
+impl TransformsAudio for BiQuadFilterBandPassCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -499,7 +499,7 @@ impl TransformsAudio for BiQuadFilterBandPass {
         }
     }
 }
-impl BiQuadFilterBandPass {
+impl BiQuadFilterBandPassCore {
     pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
             cutoff,
@@ -568,7 +568,7 @@ impl BiQuadFilterBandPassChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterBandStop {
+pub struct BiQuadFilterBandStopCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -579,14 +579,14 @@ pub struct BiQuadFilterBandStop {
     #[serde(skip)]
     channels: [BiQuadFilterBandStopChannel; 2],
 }
-impl Serializable for BiQuadFilterBandStop {}
-impl Configurable for BiQuadFilterBandStop {
+impl Serializable for BiQuadFilterBandStopCore {}
+impl Configurable for BiQuadFilterBandStopCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterBandStop {
+impl TransformsAudio for BiQuadFilterBandStopCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -594,7 +594,7 @@ impl TransformsAudio for BiQuadFilterBandStop {
         }
     }
 }
-impl BiQuadFilterBandStop {
+impl BiQuadFilterBandStopCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, bandwidth: ParameterType) -> Self {
         Self {
@@ -665,7 +665,7 @@ impl BiQuadFilterBandStopChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterPeakingEq {
+pub struct BiQuadFilterPeakingEqCore {
     #[control]
     cutoff: FrequencyHz,
 
@@ -679,14 +679,14 @@ pub struct BiQuadFilterPeakingEq {
     #[serde(skip)]
     channels: [BiQuadFilterPeakingEqChannel; 2],
 }
-impl Serializable for BiQuadFilterPeakingEq {}
-impl Configurable for BiQuadFilterPeakingEq {
+impl Serializable for BiQuadFilterPeakingEqCore {}
+impl Configurable for BiQuadFilterPeakingEqCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterPeakingEq {
+impl TransformsAudio for BiQuadFilterPeakingEqCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -694,7 +694,7 @@ impl TransformsAudio for BiQuadFilterPeakingEq {
         }
     }
 }
-impl BiQuadFilterPeakingEq {
+impl BiQuadFilterPeakingEqCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, q: ParameterType) -> Self {
         let mut r = Self {
@@ -771,7 +771,7 @@ impl BiQuadFilterPeakingEqChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterLowShelf {
+pub struct BiQuadFilterLowShelfCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -782,14 +782,14 @@ pub struct BiQuadFilterLowShelf {
     #[serde(skip)]
     channels: [BiQuadFilterLowShelfChannel; 2],
 }
-impl Serializable for BiQuadFilterLowShelf {}
-impl Configurable for BiQuadFilterLowShelf {
+impl Serializable for BiQuadFilterLowShelfCore {}
+impl Configurable for BiQuadFilterLowShelfCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterLowShelf {
+impl TransformsAudio for BiQuadFilterLowShelfCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -797,7 +797,7 @@ impl TransformsAudio for BiQuadFilterLowShelf {
         }
     }
 }
-impl BiQuadFilterLowShelf {
+impl BiQuadFilterLowShelfCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
         Self {
@@ -869,7 +869,7 @@ impl BiQuadFilterLowShelfChannel {
 
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterHighShelf {
+pub struct BiQuadFilterHighShelfCore {
     #[control]
     cutoff: FrequencyHz,
     #[control]
@@ -880,14 +880,14 @@ pub struct BiQuadFilterHighShelf {
     #[serde(skip)]
     channels: [BiQuadFilterHighShelfChannel; 2],
 }
-impl Serializable for BiQuadFilterHighShelf {}
-impl Configurable for BiQuadFilterHighShelf {
+impl Serializable for BiQuadFilterHighShelfCore {}
+impl Configurable for BiQuadFilterHighShelfCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
         self.update_coefficients();
     }
 }
-impl TransformsAudio for BiQuadFilterHighShelf {
+impl TransformsAudio for BiQuadFilterHighShelfCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -895,7 +895,7 @@ impl TransformsAudio for BiQuadFilterHighShelf {
         }
     }
 }
-impl BiQuadFilterHighShelf {
+impl BiQuadFilterHighShelfCore {
     #[allow(dead_code)]
     pub fn new_with(cutoff: FrequencyHz, db_gain: ParameterType) -> Self {
         Self {
@@ -969,19 +969,19 @@ impl BiQuadFilterHighShelfChannel {
 /// delete it later.
 #[derive(Debug, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
-pub struct BiQuadFilterNone {
+pub struct BiQuadFilterNoneCore {
     #[serde(skip)]
     sample_rate: SampleRate,
     #[serde(skip)]
     channels: [BiQuadFilter; 2],
 }
-impl Serializable for BiQuadFilterNone {}
-impl Configurable for BiQuadFilterNone {
+impl Serializable for BiQuadFilterNoneCore {}
+impl Configurable for BiQuadFilterNoneCore {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.sample_rate = sample_rate;
     }
 }
-impl TransformsAudio for BiQuadFilterNone {
+impl TransformsAudio for BiQuadFilterNoneCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         match channel {
             0 | 1 => self.channels[channel].transform_channel(channel, input_sample),
@@ -989,7 +989,7 @@ impl TransformsAudio for BiQuadFilterNone {
         }
     }
 }
-impl BiQuadFilterNone {
+impl BiQuadFilterNoneCore {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
