@@ -929,9 +929,11 @@ impl Pattern {
         self.set_b(sound, step, b);
     }
 
+    #[allow(dead_code)]
     fn steps(&self) -> &[Step; 16] {
         &self.steps
     }
+    #[allow(dead_code)]
     fn is_clear(&self) -> bool {
         self.steps().iter().all(|n| n.is_clear())
     }
@@ -980,6 +982,7 @@ impl Step {
     fn toggle_sound(&mut self, sound: u8) {
         self.set_active(sound, !self.is_sound_active(sound));
     }
+    #[allow(dead_code)]
     fn is_clear(&self) -> bool {
         self.sounds.iter().all(|s| !s)
     }
