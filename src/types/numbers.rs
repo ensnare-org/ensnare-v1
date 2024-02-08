@@ -401,14 +401,10 @@ impl FrequencyRange {
 /// 1.0:2.0 = a x 0.5).
 ///
 /// Negative ratios are meaningless for current use cases.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Derivative, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct Ratio(pub ParameterType);
-impl Default for Ratio {
-    fn default() -> Self {
-        Self(1.0)
-    }
-}
+pub struct Ratio(#[derivative(Default(value = "1.0"))] pub ParameterType);
 impl From<f64> for Ratio {
     fn from(value: f64) -> Self {
         Self(value)

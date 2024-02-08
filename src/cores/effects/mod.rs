@@ -5,7 +5,7 @@
 //! [Reverb] and filters.
 
 pub use {
-    bitcrusher::Bitcrusher,
+    bitcrusher::{BitcrusherCore, BitcrusherCoreBuilder},
     chorus::Chorus,
     compressor::Compressor,
     delay::{Delay, RecirculatingDelayLine},
@@ -14,8 +14,8 @@ pub use {
         BiQuadFilterLowPass24db,
     },
     gain::Gain,
-    limiter::Limiter,
-    reverb::Reverb,
+    limiter::{LimiterCore, LimiterCoreBuilder},
+    reverb::{ReverbCore, ReverbCoreBuilder},
     test::*,
 };
 

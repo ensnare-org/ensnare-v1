@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
+use ensnare::elements::OscillatorBuilder;
 use ensnare::prelude::*;
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very
@@ -16,7 +17,10 @@ impl ToyEntities {
         factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
             Box::new(ToySynth::new_with(
                 uid,
-                Oscillator::new_with_waveform(Waveform::Triangle),
+                OscillatorBuilder::default()
+                    .waveform(Waveform::Triangle)
+                    .build()
+                    .unwrap(),
                 Envelope::safe_default(),
                 Dca::default(),
             ))

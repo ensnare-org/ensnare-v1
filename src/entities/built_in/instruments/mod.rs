@@ -3,8 +3,12 @@
 #[cfg(feature = "egui")]
 use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
 use crate::{
-    cores::{effects, instruments},
+    cores::{
+        effects,
+        instruments::{self, FmSynthCore},
+    },
     egui::{DrumkitWidgetAction, SamplerWidgetAction},
+    elements::OscillatorBuilder,
     traits::DisplaysAction,
 };
 use crate::{prelude::*, util::Paths};
@@ -67,7 +71,7 @@ impl Drumkit {
 #[entity(Controls, TransformsAudio)]
 pub struct FmSynth {
     uid: Uid,
-    inner: instruments::FmSynth,
+    inner: instruments::FmSynthCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
@@ -78,29 +82,10 @@ pub struct FmSynth {
     action: Option<DisplaysAction>,
 }
 impl FmSynth {
-    pub fn new_with(
-        uid: Uid,
-        carrier_oscillator: Oscillator,
-        carrier_envelope: Envelope,
-        modulator_oscillator: Oscillator,
-        modulator_envelope: Envelope,
-        depth: Normal,
-        ratio: Ratio,
-        beta: ParameterType,
-        dca: Dca,
-    ) -> Self {
+    pub fn new_with(uid: Uid, inner: FmSynthCore) -> Self {
         Self {
             uid,
-            inner: instruments::FmSynth::new_with(
-                carrier_oscillator,
-                carrier_envelope,
-                modulator_oscillator,
-                modulator_envelope,
-                depth,
-                ratio,
-                beta,
-                dca,
-            ),
+            inner,
             widget_action: Default::default(),
             action: Default::default(),
         }
@@ -214,13 +199,23 @@ impl WelshSynth {
     pub fn new_with_factory_patch(uid: Uid) -> Self {
         WelshSynth::new_with(
             uid,
-            Oscillator::new_with_waveform(Waveform::Sine),
-            Oscillator::new_with_waveform(Waveform::Sawtooth),
+            OscillatorBuilder::default()
+                .waveform(Waveform::Sine)
+                .build()
+                .unwrap(),
+            OscillatorBuilder::default()
+                .waveform(Waveform::Sawtooth)
+                .build()
+                .unwrap(),
             true,
             0.8.into(),
             Envelope::safe_default(),
             Dca::default(),
-            Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
+            OscillatorBuilder::default()
+                .waveform(Waveform::Sine)
+                .frequency(0.2.into())
+                .build()
+                .unwrap(),
             instruments::LfoRouting::FilterCutoff,
             Normal::from(0.5),
             effects::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),

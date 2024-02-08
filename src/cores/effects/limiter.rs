@@ -2,31 +2,29 @@
 
 use crate::prelude::*;
 use delegate::delegate;
+use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Control, Serialize, Deserialize)]
+#[derive(Debug, Builder, Derivative, Control, Serialize, Deserialize)]
+#[derivative(Default)]
+#[builder(default)]
 #[serde(rename_all = "kebab-case")]
-pub struct Limiter {
+pub struct LimiterCore {
     #[control]
+    #[derivative(Default(value = "Normal::minimum()"))]
     minimum: Normal,
     #[control]
+    #[derivative(Default(value = "Normal::maximum()"))]
     maximum: Normal,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     c: Configurables,
 }
-impl Default for Limiter {
-    fn default() -> Self {
-        Self {
-            minimum: Normal::minimum(),
-            maximum: Normal::maximum(),
-            c: Default::default(),
-        }
-    }
-}
-impl Serializable for Limiter {}
-impl Configurable for Limiter {
+impl Serializable for LimiterCore {}
+impl Configurable for LimiterCore {
     delegate! {
         to self.c {
             fn sample_rate(&self) -> SampleRate;
@@ -38,13 +36,13 @@ impl Configurable for Limiter {
         }
     }
 }
-impl TransformsAudio for Limiter {
+impl TransformsAudio for LimiterCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         let sign = input_sample.0.signum();
         Sample::from(input_sample.0.abs().clamp(self.minimum.0, self.maximum.0) * sign)
     }
 }
-impl Limiter {
+impl LimiterCore {
     pub fn new_with(minimum: Normal, maximum: Normal) -> Self {
         Self {
             minimum,
@@ -102,7 +100,7 @@ mod tests {
         );
 
         // Limiter clamps high and low, and doesn't change values inside the range.
-        let mut limiter = Limiter::default();
+        let mut limiter = LimiterCore::default();
         assert_eq!(
             limiter.transform_audio(TestAudioSource::new_with(TestAudioSource::TOO_LOUD).value()),
             StereoSample::MAX
@@ -127,7 +125,7 @@ mod tests {
 
     #[test]
     fn limiter_bias() {
-        let mut limiter = Limiter::new_with(0.2.into(), 0.8.into());
+        let mut limiter = LimiterCore::new_with(0.2.into(), 0.8.into());
         assert_eq!(
             limiter.transform_channel(0, Sample::from(0.1)),
             Sample::from(0.2),

@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use delegate::delegate;
 use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
@@ -73,7 +74,40 @@ impl From<Waveform> for ControlValue {
     }
 }
 
-#[derive(Debug, Derivative)]
+#[derive(Clone, Builder, Debug, Default, Control, Serialize, Deserialize)]
+#[builder(default)]
+#[serde(rename_all = "kebab-case")]
+pub struct Oscillator {
+    #[control]
+    pub waveform: Waveform,
+
+    /// Hertz. Any positive number. 440 = A4
+    #[control]
+    pub frequency: FrequencyHz,
+
+    /// if not zero, then ignores the `frequency` field and uses this one
+    /// instead. TODO: Option<>
+    #[control]
+    fixed_frequency: Option<FrequencyHz>,
+
+    /// Designed for pitch correction at construction time.
+    #[control]
+    frequency_tune: Ratio,
+
+    /// [-1, 1] is typical range, with -1 halving the frequency, and 1 doubling
+    /// it. Designed for LFOs.
+    #[control]
+    frequency_modulation: BipolarNormal,
+
+    /// A factor applied to the root frequency. It is used for FM synthesis.
+    #[control]
+    linear_frequency_modulation: ParameterType,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    e: OscillatorEphemerals,
+}
+#[derive(Clone, Debug, Derivative)]
 #[derivative(Default)]
 pub struct OscillatorEphemerals {
     /// working variables to generate semi-deterministic noise.
@@ -111,38 +145,6 @@ pub struct OscillatorEphemerals {
     reset_handled: bool,
 
     c: Configurables,
-}
-
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Oscillator {
-    #[control]
-    pub waveform: Waveform,
-
-    /// Hertz. Any positive number. 440 = A4
-    #[control]
-    pub frequency: FrequencyHz,
-
-    /// if not zero, then ignores the `frequency` field and uses this one
-    /// instead. TODO: Option<>
-    #[control]
-    fixed_frequency: Option<FrequencyHz>,
-
-    /// Designed for pitch correction at construction time.
-    #[control]
-    frequency_tune: Ratio,
-
-    /// [-1, 1] is typical range, with -1 halving the frequency, and 1 doubling
-    /// it. Designed for LFOs.
-    #[control]
-    frequency_modulation: BipolarNormal,
-
-    /// A factor applied to the root frequency. It is used for FM synthesis.
-    #[control]
-    linear_frequency_modulation: ParameterType,
-
-    #[serde(skip)]
-    e: OscillatorEphemerals,
 }
 impl Generates<BipolarNormal> for Oscillator {
     fn value(&self) -> BipolarNormal {
@@ -195,35 +197,35 @@ impl Ticks for Oscillator {
     }
 }
 impl Oscillator {
-    pub fn new_with(
-        waveform: Waveform,
-        frequency: FrequencyHz,
-        frequency_tune: Ratio,
-        frequency_modulation: BipolarNormal,
-    ) -> Self {
-        Self {
-            waveform,
-            frequency,
-            // TODO https://github.com/sowbug/groove/issues/135
-            // fixed_frequency: params.fixed_frequency(),
-            frequency_tune,
-            frequency_modulation,
-            ..Default::default()
-        }
-    }
+    // pub fn new_with(
+    //     waveform: Waveform,
+    //     frequency: FrequencyHz,
+    //     frequency_tune: Ratio,
+    //     frequency_modulation: BipolarNormal,
+    // ) -> Self {
+    //     Self {
+    //         waveform,
+    //         frequency,
+    //         // TODO https://github.com/sowbug/groove/issues/135
+    //         // fixed_frequency: params.fixed_frequency(),
+    //         frequency_tune,
+    //         frequency_modulation,
+    //         ..Default::default()
+    //     }
+    // }
 
-    pub fn new_with_waveform(waveform: Waveform) -> Self {
-        Self::new_with(
-            waveform,
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        )
-    }
+    // pub fn new_with_waveform(waveform: Waveform) -> Self {
+    //     Self::new_with(
+    //         waveform,
+    //         Default::default(),
+    //         Default::default(),
+    //         Default::default(),
+    //     )
+    // }
 
-    pub fn new_with_waveform_and_frequency(waveform: Waveform, frequency: FrequencyHz) -> Self {
-        Self::new_with(waveform, frequency, Default::default(), Default::default())
-    }
+    // pub fn new_with_waveform_and_frequency(waveform: Waveform, frequency: FrequencyHz) -> Self {
+    //     Self::new_with(waveform, frequency, Default::default(), Default::default())
+    // }
 
     fn adjusted_frequency(&self) -> FrequencyHz {
         let unmodulated_frequency = if let Some(fixed_frequency) = self.fixed_frequency {
@@ -431,7 +433,22 @@ enum State {
     Shutdown,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, Control, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Envelope {
+    #[control]
+    attack: Normal,
+    #[control]
+    decay: Normal,
+    #[control]
+    sustain: Normal,
+    #[control]
+    release: Normal,
+
+    #[serde(skip)]
+    e: EnvelopeEphemerals,
+}
+#[derive(Clone, Debug, Default)]
 pub struct EnvelopeEphemerals {
     sample_rate: SampleRate,
     state: State,
@@ -461,22 +478,6 @@ pub struct EnvelopeEphemerals {
     concave_a: f64,
     concave_b: f64,
     concave_c: f64,
-}
-
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Envelope {
-    #[control]
-    attack: Normal,
-    #[control]
-    decay: Normal,
-    #[control]
-    sustain: Normal,
-    #[control]
-    release: Normal,
-
-    #[serde(skip)]
-    e: EnvelopeEphemerals,
 }
 impl GeneratesEnvelope for Envelope {
     fn trigger_attack(&mut self) {
@@ -1036,7 +1037,6 @@ impl PathUidFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::*;
     use float_cmp::approx_eq;
     use more_asserts::{assert_gt, assert_lt};
     use std::{env::current_dir, fs, path::PathBuf};
@@ -1084,24 +1084,19 @@ mod tests {
     }
 
     fn create_oscillator(waveform: Waveform, tune: Ratio, note: MidiNote) -> Oscillator {
-        let mut oscillator = Oscillator::new_with(
-            waveform,
-            FrequencyHz::from(note),
-            Ratio::default(),
-            BipolarNormal::default(),
-        );
-        oscillator.set_frequency_tune(tune);
-        oscillator
+        OscillatorBuilder::default()
+            .waveform(waveform)
+            .frequency(note.into())
+            .frequency_tune(tune)
+            .build()
+            .unwrap()
     }
 
+    // "Principle of least astonishment": a default Oscillator should make an
+    // audible sound.
     #[test]
     fn oscillator_pola() {
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Sine,
-            FrequencyHz::from(440.0),
-            Ratio::default(),
-            BipolarNormal::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default().build().unwrap();
 
         // we'll get a few samples in case the oscillator happens to start at
         // zero
@@ -1116,12 +1111,11 @@ mod tests {
     fn square_wave_is_correct_amplitude() {
         const SAMPLE_RATE: SampleRate = SampleRate::new(63949); // Prime number
         const FREQUENCY: FrequencyHz = FrequencyHz(499.0);
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Square,
-            FREQUENCY,
-            Ratio::default(),
-            BipolarNormal::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default()
+            .waveform(Waveform::Square)
+            .frequency(FREQUENCY)
+            .build()
+            .unwrap();
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         // Below Nyquist limit
@@ -1139,12 +1133,11 @@ mod tests {
         // numbers so that we don't have to deal with edge cases.
         const SAMPLE_RATE: SampleRate = SampleRate::new(65536);
         const FREQUENCY: FrequencyHz = FrequencyHz(128.0);
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Square,
-            FREQUENCY,
-            Default::default(),
-            Default::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default()
+            .waveform(Waveform::Square)
+            .frequency(FREQUENCY)
+            .build()
+            .unwrap();
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         let mut n_pos = 0;
@@ -1177,12 +1170,11 @@ mod tests {
     fn square_wave_shape_is_accurate() {
         const SAMPLE_RATE: SampleRate = SampleRate::new(65536);
         const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Square,
-            FREQUENCY,
-            Default::default(),
-            Default::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default()
+            .waveform(Waveform::Square)
+            .frequency(FREQUENCY)
+            .build()
+            .unwrap();
         oscillator.update_sample_rate(SAMPLE_RATE);
 
         assert_eq!(
@@ -1221,12 +1213,11 @@ mod tests {
     #[test]
     fn sine_wave_is_balanced() {
         const FREQUENCY: FrequencyHz = FrequencyHz(1.0);
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Sine,
-            FREQUENCY,
-            Default::default(),
-            Default::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default()
+            .waveform(Waveform::Sine)
+            .frequency(FREQUENCY)
+            .build()
+            .unwrap();
         oscillator.update_sample_rate(SampleRate::DEFAULT);
 
         let mut n_pos = 0;
@@ -1304,13 +1295,12 @@ mod tests {
             (20000.0, "20000Hz"),
         ];
         for test_case in test_cases {
-            let mut osc = Oscillator::new_with(
-                Waveform::Square,
-                test_case.0.into(),
-                Default::default(),
-                Default::default(),
-            );
-            let samples = render_signal_as_audio_source(&mut osc, 1);
+            let mut oscillator = OscillatorBuilder::default()
+                .waveform(Waveform::Square)
+                .frequency(test_case.0.into())
+                .build()
+                .unwrap();
+            let samples = render_signal_as_audio_source(&mut oscillator, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
             filename.push("44100Hz-mono");
@@ -1337,13 +1327,12 @@ mod tests {
     #[test]
     fn sine_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(
-                Waveform::Sine,
-                test_case.0.into(),
-                Default::default(),
-                Default::default(),
-            );
-            let samples = render_signal_as_audio_source(&mut osc, 1);
+            let mut oscillator = OscillatorBuilder::default()
+                .waveform(Waveform::Sine)
+                .frequency(test_case.0.into())
+                .build()
+                .unwrap();
+            let samples = render_signal_as_audio_source(&mut oscillator, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
             filename.push("44100Hz-mono");
@@ -1360,13 +1349,12 @@ mod tests {
     #[test]
     fn sawtooth_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(
-                Waveform::Sawtooth,
-                test_case.0.into(),
-                Default::default(),
-                Default::default(),
-            );
-            let samples = render_signal_as_audio_source(&mut osc, 1);
+            let mut oscillator = OscillatorBuilder::default()
+                .waveform(Waveform::Sawtooth)
+                .frequency(test_case.0.into())
+                .build()
+                .unwrap();
+            let samples = render_signal_as_audio_source(&mut oscillator, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
             filename.push("44100Hz-mono");
@@ -1383,13 +1371,12 @@ mod tests {
     #[test]
     fn triangle_matches_known_good() {
         for test_case in get_test_cases() {
-            let mut osc = Oscillator::new_with(
-                Waveform::Triangle,
-                test_case.0.into(),
-                Default::default(),
-                Default::default(),
-            );
-            let samples = render_signal_as_audio_source(&mut osc, 1);
+            let mut oscillator = OscillatorBuilder::default()
+                .waveform(Waveform::Triangle)
+                .frequency(test_case.0.into())
+                .build()
+                .unwrap();
+            let samples = render_signal_as_audio_source(&mut oscillator, 1);
             let mut filename = TestOnlyPaths::data_path();
             filename.push("audacity");
             filename.push("44100Hz-mono");
@@ -1443,12 +1430,11 @@ mod tests {
 
     #[test]
     fn oscillator_cycle_restarts_on_time() {
-        let mut oscillator = Oscillator::new_with(
-            Waveform::Sine,
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        );
+        let mut oscillator = OscillatorBuilder::default()
+            .waveform(Waveform::Sine)
+            .build()
+            .unwrap();
+
         const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
         oscillator.set_frequency(FREQUENCY);
         oscillator.update_sample_rate(SampleRate::DEFAULT);

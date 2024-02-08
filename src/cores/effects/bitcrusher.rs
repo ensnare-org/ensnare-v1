@@ -3,39 +3,57 @@
 use crate::prelude::*;
 use delegate::delegate;
 use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// TODO: this is a pretty lame bitcrusher. It is hardly noticeable for values
 /// below 13, and it destroys the waveform at 15. It doesn't do any simulation
 /// of sample-rate reduction, either.
-#[derive(Debug, Derivative, Control, Serialize, Deserialize)]
+#[derive(Debug, Builder, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct Bitcrusher {
+#[builder(default, build_fn(private, name = "build_from_builder"))]
+pub struct BitcrusherCore {
     /// The number of bits to preserve
     #[control]
     #[derivative(Default(value = "8"))]
     bits: u8,
 
-    /// A cached representation of `bits` for optimization.
     #[serde(skip)]
+    #[builder(setter(skip))]
+    e: BitcrusherCoreEphemerals,
+}
+#[derive(Debug, Default)]
+pub struct BitcrusherCoreEphemerals {
+    /// A cached representation of `bits` for optimization.
     bits_cached: SampleType,
 
-    #[serde(skip)]
     c: Configurables,
 }
-impl TransformsAudio for Bitcrusher {
+impl BitcrusherCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<BitcrusherCore, BitcrusherCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl TransformsAudio for BitcrusherCore {
     fn transform_channel(&mut self, _channel: usize, input_sample: Sample) -> Sample {
         const I16_SCALE: SampleType = i16::MAX as SampleType;
         let sign = input_sample.0.signum();
         let input = (input_sample * I16_SCALE).0.abs();
-        (((input / self.bits_cached).floor() * self.bits_cached / I16_SCALE) * sign).into()
+        (((input / self.e.bits_cached).floor() * self.e.bits_cached / I16_SCALE) * sign).into()
     }
 }
-impl Configurable for Bitcrusher {
+impl Configurable for BitcrusherCore {
     delegate! {
-        to self.c {
+        to self.e.c {
             fn sample_rate(&self) -> SampleRate;
             fn update_sample_rate(&mut self, sample_rate: SampleRate);
             fn tempo(&self) -> Tempo;
@@ -46,16 +64,7 @@ impl Configurable for Bitcrusher {
     }
 }
 #[allow(missing_docs)]
-impl Bitcrusher {
-    pub fn new_with(bits: u8) -> Self {
-        let mut r = Self {
-            bits,
-            ..Default::default()
-        };
-        r.update_cache();
-        r
-    }
-
+impl BitcrusherCore {
     pub fn bits(&self) -> u8 {
         self.bits
     }
@@ -66,7 +75,7 @@ impl Bitcrusher {
     }
 
     fn update_cache(&mut self) {
-        self.bits_cached = 2.0f64.powi(self.bits() as i32);
+        self.e.bits_cached = 2.0f64.powi(self.bits() as i32);
     }
 
     // TODO - write a custom type for range 0..16
@@ -75,7 +84,7 @@ impl Bitcrusher {
         0..=16
     }
 }
-impl Serializable for Bitcrusher {
+impl Serializable for BitcrusherCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
@@ -92,7 +101,7 @@ mod tests {
 
     #[test]
     fn bitcrusher_basic() {
-        let mut fx = Bitcrusher::new_with(8);
+        let mut fx = BitcrusherCoreBuilder::default().build().unwrap();
         assert_eq!(
             fx.transform_channel(0, Sample(PI - 3.0)),
             Sample(CRUSHED_PI)
@@ -101,7 +110,7 @@ mod tests {
 
     #[test]
     fn bitcrusher_no_bias() {
-        let mut fx = Bitcrusher::new_with(8);
+        let mut fx = BitcrusherCoreBuilder::default().build().unwrap();
         assert_eq!(
             fx.transform_channel(0, Sample(-(PI - 3.0))),
             Sample(-CRUSHED_PI)

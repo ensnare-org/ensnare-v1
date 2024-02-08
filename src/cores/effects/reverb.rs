@@ -3,40 +3,61 @@
 use super::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
 use crate::prelude::*;
 use delegate::delegate;
+use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// Schroeder reverb. Uses four parallel recirculating delay lines feeding into
 /// a series of two all-pass delay lines.
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Debug, Derivative, Control, Builder, Serialize, Deserialize)]
+#[derivative(Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct Reverb {
+#[builder(default, build_fn(private, name = "build_from_builder"))]
+pub struct ReverbCore {
     /// How much the effect should attenuate the input.
     #[control]
+    #[derivative(Default(value = "0.8.into()"))]
     attenuation: Normal,
 
     #[control]
+    #[derivative(Default(value = "1.0.into()"))]
     seconds: Seconds,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
+    e: ReverbCoreEphemerals,
+}
+#[derive(Clone, Debug, Default)]
+pub struct ReverbCoreEphemerals {
     channels: [ReverbChannel; 2],
-
-    #[serde(skip)]
     c: Configurables,
 }
-impl Serializable for Reverb {
+impl ReverbCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<ReverbCore, ReverbCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl Serializable for ReverbCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        self.channels = [
+        self.e.channels = [
             ReverbChannel::new_with(self.attenuation, self.seconds),
             ReverbChannel::new_with(self.attenuation, self.seconds),
         ];
     }
 }
-impl Configurable for Reverb {
+impl Configurable for ReverbCore {
     delegate! {
-        to self.c {
+        to self.e.c {
             fn sample_rate(&self) -> SampleRate;
             fn tempo(&self) -> Tempo;
             fn update_tempo(&mut self, tempo: Tempo);
@@ -46,36 +67,25 @@ impl Configurable for Reverb {
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.c.update_sample_rate(sample_rate);
-        self.channels[0].update_sample_rate(sample_rate);
-        self.channels[1].update_sample_rate(sample_rate);
+        self.e.c.update_sample_rate(sample_rate);
+        self.e.channels[0].update_sample_rate(sample_rate);
+        self.e.channels[1].update_sample_rate(sample_rate);
     }
 }
-impl TransformsAudio for Reverb {
+impl TransformsAudio for ReverbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
-        self.channels[channel].transform_channel(channel, input_sample)
+        self.e.channels[channel].transform_channel(channel, input_sample)
     }
 }
-impl Reverb {
-    pub fn new_with(attenuation: Normal, seconds: Seconds) -> Self {
-        // Thanks to https://basicsynth.com/ (page 133 of paperback) for
-        // constants.
-        let mut r = Self {
-            attenuation,
-            seconds,
-            ..Default::default()
-        };
-        r.after_deser();
-        r
-    }
-
+impl ReverbCore {
     pub fn attenuation(&self) -> Normal {
         self.attenuation
     }
 
     pub fn set_attenuation(&mut self, attenuation: Normal) {
         self.attenuation = attenuation;
-        self.channels
+        self.e
+            .channels
             .iter_mut()
             .for_each(|c| c.set_attenuation(attenuation));
     }
@@ -86,13 +96,14 @@ impl Reverb {
 
     pub fn set_seconds(&mut self, seconds: Seconds) {
         self.seconds = seconds;
-        self.channels
+        self.e
+            .channels
             .iter_mut()
             .for_each(|c| c.set_seconds(seconds));
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 struct ReverbChannel {
     attenuation: Normal,
 
@@ -141,6 +152,8 @@ impl ReverbChannel {
     }
 
     fn instantiate_recirc_delay_lines(seconds: Seconds) -> Vec<RecirculatingDelayLine> {
+        // Thanks to https://basicsynth.com/ (page 133 of paperback) for
+        // constants.
         vec![
             RecirculatingDelayLine::new_with(
                 0.0297.into(),
@@ -191,8 +204,6 @@ impl ReverbChannel {
 mod tests {
     use super::*;
 
-    const DEFAULT_SAMPLE_RATE: usize = 44100;
-
     #[test]
     fn reverb_does_anything_at_all() {
         // This test is lame, because I can't think of a programmatic way to
@@ -200,11 +211,14 @@ mod tests {
         // to 0.5 seconds, we start getting back nonzero samples (first
         // 0.47767496) at samples: 29079, seconds: 0.65938777. This doesn't look
         // wrong, but I couldn't have predicted that exact number.
-        let mut fx = Reverb::new_with(Normal::from(0.9), 0.5.into());
-        fx.update_sample_rate(SampleRate::DEFAULT);
+        let mut fx = ReverbCoreBuilder::default()
+            .attenuation(0.9.into())
+            .seconds(0.5.into())
+            .build()
+            .unwrap();
         assert_eq!(fx.transform_channel(0, Sample::from(0.8)), Sample::SILENCE);
         let mut s = Sample::default();
-        for _ in 0..DEFAULT_SAMPLE_RATE {
+        for _ in 0..SampleRate::DEFAULT.0 {
             s += fx.transform_channel(0, Sample::SILENCE);
         }
         assert!(s != Sample::SILENCE);

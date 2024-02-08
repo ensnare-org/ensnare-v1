@@ -14,7 +14,9 @@ pub mod prelude {
     };
 }
 
-pub use generators::{Envelope, Oscillator, PathUid, PathUidFactory, SignalPath, Waveform};
+pub use generators::{
+    Envelope, Oscillator, OscillatorBuilder, PathUid, PathUidFactory, SignalPath, Waveform,
+};
 pub use modulators::Dca;
 pub use synthesizers::Synthesizer;
 pub use transport::{Transport, TransportBuilder};

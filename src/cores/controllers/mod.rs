@@ -5,7 +5,7 @@
 //!
 //! Controllers implement the [Controls](crate::traits::Controls) trait.
 pub use arpeggiator::*;
-pub use lfo::*;
+pub use lfo::{LfoControllerCore, LfoControllerCoreBuilder};
 pub use passthrough::*;
 
 mod arpeggiator;

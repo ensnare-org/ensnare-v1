@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use delegate::delegate;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
@@ -195,9 +196,10 @@ impl FmVoice {
     }
 }
 
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Debug, Default, Builder, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct FmSynth {
+#[builder(default, build_fn(private, name = "build_from_builder"))]
+pub struct FmSynthCore {
     #[control]
     pub carrier: Oscillator,
 
@@ -223,9 +225,22 @@ pub struct FmSynth {
     pub dca: Dca,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     pub inner: Synthesizer<FmVoice>,
 }
-impl Generates<StereoSample> for FmSynth {
+impl FmSynthCoreBuilder {
+    /// The overridden Builder build() method.
+    pub fn build(&self) -> Result<FmSynthCore, FmSynthCoreBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl Generates<StereoSample> for FmSynthCore {
     fn value(&self) -> StereoSample {
         self.inner.value()
     }
@@ -234,7 +249,7 @@ impl Generates<StereoSample> for FmSynth {
         self.inner.generate(values);
     }
 }
-impl Serializable for FmSynth {
+impl Serializable for FmSynthCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
@@ -250,7 +265,7 @@ impl Serializable for FmSynth {
         )))
     }
 }
-impl Configurable for FmSynth {
+impl Configurable for FmSynthCore {
     delegate! {
         to self.inner {
             fn sample_rate(&self) -> SampleRate;
@@ -262,14 +277,14 @@ impl Configurable for FmSynth {
         }
     }
 }
-impl Ticks for FmSynth {
+impl Ticks for FmSynthCore {
     delegate! {
         to self.inner {
             fn tick(&mut self, tick_count: usize);
         }
     }
 }
-impl HandlesMidi for FmSynth {
+impl HandlesMidi for FmSynthCore {
     delegate! {
         to self.inner {
             fn handle_midi_message(
@@ -281,41 +296,7 @@ impl HandlesMidi for FmSynth {
         }
     }
 }
-impl FmSynth {
-    pub fn new_with(
-        carrier_oscillator: Oscillator,
-        carrier_envelope: Envelope,
-        modulator_oscillator: Oscillator,
-        modulator_envelope: Envelope,
-        depth: Normal,
-        ratio: Ratio,
-        beta: ParameterType,
-        dca: Dca,
-    ) -> Self {
-        let voice_store = Self::make_voice_store(
-            &carrier_oscillator,
-            &carrier_envelope,
-            &modulator_oscillator,
-            &modulator_envelope,
-            depth,
-            ratio,
-            beta,
-            &dca,
-        );
-
-        Self {
-            carrier_envelope,
-            carrier: carrier_oscillator,
-            modulator_envelope,
-            modulator: modulator_oscillator,
-            depth,
-            ratio,
-            beta,
-            dca,
-            inner: Synthesizer::<FmVoice>::new_with(Box::new(voice_store)),
-        }
-    }
-
+impl FmSynthCore {
     fn make_voice_store(
         carrier_oscillator: &Oscillator,
         carrier_envelope: &Envelope,

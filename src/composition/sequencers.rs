@@ -5,7 +5,7 @@ use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Builder, PartialEq)]
+#[derive(Clone, Debug, Default, Builder, PartialEq)]
 //#[serde(rename_all = "kebab-case")]
 pub struct MidiSequencer {
     events: Vec<(MidiChannel, MidiEvent)>,
@@ -145,7 +145,7 @@ impl NoteSequencerBuilder {
     }
 }
 
-#[derive(Debug, Default, Builder, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Builder, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct NoteSequencer {
@@ -156,7 +156,7 @@ pub struct NoteSequencer {
     #[builder(setter(skip))]
     pub e: NoteSequencerEphemerals,
 }
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct NoteSequencerEphemerals {
     pub inner: MidiSequencer,
     pub extent: TimeRange,

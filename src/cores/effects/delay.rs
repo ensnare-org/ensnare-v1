@@ -11,7 +11,7 @@ pub(crate) trait Delays {
     fn pop_output(&mut self, input: Sample) -> Sample;
 }
 
-#[derive(Debug, Derivative)]
+#[derive(Clone, Debug, Derivative)]
 #[derivative(Default)]
 pub(crate) struct DelayLine {
     #[derivative(Default(value = "0.1.into()"))]
@@ -113,7 +113,7 @@ impl Delays for DelayLine {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct RecirculatingDelayLine {
     delay: DelayLine,
 }
@@ -157,7 +157,7 @@ impl Configurable for RecirculatingDelayLine {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct AllPassDelayLine {
     delay: RecirculatingDelayLine,
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// of synths.
 ///
 /// See DSSPC++, Section 7.9 for requirements. TODO: implement
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Dca {
     #[control]

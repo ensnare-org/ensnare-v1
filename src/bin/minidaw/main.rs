@@ -118,7 +118,7 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let factory = MiniDawEntities::register(EntityFactory::default()).finalize();
+    let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
 
     // if DragDropManager::initialize(DragDropManager::default()).is_err() {
     //     panic!("Couldn't set DragDropManager once_cell");

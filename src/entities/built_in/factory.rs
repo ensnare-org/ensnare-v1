@@ -8,7 +8,12 @@ use super::{
     instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
 };
 use crate::{
-    cores::{effects, instruments},
+    cores::{
+        controllers::{ArpeggiatorCoreBuilder, LfoControllerCoreBuilder},
+        effects::{self, BitcrusherCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder},
+        instruments::{self, FmSynthCoreBuilder},
+    },
+    elements::OscillatorBuilder,
     prelude::*,
     util::Paths,
 };
@@ -22,15 +27,18 @@ impl BuiltInEntities {
     ) -> EntityFactory<dyn EntityBounds> {
         // Controllers
         factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
-            Box::new(Arpeggiator::new_with(uid))
+            Box::new(Arpeggiator::new_with(
+                uid,
+                ArpeggiatorCoreBuilder::default().build().unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
             Box::new(LfoController::new_with(
                 uid,
-                Oscillator::new_with_waveform_and_frequency(
-                    Waveform::Sawtooth,
-                    FrequencyHz::from(0.2),
-                ),
+                LfoControllerCoreBuilder::default()
+                    .oscillator(OscillatorBuilder::default().build().unwrap())
+                    .build()
+                    .unwrap(),
             ))
         });
         factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
@@ -57,7 +65,10 @@ impl BuiltInEntities {
 
         // Effects
         factory.register_entity_with_str_key(Bitcrusher::ENTITY_KEY, |uid| {
-            Box::new(Bitcrusher::new_with(uid, 8))
+            Box::new(Bitcrusher::new_with(
+                uid,
+                BitcrusherCoreBuilder::default().build().unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(Chorus::ENTITY_KEY, |_uid| Box::<Chorus>::default());
         factory.register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| {
@@ -69,14 +80,26 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Gain::ENTITY_KEY, |uid| {
             Box::new(Gain::new_with(uid, Normal::from(0.5)))
         });
-        factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |_uid| Box::<Limiter>::default());
+        factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |uid| {
+            Box::new(Limiter::new_with(
+                uid,
+                LimiterCoreBuilder::default().build().unwrap(),
+            ))
+        });
         // TODO: this is lazy. It's too hard right now to adjust parameters within
         // code, so I'm creating a special instrument with the parameters I want.
         factory.register_entity_with_str_key("mute", |uid| {
             Box::new(Gain::new_with(uid, Normal::minimum()))
         });
         factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |uid| {
-            Box::new(Reverb::new_with(uid, Normal::from(0.8), 1.0.into()))
+            Box::new(Reverb::new_with(
+                uid,
+                ReverbCoreBuilder::default()
+                    .attenuation(0.8.into())
+                    .seconds(1.0.into())
+                    .build()
+                    .unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(BiQuadFilterLowPass24db::ENTITY_KEY, |uid| {
             Box::new(BiQuadFilterLowPass24db::new_with(
@@ -94,14 +117,27 @@ impl BuiltInEntities {
             // A crisp, classic FM sound that brings me back to 1985.
             Box::new(FmSynth::new_with(
                 uid,
-                Oscillator::new_with_waveform(Waveform::Sine),
-                Envelope::safe_default(),
-                Oscillator::new_with_waveform(Waveform::Square),
-                Envelope::default(),
-                1.0.into(),
-                16.0.into(),
-                10.0.into(),
-                Dca::default(),
+                FmSynthCoreBuilder::default()
+                    .carrier(
+                        OscillatorBuilder::default()
+                            .waveform(Waveform::Sine)
+                            .build()
+                            .unwrap(),
+                    )
+                    .carrier_envelope(Envelope::safe_default())
+                    .modulator(
+                        OscillatorBuilder::default()
+                            .waveform(Waveform::Square)
+                            .build()
+                            .unwrap(),
+                    )
+                    .modulator_envelope(Envelope::default())
+                    .depth(1.0.into())
+                    .ratio(16.0.into())
+                    .beta(10.0.into())
+                    .dca(Dca::default())
+                    .build()
+                    .unwrap(),
             ))
         });
         factory.register_entity_with_str_key(Sampler::ENTITY_KEY, |uid| {
@@ -112,13 +148,23 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
             Box::new(WelshSynth::new_with(
                 uid,
-                Oscillator::new_with_waveform(Waveform::Sine),
-                Oscillator::new_with_waveform(Waveform::Sawtooth),
+                OscillatorBuilder::default()
+                    .waveform(Waveform::Sine)
+                    .build()
+                    .unwrap(),
+                OscillatorBuilder::default()
+                    .waveform(Waveform::Sawtooth)
+                    .build()
+                    .unwrap(),
                 true,
                 0.8.into(),
                 Envelope::safe_default(),
                 Dca::default(),
-                Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz::from(0.2)),
+                OscillatorBuilder::default()
+                    .waveform(Waveform::Sine)
+                    .frequency(0.2.into())
+                    .build()
+                    .unwrap(),
                 instruments::LfoRouting::FilterCutoff,
                 Normal::from(0.5),
                 effects::BiQuadFilterLowPass24db::new_with(FrequencyHz(250.0), 1.0),

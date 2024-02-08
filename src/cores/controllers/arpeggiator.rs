@@ -2,6 +2,7 @@
 
 use crate::{composition::NoteSequencer, prelude::*};
 use delegate::delegate;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
@@ -26,23 +27,23 @@ pub enum ArpeggioMode {
     Minor,
 }
 
-/// [Arpeggiator] creates [arpeggios](https://en.wikipedia.org/wiki/Arpeggio),
-/// which "is a type of broken chord in which the notes that compose a chord are
-/// individually and quickly sounded in a progressive rising or descending
-/// order." You can also think of it as a hybrid MIDI instrument and MIDI
-/// controller; you play it with MIDI, but instead of producing audio, it
-/// produces more MIDI.
-#[derive(Debug, Default, Serialize, Deserialize)]
+/// [ArpeggiatorCore] creates
+/// [arpeggios](https://en.wikipedia.org/wiki/Arpeggio), which "is a type of
+/// broken chord in which the notes that compose a chord are individually and
+/// quickly sounded in a progressive rising or descending order." You can also
+/// think of it as a hybrid MIDI instrument and MIDI controller; you play it
+/// with MIDI, but instead of producing audio, it produces more MIDI.
+#[derive(Clone, Builder, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Arpeggiator {
-    midi_channel_out: MidiChannel,
-
+#[builder(default)]
+pub struct ArpeggiatorCore {
     pub mode: ArpeggioMode,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
     e: ArpeggiatorEphemerals,
 }
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ArpeggiatorEphemerals {
     sequencer: NoteSequencer,
     is_sequencer_enabled: bool,
@@ -66,7 +67,7 @@ impl Configurable for ArpeggiatorEphemerals {
         }
     }
 }
-impl Configurable for Arpeggiator {
+impl Configurable for ArpeggiatorCore {
     delegate! {
         to self.e {
             fn sample_rate(&self) -> SampleRate;
@@ -78,7 +79,7 @@ impl Configurable for Arpeggiator {
         }
     }
 }
-impl Controls for Arpeggiator {
+impl Controls for ArpeggiatorCore {
     fn update_time_range(&mut self, range: &TimeRange) {
         self.e.sequencer.update_time_range(range);
     }
@@ -107,7 +108,7 @@ impl Controls for Arpeggiator {
         self.e.sequencer.is_performing()
     }
 }
-impl HandlesMidi for Arpeggiator {
+impl HandlesMidi for ArpeggiatorCore {
     fn handle_midi_message(
         &mut self,
         _channel: MidiChannel,
@@ -156,17 +157,10 @@ impl HandlesMidi for Arpeggiator {
         }
     }
 }
-impl Arpeggiator {
-    pub fn new_with(midi_channel_out: MidiChannel) -> Self {
-        Self {
-            midi_channel_out,
-            ..Default::default()
-        }
-    }
-
+impl ArpeggiatorCore {
     fn insert_one_note(&mut self, when: &MusicalTime, duration: &MusicalTime, key: u8, _vel: u8) {
         let _ = self.e.sequencer.record(
-            self.midi_channel_out,
+            MidiChannel::default(),
             &Note::new_with(key, MusicalTime::START, *duration),
             *when,
         );

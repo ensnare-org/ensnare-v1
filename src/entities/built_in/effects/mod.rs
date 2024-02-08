@@ -2,7 +2,10 @@
 
 pub mod filter;
 
-use crate::{cores::effects, prelude::*};
+use crate::{
+    cores::effects::{self, BitcrusherCore, LimiterCore, ReverbCore},
+    prelude::*,
+};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
@@ -23,14 +26,11 @@ use serde::{Deserialize, Serialize};
 #[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
 pub struct Bitcrusher {
     uid: Uid,
-    inner: effects::Bitcrusher,
+    inner: BitcrusherCore,
 }
 impl Bitcrusher {
-    pub fn new_with(uid: Uid, bits: u8) -> Self {
-        Self {
-            uid,
-            inner: effects::Bitcrusher::new_with(bits),
-        }
+    pub fn new_with(uid: Uid, inner: BitcrusherCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -137,14 +137,11 @@ impl Gain {
 
 pub struct Limiter {
     uid: Uid,
-    inner: effects::Limiter,
+    inner: LimiterCore,
 }
 impl Limiter {
-    pub fn new_with(uid: Uid, minimum: Normal, maximum: Normal) -> Self {
-        Self {
-            uid,
-            inner: effects::Limiter::new_with(minimum, maximum),
-        }
+    pub fn new_with(uid: Uid, inner: LimiterCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -164,14 +161,11 @@ impl Limiter {
 
 pub struct Reverb {
     uid: Uid,
-    inner: effects::Reverb,
+    inner: ReverbCore,
 }
 impl Reverb {
-    pub fn new_with(uid: Uid, attenuation: Normal, seconds: Seconds) -> Self {
-        Self {
-            uid,
-            inner: effects::Reverb::new_with(attenuation, seconds),
-        }
+    pub fn new_with(uid: Uid, inner: ReverbCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -183,8 +177,8 @@ mod egui {
     impl Displays for Bitcrusher {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
             let mut bits = self.inner.bits();
-            let response =
-                ui.add(Slider::new(&mut bits, effects::Bitcrusher::bits_range()).suffix(" bits"));
+            let response = ui
+                .add(Slider::new(&mut bits, effects::BitcrusherCore::bits_range()).suffix(" bits"));
             if response.changed() {
                 self.inner.set_bits(bits);
             };

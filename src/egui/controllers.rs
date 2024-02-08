@@ -2,7 +2,7 @@
 
 use crate::{
     composition::{NoteSequencer, PatternSequencer},
-    cores::controllers::{Arpeggiator, ArpeggioMode},
+    cores::controllers::{ArpeggiatorCore, ArpeggioMode},
     egui::unfiled::{FrequencyWidget, WaveformWidget},
     prelude::*,
 };
@@ -330,15 +330,15 @@ impl<'a> eframe::egui::Widget for NoteSequencerWidget<'a> {
 /// Renders [Arpeggiator] in egui.
 #[derive(Debug)]
 pub struct ArpeggiatorWidget<'a> {
-    inner: &'a mut Arpeggiator,
+    inner: &'a mut ArpeggiatorCore,
 }
 impl<'a> ArpeggiatorWidget<'a> {
-    fn new(entity: &'a mut Arpeggiator) -> Self {
+    fn new(entity: &'a mut ArpeggiatorCore) -> Self {
         Self { inner: entity }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
-    pub fn widget(entity: &'a mut Arpeggiator) -> impl eframe::egui::Widget + 'a {
+    pub fn widget(entity: &'a mut ArpeggiatorCore) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| ArpeggiatorWidget::new(entity).ui(ui)
     }
 }

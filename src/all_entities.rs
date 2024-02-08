@@ -4,6 +4,10 @@
 //! use them.
 
 use crate::{
+    cores::{
+        effects::{BitcrusherCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder},
+        instruments::FmSynthCoreBuilder,
+    },
     entities::{
         Arpeggiator, BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
         BiQuadFilterHighPass, BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Drumkit,
@@ -16,7 +20,7 @@ use crate::{
 use std::path::PathBuf;
 
 /// A wrapper that contains all the entities we know about.
-pub struct MiniDawEntities {}
+struct MiniDawEntities {}
 impl MiniDawEntities {
     /// Registers all the entities in this collection.
     pub fn register(
@@ -24,7 +28,10 @@ impl MiniDawEntities {
     ) -> EntityFactory<dyn EntityBounds> {
         // Effects
         factory.register_entity_with_str_key(Bitcrusher::ENTITY_KEY, |uid| {
-            Box::new(Bitcrusher::new_with(uid, 8))
+            Box::new(Bitcrusher::new_with(
+                uid,
+                BitcrusherCoreBuilder::default().build().unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(Chorus::ENTITY_KEY, |_uid| Box::<Chorus>::default());
         factory.register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| {
@@ -33,14 +40,22 @@ impl MiniDawEntities {
         factory.register_entity_with_str_key(Gain::ENTITY_KEY, |uid| {
             Box::new(Gain::new_with(uid, Normal::from(0.5)))
         });
-        factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |_uid| Box::<Limiter>::default());
+        factory.register_entity_with_str_key(Limiter::ENTITY_KEY, |uid| {
+            Box::new(Limiter::new_with(
+                uid,
+                LimiterCoreBuilder::default().build().unwrap(),
+            ))
+        });
         // TODO: this is lazy. It's too hard right now to adjust parameters within
         // code, so I'm creating a special instrument with the parameters I want.
         factory.register_entity_with_str_key("mute", |uid| {
             Box::new(Gain::new_with(uid, Normal::minimum()))
         });
         factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |uid| {
-            Box::new(Reverb::new_with(uid, Normal::from(0.8), 1.0.into()))
+            Box::new(Reverb::new_with(
+                uid,
+                ReverbCoreBuilder::default().build().unwrap(),
+            ))
         });
         factory.register_entity_with_str_key(BiQuadFilterLowPass24db::ENTITY_KEY, |uid| {
             Box::new(BiQuadFilterLowPass24db::new_with(
@@ -66,20 +81,23 @@ impl MiniDawEntities {
         factory.register_entity_with_str_key(Drumkit::ENTITY_KEY, |uid| {
             Box::new(Drumkit::new_with(uid, "feed-me-seymour", &Paths::default()))
         });
-        factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |uid| {
-            // A crisp, classic FM sound that brings me back to 1985.
-            Box::new(FmSynth::new_with(
-                uid,
-                Oscillator::new_with_waveform(Waveform::Sine),
-                Envelope::new_with(0.0001.into(), 0.0005.into(), 0.6.into(), 0.25.into()),
-                Oscillator::new_with_waveform(Waveform::Sine),
-                Envelope::new_with(0.0001.into(), 0.0005.into(), 0.3.into(), 0.25.into()),
-                0.35.into(),
-                4.5.into(),
-                40.0.into(),
-                Dca::default(),
-            ))
-        });
+        // factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |uid| {
+        //     // A crisp, classic FM sound that brings me back to 1985.
+        //     Box::new(FmSynth::new_with(
+        //         uid,
+        //         FmSynthCoreBuilder::default()
+        //             .carrier(Oscillator::new_with_waveform(Waveform::Sine))
+        //             .carrier_envelope(Envelope::safe_default())
+        //             .modulator(Oscillator::new_with_waveform(Waveform::Square))
+        //             .modulator_envelope(Envelope::default())
+        //             .depth(1.0.into())
+        //             .ratio(16.0.into())
+        //             .beta(10.0.into())
+        //             .dca(Dca::default())
+        //             .build()
+        //             .unwrap(),
+        //     ))
+        // });
         factory.register_entity_with_str_key(Sampler::ENTITY_KEY, |uid| {
             let mut sampler = Sampler::new_with(uid, PathBuf::from("stereo-pluck.wav"), None);
             let _ = sampler.load(&Paths::default()); // TODO: we're ignoring the error
@@ -89,31 +107,31 @@ impl MiniDawEntities {
             Box::new(WelshSynth::new_with_factory_patch(uid))
         });
 
-        // Temp so we have a control source
-        factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
-            Box::new(LfoController::new_with(
-                uid,
-                Oscillator::new_with_waveform_and_frequency(
-                    Waveform::Sawtooth,
-                    FrequencyHz::from(0.2),
-                ),
-            ))
-        });
+        // // Temp so we have a control source
+        // factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
+        //     Box::new(LfoController::new_with(
+        //         uid,
+        //         Oscillator::new_with_waveform_and_frequency(
+        //             Waveform::Sawtooth,
+        //             FrequencyHz::from(0.2),
+        //         ),
+        //     ))
+        // });
 
-        if false {
+        if true {
             // Controllers
-            factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
-                Box::new(Arpeggiator::new_with(uid))
-            });
-            factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
-                Box::new(LfoController::new_with(
-                    uid,
-                    Oscillator::new_with_waveform_and_frequency(
-                        Waveform::Sawtooth,
-                        FrequencyHz::from(0.2),
-                    ),
-                ))
-            });
+            // factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
+            //     Box::new(Arpeggiator::new_with(uid))
+            // });
+            // factory.register_entity_with_str_key(LfoController::ENTITY_KEY, |uid| {
+            //     Box::new(LfoController::new_with(
+            //         uid,
+            //         Oscillator::new_with_waveform_and_frequency(
+            //             Waveform::Sawtooth,
+            //             FrequencyHz::from(0.2),
+            //         ),
+            //     ))
+            // });
             factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
                 Box::new(SignalPassthroughController::new_with(uid))
             });

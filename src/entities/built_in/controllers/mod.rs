@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::controllers, prelude::*};
+use crate::{
+    cores::controllers::{self, ArpeggiatorCore, LfoControllerCore},
+    prelude::*,
+};
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,
@@ -22,14 +25,11 @@ use serde::{Deserialize, Serialize};
 #[entity(Controls, GeneratesStereoSample, Serializable, Ticks, TransformsAudio)]
 pub struct Arpeggiator {
     uid: Uid,
-    inner: controllers::Arpeggiator,
+    inner: ArpeggiatorCore,
 }
 impl Arpeggiator {
-    pub fn new_with(uid: Uid) -> Self {
-        Self {
-            uid,
-            inner: controllers::Arpeggiator::new_with(MidiChannel::default()),
-        }
+    pub fn new_with(uid: Uid, inner: ArpeggiatorCore) -> Self {
+        Self { uid, inner }
     }
 }
 
@@ -49,14 +49,11 @@ impl Arpeggiator {
 #[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
 pub struct LfoController {
     uid: Uid,
-    inner: controllers::LfoController,
+    inner: LfoControllerCore,
 }
 impl LfoController {
-    pub fn new_with(uid: Uid, oscillator: Oscillator) -> Self {
-        Self {
-            uid,
-            inner: controllers::LfoController::new_with(oscillator),
-        }
+    pub fn new_with(uid: Uid, inner: LfoControllerCore) -> Self {
+        Self { uid, inner }
     }
 }
 

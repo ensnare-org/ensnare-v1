@@ -18,12 +18,12 @@ pub enum FmSynthWidgetAction {
 
 #[derive(Debug)]
 pub struct FmSynthWidget<'a> {
-    inner: &'a mut instruments::FmSynth,
+    inner: &'a mut instruments::FmSynthCore,
     action: &'a mut Option<FmSynthWidgetAction>,
 }
 impl<'a> FmSynthWidget<'a> {
     fn new(
-        inner: &'a mut instruments::FmSynth,
+        inner: &'a mut instruments::FmSynthCore,
         action: &'a mut Option<FmSynthWidgetAction>,
     ) -> Self {
         Self { inner, action }
@@ -31,7 +31,7 @@ impl<'a> FmSynthWidget<'a> {
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut instruments::FmSynth,
+        inner: &'a mut instruments::FmSynthCore,
         action: &'a mut Option<FmSynthWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| FmSynthWidget::new(inner, action).ui(ui)
@@ -114,7 +114,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
                         DcaWidgetAction::Link(uid, index) => {
                             *self.action = Some(FmSynthWidgetAction::Link(
                                 uid,
-                                index + instruments::FmSynth::DCA_INDEX,
+                                index + instruments::FmSynthCore::DCA_INDEX,
                             ));
                         }
                     }

@@ -5,7 +5,7 @@
 
 pub use {
     drumkit::Drumkit,
-    fm::FmSynth,
+    fm::{FmSynthCore, FmSynthCoreBuilder},
     sampler::{Sampler, SamplerVoice},
     test::{TestAudioSource, TestControllerAlwaysSendsMidiMessage},
     welsh::{LfoRouting, WelshSynth, WelshVoice},

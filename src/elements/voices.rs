@@ -346,6 +346,8 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use crate::elements::OscillatorBuilder;
+
     use super::*;
     use float_cmp::approx_eq;
     use more_asserts::assert_gt;
@@ -434,12 +436,7 @@ pub(crate) mod tests {
         pub(crate) fn new() -> Self {
             Self {
                 sample_rate: Default::default(),
-                oscillator: Oscillator::new_with(
-                    Waveform::Sine,
-                    FrequencyHz(440.0),
-                    Ratio::default(),
-                    BipolarNormal::default(),
-                ),
+                oscillator: OscillatorBuilder::default().build().unwrap(),
                 envelope: Envelope::new_with(
                     Normal::minimum(),
                     Normal::minimum(),

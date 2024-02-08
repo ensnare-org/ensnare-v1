@@ -5,7 +5,6 @@
 
 //! The `ensnare` crate helps make digital music.
 
-pub use all_entities::MiniDawEntities;
 pub use automation::Automator;
 pub use composition::Composer;
 pub use orchestration::Orchestrator;
@@ -39,6 +38,5 @@ pub mod prelude {
         automation::prelude::*, composition::prelude::*, elements::prelude::*,
         entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
         services::prelude::*, traits::prelude::*, types::prelude::*, util::prelude::*,
-        MiniDawEntities,
     };
 }

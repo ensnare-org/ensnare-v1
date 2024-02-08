@@ -1,28 +1,36 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{elements::OscillatorBuilder, prelude::*};
 use delegate::delegate;
+use derivative::Derivative;
+use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 /// Uses an internal LFO as a control source.
-#[derive(Debug, Default, Control, Serialize, Deserialize)]
+#[derive(Clone, Builder, Derivative, Debug, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct LfoController {
+#[builder(default)]
+#[derivative(Default)]
+pub struct LfoControllerCore {
     #[control]
+    #[derivative(Default(
+        value = "OscillatorBuilder::default().waveform(Waveform::Sine).frequency(1.0.into()).build().unwrap()"
+    ))]
     pub oscillator: Oscillator,
 
     #[serde(skip)]
+    #[builder(setter(skip))]
+    e: LfoControllerCoreEphemerals,
+}
+#[derive(Clone, Debug, Default)]
+pub struct LfoControllerCoreEphemerals {
     is_performing: bool,
-
-    #[serde(skip)]
     time_range: TimeRange,
-
-    #[serde(skip)]
     last_frame: usize,
 }
-impl Serializable for LfoController {}
-impl Configurable for LfoController {
+impl Serializable for LfoControllerCore {}
+impl Configurable for LfoControllerCore {
     delegate! {
         to self.oscillator {
             fn sample_rate(&self) -> SampleRate;
@@ -34,20 +42,21 @@ impl Configurable for LfoController {
         }
     }
 }
-impl Controls for LfoController {
+impl Controls for LfoControllerCore {
     fn update_time_range(&mut self, range: &TimeRange) {
-        self.time_range = range.clone();
+        self.e.time_range = range.clone();
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let frames = self
+            .e
             .time_range
             .0
             .start
             .as_frames(Tempo::from(120), self.oscillator.sample_rate());
 
-        if frames != self.last_frame {
-            let tick_count = if frames >= self.last_frame {
+        if frames != self.e.last_frame {
+            let tick_count = if frames >= self.e.last_frame {
                 // normal case; oscillator should advance the calculated number
                 // of frames
                 //
@@ -57,12 +66,12 @@ impl Controls for LfoController {
                 // could include frame count in update_time(), as discussed in
                 // #132, which would mean we don't have to be smart at all about
                 // it.
-                frames - self.last_frame
+                frames - self.e.last_frame
             } else {
-                self.last_frame = frames;
+                self.e.last_frame = frames;
                 0
             };
-            self.last_frame += tick_count;
+            self.e.last_frame += tick_count;
             self.oscillator.tick(tick_count);
         }
         control_events_fn(WorkEvent::Control(self.oscillator.value().into()));
@@ -73,11 +82,11 @@ impl Controls for LfoController {
     }
 
     fn play(&mut self) {
-        self.is_performing = true;
+        self.e.is_performing = true;
     }
 
     fn stop(&mut self) {
-        self.is_performing = false;
+        self.e.is_performing = false;
     }
 
     fn skip_to_start(&mut self) {
@@ -85,21 +94,11 @@ impl Controls for LfoController {
     }
 
     fn is_performing(&self) -> bool {
-        self.is_performing
+        self.e.is_performing
     }
 }
-impl HandlesMidi for LfoController {}
-impl LfoController {
-    pub fn new_with(oscillator: Oscillator) -> Self {
-        Self {
-            oscillator,
-            is_performing: false,
-
-            time_range: Default::default(),
-            last_frame: Default::default(),
-        }
-    }
-
+impl HandlesMidi for LfoControllerCore {}
+impl LfoControllerCore {
     pub fn notify_change_oscillator(&mut self) {}
 
     pub const fn frequency_range() -> std::ops::RangeInclusive<ParameterType> {

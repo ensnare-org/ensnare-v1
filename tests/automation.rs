@@ -2,6 +2,7 @@
 
 use ensnare::{
     automation::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
+    cores::controllers::LfoControllerCoreBuilder,
     entities::{BuiltInEntities, LfoController},
     prelude::*,
 };
@@ -63,7 +64,7 @@ fn demo_automation() {
                 track_uid,
                 Box::new(LfoController::new_with(
                     Uid::default(),
-                    Oscillator::new_with_waveform_and_frequency(Waveform::Sine, FrequencyHz(2.0)),
+                    LfoControllerCoreBuilder::default().build().unwrap(),
                 )),
                 None,
             )

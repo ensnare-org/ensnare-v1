@@ -185,11 +185,12 @@ impl ToySynth {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensnare::elements::OscillatorBuilder;
 
     #[test]
     fn toy_synth_control() {
         let mut synth = ToySynth::new_with(
-            Oscillator::new_with_waveform(Waveform::Sine),
+            OscillatorBuilder::default().build().unwrap(),
             Envelope::safe_default(),
             Dca::default(),
         );
