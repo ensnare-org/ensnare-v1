@@ -123,7 +123,7 @@ pub struct Sampler {
 pub struct SamplerEphemerals {
     calculated_root: FrequencyHz,
 
-    inner_synth: Synthesizer<SamplerVoice>,
+    inner: Synthesizer<SamplerVoice>,
 
     c: Configurables,
 }
@@ -135,33 +135,33 @@ impl HandlesMidi for Sampler {
         midi_messages_fn: &mut MidiMessagesFn,
     ) {
         self.e
-            .inner_synth
+            .inner
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
 impl Generates<StereoSample> for Sampler {
     fn value(&self) -> StereoSample {
-        self.e.inner_synth.value()
+        self.e.inner.value()
     }
 
     #[allow(dead_code, unused_variables)]
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.e.inner_synth.generate(values);
+        self.e.inner.generate(values);
     }
 }
 impl Ticks for Sampler {
     fn tick(&mut self, tick_count: usize) {
-        self.e.inner_synth.tick(tick_count)
+        self.e.inner.tick(tick_count)
     }
 }
 impl Serializable for Sampler {}
 impl Configurable for Sampler {
     fn sample_rate(&self) -> SampleRate {
-        self.e.inner_synth.sample_rate()
+        self.e.inner.sample_rate()
     }
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.e.inner_synth.update_sample_rate(sample_rate)
+        self.e.inner.update_sample_rate(sample_rate)
     }
 
     fn tempo(&self) -> Tempo {
@@ -197,12 +197,11 @@ impl Sampler {
             FrequencyHz::from(440.0)
         };
 
-        self.e.inner_synth = Synthesizer::<SamplerVoice>::new_with(Box::new(VoiceStore::<
-            SamplerVoice,
-        >::new_with_voice(
-            VoiceCount::from(8),
-            || SamplerVoice::new_with_samples(Arc::clone(&samples), self.e.calculated_root),
-        )));
+        self.e.inner = Synthesizer::<SamplerVoice>::new_with(Box::new(
+            VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
+                SamplerVoice::new_with_samples(Arc::clone(&samples), self.e.calculated_root)
+            }),
+        ));
 
         Ok(())
     }
@@ -211,7 +210,7 @@ impl Sampler {
         let samples = Arc::new(Vec::default());
         let calculated_root = root.unwrap_or_default();
         let e = SamplerEphemerals {
-            inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(
+            inner: Synthesizer::<SamplerVoice>::new_with(Box::new(
                 VoiceStore::<SamplerVoice>::new_with_voice(VoiceCount::from(8), || {
                     SamplerVoice::new_with_samples(Arc::clone(&samples), calculated_root)
                 }),
@@ -346,7 +345,7 @@ impl Sampler {
     pub fn set_root(&mut self, root: FrequencyHz) {
         self.root = root;
         self.e
-            .inner_synth
+            .inner
             .voices_mut()
             .for_each(|v| v.set_root_frequency(root));
     }

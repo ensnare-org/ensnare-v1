@@ -29,32 +29,20 @@ pub enum LfoRouting {
 
 #[derive(Debug, Default)]
 pub struct WelshVoice {
-    //#[control]
     pub oscillator_1: Oscillator,
-    //#[control]
     pub oscillator_2: Oscillator,
-    //#[control]
     pub oscillator_2_sync: bool,
-    //#[control]
     pub oscillator_mix: Normal, // 1.0 = entirely osc 0, 0.0 = entirely osc 1.
-    //#[control]
     pub amp_envelope: Envelope,
-    //#[control]
     pub dca: Dca,
 
-    //#[control]
     pub lfo: Oscillator,
     pub lfo_routing: LfoRouting,
-    //#[control]
     pub lfo_depth: Normal,
 
-    //#[control]
     pub filter: BiQuadFilterLowPass24db,
-    //#[control]
     pub filter_cutoff_start: Normal,
-    //#[control]
     pub filter_cutoff_end: Normal,
-    //#[control]
     pub filter_envelope: Envelope,
 
     note_on_key: u7,

@@ -20,7 +20,10 @@ pub use effects::{
 pub use entities::EntityPaletteWidget;
 pub use fm::{FmSynthWidget, FmSynthWidgetAction};
 pub use grid::GridWidget;
-pub use instruments::{SamplerWidget, WelshWidget, WelshWidgetAction};
+pub use instruments::{
+    DrumkitWidget, DrumkitWidgetAction, SamplerWidget, SamplerWidgetAction, WelshWidget,
+    WelshWidgetAction,
+};
 pub use legend::LegendWidget;
 pub use midi::MidiSettingsWidget;
 pub use modulators::{DcaWidget, DcaWidgetAction};

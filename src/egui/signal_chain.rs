@@ -45,6 +45,7 @@ impl<'a> Widget for SignalChainWidget<'a> {
                             name.clone(),
                             *is_control_source,
                         ));
+                        ui.separator();
                         let _ = item_response.context_menu(|ui| {
                             if ui.button("Remove").clicked() {
                                 *self.action = Some(SignalChainWidgetAction::Remove(*uid));

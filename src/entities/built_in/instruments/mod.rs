@@ -4,6 +4,7 @@
 use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
 use crate::{
     cores::{effects, instruments},
+    egui::{DrumkitWidgetAction, SamplerWidgetAction},
     traits::DisplaysAction,
 };
 use crate::{prelude::*, util::Paths};
@@ -31,12 +32,22 @@ use std::path::PathBuf;
 pub struct Drumkit {
     uid: Uid,
     inner: instruments::Drumkit,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    widget_action: Option<DrumkitWidgetAction>,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    action: Option<DisplaysAction>,
 }
 impl Drumkit {
     pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
         Self {
             uid,
             inner: instruments::Drumkit::new_with(name, paths),
+            widget_action: Default::default(),
+            action: Default::default(),
         }
     }
 }
@@ -112,12 +123,22 @@ impl FmSynth {
 pub struct Sampler {
     uid: Uid,
     inner: instruments::Sampler,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    widget_action: Option<SamplerWidgetAction>,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    action: Option<DisplaysAction>,
 }
 impl Sampler {
     pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
             inner: instruments::Sampler::new_with(path, root),
+            widget_action: Default::default(),
+            action: Default::default(),
         }
     }
 
@@ -146,6 +167,10 @@ pub struct WelshSynth {
     #[cfg(feature = "egui")]
     #[serde(skip)]
     widget_action: Option<WelshWidgetAction>,
+
+    #[cfg(feature = "egui")]
+    #[serde(skip)]
+    action: Option<DisplaysAction>,
 }
 impl WelshSynth {
     pub fn new_with(
@@ -182,6 +207,7 @@ impl WelshSynth {
                 filter_envelope,
             ),
             widget_action: Default::default(),
+            action: Default::default(),
         }
     }
 
@@ -209,13 +235,32 @@ impl WelshSynth {
 mod egui {
     use super::*;
     use crate::{
-        egui::{FmSynthWidget, SamplerWidget, WelshWidget},
+        egui::{DrumkitWidget, FmSynthWidget, SamplerWidget, WelshWidget},
         traits::DisplaysAction,
     };
 
     impl Displays for Drumkit {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.label("Coming soon!")
+            let response = ui.add(DrumkitWidget::widget(
+                &mut self.inner,
+                &mut self.widget_action,
+            ));
+            if let Some(action) = self.widget_action.take() {
+                match action {
+                    DrumkitWidgetAction::Link(uid, index) => {
+                        self.set_action(DisplaysAction::Link(uid, index));
+                    }
+                }
+            }
+            response
+        }
+
+        fn set_action(&mut self, action: DisplaysAction) {
+            self.action = Some(action);
+        }
+
+        fn take_action(&mut self) -> Option<DisplaysAction> {
+            self.action.take()
         }
     }
 
@@ -246,16 +291,51 @@ mod egui {
 
     impl Displays for Sampler {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.add(SamplerWidget::widget(&mut self.inner))
+            let response = ui.add(SamplerWidget::widget(
+                &mut self.inner,
+                &mut self.widget_action,
+            ));
+            if let Some(action) = self.widget_action.take() {
+                match action {
+                    SamplerWidgetAction::Link(uid, index) => {
+                        self.set_action(DisplaysAction::Link(uid, index));
+                    }
+                }
+            }
+            response
+        }
+
+        fn set_action(&mut self, action: DisplaysAction) {
+            self.action = Some(action);
+        }
+
+        fn take_action(&mut self) -> Option<DisplaysAction> {
+            self.action.take()
         }
     }
 
     impl Displays for WelshSynth {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.add(WelshWidget::widget(
+            let response = ui.add(WelshWidget::widget(
                 &mut self.inner,
                 &mut self.widget_action,
-            ))
+            ));
+            if let Some(action) = self.widget_action.take() {
+                match action {
+                    WelshWidgetAction::Link(uid, index) => {
+                        self.set_action(DisplaysAction::Link(uid, index));
+                    }
+                }
+            }
+            response
+        }
+
+        fn set_action(&mut self, action: DisplaysAction) {
+            self.action = Some(action);
+        }
+
+        fn take_action(&mut self) -> Option<DisplaysAction> {
+            self.action.take()
         }
     }
 }
