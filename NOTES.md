@@ -9,7 +9,7 @@
   then make time range a late-binding scalar.
   <https://github.com/sowbug/groove/issues/130>
 - For any given physical parameter, make sure it's correctly represented as
-  linear or logarithmic. <https://github.com/sowbug/groove/issues/44>
+  linear or logarithmic. <https://github.com/sowbug/groove/issues/44> 
 
 # Ideas
 
