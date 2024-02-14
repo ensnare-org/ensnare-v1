@@ -137,10 +137,7 @@ impl<'a> eframe::egui::Widget for TimeDomainWidget<'a> {
 
         let buffer_len = self.slice_1.len() + self.slice_2.len();
         let to_screen = RectTransform::from_to(
-            Rect::from_x_y_ranges(
-                0.0..=buffer_len as f32,
-                Sample::MAX.0 as f32..=Sample::MIN.0 as f32,
-            ),
+            Rect::from_x_y_ranges(0.0..=buffer_len as f32, Sample::MAX.0 as f32..=0.0f32),
             rect,
         );
         let mut shapes = Vec::default();
@@ -153,12 +150,17 @@ impl<'a> eframe::egui::Widget for TimeDomainWidget<'a> {
         )));
 
         for (i, sample) in self.slice_1.iter().chain(self.slice_2).enumerate() {
+            let sample_abs = sample.0.abs();
+            let sample_as_u8 = (sample_abs * 255.0) as u8;
             shapes.push(eframe::epaint::Shape::LineSegment {
                 points: [
-                    to_screen * pos2(i as f32, Sample::MIN.0 as f32),
-                    to_screen * pos2(i as f32, sample.0 as f32),
+                    to_screen * pos2(i as f32, 0.0f32),
+                    to_screen * pos2(i as f32, sample_abs as f32),
                 ],
-                stroke: Stroke::new(1.0, Color32::YELLOW),
+                stroke: Stroke::new(
+                    1.0,
+                    Color32::from_rgb(sample_as_u8, u8::MAX - sample_as_u8, 0),
+                ),
             })
         }
 
@@ -214,7 +216,7 @@ impl<'a> eframe::egui::Widget for FrequencyDomainWidget<'a> {
                 ],
                 stroke: Stroke {
                     width: 1.0,
-                    color: Color32::YELLOW,
+                    color: Color32::GREEN,
                 },
             });
         }
