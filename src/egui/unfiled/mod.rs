@@ -1,8 +1,5 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-pub use audio::{
-    analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
-};
 pub use control_bar::{ControlBar, ControlBarAction, ControlBarWidget};
 pub use core::DragNormalWidget;
 pub use generators::{EnvelopeWidget, OscillatorWidget};
@@ -12,7 +9,6 @@ pub use placeholder::wiggler;
 pub use unfiled_xx::{CarouselAction, CarouselWidget, DraggableIconWidget, IconWidget};
 pub use util::fill_remaining_ui_space;
 
-mod audio;
 mod control_bar;
 mod core;
 mod generators;
@@ -26,6 +22,5 @@ mod util;
 pub mod prelude {
     pub use super::{
         activity_indicator, fill_remaining_ui_space, level_indicator, DragNormalWidget,
-        WaveformWidget,
     };
 }

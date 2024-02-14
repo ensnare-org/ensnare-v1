@@ -4,10 +4,14 @@
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{ComposerWidget, EntityPaletteWidget, ProjectAction, ProjectWidget};
+    pub use super::{
+        ComposerWidget, EntityPaletteWidget, ProjectAction, ProjectWidget, WaveformWidget,
+    };
 }
 
-pub use audio::AudioSettingsWidget;
+pub use audio::{
+    analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
+};
 pub use composer::{ComposerEditorWidget, ComposerWidget};
 pub use controllers::{
     ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,
@@ -25,9 +29,9 @@ pub use instruments::{
     WelshWidgetAction,
 };
 pub use legend::LegendWidget;
-pub use midi::MidiSettingsWidget;
 pub use modulators::{DcaWidget, DcaWidgetAction};
 pub use project::{ProjectAction, ProjectWidget};
+pub use settings::{AudioSettingsWidget, MidiSettingsWidget};
 pub use signal_chain::SignalChainItem;
 pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
 pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
@@ -48,6 +52,7 @@ mod legend;
 mod midi;
 mod modulators;
 mod project;
+mod settings;
 mod signal_chain;
 mod timeline;
 mod track;

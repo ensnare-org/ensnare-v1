@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{activity_indicator, analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget};
+use super::activity_indicator;
+use crate::egui::{analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget};
 use crate::types::VisualizationQueue;
 use eframe::{
     egui::{Image, ImageButton, Layout, Widget},

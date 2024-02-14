@@ -15,7 +15,7 @@ pub struct OscillatorWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for OscillatorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(super::WaveformWidget::widget(&mut self.oscillator.waveform))
+        ui.add(WaveformWidget::widget(&mut self.oscillator.waveform))
     }
 }
 impl<'a> OscillatorWidget<'a> {

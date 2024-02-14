@@ -1,9 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use super::FrequencyWidget;
 use crate::{
     composition::{NoteSequencer, PatternSequencer},
     cores::controllers::{ArpeggiatorCore, ArpeggioMode},
-    egui::unfiled::{FrequencyWidget, WaveformWidget},
     prelude::*,
 };
 use eframe::{
