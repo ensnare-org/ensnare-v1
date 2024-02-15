@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, util::Rng};
+use core::ops::Range;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul};
@@ -166,11 +167,31 @@ impl From<ControlValue> for Seconds {
     }
 }
 
+/// Represents a target of a source of control events. For example, if the user
+/// wanted Lfo 1 to control Synth 2's pan parameter, then Lfo 1 might have a
+/// ControlLink(2, 33) (assume that #33 represents the Synth's pan parameter).
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ControlLink {
+    /// The [Uid] of the entity to be controlled.
     pub uid: Uid,
+    /// The index of the entity parameter to be controlled.
     pub param: ControlIndex,
+}
+
+/// A newtype that represents how a value should change, usually over time.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ControlRange(pub Range<ControlValue>);
+impl ControlRange {
+    /// For testing/prototyping
+    pub fn random(rng: &mut Rng) -> Self {
+        Self(ControlValue(rng.rand_float())..ControlValue(rng.rand_float()))
+    }
+}
+impl From<Range<f32>> for ControlRange {
+    fn from(value: Range<f32>) -> Self {
+        Self(value.start.into()..value.end.into())
+    }
 }
 
 #[cfg(test)]

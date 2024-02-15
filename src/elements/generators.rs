@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, util::Rng};
 use delegate::delegate;
 use derivative::Derivative;
 use derive_builder::Builder;
@@ -8,7 +8,7 @@ use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
-use std::{f64::consts::PI, fmt::Debug, ops::Range};
+use std::{f64::consts::PI, fmt::Debug};
 use strum::EnumCount as UseEnumCount;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
@@ -956,7 +956,7 @@ impl SteppedEnvelope {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SignalStepType {
     // Remains at the value for the entire time.
@@ -976,18 +976,77 @@ pub enum SignalStepType {
 // TODO: this is basically identical to SteppedEnvelope and ControlTrip. I'm
 // rewriting it in 2024 as an excuse to apply a year+ of Rust experience to the
 // problem.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignalStep {
-    pub value: Range<Normal>,
-    pub time: Range<MusicalTime>,
+    pub value_range: ControlRange,
+    pub extent: TimeRange,
     pub ty: SignalStepType,
 }
+impl SignalStepBuilder {
+    /// For testing and prototyping. Always generates an extent starting at
+    /// zero.
+    pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
+        self.value_range(ControlRange::random(rng))
+            .extent(TimeRange(
+                MusicalTime::START..MusicalTime::new_with_beats(1),
+            ))
+            .ty(SignalStepType::Linear);
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+        self
+    }
+}
+impl HasExtent for SignalStep {
+    fn extent(&self) -> TimeRange {
+        self.extent.clone()
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.extent = extent
+    }
+}
+impl SignalStep {
+    /// Shifts the extent so that it begins at time origin.
+    pub fn set_origin(&mut self, origin: MusicalTime) {
+        let duration = self.extent.duration();
+        self.extent.0.start = origin;
+        self.extent.0.end = origin + duration;
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignalPath {
+    #[builder(default, setter(each(name = "step", into)))]
     pub steps: Vec<SignalStep>,
+}
+impl SignalPathBuilder {
+    pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
+        let mut cursor = MusicalTime::START;
+        for _ in 0..3 {
+            let mut step = SignalStepBuilder::default().random(rng).build().unwrap();
+            step.set_origin(cursor);
+            cursor += step.duration();
+            self.step(step);
+        }
+        self
+    }
+}
+impl HasExtent for SignalPath {
+    fn extent(&self) -> TimeRange {
+        let extent = self
+            .steps
+            .iter()
+            .fold(TimeRange::default(), |mut extent, item| {
+                extent.expand_with_range(&item.extent());
+                extent
+            });
+        extent
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        todo!()
+    }
 }
 
 /// A [PathUid] identifies a [SignalPath].

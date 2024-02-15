@@ -479,9 +479,9 @@ pub trait HasMetadata {
 #[cfg(feature = "egui")]
 #[derive(Debug, Display)]
 pub enum DisplaysAction {
-    // During the ui() call, the entity determined that controller entity Uid
-    // wants to link with us at control param index ControlIndex.
-    Link(Uid, ControlIndex),
+    // During the ui() call, the entity determined that something wants to link
+    // with us at control param index ControlIndex.
+    Link(crate::egui::ControlLinkSource, ControlIndex),
 }
 
 #[cfg(feature = "egui")]

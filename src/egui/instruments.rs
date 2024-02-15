@@ -1,11 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::{
+    automation::ControlLinkSource,
     effects::BiQuadFilterLowPass24dbWidget,
     modulators::{DcaWidget, DcaWidgetAction},
 };
 use crate::{
-    cores::instruments::{self, DrumkitCore, SamplerCore, WelshSynthCore},
+    cores::instruments::{DrumkitCore, SamplerCore, WelshSynthCore},
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
@@ -14,7 +15,7 @@ use strum_macros::Display;
 
 #[derive(Debug, Display)]
 pub enum SamplerWidgetAction {
-    Link(Uid, ControlIndex),
+    Link(ControlLinkSource, ControlIndex),
 }
 
 #[derive(Debug)]
@@ -43,7 +44,7 @@ impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
 
 #[derive(Debug, Display)]
 pub enum DrumkitWidgetAction {
-    Link(Uid, ControlIndex),
+    Link(ControlLinkSource, ControlIndex),
 }
 
 #[derive(Debug)]
@@ -72,7 +73,7 @@ impl<'a> eframe::egui::Widget for DrumkitWidget<'a> {
 
 #[derive(Debug, Display)]
 pub enum WelshWidgetAction {
-    Link(Uid, ControlIndex),
+    Link(ControlLinkSource, ControlIndex),
 }
 
 #[derive(Debug)]
@@ -140,9 +141,9 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 }
                 if let Some(action) = action {
                     match action {
-                        DcaWidgetAction::Link(controller_uid, index) => {
+                        DcaWidgetAction::Link(source, index) => {
                             *self.action = Some(WelshWidgetAction::Link(
-                                controller_uid,
+                                source,
                                 index + WelshSynthCore::DCA_INDEX,
                             ))
                         }

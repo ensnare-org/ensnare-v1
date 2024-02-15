@@ -503,6 +503,15 @@ impl TimeRange {
         TimeRange(self.0.start + time..self.0.end + time)
     }
 }
+impl HasExtent for TimeRange {
+    fn extent(&self) -> TimeRange {
+        self.clone()
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        *self = extent;
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

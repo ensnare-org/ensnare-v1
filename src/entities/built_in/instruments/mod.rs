@@ -275,8 +275,8 @@ mod egui {
             ));
             if let Some(action) = self.widget_action.take() {
                 match action {
-                    DrumkitWidgetAction::Link(uid, index) => {
-                        self.set_action(DisplaysAction::Link(uid, index));
+                    DrumkitWidgetAction::Link(payload, index) => {
+                        self.set_action(DisplaysAction::Link(payload, index));
                     }
                 }
             }
@@ -300,8 +300,8 @@ mod egui {
             ));
             if let Some(action) = self.widget_action.take() {
                 match action {
-                    FmSynthWidgetAction::Link(uid, index) => {
-                        self.set_action(DisplaysAction::Link(uid, index));
+                    FmSynthWidgetAction::Link(source, index) => {
+                        self.set_action(DisplaysAction::Link(source, index));
                     }
                 }
             }
@@ -325,8 +325,8 @@ mod egui {
             ));
             if let Some(action) = self.widget_action.take() {
                 match action {
-                    SamplerWidgetAction::Link(uid, index) => {
-                        self.set_action(DisplaysAction::Link(uid, index));
+                    SamplerWidgetAction::Link(source, index) => {
+                        self.set_action(DisplaysAction::Link(source, index));
                     }
                 }
             }

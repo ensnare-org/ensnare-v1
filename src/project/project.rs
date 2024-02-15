@@ -8,7 +8,7 @@ use crate::{
     orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
     types::{AudioQueue, ColorScheme, VisualizationQueue},
-    util::SelectionSet,
+    util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
 use delegate::delegate;
@@ -153,6 +153,8 @@ impl Project {
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
             pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
+            pub fn link_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex) -> Result<()> ;
+            pub fn unlink_path(&mut self, path_uid: PathUid);
         }
     }
 
@@ -160,6 +162,14 @@ impl Project {
     pub fn new_project() -> Self {
         let mut r = Self::default();
         let _ = r.create_starter_tracks();
+
+        let mut rng = Rng::default();
+        let _ = r.automator.add_path(
+            SignalPathBuilder::default()
+                .random(&mut rng)
+                .build()
+                .unwrap(),
+        );
 
         // hack - default to a 1-minute song
         r.view_state.view_range = ViewRange(
@@ -389,8 +399,8 @@ impl Project {
         // TODO: this needs to be specific to a track, or else the control path
         // uid makes no sense.
         self.view_state.arrangement_mode = match self.view_state.arrangement_mode {
-            ArrangementViewMode::Composition => ArrangementViewMode::Control(PathUid(0)),
-            ArrangementViewMode::Control(_path_uid) => ArrangementViewMode::SomethingElse,
+            ArrangementViewMode::Composition => ArrangementViewMode::Control(PathUid(1024)),
+            ArrangementViewMode::Control(..) => ArrangementViewMode::SomethingElse,
             ArrangementViewMode::SomethingElse => ArrangementViewMode::Composition,
         };
     }

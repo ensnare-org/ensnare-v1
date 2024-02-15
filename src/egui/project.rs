@@ -93,12 +93,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         title_font_galley: font_galley,
                         color_scheme,
                     };
-                    ui.add(TrackWidget::widget(
-                        &track_info,
-                        &mut self.project.composer,
-                        &mut self.project.view_state,
-                        &mut action,
-                    ));
+                    ui.add(TrackWidget::widget(&track_info, self.project, &mut action));
                     if let Some(action) = action {
                         match action {
                             TrackWidgetAction::SelectEntity(uid, name) => {

@@ -1,6 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::modulators::{DcaWidget, DcaWidgetAction};
+use super::{
+    automation::ControlLinkSource,
+    modulators::{DcaWidget, DcaWidgetAction},
+};
 use crate::{
     cores::instruments::FmSynthCore,
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},
@@ -11,9 +14,8 @@ use strum_macros::Display;
 
 #[derive(Debug, Display)]
 pub enum FmSynthWidgetAction {
-    /// Link the current entity's ControlIndex parameter to the output of entity
-    /// Uid.
-    Link(Uid, ControlIndex),
+    /// Link the current entity's ControlIndex parameter to a source.
+    Link(ControlLinkSource, ControlIndex),
 }
 
 #[derive(Debug)]
@@ -108,9 +110,9 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
                 let response = ui.add(DcaWidget::widget(&mut self.inner.dca, &mut action));
                 if let Some(action) = action {
                     match action {
-                        DcaWidgetAction::Link(uid, index) => {
+                        DcaWidgetAction::Link(source, index) => {
                             *self.action = Some(FmSynthWidgetAction::Link(
-                                uid,
+                                source,
                                 index + FmSynthCore::DCA_INDEX,
                             ));
                         }

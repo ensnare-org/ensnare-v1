@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::fill_remaining_ui_space;
+use super::{automation::ControlLinkSource, fill_remaining_ui_space};
 use crate::prelude::*;
 use eframe::egui::{Button, Frame, Sense, Widget};
 use strum_macros::Display;
@@ -40,12 +40,15 @@ impl<'a> Widget for SignalChainWidget<'a> {
                 self.items
                     .iter()
                     .for_each(|(uid, name, is_control_source)| {
-                        let item_response = ui.add(SignalItemWidget::widget(
-                            *uid,
-                            name.clone(),
-                            *is_control_source,
-                        ));
+                        let item_response =
+                            ui.add(SignalItemWidget::widget(name.clone(), *is_control_source));
+
+                        // We do this rather than wrapping with Ui::dnd_drag_source()
+                        // because of https://github.com/emilk/egui/issues/2730.
+                        item_response.dnd_set_drag_payload(ControlLinkSource::Entity(*uid));
+
                         ui.separator();
+
                         let _ = item_response.context_menu(|ui| {
                             if ui.button("Remove").clicked() {
                                 *self.action = Some(SignalChainWidgetAction::Remove(*uid));
@@ -68,31 +71,25 @@ impl<'a> Widget for SignalChainWidget<'a> {
 }
 
 struct SignalItemWidget {
-    uid: Uid,
     name: String,
     is_control_source: bool,
 }
 impl SignalItemWidget {
-    fn new(uid: Uid, name: String, is_control_source: bool) -> Self {
+    fn new(name: String, is_control_source: bool) -> Self {
         Self {
-            uid,
             name,
             is_control_source,
         }
     }
 
-    fn widget(uid: Uid, name: String, is_control_source: bool) -> impl Widget {
-        move |ui: &mut eframe::egui::Ui| SignalItemWidget::new(uid, name, is_control_source).ui(ui)
+    fn widget(name: String, is_control_source: bool) -> impl Widget {
+        move |ui: &mut eframe::egui::Ui| SignalItemWidget::new(name, is_control_source).ui(ui)
     }
 }
 impl Widget for SignalItemWidget {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         if self.is_control_source {
-            let response = ui.add(Button::new(&self.name).sense(Sense::click_and_drag()));
-            // We do this rather than wrapping with Ui::dnd_drag_source()
-            // because of https://github.com/emilk/egui/issues/2730.
-            response.dnd_set_drag_payload(self.uid);
-            response
+            ui.add(Button::new(&self.name).sense(Sense::click_and_drag()))
         } else {
             ui.button(self.name)
         }

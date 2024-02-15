@@ -1,12 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use super::automation::ControlLinkSource;
 use crate::prelude::*;
 use eframe::egui::{Frame, Slider, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
 pub enum DcaWidgetAction {
-    Link(Uid, ControlIndex),
+    Link(ControlLinkSource, ControlIndex),
 }
 
 /// An egui widget for [Dca].
@@ -19,14 +20,12 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;
-            let (response, payload) = ui.dnd_drop_zone::<Uid>(Frame::default(), |ui| {
-                ui.add(Slider::new(&mut value, Normal::range()).text("Gain"));
-            });
-            if let Some(controller_uid) = payload {
-                *self.action = Some(DcaWidgetAction::Link(
-                    *controller_uid,
-                    Dca::GAIN_INDEX.into(),
-                ));
+            let (response, payload) =
+                ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
+                    ui.add(Slider::new(&mut value, Normal::range()).text("Gain"));
+                });
+            if let Some(source) = payload {
+                *self.action = Some(DcaWidgetAction::Link(*source, Dca::GAIN_INDEX.into()));
             }
             ui.end_row();
             if response.changed() {
@@ -35,14 +34,12 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
             response
         } | {
             let mut value = self.dca.pan().0;
-            let (response, payload) = ui.dnd_drop_zone::<Uid>(Frame::default(), |ui| {
-                ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"));
-            });
-            if let Some(controller_uid) = payload {
-                *self.action = Some(DcaWidgetAction::Link(
-                    *controller_uid,
-                    Dca::PAN_INDEX.into(),
-                ));
+            let (response, payload) =
+                ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
+                    ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"));
+                });
+            if let Some(source) = payload {
+                *self.action = Some(DcaWidgetAction::Link(*source, Dca::PAN_INDEX.into()));
             }
             ui.end_row();
             if response.changed() {

@@ -12,7 +12,8 @@ pub mod prelude {
 pub use audio::{
     analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
 };
-pub use composer::{ComposerEditorWidget, ComposerWidget};
+pub use automation::{ControlLinkSource, ControlTripWidget};
+pub use composition::ComposerWidget;
 pub use controllers::{
     ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,
 };
@@ -39,8 +40,9 @@ pub use transport::TransportWidget;
 pub use unfiled::*;
 
 mod audio;
+mod automation;
 mod colors;
-mod composer;
+mod composition;
 mod controllers;
 mod cursor;
 mod effects;
@@ -51,6 +53,7 @@ mod instruments;
 mod legend;
 mod midi;
 mod modulators;
+mod orchestration;
 mod project;
 mod settings;
 mod signal_chain;
