@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::automation::ControlLinkSource;
 use crate::prelude::*;
 use eframe::egui::{Frame, Slider, Widget};
 use strum_macros::Display;

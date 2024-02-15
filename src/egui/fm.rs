@@ -1,9 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::{
-    automation::ControlLinkSource,
-    modulators::{DcaWidget, DcaWidgetAction},
-};
+use super::modulators::{DcaWidget, DcaWidgetAction};
 use crate::{
     cores::instruments::FmSynthCore,
     egui::unfiled::{EnvelopeWidget, OscillatorWidget},

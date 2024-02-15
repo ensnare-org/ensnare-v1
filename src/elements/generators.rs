@@ -1019,6 +1019,28 @@ impl SignalStep {
 pub struct SignalPath {
     #[builder(default, setter(each(name = "step", into)))]
     pub steps: Vec<SignalStep>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    time_range: TimeRange,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    last_value_produced: Option<ControlValue>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    value_to_produce: Option<ControlValue>,
+}
+impl SignalPath {
+    fn produce_event(&mut self, control_events_fn: &mut ControlEventsFn) {
+        if let Some(value) = self.value_to_produce {
+            if self.value_to_produce != self.last_value_produced {
+                self.last_value_produced = self.value_to_produce;
+                control_events_fn(WorkEvent::Control(value));
+            }
+        }
+    }
 }
 impl SignalPathBuilder {
     pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
@@ -1046,6 +1068,62 @@ impl HasExtent for SignalPath {
 
     fn set_extent(&mut self, extent: TimeRange) {
         todo!()
+    }
+}
+impl Controls for SignalPath {
+    fn time_range(&self) -> Option<TimeRange> {
+        Some(self.time_range.clone())
+    }
+
+    fn update_time_range(&mut self, time_range: &TimeRange) {
+        self.time_range = time_range.clone()
+    }
+
+    fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+        self.steps.iter().for_each(|step| {
+            let step_start = step.extent.0.start;
+            let step_end = step.extent.0.end;
+            let time_start = self.time_range.0.start;
+            let time_end = self.time_range.0.end;
+
+            // Do the ranges overlap?
+            if (step_start <= time_start && step_end > time_start)
+                || (step_start < time_end && step_end >= time_end)
+            {
+                match step.ty {
+                    SignalStepType::Flat => self.value_to_produce = Some(step.value_range.0.start),
+                    SignalStepType::Linear => {
+                        let point_in_step = step_start.max(time_start);
+                        let percentage_of_step = (point_in_step - step_start).total_units() as f64
+                            / (step_end - step_start).total_units() as f64;
+                        self.value_to_produce = Some(
+                            step.value_range.0.start
+                                + ControlValue(
+                                    (step.value_range.0.end - step.value_range.0.start).0
+                                        * percentage_of_step,
+                                ),
+                        );
+                    }
+                    SignalStepType::Logarithmic => todo!(),
+                    SignalStepType::Exponential => todo!(),
+                }
+            }
+        });
+        self.produce_event(control_events_fn);
+    }
+
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn play(&mut self) {}
+
+    fn stop(&mut self) {}
+
+    fn skip_to_start(&mut self) {}
+
+    fn is_performing(&self) -> bool {
+        false
     }
 }
 
@@ -2283,6 +2361,70 @@ mod tests {
                     &path_buf
                 );
             }
+        }
+    }
+
+    #[test]
+    fn signal_path_mainline_flat() {
+        const EXPECTED_VALUE: ControlValue = ControlValue(0.5);
+        let control_value_range: ControlRange = (EXPECTED_VALUE..EXPECTED_VALUE).into();
+        let extent: TimeRange = (MusicalTime::START..MusicalTime::new_with_beats(1)).into();
+        let mut path = SignalPathBuilder::default()
+            .step(
+                SignalStepBuilder::default()
+                    .ty(SignalStepType::Flat)
+                    .value_range(control_value_range)
+                    .extent(extent.clone())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap();
+
+        assert_eq!(path.extent().0.start, MusicalTime::START);
+        assert_eq!(path.extent().0.end, MusicalTime::ONE_BEAT);
+
+        path.update_time_range(&extent);
+        let mut events = Vec::default();
+        path.work(&mut |event| events.push(event));
+
+        if let WorkEvent::Control(value) = events.first().unwrap() {
+            assert_eq!(*value, EXPECTED_VALUE);
+        } else {
+            assert!(false, "didn't receive expected Control event");
+        }
+    }
+
+    #[test]
+    fn signal_path_mainline_linear() {
+        const EXPECTED_VALUE: ControlValue = ControlValue(0.5);
+        let control_value_range: ControlRange = (0.0..1.0).into();
+        let extent: TimeRange = (MusicalTime::START..MusicalTime::new_with_beats(1)).into();
+        let mut path = SignalPathBuilder::default()
+            .step(
+                SignalStepBuilder::default()
+                    .ty(SignalStepType::Linear)
+                    .value_range(control_value_range)
+                    .extent(extent.clone())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap();
+
+        assert_eq!(path.extent().0.start, MusicalTime::START);
+        assert_eq!(path.extent().0.end, MusicalTime::ONE_BEAT);
+
+        let start = MusicalTime::new_with_fractional_beats(0.5);
+        let end = start + MusicalTime::ONE_UNIT;
+        path.update_time_range(&((start..end).into()));
+        let mut events = Vec::default();
+        path.work(&mut |event| events.push(event));
+
+        if let WorkEvent::Control(value) = events.first().unwrap() {
+            assert_eq!(*value, EXPECTED_VALUE);
+        } else {
+            assert!(false, "didn't receive expected Control event");
         }
     }
 }

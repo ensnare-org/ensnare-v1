@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{automation::ControlLinkSource, fill_remaining_ui_space};
+use super::fill_remaining_ui_space;
 use crate::prelude::*;
 use eframe::egui::{Button, Frame, Sense, Widget};
 use strum_macros::Display;

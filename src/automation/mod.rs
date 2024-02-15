@@ -26,9 +26,9 @@
 /// The most commonly used imports.
 pub mod prelude {
     pub use super::{
-        ControlEventsFn, ControlIndex, ControlLink, ControlName, ControlProxyEventsFn,
-        ControlRange, ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder,
-        ControlTripPath, ControlValue, Controllable, Controls, ControlsAsProxy,
+        ControlEventsFn, ControlIndex, ControlLink, ControlLinkSource, ControlName,
+        ControlProxyEventsFn, ControlRange, ControlStep, ControlStepBuilder, ControlTrip,
+        ControlTripBuilder, ControlTripPath, ControlValue, Controllable, Controls, ControlsAsProxy,
     };
 }
 
@@ -37,7 +37,10 @@ pub use controllers::{
     ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, TimerCore,
     TriggerCore,
 };
-pub use traits::{ControlEventsFn, ControlProxyEventsFn, Controllable, Controls, ControlsAsProxy};
+pub use traits::{
+    ControlEventsFn, ControlLinkSource, ControlProxyEventsFn, Controllable, Controls,
+    ControlsAsProxy,
+};
 pub use types::{ControlIndex, ControlLink, ControlName, ControlRange, ControlValue};
 
 mod automator;

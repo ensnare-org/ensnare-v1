@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, util::Rng};
-use core::ops::Range;
+use core::ops::{Range, Sub};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul};
@@ -166,6 +166,20 @@ impl From<ControlValue> for Seconds {
         Self(value.0 * 30.0)
     }
 }
+impl Add<ControlValue> for ControlValue {
+    type Output = Self;
+
+    fn add(self, rhs: ControlValue) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+impl Sub<ControlValue> for ControlValue {
+    type Output = Self;
+
+    fn sub(self, rhs: ControlValue) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
 
 /// Represents a target of a source of control events. For example, if the user
 /// wanted Lfo 1 to control Synth 2's pan parameter, then Lfo 1 might have a
@@ -189,8 +203,13 @@ impl ControlRange {
     }
 }
 impl From<Range<f32>> for ControlRange {
-    fn from(value: Range<f32>) -> Self {
-        Self(value.start.into()..value.end.into())
+    fn from(range: Range<f32>) -> Self {
+        Self(range.start.into()..range.end.into())
+    }
+}
+impl From<Range<ControlValue>> for ControlRange {
+    fn from(range: Range<ControlValue>) -> Self {
+        Self(range)
     }
 }
 

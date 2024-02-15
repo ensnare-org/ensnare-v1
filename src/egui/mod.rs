@@ -12,7 +12,7 @@ pub mod prelude {
 pub use audio::{
     analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
 };
-pub use automation::{ControlLinkSource, ControlTripWidget};
+pub use automation::ControlTripWidget;
 pub use composition::ComposerWidget;
 pub use controllers::{
     ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,

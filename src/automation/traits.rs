@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use strum_macros::Display;
 
 /// Something that is [Controllable] exposes a set of attributes, each with a
 /// text name, that an [IsController] can change. If you're familiar with DAWs,
@@ -102,7 +103,26 @@ pub trait Controls: Send {
     }
 }
 
-pub type ControlProxyEventsFn<'a> = dyn FnMut(Uid, WorkEvent) + 'a;
+/// A wrapper for identifiers of ControlLink sources. Both entities and paths
+/// can generate Control events, so we express them here as variants.
+#[derive(Debug, Display, Copy, Clone)]
+pub enum ControlLinkSource {
+    Entity(Uid),
+    Path(PathUid),
+    None,
+}
+impl From<Uid> for ControlLinkSource {
+    fn from(uid: Uid) -> Self {
+        Self::Entity(uid)
+    }
+}
+impl From<PathUid> for ControlLinkSource {
+    fn from(path_uid: PathUid) -> Self {
+        Self::Path(path_uid)
+    }
+}
+
+pub type ControlProxyEventsFn<'a> = dyn FnMut(ControlLinkSource, WorkEvent) + 'a;
 
 /// A version of [Controls] for collections of entities.
 #[allow(unused_variables)]

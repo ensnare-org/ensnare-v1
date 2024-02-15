@@ -5,7 +5,7 @@ use super::{
     composition::ArrangementWidget,
     cursor::CursorWidget,
     signal_chain::{SignalChainItem, SignalChainWidget, SignalChainWidgetAction},
-    ControlLinkSource, GridWidget,
+    GridWidget,
 };
 use crate::{
     egui::unfiled::fill_remaining_ui_space, orchestration::TrackTitle, prelude::*,

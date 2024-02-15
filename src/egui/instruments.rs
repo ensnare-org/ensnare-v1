@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::{
-    automation::ControlLinkSource,
     effects::BiQuadFilterLowPass24dbWidget,
     modulators::{DcaWidget, DcaWidgetAction},
 };

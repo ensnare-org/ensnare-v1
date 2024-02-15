@@ -331,7 +331,7 @@ impl<E: EntityBounds + ?Sized> ControlsAsProxy for EntityStore<E> {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             // if let Some(entity) = entity.as_controller_mut() {
             entity.work(&mut |message| {
-                control_events_fn(*uid, message);
+                control_events_fn((*uid).into(), message);
             });
             // }
         });

@@ -44,10 +44,14 @@ impl Automator {
         &mut self,
         entity_repo: &mut EntityRepository,
         mut not_found_fn: Option<&mut dyn FnMut(&ControlLink)>,
-        uid: Uid,
+        source: ControlLinkSource,
         value: ControlValue,
     ) {
-        if let Some(controllables) = self.controllables.get(&uid) {
+        if let Some(controllables) = match source {
+            ControlLinkSource::Entity(uid) => self.controllables.get(&uid),
+            ControlLinkSource::Path(path_uid) => self.path_links.get(&path_uid),
+            ControlLinkSource::None => panic!(),
+        } {
             controllables.iter().for_each(|link| {
                 if let Some(entity) = entity_repo.entity_mut(link.uid) {
                     entity.control_set_param_by_index(link.param, value);
@@ -106,14 +110,20 @@ impl Controls for Automator {
 
     fn update_time_range(&mut self, time_range: &TimeRange) {
         self.time_range = time_range.clone();
-    }
-
-    fn work(&mut self, _control_events_fn: &mut ControlEventsFn) {
-        self.is_finished = true;
+        self.paths.values_mut().for_each(|path| {
+            path.update_time_range(time_range);
+        });
     }
 
     fn is_finished(&self) -> bool {
         self.is_finished
+    }
+}
+impl ControlsAsProxy for Automator {
+    fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
+        self.paths.iter_mut().for_each(|(path_uid, path)| {
+            path.work(&mut |event| control_events_fn((*path_uid).into(), event));
+        });
     }
 }
 
@@ -215,7 +225,7 @@ mod tests {
         let _ = repo.add_entity(track_uid, Box::new(controllable_1), Some(target_1_uid));
         let _ = repo.add_entity(track_uid, Box::new(controllable_2), Some(target_2_uid));
 
-        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid.into(), ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),
@@ -232,7 +242,7 @@ mod tests {
             t.clear();
         }
         automator.unlink(source_1_uid, target_1_uid, ControlIndex(99));
-        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid.into(), ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),
@@ -246,7 +256,7 @@ mod tests {
             t.clear();
         }
         automator.unlink(source_1_uid, target_1_uid, ControlIndex(0));
-        let _ = automator.route(&mut repo, None, source_1_uid, ControlValue(0.5));
+        let _ = automator.route(&mut repo, None, source_1_uid.into(), ControlValue(0.5));
         if let Ok(t) = tracker.read() {
             assert_eq!(
                 t.len(),

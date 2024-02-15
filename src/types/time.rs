@@ -512,6 +512,11 @@ impl HasExtent for TimeRange {
         *self = extent;
     }
 }
+impl From<Range<MusicalTime>> for TimeRange {
+    fn from(value: Range<MusicalTime>) -> Self {
+        Self(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

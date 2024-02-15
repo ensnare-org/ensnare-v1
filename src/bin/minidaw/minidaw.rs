@@ -22,7 +22,7 @@ use egui_notify::Toasts;
 use ensnare::{
     app_version,
     egui::{
-        ControlBar, ControlBarAction, ControlBarWidget, ControlLinkSource, ObliqueStrategiesWidget,
+        ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
         TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
     },
     prelude::*,
@@ -378,6 +378,7 @@ impl MiniDaw {
                                     ControlLinkSource::Path(path_uid) => {
                                         let _ = project.link_path(path_uid, uid, index);
                                     }
+                                    ControlLinkSource::None => panic!(),
                                 },
                             }
                         }

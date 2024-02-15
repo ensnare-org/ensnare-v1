@@ -6,15 +6,6 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, Color32, Rect, Stroke},
 };
-use strum_macros::Display;
-
-/// A wrapper for identifiers of ControlLink sources. Both entities and paths
-/// can generate Control events, so we express them here as variants.
-#[derive(Debug, Display, Copy, Clone)]
-pub enum ControlLinkSource {
-    Entity(Uid),
-    Path(PathUid),
-}
 
 /// An egui widget that draws a SignalPath overlaid in the track view.
 #[derive(Debug)]

@@ -350,16 +350,16 @@ impl Project {
         }
     }
 
-    fn dispatch_control_event(&mut self, uid: Uid, value: ControlValue) {
+    fn dispatch_control_event(&mut self, source: ControlLinkSource, value: ControlValue) {
         self.automator.route(
             &mut self.orchestrator.entity_repo,
             Some(&mut |link| match link.uid {
                 Self::TRANSPORT_UID => self.transport.control_set_param_by_index(link.param, value),
                 _ => {
-                    eprintln!("Asked to route unknown uid {uid}");
+                    eprintln!("Asked to route from unknown source {source}");
                 }
             }),
-            uid,
+            source,
             value,
         );
     }
@@ -457,6 +457,7 @@ impl Controls for Project {
 
     fn play(&mut self) {
         self.transport.play();
+        self.automator.play();
         self.orchestrator.play();
         self.composer.play();
         self.update_is_finished();
@@ -464,12 +465,14 @@ impl Controls for Project {
 
     fn stop(&mut self) {
         self.transport.stop();
+        self.automator.stop();
         self.orchestrator.stop();
         self.composer.stop();
     }
 
     fn skip_to_start(&mut self) {
         self.transport.skip_to_start();
+        self.automator.skip_to_start();
         self.orchestrator.skip_to_start();
         self.composer.skip_to_start();
     }
@@ -479,14 +482,17 @@ impl Controls for Project {
     }
 
     fn update_time_range(&mut self, time_range: &TimeRange) {
+        self.automator.update_time_range(time_range);
         self.orchestrator.update_time_range(time_range);
         self.composer.update_time_range(time_range);
     }
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let mut events = Vec::default();
+        self.automator
+            .work_as_proxy(&mut |source, event| events.push((source, event)));
         self.composer
-            .work(&mut |event| events.push((Uid::default(), event)));
+            .work(&mut |event| events.push((ControlLinkSource::None, event)));
         self.orchestrator
             .work_as_proxy(&mut |uid, event| events.push((uid, event)));
         while let Some((uid, event)) = events.pop() {

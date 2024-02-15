@@ -245,13 +245,13 @@ impl ControlsAsProxy for EntityRepository {
                         track_uid = self.track_for_uid.get(uid).copied();
                     }
                     control_events_fn(
-                        *uid,
+                        (*uid).into(),
                         WorkEvent::MidiForTrack(track_uid.unwrap_or_default(), channel, message),
                     );
                 }
                 _ => {
                     // Route other event types without further processing.
-                    control_events_fn(*uid, inner_event)
+                    control_events_fn((*uid).into(), inner_event)
                 }
             })
         });
