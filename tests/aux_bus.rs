@@ -131,9 +131,7 @@ fn aux_bus() {
     let _ = project.add_send(track_uid_1, aux_track_uid, Normal::from(1.0));
     let _ = project.add_send(track_uid_2, aux_track_uid, Normal::from(1.0));
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "aux-bus.wav"]
-        .iter()
-        .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    let output_prefix: std::path::PathBuf =
+        [env!("CARGO_TARGET_TMPDIR"), "aux-bus"].iter().collect();
+    assert!(project.save_and_export(output_prefix).is_ok());
 }

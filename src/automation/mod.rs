@@ -27,16 +27,12 @@
 pub mod prelude {
     pub use super::{
         ControlEventsFn, ControlIndex, ControlLink, ControlLinkSource, ControlName,
-        ControlProxyEventsFn, ControlRange, ControlStep, ControlStepBuilder, ControlTrip,
-        ControlTripBuilder, ControlTripPath, ControlValue, Controllable, Controls, ControlsAsProxy,
+        ControlProxyEventsFn, ControlRange, ControlValue, Controllable, Controls, ControlsAsProxy,
     };
 }
 
 pub use automator::Automator;
-pub use controllers::{
-    ControlStep, ControlStepBuilder, ControlTrip, ControlTripBuilder, ControlTripPath, TimerCore,
-    TriggerCore,
-};
+pub use controllers::{TimerCore, TriggerCore};
 pub use traits::{
     ControlEventsFn, ControlLinkSource, ControlProxyEventsFn, Controllable, Controls,
     ControlsAsProxy,

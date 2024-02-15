@@ -146,15 +146,13 @@ fn program_song() {
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
     let mut project = Project::default();
-
     project.update_tempo(Tempo(128.0));
 
     set_up_drum_track(&mut project, &factory);
     set_up_lead_track(&mut project, &factory);
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "simple-song.wav"]
+    let output_prefix: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "simple-song"]
         .iter()
         .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    assert!(project.save_and_export(output_prefix).is_ok());
 }

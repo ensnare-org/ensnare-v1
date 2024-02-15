@@ -115,9 +115,8 @@ fn demo_sidechaining() {
         .link(signal_passthrough_uid, gain_uid, gain_ceiling_param_index)
         .is_ok());
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "sidechaining.wav"]
+    let output_prefix: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "sidechaining"]
         .iter()
         .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    assert!(project.save_and_export(output_prefix).is_ok());
 }

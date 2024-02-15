@@ -10,6 +10,7 @@ use std::{fmt::Debug, option::Option};
 #[serde(rename_all = "kebab-case")]
 pub struct MidiRouter {
     pub midi_receivers: FxHashMap<MidiChannel, Vec<Uid>>,
+    pub uid_to_channel: FxHashMap<Uid, MidiChannel>,
 }
 impl MidiRouter {
     pub fn set_midi_receiver_channel(
@@ -22,10 +23,12 @@ impl MidiRouter {
                 .entry(channel)
                 .or_default()
                 .push(entity_uid);
+            self.uid_to_channel.insert(entity_uid, channel);
         } else {
             self.midi_receivers
                 .values_mut()
                 .for_each(|receivers| receivers.retain(|receiver_uid| *receiver_uid != entity_uid));
+            self.uid_to_channel.remove(&entity_uid);
         }
         Ok(())
     }

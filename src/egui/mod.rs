@@ -12,10 +12,9 @@ pub mod prelude {
 pub use audio::{
     analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
 };
-pub use automation::ControlTripWidget;
 pub use composition::ComposerWidget;
 pub use controllers::{
-    ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget, TripWidget,
+    ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget,
 };
 pub use cursor::CursorWidget;
 pub use effects::{

@@ -1,13 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    automation::{ControlStepBuilder, ControlTripBuilder, ControlTripPath},
     cores::controllers::LfoControllerCoreBuilder,
     entities::{BuiltInEntities, LfoController},
     prelude::*,
 };
 use ensnare_toys::prelude::*;
-use std::path::PathBuf;
 
 // Demonstrates the control (automation) system.
 #[test]
@@ -85,15 +83,13 @@ fn demo_automation() {
     // Link the LFO to the synth's pan.
     assert!(project.link(lfo_uid, synth_uid, pan_param_index).is_ok());
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "automation.wav"]
-        .iter()
-        .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    let output_prefix: std::path::PathBuf =
+        [env!("CARGO_TARGET_TMPDIR"), "automation"].iter().collect();
+    assert!(project.save_and_export(output_prefix).is_ok());
 }
 
 #[test]
-fn demo_control_trips() {
+fn demo_signal_path_automation() {
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
@@ -128,52 +124,43 @@ fn demo_control_trips() {
     let entity = factory
         .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
         .unwrap();
-    let _pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
+    let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
     let synth_uid = project.add_entity(track_uid, entity, None).unwrap();
     assert!(project
         .set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))
         .is_ok());
 
-    // Create a ControlTrip that ramps from zero to max over the desired
+    // Create a SignalPath that ramps from zero to max over the desired
     // amount of time.
 
-    // TODO: To get settings work to build, I'm substituting a default
-    // ControlTripParams instead of all this.
-    let _trip = ControlTripBuilder::default()
+    let path = SignalPathBuilder::default()
         .step(
-            ControlStepBuilder::default()
-                .value(ControlValue::MIN)
-                .time(MusicalTime::START)
-                .path(ControlTripPath::Linear)
+            SignalStepBuilder::default()
+                .value_range((ControlValue::MIN..ControlValue::MAX).into())
+                .extent((MusicalTime::START..MusicalTime::ONE_BEAT * 4).into())
+                .ty(SignalStepType::Linear)
                 .build()
                 .unwrap(),
         )
         .step(
-            ControlStepBuilder::default()
-                .value(ControlValue::MAX)
-                .time(MusicalTime::new_with_beats(4))
-                .path(ControlTripPath::Flat)
+            SignalStepBuilder::default()
+                .value_range((ControlValue::MIN..ControlValue::MAX).into())
+                .extent((MusicalTime::new_with_beats(4)..MusicalTime::TIME_MAX).into())
+                .ty(SignalStepType::Flat)
                 .build()
                 .unwrap(),
         )
         .build()
         .unwrap();
+    let path_uid = project.add_path(path).unwrap();
 
-    #[cfg(fixme)]
-    {
-        let outer_trip = Box::new(ControlTrip::new_with(
-            Uid::default(),
-            &trip_params,
-            &control_router_clone,
-        ));
-        let trip_uid = project.add_entity(track_uid, outer_trip, None).unwrap();
+    // Hook it up to the pan parameter.
+    assert!(project
+        .link_path(path_uid, synth_uid, pan_param_index)
+        .is_ok());
 
-        // Hook up that ControlTrip to the pan parameter.
-        assert!(project.link(trip_uid, synth_uid, pan_param_index).is_ok());
-    }
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: PathBuf = [env!("CARGO_TARGET_TMPDIR"), "control-trips.wav"]
+    let output_prefix: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "signal-path-automation"]
         .iter()
         .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    assert!(project.save_and_export(output_prefix).is_ok());
 }

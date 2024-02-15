@@ -56,13 +56,14 @@ impl ToyInstrument {
     InnerConfigurable,
     InnerControllable,
     InnerHandlesMidi,
+    InnerInstrument,
     InnerSerializable,
     IsEntity,
     Metadata,
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(Controls, TransformsAudio)]
 pub struct ToySynth {
     uid: Uid,
     inner: ToySynthCore,

@@ -122,9 +122,7 @@ impl Project {
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
 
             pub fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>, uid: Option<Uid>) -> Result<Uid>;
-            pub fn move_entity(&mut self, uid: Uid, new_track_uid: Option<TrackUid>, new_position: Option<usize>)-> Result<()>;
             pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
-            pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
 
             pub fn get_humidity(&self, uid: &Uid) -> Normal;
             pub fn set_humidity(&mut self, uid: Uid, humidity: Normal);
@@ -154,6 +152,8 @@ impl Project {
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
             pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
+            pub fn add_path(&mut self, path: SignalPath) -> Result<PathUid>;
+            pub fn remove_path(&mut self, path_uid: PathUid) -> Option<SignalPath>;
             pub fn link_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex) -> Result<()> ;
             pub fn unlink_path(&mut self, path_uid: PathUid);
         }
@@ -240,6 +240,15 @@ impl Project {
         self.orchestrator.delete_track(uid)
     }
 
+    pub fn get_midi_receiver_channel(&mut self, entity_uid: Uid) -> Option<MidiChannel> {
+        if let Some(track_uid) = self.orchestrator.track_for_entity(entity_uid) {
+            if let Some(midi_router) = self.track_to_midi_router.get_mut(&track_uid) {
+                return midi_router.uid_to_channel.get(&entity_uid).cloned();
+            }
+        }
+        None
+    }
+
     pub fn set_midi_receiver_channel(
         &mut self,
         entity_uid: Uid,
@@ -258,6 +267,25 @@ impl Project {
                 "set_midi_receiver_channel: no track found for entity {entity_uid}"
             ))
         }
+    }
+
+    pub fn move_entity(
+        &mut self,
+        uid: Uid,
+        new_track_uid: Option<TrackUid>,
+        new_position: Option<usize>,
+    ) -> Result<()> {
+        let midi_channel = self.get_midi_receiver_channel(uid);
+        let result = self
+            .orchestrator
+            .move_entity(uid, new_track_uid, new_position);
+        self.set_midi_receiver_channel(uid, midi_channel);
+        result
+    }
+
+    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
+        self.set_midi_receiver_channel(uid, None)?;
+        self.orchestrator.remove_entity(uid)
     }
 
     fn generate_frames(
@@ -416,6 +444,17 @@ impl Project {
 
     pub fn notify_transport_time_signature_change(&mut self) {
         self.update_time_signature(self.time_signature());
+    }
+
+    /// A convenience method for automated tests to spit out their work product.
+    pub fn save_and_export(&mut self, path_prefix: PathBuf) -> anyhow::Result<()> {
+        let mut path = path_prefix.clone();
+        path.set_extension("json");
+        self.save(Some(path))?;
+        let mut path = path_prefix.clone();
+        path.set_extension("wav");
+        self.export_to_wav(path)?;
+        Ok(())
     }
 }
 impl Generates<StereoSample> for Project {

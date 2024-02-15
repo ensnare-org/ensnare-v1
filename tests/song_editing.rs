@@ -112,14 +112,17 @@ fn edit_song() {
 
     // Hmmm, we don't like the sound of that synth; let's replace it with another.
     let _ = project.remove_entity(welsh_synth_uid);
-    assert!(project
+    let toy_synth_uid = project
         .add_entity(
             lead_track_uid,
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None
+            None,
         )
+        .unwrap();
+    assert!(project
+        .set_midi_receiver_channel(toy_synth_uid, Some(MidiChannel::default()))
         .is_ok());
 
     // That's better, but it needs an effect.
@@ -150,12 +153,8 @@ fn edit_song() {
         .arrange_pattern(lead_track_uid, lead_pattern_uid, MusicalTime::START)
         .is_ok());
 
-    // https://doc.rust-lang.org/std/path/struct.PathBuf.html example
-    let output_path: std::path::PathBuf = [
-        env!("CARGO_TARGET_TMPDIR"),
-        "simple-song-with-edits-new.wav",
-    ]
-    .iter()
-    .collect();
-    assert!(project.export_to_wav(output_path).is_ok());
+    let output_prefix: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "simple-song-with-edits"]
+        .iter()
+        .collect();
+    assert!(project.save_and_export(output_prefix).is_ok());
 }
