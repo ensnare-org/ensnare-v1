@@ -195,7 +195,7 @@ impl BuiltInEntities {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use rustc_hash::FxHashSet;
 
     // TODO: if we want to re-enable this, then we need to change
     // Sampler/Drumkit and anyone else to not load files when instantiated. This
@@ -251,7 +251,7 @@ mod tests {
     // run it over all the entities we know about in case someone implements the
     // Controls trait manually.
     fn validate_controllable(entity: &mut dyn EntityBounds) {
-        let mut param_names: HashSet<String> = HashSet::default();
+        let mut param_names: FxHashSet<String> = FxHashSet::default();
 
         for index in 0..entity.control_index_count() {
             let index = ControlIndex(index);

@@ -8,8 +8,8 @@ use crate::{
     util::SelectionSet,
 };
 use anyhow::{anyhow, Result};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use strum::EnumCount;
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -28,21 +28,21 @@ pub struct Composer {
     #[serde(default)]
     pattern_uid_factory: PatternUidFactory,
     #[serde(default)]
-    pub patterns: HashMap<PatternUid, Pattern>,
+    pub patterns: FxHashMap<PatternUid, Pattern>,
     #[serde(default)]
     pub ordered_pattern_uids: Vec<PatternUid>,
 
     #[serde(default)]
     arrangement_uid_factory: ArrangementUidFactory,
     #[serde(default)]
-    pub arrangements: HashMap<ArrangementUid, Arrangement>,
+    pub arrangements: FxHashMap<ArrangementUid, Arrangement>,
     #[serde(default)]
-    pub tracks_to_ordered_arrangement_uids: HashMap<TrackUid, Vec<ArrangementUid>>,
+    pub tracks_to_ordered_arrangement_uids: FxHashMap<TrackUid, Vec<ArrangementUid>>,
 
     /// A reverse mapping of patterns to arrangements, so that we know which
     /// arrangements to remove when a pattern is changed (TODO) or deleted.
     #[serde(default)]
-    pub patterns_to_arrangements: HashMap<PatternUid, Vec<ArrangementUid>>,
+    pub patterns_to_arrangements: FxHashMap<PatternUid, Vec<ArrangementUid>>,
 
     #[serde(default)]
     pub pattern_color_schemes: Vec<(PatternUid, ColorScheme)>,
@@ -56,7 +56,7 @@ pub struct ComposerEphemerals {
     pub pattern_selection_set: SelectionSet<PatternUid>,
     pub arrangement_selection_set: SelectionSet<ArrangementUid>,
 
-    tracks_to_sequencers: HashMap<TrackUid, PatternSequencer>,
+    tracks_to_sequencers: FxHashMap<TrackUid, PatternSequencer>,
 
     time_range: TimeRange,
     is_finished: bool,

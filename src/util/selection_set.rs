@@ -3,15 +3,16 @@
 //! A set of things that the user can select.
 
 use crate::prelude::*;
+use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::collections::{hash_set::Iter, HashSet};
+use std::collections::hash_set::Iter;
 
 /// A utility class to help manage selection sets of things that implement the
 /// [IsUid] trait.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SelectionSet<T: IsUid> {
-    selected_uids: HashSet<T>,
+    selected_uids: FxHashSet<T>,
 }
 
 impl<T: IsUid> SelectionSet<T> {

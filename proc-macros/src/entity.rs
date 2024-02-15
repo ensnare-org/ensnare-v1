@@ -3,7 +3,8 @@
 use crate::main_crate_name;
 use proc_macro::TokenStream;
 use quote::quote;
-use std::{collections::HashSet, str::FromStr};
+use rustc_hash::FxHashSet;
+use std::str::FromStr;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 use syn::{parse_macro_input, Attribute, DeriveInput};
@@ -94,7 +95,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
     })
 }
 
-fn parse_attrs(attrs: &[Attribute]) -> HashSet<Attributes> {
+fn parse_attrs(attrs: &[Attribute]) -> FxHashSet<Attributes> {
     let mut strs = Vec::default();
 
     attrs
@@ -113,7 +114,7 @@ fn parse_attrs(attrs: &[Attribute]) -> HashSet<Attributes> {
             }
         });
 
-    let mut parsed_attributes = HashSet::default();
+    let mut parsed_attributes = FxHashSet::default();
     strs.iter().for_each(|s| {
         if let Ok(e) = Attributes::from_str(s) {
             parsed_attributes.insert(e);

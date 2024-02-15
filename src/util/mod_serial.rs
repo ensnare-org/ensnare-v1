@@ -1,10 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use anyhow::{anyhow, Result};
-use delegate::delegate;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
 
 /// [ModSerial] is a simple counter that lets us inform subscribers that
 /// something has changed. Subscribers should keep a usize and compare to see

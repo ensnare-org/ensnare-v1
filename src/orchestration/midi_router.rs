@@ -1,16 +1,15 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::orchestration::EntityRepository;
-use crate::prelude::*;
-use crate::prelude::*;
+use crate::{orchestration::EntityRepository, prelude::*};
 use anyhow::{anyhow, Result};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, option::Option};
+use std::{fmt::Debug, option::Option};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct MidiRouter {
-    pub midi_receivers: HashMap<MidiChannel, Vec<Uid>>,
+    pub midi_receivers: FxHashMap<MidiChannel, Vec<Uid>>,
 }
 impl MidiRouter {
     pub fn set_midi_receiver_channel(

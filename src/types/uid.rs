@@ -84,7 +84,7 @@ impl<U: IsUid> PartialEq for UidFactory<U> {
 mod tests {
     use super::*;
     use derivative::Derivative;
-    use std::collections::HashSet;
+    use rustc_hash::FxHashSet;
 
     #[derive(Copy, Clone, Debug, Derivative, Eq, PartialEq, Ord, PartialOrd, Hash)]
     #[derivative(Default)]
@@ -127,7 +127,7 @@ mod tests {
         );
 
         // This is redundant. Taken from an Orchestrator unit test and adopted here.
-        let mut ids: HashSet<TestUid> = HashSet::default();
+        let mut ids: FxHashSet<TestUid> = FxHashSet::default();
         for _ in 0..64 {
             let uid = f.mint_next();
             assert!(

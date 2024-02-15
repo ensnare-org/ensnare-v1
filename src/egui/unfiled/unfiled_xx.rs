@@ -6,7 +6,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke, Vec2},
 };
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// A range that's useful for arranging MIDI notes along an egui axis. Note that
 /// this is in reverse order, because vertically-oriented piano rolls show the
@@ -153,7 +153,7 @@ pub enum CarouselAction {
 #[derive(Debug)]
 pub struct CarouselWidget<'a> {
     pattern_uids: &'a [PatternUid],
-    uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
+    uids_to_patterns: &'a FxHashMap<PatternUid, Pattern>,
     selection_set: &'a mut SelectionSet<PatternUid>,
     action: &'a mut Option<CarouselAction>,
 }
@@ -161,7 +161,7 @@ impl<'a> CarouselWidget<'a> {
     /// Creates a new [Carousel].
     pub fn new(
         pattern_uids: &'a [PatternUid],
-        uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
+        uids_to_patterns: &'a FxHashMap<PatternUid, Pattern>,
         selection_set: &'a mut SelectionSet<PatternUid>,
         action: &'a mut Option<CarouselAction>,
     ) -> Self {
@@ -176,7 +176,7 @@ impl<'a> CarouselWidget<'a> {
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         pattern_uids: &'a [PatternUid],
-        uids_to_patterns: &'a HashMap<PatternUid, Pattern>,
+        uids_to_patterns: &'a FxHashMap<PatternUid, Pattern>,
         selection_set: &'a mut SelectionSet<PatternUid>,
         action: &'a mut Option<CarouselAction>,
     ) -> impl eframe::egui::Widget + 'a {

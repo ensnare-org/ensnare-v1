@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// Newtype for the number of voices in a multi-voice instrument.
 #[derive(
@@ -257,7 +257,7 @@ impl<V: IsStereoSampleVoice> StealingVoiceStore<V> {
 pub struct VoicePerNoteStore<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
     sample: StereoSample,
-    voices: HashMap<u7, Box<V>>,
+    voices: FxHashMap<u7, Box<V>>,
 }
 impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
     type Voice = V;

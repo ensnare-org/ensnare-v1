@@ -4,11 +4,9 @@ use crate::prelude::*;
 use anyhow::anyhow;
 use delegate::delegate;
 use derive_more::Display;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{hash_map, HashMap, HashSet},
-    option::Option,
-};
+use std::{collections::hash_map, option::Option};
 
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
@@ -37,8 +35,8 @@ pub type EntityFactoryFn<E> = fn(Uid) -> Box<E>;
 /// and effects. It makes sure every entity has a proper [Uid].
 #[derive(Debug)]
 pub struct EntityFactory<E: EntityBounds + ?Sized> {
-    entities: HashMap<EntityKey, EntityFactoryFn<E>>,
-    keys: HashSet<EntityKey>,
+    entities: FxHashMap<EntityKey, EntityFactoryFn<E>>,
+    keys: FxHashSet<EntityKey>,
 
     is_registration_complete: bool,
     sorted_keys: Vec<EntityKey>,
@@ -97,13 +95,13 @@ impl<E: EntityBounds + ?Sized> EntityFactory<E> {
         }
     }
 
-    /// Returns the [HashSet] of all [EntityKey]s.
-    pub fn keys(&self) -> &HashSet<EntityKey> {
+    /// Returns the [FxHashSet] of all [EntityKey]s.
+    pub fn keys(&self) -> &FxHashSet<EntityKey> {
         &self.keys
     }
 
-    /// Returns the [HashMap] for all [EntityKey] and entity pairs.
-    pub fn entities(&self) -> &HashMap<EntityKey, EntityFactoryFn<E>> {
+    /// Returns the [FxHashMap] for all [EntityKey] and entity pairs.
+    pub fn entities(&self) -> &FxHashMap<EntityKey, EntityFactoryFn<E>> {
         &self.entities
     }
 
@@ -131,7 +129,7 @@ pub trait ReturnsHandlesMidi {
 pub struct EntityStore<E: EntityBounds + ?Sized> {
     sample_rate: SampleRate,
     tempo: Tempo,
-    entities: HashMap<Uid, Box<E>>,
+    entities: FxHashMap<Uid, Box<E>>,
 
     // We store our own copy of this value to make Controls::time_range() easier
     // to implement.

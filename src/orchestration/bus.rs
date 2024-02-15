@@ -1,8 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, option::Option};
+use std::{fmt::Debug, option::Option};
 
 /// A [BusRoute] represents a signal connection between two tracks.
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +20,7 @@ pub struct BusRoute {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BusStation {
-    pub routes: HashMap<TrackUid, Vec<BusRoute>>,
+    pub routes: FxHashMap<TrackUid, Vec<BusRoute>>,
 }
 
 impl BusStation {

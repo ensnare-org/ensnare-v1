@@ -7,7 +7,7 @@
 use entity::parse_and_generate_entity;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use syn::Ident;
 
 mod control;
@@ -37,7 +37,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
 
 /// field types that don't recurse further for #[derive(Control)] and
 /// #[derive(Params)] purposes.
-fn make_primitives() -> HashSet<Ident> {
+fn make_primitives() -> FxHashSet<Ident> {
     vec![
         "BipolarNormal",
         "ControlValue",
@@ -69,7 +69,7 @@ fn make_primitives() -> HashSet<Ident> {
         "usize",
     ]
     .into_iter()
-    .fold(HashSet::default(), |mut hs, e| {
+    .fold(FxHashSet::default(), |mut hs, e| {
         hs.insert(format_ident!("{}", e));
         hs
     })

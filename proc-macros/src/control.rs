@@ -4,7 +4,7 @@ use crate::main_crate_name;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use syn::{
     parse_macro_input, Attribute, Data, DataStruct, DeriveInput, Fields, Ident, Lit, Meta,
     NestedMeta,
@@ -15,7 +15,10 @@ use syn::{
 // for an intriguing bit of code. Came from
 // https://users.rust-lang.org/t/is-implementing-a-derive-macro-for-converting-nested-structs-to-flat-structs-possible/65839/3
 
-pub(crate) fn impl_derive_control(input: TokenStream, primitives: &HashSet<Ident>) -> TokenStream {
+pub(crate) fn impl_derive_control(
+    input: TokenStream,
+    primitives: &FxHashSet<Ident>,
+) -> TokenStream {
     TokenStream::from({
         let input = parse_macro_input!(input as DeriveInput);
         let generics = &input.generics;

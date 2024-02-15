@@ -1,15 +1,15 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
-use crate::prelude::*;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 /// Controls the wet/dry mix of arranged effects.
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Humidifier {
-    uid_to_humidity: HashMap<Uid, Normal>,
+    uid_to_humidity: FxHashMap<Uid, Normal>,
 }
 impl Humidifier {
     pub fn get_humidity(&self, uid: &Uid) -> Normal {

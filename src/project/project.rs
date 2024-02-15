@@ -13,8 +13,9 @@ use crate::{
 use anyhow::{anyhow, Result};
 use delegate::delegate;
 use derivative::Derivative;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 /// A user-visible project title.
 #[derive(Clone, Debug, Derivative, derive_more::Display, PartialEq, Serialize, Deserialize)]
@@ -93,15 +94,15 @@ pub struct Project {
     #[serde(default)]
     pub title: Option<ProjectTitle>,
     #[serde(default)]
-    pub track_titles: HashMap<TrackUid, TrackTitle>,
+    pub track_titles: FxHashMap<TrackUid, TrackTitle>,
     #[serde(default)]
-    pub track_color_schemes: HashMap<TrackUid, ColorScheme>,
+    pub track_color_schemes: FxHashMap<TrackUid, ColorScheme>,
 
     pub transport: Transport,
     pub orchestrator: Orchestrator,
     pub automator: Automator,
     pub composer: Composer,
-    pub track_to_midi_router: HashMap<TrackUid, MidiRouter>,
+    pub track_to_midi_router: FxHashMap<TrackUid, MidiRouter>,
 
     pub view_state: ProjectViewState,
 

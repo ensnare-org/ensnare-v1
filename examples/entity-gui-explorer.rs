@@ -12,7 +12,7 @@ use eframe::{
     CreationContext,
 };
 use ensnare::{app_version, prelude::*};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
 
@@ -29,7 +29,7 @@ struct EntityGuiExplorer {
     selected_key: Option<EntityKey>,
     uid_factory: EntityUidFactory,
     display_mode: DisplayMode,
-    entities: HashMap<EntityKey, Box<dyn EntityBounds>>,
+    entities: FxHashMap<EntityKey, Box<dyn EntityBounds>>,
 }
 impl EntityGuiExplorer {
     pub const NAME: &'static str = "Entity GUI Explorer";

@@ -4,8 +4,9 @@ use super::TrackUidFactory;
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use delegate::delegate;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, option::Option};
+use std::{fmt::Debug, option::Option};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -60,9 +61,9 @@ impl Serializable for TrackRepository {
 #[serde(rename_all = "kebab-case")]
 pub struct EntityRepository {
     pub(crate) uid_factory: EntityUidFactory,
-    pub(crate) entities: HashMap<Uid, Box<dyn EntityBounds>>,
-    pub(crate) uids_for_track: HashMap<TrackUid, Vec<Uid>>,
-    pub(crate) track_for_uid: HashMap<Uid, TrackUid>,
+    pub(crate) entities: FxHashMap<Uid, Box<dyn EntityBounds>>,
+    pub(crate) uids_for_track: FxHashMap<TrackUid, Vec<Uid>>,
+    pub(crate) track_for_uid: FxHashMap<Uid, TrackUid>,
 
     #[serde(skip)]
     sample_rate: SampleRate,
@@ -177,7 +178,7 @@ impl EntityRepository {
         self.entities.get_mut(&uid)
     }
 
-    pub fn uids_for_track(&self) -> &HashMap<TrackUid, Vec<Uid>> {
+    pub fn uids_for_track(&self) -> &FxHashMap<TrackUid, Vec<Uid>> {
         &self.uids_for_track
     }
 

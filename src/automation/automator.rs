@@ -1,20 +1,23 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::elements::{PathUid, PathUidFactory, SignalPath};
-use crate::orchestration::EntityRepository;
-use crate::prelude::*;
+use crate::{
+    elements::{PathUid, PathUidFactory, SignalPath},
+    orchestration::EntityRepository,
+    prelude::*,
+};
 use anyhow::{anyhow, Result};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, option::Option};
+use std::{fmt::Debug, option::Option};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Automator {
-    pub controllables: HashMap<Uid, Vec<ControlLink>>,
+    pub controllables: FxHashMap<Uid, Vec<ControlLink>>,
 
     uid_factory: PathUidFactory,
-    pub paths: HashMap<PathUid, SignalPath>,
-    pub path_links: HashMap<PathUid, Vec<ControlLink>>,
+    pub paths: FxHashMap<PathUid, SignalPath>,
+    pub path_links: FxHashMap<PathUid, Vec<ControlLink>>,
 
     #[serde(skip)]
     is_finished: bool,

@@ -8,8 +8,9 @@ use super::{
 use crate::prelude::*;
 use anyhow::Result;
 use delegate::delegate;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, option::Option};
+use std::{fmt::Debug, option::Option};
 
 /// [Orchestrator] brings together all a project's musical instruments and
 /// effects. Working mainly with [Composer] and [Automator](crate::Automator),
@@ -133,10 +134,10 @@ impl Generates<StereoSample> for Orchestrator {
 
         // First handle all non-aux tracks. As a side effect, we also create empty buffers for the aux tracks.
         let (track_buffers, mut aux_track_buffers): (
-            HashMap<TrackUid, Vec<StereoSample>>,
-            HashMap<TrackUid, Vec<StereoSample>>,
+            FxHashMap<TrackUid, Vec<StereoSample>>,
+            FxHashMap<TrackUid, Vec<StereoSample>>,
         ) = self.track_repo.uids.iter().fold(
-            (HashMap::default(), HashMap::default()),
+            (FxHashMap::default(), FxHashMap::default()),
             |(mut h, mut aux_h), track_uid| {
                 let mut track_buffer = Vec::default();
                 track_buffer.resize(buffer_len, StereoSample::SILENCE);
@@ -257,8 +258,8 @@ impl Serializable for Orchestrator {
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Mixer {
-    track_output: HashMap<TrackUid, Normal>,
-    track_mute: HashMap<TrackUid, bool>,
+    track_output: FxHashMap<TrackUid, Normal>,
+    track_mute: FxHashMap<TrackUid, bool>,
     pub solo_track: Option<TrackUid>,
 }
 impl Mixer {
