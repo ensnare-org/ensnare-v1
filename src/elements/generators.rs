@@ -956,18 +956,22 @@ impl SteppedEnvelope {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SignalStepType {
     // Remains at the value for the entire time.
-    #[default]
-    Flat,
+    Flat(ControlValue),
     // Straight path from value.start..value.end during time.start..time.end
-    Linear,
+    Linear(ControlRange),
     /// Curved. Starts out changing quickly and ends up changing slowly.
     Logarithmic,
     /// Curved. Starts out changing slowly and ends up changing quickly.
     Exponential,
+}
+impl Default for SignalStepType {
+    fn default() -> Self {
+        SignalStepType::Flat(ControlValue::default())
+    }
 }
 
 /// Represents a single step of a signal path. Could be used to construct an
@@ -979,19 +983,17 @@ pub enum SignalStepType {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignalStep {
-    pub value_range: ControlRange,
-    pub extent: TimeRange,
     pub ty: SignalStepType,
+    pub extent: TimeRange,
 }
 impl SignalStepBuilder {
     /// For testing and prototyping. Always generates an extent starting at
     /// zero.
     pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
-        self.value_range(ControlRange::random(rng))
-            .extent(TimeRange(
-                MusicalTime::START..MusicalTime::new_with_beats(1),
-            ))
-            .ty(SignalStepType::Linear);
+        self.extent(TimeRange(
+            MusicalTime::START..MusicalTime::new_with_beats(1),
+        ))
+        .ty(SignalStepType::Linear(ControlRange::random(rng)));
 
         self
     }
@@ -1090,17 +1092,16 @@ impl Controls for SignalPath {
             if (step_start <= time_start && step_end > time_start)
                 || (step_start < time_end && step_end >= time_end)
             {
-                match step.ty {
-                    SignalStepType::Flat => self.value_to_produce = Some(step.value_range.0.start),
-                    SignalStepType::Linear => {
+                match &step.ty {
+                    SignalStepType::Flat(value) => self.value_to_produce = Some(value.clone()),
+                    SignalStepType::Linear(range) => {
                         let point_in_step = step_start.max(time_start);
                         let percentage_of_step = (point_in_step - step_start).total_units() as f64
                             / (step_end - step_start).total_units() as f64;
                         self.value_to_produce = Some(
-                            step.value_range.0.start
+                            range.0.start
                                 + ControlValue(
-                                    (step.value_range.0.end - step.value_range.0.start).0
-                                        * percentage_of_step,
+                                    (range.0.end - range.0.start).0 * percentage_of_step,
                                 ),
                         );
                     }
@@ -2372,8 +2373,7 @@ mod tests {
         let mut path = SignalPathBuilder::default()
             .step(
                 SignalStepBuilder::default()
-                    .ty(SignalStepType::Flat)
-                    .value_range(control_value_range)
+                    .ty(SignalStepType::Flat(EXPECTED_VALUE))
                     .extent(extent.clone())
                     .build()
                     .unwrap(),
@@ -2403,8 +2403,7 @@ mod tests {
         let mut path = SignalPathBuilder::default()
             .step(
                 SignalStepBuilder::default()
-                    .ty(SignalStepType::Linear)
-                    .value_range(control_value_range)
+                    .ty(SignalStepType::Linear(control_value_range))
                     .extent(extent.clone())
                     .build()
                     .unwrap(),

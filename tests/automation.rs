@@ -136,17 +136,17 @@ fn demo_signal_path_automation() {
     let path = SignalPathBuilder::default()
         .step(
             SignalStepBuilder::default()
-                .value_range((ControlValue::MIN..ControlValue::MAX).into())
                 .extent((MusicalTime::START..MusicalTime::ONE_BEAT * 4).into())
-                .ty(SignalStepType::Linear)
+                .ty(SignalStepType::Linear(
+                    (ControlValue::MIN..ControlValue::MAX).into(),
+                ))
                 .build()
                 .unwrap(),
         )
         .step(
             SignalStepBuilder::default()
-                .value_range((ControlValue::MIN..ControlValue::MAX).into())
                 .extent((MusicalTime::new_with_beats(4)..MusicalTime::TIME_MAX).into())
-                .ty(SignalStepType::Flat)
+                .ty(SignalStepType::Flat(ControlValue::MAX))
                 .build()
                 .unwrap(),
         )

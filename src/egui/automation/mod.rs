@@ -49,16 +49,27 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
 
         let mut prior_end_pos = None;
         self.signal_path.steps.iter_mut().for_each(|step| {
-            let start_pos = to_screen
-                * pos2(
-                    step.extent.0.start.total_units() as f32,
-                    step.value_range.0.start.0 as f32,
-                );
-            let end_pos = to_screen
-                * pos2(
-                    step.extent.0.end.total_units() as f32,
-                    step.value_range.0.end.0 as f32,
-                );
+            let (start_pos, end_pos) = {
+                match &step.ty {
+                    SignalStepType::Flat(value) => {
+                        let v = to_screen
+                            * pos2(step.extent.0.start.total_units() as f32, value.0 as f32);
+                        (v, v)
+                    }
+                    SignalStepType::Linear(range) => {
+                        let start_pos = to_screen
+                            * pos2(
+                                step.extent.0.start.total_units() as f32,
+                                range.0.start.0 as f32,
+                            );
+                        let end_pos = to_screen
+                            * pos2(step.extent.0.end.total_units() as f32, range.0.end.0 as f32);
+                        (start_pos, end_pos)
+                    }
+                    SignalStepType::Logarithmic => todo!(),
+                    SignalStepType::Exponential => todo!(),
+                }
+            };
 
             // If we're hovering over this step, highlight it.
             let stroke = if response.hovered() {
@@ -89,11 +100,8 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
             };
 
             // Draw according to the step type.
-            match step.ty {
-                SignalStepType::Flat => {
-                    painter.line_segment([start_pos, end_pos], stroke);
-                }
-                SignalStepType::Linear => {
+            match &step.ty {
+                SignalStepType::Flat(..) | SignalStepType::Linear(..) => {
                     painter.line_segment([start_pos, end_pos], stroke);
                 }
                 SignalStepType::Logarithmic => todo!(),
