@@ -228,8 +228,15 @@ impl<'a> Widget for TrackWidget<'a> {
                             });
 
                             // Draw the widget corresponding to the current mode.
-                            match self.project.view_state.arrangement_mode {
-                                ArrangementViewMode::Composition => {
+                            match self
+                                .project
+                                .view_state
+                                .track_view_mode
+                                .get(&track_uid)
+                                .copied()
+                                .unwrap_or_default()
+                            {
+                                TrackViewMode::Composition => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
                                             ui.add(ArrangementWidget::widget(
@@ -241,7 +248,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                         });
                                     });
                                 }
-                                ArrangementViewMode::Control(path_id) => {
+                                TrackViewMode::Control(path_id) => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
                                             if let Some(signal_path) =
@@ -258,7 +265,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                         });
                                     });
                                 }
-                                ArrangementViewMode::SomethingElse => {
+                                TrackViewMode::SomethingElse => {
                                     ui.add_enabled_ui(true, |ui| {
                                         ui.allocate_ui_at_rect(rect, |ui| {
                                             ui.label("something else111!!!!")
@@ -306,6 +313,13 @@ impl<'a> Widget for TrackWidget<'a> {
                                 let _ =
                                     self.project
                                         .arrange_pattern(track_uid, *pattern_uid, position);
+
+                                // Nice touch: if you drag to track and it's
+                                // displaying a different mode from
+                                // composition, then switch to the one that
+                                // shows the result of what you just did.
+                                self.project
+                                    .set_track_view_mode(&track_uid, TrackViewMode::Composition);
                             }
                         }
 

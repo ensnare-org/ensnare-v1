@@ -250,10 +250,12 @@ impl ProjectServiceDaemon {
                     }
                 }
                 ProjectServiceInput::NextTimelineDisplayer => {
-                    self.project
-                        .write()
-                        .unwrap()
-                        .advance_arrangement_view_mode();
+                    if let Ok(mut project) = self.project.write() {
+                        let selected_track_uids = project.view_state.track_selection_set.clone();
+                        selected_track_uids
+                            .iter()
+                            .for_each(|track_uid| project.advance_track_view_mode(track_uid));
+                    }
                 }
                 ProjectServiceInput::AudioQueue(queue) => {
                     self.audio_queue = Some(Arc::clone(&queue));

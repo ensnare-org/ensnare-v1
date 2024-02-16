@@ -7,7 +7,7 @@ use eframe::{
 
 #[derive(Debug)]
 pub enum TimelineIconStripAction {
-    NextTimelineView,
+    NextTrackViewMode, // TODO: this should be in the track, not at the timeline level
     ShowComposer,
 }
 
@@ -42,7 +42,7 @@ impl<'a> eframe::egui::Widget for TimelineIconStripWidget<'a> {
                 ))
                 .on_hover_text("Next Timeline View");
             if next_response.clicked() {
-                *self.action = Some(TimelineIconStripAction::NextTimelineView);
+                *self.action = Some(TimelineIconStripAction::NextTrackViewMode);
             }
             let composer_response = ui
                 .add(ImageButton::new(

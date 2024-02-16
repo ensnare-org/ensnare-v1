@@ -395,7 +395,7 @@ impl MiniDaw {
         ui.add(TimelineIconStripWidget::widget(&mut action));
         if let Some(action) = action {
             match action {
-                TimelineIconStripAction::NextTimelineView => {
+                TimelineIconStripAction::NextTrackViewMode => {
                     self.send_to_project(ProjectServiceInput::NextTimelineDisplayer);
                 }
                 TimelineIconStripAction::ShowComposer => {

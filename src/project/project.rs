@@ -38,9 +38,9 @@ impl ProjectTitle {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum ArrangementViewMode {
+pub enum TrackViewMode {
     #[default]
     Composition,
     Control(PathUid),
@@ -63,7 +63,7 @@ pub struct ProjectViewState {
     // Which tracks are selected.
     pub track_selection_set: SelectionSet<TrackUid>,
     // Which widget to render in the track arrangement section.
-    pub arrangement_mode: ArrangementViewMode,
+    pub track_view_mode: FxHashMap<TrackUid, TrackViewMode>,
     // The current playback point. This is redundant -- copied from Transport.
     pub cursor: Option<MusicalTime>,
 }
@@ -424,14 +424,27 @@ impl Project {
         self.e.load_path.as_ref()
     }
 
-    pub fn advance_arrangement_view_mode(&mut self) {
-        // TODO: this needs to be specific to a track, or else the control path
-        // uid makes no sense.
-        self.view_state.arrangement_mode = match self.view_state.arrangement_mode {
-            ArrangementViewMode::Composition => ArrangementViewMode::Control(PathUid(1024)),
-            ArrangementViewMode::Control(..) => ArrangementViewMode::SomethingElse,
-            ArrangementViewMode::SomethingElse => ArrangementViewMode::Composition,
-        };
+    pub fn advance_track_view_mode(&mut self, track_uid: &TrackUid) {
+        let mode = self
+            .view_state
+            .track_view_mode
+            .get(track_uid)
+            .copied()
+            .unwrap_or_default();
+        self.view_state.track_view_mode.insert(
+            track_uid.clone(),
+            match mode {
+                TrackViewMode::Composition => TrackViewMode::Control(PathUid(1024)),
+                TrackViewMode::Control(..) => TrackViewMode::SomethingElse,
+                TrackViewMode::SomethingElse => TrackViewMode::Composition,
+            },
+        );
+    }
+
+    pub fn set_track_view_mode(&mut self, track_uid: &TrackUid, mode: TrackViewMode) {
+        self.view_state
+            .track_view_mode
+            .insert(track_uid.clone(), mode);
     }
 
     pub fn notify_transport_sample_rate_change(&mut self) {
