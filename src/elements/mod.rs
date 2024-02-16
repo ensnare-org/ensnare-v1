@@ -8,7 +8,7 @@ pub mod prelude {
     pub use super::{
         generators::{
             Envelope, EnvelopeBuilder, Oscillator, OscillatorBuilder, PathUid, PathUidFactory,
-            SignalPath, SignalPathBuilder, SignalStep, SignalStepBuilder, SignalStepType, Waveform,
+            SignalPath, SignalPathBuilder, SignalStepType, Waveform,
         },
         modulators::Dca,
         synthesizers::Synthesizer,

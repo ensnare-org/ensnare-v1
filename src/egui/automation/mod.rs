@@ -50,24 +50,28 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
         let mut prior_end_pos = None;
         self.signal_path.steps.iter_mut().for_each(|step| {
             let (start_pos, end_pos) = {
-                match &step.ty {
-                    SignalStepType::Flat(value) => {
-                        let v = to_screen
-                            * pos2(step.extent.0.start.total_units() as f32, value.0 as f32);
+                match &step {
+                    SignalStepType::Flat(value, extent) => {
+                        let v =
+                            to_screen * pos2(extent.0.start.total_units() as f32, value.0 as f32);
                         (v, v)
                     }
-                    SignalStepType::Linear(range) => {
+                    SignalStepType::Linear(range, extent) => {
                         let start_pos = to_screen
-                            * pos2(
-                                step.extent.0.start.total_units() as f32,
-                                range.0.start.0 as f32,
-                            );
+                            * pos2(extent.0.start.total_units() as f32, range.0.start.0 as f32);
                         let end_pos = to_screen
-                            * pos2(step.extent.0.end.total_units() as f32, range.0.end.0 as f32);
+                            * pos2(extent.0.end.total_units() as f32, range.0.end.0 as f32);
                         (start_pos, end_pos)
                     }
-                    SignalStepType::Logarithmic => todo!(),
-                    SignalStepType::Exponential => todo!(),
+                    SignalStepType::Logarithmic(..) => todo!(),
+                    SignalStepType::Exponential(..) => todo!(),
+                    SignalStepType::AdsrIdle
+                    | SignalStepType::AdsrAttack(_)
+                    | SignalStepType::AdsrDecay(_)
+                    | SignalStepType::AdsrSustain(_)
+                    | SignalStepType::AdsrRelease(_) => {
+                        panic!("How did this happen?")
+                    }
                 }
             };
 
@@ -100,12 +104,17 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
             };
 
             // Draw according to the step type.
-            match &step.ty {
+            match &step {
                 SignalStepType::Flat(..) | SignalStepType::Linear(..) => {
                     painter.line_segment([start_pos, end_pos], stroke);
                 }
-                SignalStepType::Logarithmic => todo!(),
-                SignalStepType::Exponential => todo!(),
+                SignalStepType::Logarithmic(..) => todo!(),
+                SignalStepType::Exponential(..) => todo!(),
+                SignalStepType::AdsrIdle => todo!(),
+                SignalStepType::AdsrAttack(_) => todo!(),
+                SignalStepType::AdsrDecay(_) => todo!(),
+                SignalStepType::AdsrSustain(_) => todo!(),
+                SignalStepType::AdsrRelease(_) => todo!(),
             }
 
             // The line should be continuous even if consecutive steps aren't lined up.

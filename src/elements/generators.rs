@@ -956,71 +956,119 @@ impl SteppedEnvelope {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SignalStepType {
-    // Remains at the value for the entire time.
-    Flat(ControlValue),
-    // Straight path from value.start..value.end during time.start..time.end
-    Linear(ControlRange),
-    /// Curved. Starts out changing quickly and ends up changing slowly.
-    Logarithmic,
-    /// Curved. Starts out changing slowly and ends up changing quickly.
-    Exponential,
-}
-impl Default for SignalStepType {
-    fn default() -> Self {
-        SignalStepType::Flat(ControlValue::default())
-    }
-}
-
 /// Represents a single step of a signal path. Could be used to construct an
 /// arbitrarily complex envelope, for example.
 ///
 // TODO: this is basically identical to SteppedEnvelope and ControlTrip. I'm
 // rewriting it in 2024 as an excuse to apply a year+ of Rust experience to the
 // problem.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Builder)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct SignalStep {
-    pub ty: SignalStepType,
-    pub extent: TimeRange,
+pub enum SignalStepType {
+    /// Remains at the value for the entire time.
+    Flat(ControlValue, TimeRange),
+    /// Straight path from value.start..value.end during time.start..time.end
+    Linear(ControlRange, TimeRange),
+    /// Curved. Starts out changing quickly and ends up changing slowly.
+    Logarithmic(TimeRange),
+    /// Curved. Starts out changing slowly and ends up changing quickly.
+    Exponential(TimeRange),
+    /// Classic ADSR, state before note-on event. Differs from Flat(0.0) in that
+    /// its extent is event-based rather than time-based.
+    AdsrIdle,
+    /// Classic ADSR attack. Parameter is a normalized time unit.
+    AdsrAttack(Normal),
+    /// Classic ADSR decay. Parameter is a normalized time unit.
+    AdsrDecay(Normal),
+    /// Classic ADSR sustain. Parameter is amplitude. Will not advance to next
+    /// step automatically.
+    AdsrSustain(Normal),
+    /// Classic ADSR release. Parent SignalPath automatically resets to initial
+    /// state when this one ends.
+    AdsrRelease(Normal),
 }
-impl SignalStepBuilder {
-    /// For testing and prototyping. Always generates an extent starting at
-    /// zero.
-    pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
-        self.extent(TimeRange(
-            MusicalTime::START..MusicalTime::new_with_beats(1),
-        ))
-        .ty(SignalStepType::Linear(ControlRange::random(rng)));
-
-        self
+impl Default for SignalStepType {
+    fn default() -> Self {
+        SignalStepType::Flat(
+            ControlValue::default(),
+            TimeRange(MusicalTime::START..MusicalTime::ONE_BEAT),
+        )
     }
 }
-impl HasExtent for SignalStep {
+impl HasExtent for SignalStepType {
     fn extent(&self) -> TimeRange {
-        self.extent.clone()
+        match self {
+            SignalStepType::Flat(_, extent)
+            | SignalStepType::Linear(_, extent)
+            | SignalStepType::Logarithmic(extent)
+            | SignalStepType::Exponential(extent) => extent.clone(),
+            SignalStepType::AdsrIdle
+            | SignalStepType::AdsrAttack(_)
+            | SignalStepType::AdsrDecay(_)
+            | SignalStepType::AdsrSustain(_)
+            | SignalStepType::AdsrRelease(_) => TimeRange::default(),
+        }
     }
 
     fn set_extent(&mut self, extent: TimeRange) {
-        self.extent = extent
+        match self {
+            SignalStepType::Flat(_, old_extent)
+            | SignalStepType::Linear(_, old_extent)
+            | SignalStepType::Logarithmic(old_extent)
+            | SignalStepType::Exponential(old_extent) => *old_extent = extent,
+            SignalStepType::AdsrIdle
+            | SignalStepType::AdsrAttack(_)
+            | SignalStepType::AdsrDecay(_)
+            | SignalStepType::AdsrSustain(_)
+            | SignalStepType::AdsrRelease(_) => {}
+        }
     }
 }
-impl SignalStep {
+impl SignalStepType {
+    /// For testing and prototyping. Always generates an extent starting at
+    /// zero.
+    pub fn random(rng: &mut Rng) -> Self {
+        let extent = TimeRange(MusicalTime::START..MusicalTime::new_with_beats(1));
+        SignalStepType::Linear(ControlRange::random(rng), extent)
+    }
+
     /// Shifts the extent so that it begins at time origin.
     pub fn set_origin(&mut self, origin: MusicalTime) {
-        let duration = self.extent.duration();
-        self.extent.0.start = origin;
-        self.extent.0.end = origin + duration;
+        self.set_extent(TimeRange(origin..origin + self.extent().duration()));
+    }
+
+    /// Indicates whether the given [TimeRange] overlaps with this step's
+    /// extent.
+    pub fn overlaps(&self, time_range: &TimeRange) -> bool {
+        match self {
+            SignalStepType::Flat(_, extent)
+            | SignalStepType::Linear(_, extent)
+            | SignalStepType::Logarithmic(extent)
+            | SignalStepType::Exponential(extent) => {
+                let step_start = extent.0.start;
+                let step_end = extent.0.end;
+                let time_start = time_range.0.start;
+                let time_end = time_range.0.end;
+
+                // Do the ranges overlap?
+                (step_start <= time_start && step_end > time_start)
+                    || (step_start < time_end && step_end >= time_end)
+            }
+            SignalStepType::AdsrIdle
+            | SignalStepType::AdsrAttack(_)
+            | SignalStepType::AdsrDecay(_)
+            | SignalStepType::AdsrSustain(_)
+            | SignalStepType::AdsrRelease(_) => false,
+        }
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "kebab-case")]
+#[builder(build_fn(private, name = "build_from_builder"))]
 pub struct SignalPath {
     #[builder(default, setter(each(name = "step", into)))]
-    pub steps: Vec<SignalStep>,
+    pub steps: Vec<SignalStepType>,
 
     #[serde(skip)]
     #[builder(setter(skip))]
@@ -1028,27 +1076,42 @@ pub struct SignalPath {
 
     #[serde(skip)]
     #[builder(setter(skip))]
-    last_value_produced: Option<ControlValue>,
+    last_value: Option<ControlValue>,
 
     #[serde(skip)]
     #[builder(setter(skip))]
-    value_to_produce: Option<ControlValue>,
+    value: Option<ControlValue>,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    extent: TimeRange,
 }
 impl SignalPath {
     fn produce_event(&mut self, control_events_fn: &mut ControlEventsFn) {
-        if let Some(value) = self.value_to_produce {
-            if self.value_to_produce != self.last_value_produced {
-                self.last_value_produced = self.value_to_produce;
+        if let Some(value) = self.value {
+            if self.value != self.last_value {
+                self.last_value = self.value;
                 control_events_fn(WorkEvent::Control(value));
             }
         }
     }
 }
 impl SignalPathBuilder {
+    /// Builds the [SignalPath].
+    pub fn build(&self) -> Result<SignalPath, SignalPathBuilderError> {
+        match self.build_from_builder() {
+            Ok(mut s) => {
+                s.after_deser();
+                Ok(s)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
         let mut cursor = MusicalTime::START;
-        for _ in 0..3 {
-            let mut step = SignalStepBuilder::default().random(rng).build().unwrap();
+        for _ in 0..8 {
+            let mut step = SignalStepType::random(rng);
             step.set_origin(cursor);
             cursor += step.duration();
             self.step(step);
@@ -1056,21 +1119,23 @@ impl SignalPathBuilder {
         self
     }
 }
-impl HasExtent for SignalPath {
-    fn extent(&self) -> TimeRange {
-        let extent = self
+impl Serializable for SignalPath {
+    fn after_deser(&mut self) {
+        self.extent = self
             .steps
             .iter()
             .fold(TimeRange::default(), |mut extent, item| {
                 extent.expand_with_range(&item.extent());
                 extent
             });
-        extent
+    }
+}
+impl HasExtent for SignalPath {
+    fn extent(&self) -> TimeRange {
+        self.extent.clone()
     }
 
-    fn set_extent(&mut self, extent: TimeRange) {
-        todo!()
-    }
+    fn set_extent(&mut self, extent: TimeRange) {}
 }
 impl Controls for SignalPath {
     fn time_range(&self) -> Option<TimeRange> {
@@ -1083,30 +1148,30 @@ impl Controls for SignalPath {
 
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         self.steps.iter().for_each(|step| {
-            let step_start = step.extent.0.start;
-            let step_end = step.extent.0.end;
-            let time_start = self.time_range.0.start;
-            let time_end = self.time_range.0.end;
-
-            // Do the ranges overlap?
-            if (step_start <= time_start && step_end > time_start)
-                || (step_start < time_end && step_end >= time_end)
-            {
-                match &step.ty {
-                    SignalStepType::Flat(value) => self.value_to_produce = Some(value.clone()),
-                    SignalStepType::Linear(range) => {
-                        let point_in_step = step_start.max(time_start);
-                        let percentage_of_step = (point_in_step - step_start).total_units() as f64
-                            / (step_end - step_start).total_units() as f64;
-                        self.value_to_produce = Some(
+            if step.overlaps(&self.time_range) {
+                match &step {
+                    SignalStepType::Flat(value, _) => self.value = Some(value.clone()),
+                    SignalStepType::Linear(range, extent) => {
+                        let point_in_step = extent.0.start.max(self.time_range.0.start);
+                        let percentage_of_step = (point_in_step - extent.0.start).total_units()
+                            as f64
+                            / extent.duration().total_units() as f64;
+                        self.value = Some(
                             range.0.start
                                 + ControlValue(
                                     (range.0.end - range.0.start).0 * percentage_of_step,
                                 ),
                         );
                     }
-                    SignalStepType::Logarithmic => todo!(),
-                    SignalStepType::Exponential => todo!(),
+                    SignalStepType::Logarithmic(extent) => todo!(),
+                    SignalStepType::Exponential(extent) => todo!(),
+                    SignalStepType::AdsrIdle
+                    | SignalStepType::AdsrAttack(_)
+                    | SignalStepType::AdsrDecay(_)
+                    | SignalStepType::AdsrSustain(_)
+                    | SignalStepType::AdsrRelease(_) => {
+                        // this step type shouldn't have been added to SignalPath
+                    }
                 }
             }
         });
@@ -2371,13 +2436,7 @@ mod tests {
         let control_value_range: ControlRange = (EXPECTED_VALUE..EXPECTED_VALUE).into();
         let extent: TimeRange = (MusicalTime::START..MusicalTime::new_with_beats(1)).into();
         let mut path = SignalPathBuilder::default()
-            .step(
-                SignalStepBuilder::default()
-                    .ty(SignalStepType::Flat(EXPECTED_VALUE))
-                    .extent(extent.clone())
-                    .build()
-                    .unwrap(),
-            )
+            .step(SignalStepType::Flat(EXPECTED_VALUE, extent.clone()))
             .build()
             .unwrap();
 
@@ -2401,13 +2460,7 @@ mod tests {
         let control_value_range: ControlRange = (0.0..1.0).into();
         let extent: TimeRange = (MusicalTime::START..MusicalTime::new_with_beats(1)).into();
         let mut path = SignalPathBuilder::default()
-            .step(
-                SignalStepBuilder::default()
-                    .ty(SignalStepType::Linear(control_value_range))
-                    .extent(extent.clone())
-                    .build()
-                    .unwrap(),
-            )
+            .step(SignalStepType::Linear(control_value_range, extent.clone()))
             .build()
             .unwrap();
 

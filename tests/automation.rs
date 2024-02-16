@@ -134,22 +134,14 @@ fn demo_signal_path_automation() {
     // amount of time.
 
     let path = SignalPathBuilder::default()
-        .step(
-            SignalStepBuilder::default()
-                .extent((MusicalTime::START..MusicalTime::ONE_BEAT * 4).into())
-                .ty(SignalStepType::Linear(
-                    (ControlValue::MIN..ControlValue::MAX).into(),
-                ))
-                .build()
-                .unwrap(),
-        )
-        .step(
-            SignalStepBuilder::default()
-                .extent((MusicalTime::new_with_beats(4)..MusicalTime::TIME_MAX).into())
-                .ty(SignalStepType::Flat(ControlValue::MAX))
-                .build()
-                .unwrap(),
-        )
+        .step(SignalStepType::Linear(
+            (ControlValue::MIN..ControlValue::MAX).into(),
+            (MusicalTime::START..MusicalTime::ONE_BEAT * 4).into(),
+        ))
+        .step(SignalStepType::Flat(
+            ControlValue::MAX,
+            (MusicalTime::new_with_beats(4)..MusicalTime::TIME_MAX).into(),
+        ))
         .build()
         .unwrap();
     let path_uid = project.add_path(path).unwrap();
