@@ -19,30 +19,57 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;
-            let (response, payload) =
-                ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
-                    ui.add(Slider::new(&mut value, Normal::range()).text("Gain"));
-                });
+            let (inner_response, response, payload) = {
+                // See https://github.com/emilk/egui/issues/4059 for why this
+                // code is a bit cumbersome
+                let mut inner_response = None;
+                let (mut response, payload) =
+                    ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
+                        inner_response =
+                            Some(ui.add(Slider::new(&mut value, Normal::range()).text("Gain")));
+                    });
+                if let Some(inner_response) = inner_response.as_ref() {
+                    if inner_response.changed() {
+                        response.mark_changed();
+                    }
+                }
+                (inner_response, response, payload)
+            };
             if let Some(source) = payload {
                 *self.action = Some(DcaWidgetAction::Link(*source, Dca::GAIN_INDEX.into()));
             }
             ui.end_row();
-            if response.changed() {
-                self.dca.set_gain(Normal::from(value));
+            if let Some(inner_response) = inner_response {
+                if inner_response.changed() {
+                    self.dca.set_gain(Normal::from(value));
+                }
             }
             response
         } | {
             let mut value = self.dca.pan().0;
-            let (response, payload) =
-                ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
-                    ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"));
-                });
+            let (inner_response, response, payload) = {
+                let mut inner_response = None;
+                let (mut response, payload) =
+                    ui.dnd_drop_zone::<ControlLinkSource>(Frame::default(), |ui| {
+                        inner_response = Some(ui.add(
+                            Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"),
+                        ));
+                    });
+                if let Some(inner_response) = inner_response.as_ref() {
+                    if inner_response.changed() {
+                        response.mark_changed();
+                    }
+                }
+                (inner_response, response, payload)
+            };
             if let Some(source) = payload {
                 *self.action = Some(DcaWidgetAction::Link(*source, Dca::PAN_INDEX.into()));
             }
             ui.end_row();
-            if response.changed() {
-                self.dca.set_pan(BipolarNormal::from(value));
+            if let Some(inner_response) = inner_response {
+                if inner_response.changed() {
+                    self.dca.set_pan(BipolarNormal::from(value));
+                }
             }
             response
         };
