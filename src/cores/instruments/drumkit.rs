@@ -23,7 +23,7 @@ pub struct DrumkitCore {
     #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
-impl std::fmt::Debug for DrumkitCore {
+impl core::fmt::Debug for DrumkitCore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Drumkit")
             .field("name", &self.name)

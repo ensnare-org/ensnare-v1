@@ -1,9 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use core::fmt::Debug;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, option::Option};
 
 /// A [BusRoute] represents a signal connection between two tracks.
 #[derive(Debug, Serialize, Deserialize)]

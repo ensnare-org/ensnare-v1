@@ -30,7 +30,7 @@ use strum_macros::Display;
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [crate::BipolarNormal] signal.
 #[allow(unused_variables)]
-pub trait Generates<V: Default>: Send + std::fmt::Debug + Ticks {
+pub trait Generates<V: Default>: Send + core::fmt::Debug + Ticks {
     /// The value for the current frame. Advance the frame by calling
     /// [Ticks::tick()].
     fn value(&self) -> V {
@@ -121,7 +121,7 @@ pub trait Configurable {
 
 /// A way for an [Entity] to do work corresponding to one or more frames.
 #[deprecated]
-pub trait Ticks: Configurable + Send + std::fmt::Debug {
+pub trait Ticks: Configurable + Send + core::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.
     /// Exceptions include, for example, restarting a performance, which would
@@ -140,7 +140,7 @@ pub trait Ticks: Configurable + Send + std::fmt::Debug {
 }
 
 #[allow(missing_docs)]
-pub trait MessageBounds: std::fmt::Debug + Send {}
+pub trait MessageBounds: core::fmt::Debug + Send {}
 
 /// Implementers of [Controls] produce these events. Only the system receives
 /// them; rather than forwarding them directly, the system converts them into
@@ -169,7 +169,7 @@ impl MessageBounds for WorkEvent {}
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
 /// do.
 #[allow(unused_variables)]
-pub trait TransformsAudio: std::fmt::Debug {
+pub trait TransformsAudio: core::fmt::Debug {
     /// Transforms a single sample of audio.
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
         // Beware: converting from mono to stereo isn't just doing the work
@@ -197,7 +197,7 @@ pub trait TransformsAudio: std::fmt::Debug {
 /// Describes the public interface of an envelope generator, which provides a
 /// normalized amplitude (0.0..=1.0) that changes over time according to its
 /// internal parameters, external triggers, and the progression of time.
-pub trait GeneratesEnvelope: Generates<Normal> + Send + std::fmt::Debug + Ticks {
+pub trait GeneratesEnvelope: Generates<Normal> + Send + core::fmt::Debug + Ticks {
     /// Triggers the envelope's active stage.
     fn trigger_attack(&mut self);
 
@@ -241,7 +241,7 @@ pub trait PlaysNotes {
 /// A [StoresVoices] provides access to a collection of voices for a polyphonic
 /// synthesizer. Different implementers provide different policies for how to
 /// handle voice-stealing.
-pub trait StoresVoices: Generates<StereoSample> + Send + Sync + std::fmt::Debug {
+pub trait StoresVoices: Generates<StereoSample> + Send + Sync + core::fmt::Debug {
     /// The associated type of sample generator for this voice store.
     type Voice;
 
@@ -398,7 +398,7 @@ pub trait HasExtent {
 /// trait that helps rationalize sequencer interfaces while the concept of a
 /// sequencer itself is under development. TODO: delete this trait when
 /// sequencing is better developed.
-pub trait Sequences: Controls + std::fmt::Debug {
+pub trait Sequences: Controls + core::fmt::Debug {
     /// "Musical Unit"
     type MU;
 
@@ -425,7 +425,7 @@ pub trait Sequences: Controls + std::fmt::Debug {
     fn clear(&mut self);
 }
 
-pub trait CanPrototype: std::fmt::Debug + Default {
+pub trait CanPrototype: core::fmt::Debug + Default {
     fn make_another(&self) -> Self {
         let mut r = Self::default();
         r.update_from_prototype(self);
@@ -450,7 +450,7 @@ pub trait Entity:
     + HandlesMidi
     + Serializable
     + TransformsAudio
-    + std::fmt::Debug
+    + core::fmt::Debug
     + Send
     + Sync
 {

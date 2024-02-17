@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 use bit_vec::BitVec;
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// [MidiNoteMinder] watches a MIDI message stream and remembers which notes are
 /// currently active (we've gotten a note-on without a note-off). Then, when

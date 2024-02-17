@@ -3,10 +3,10 @@
 use super::TrackUidFactory;
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
+use core::fmt::Debug;
 use delegate::delegate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, option::Option};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, util::Rng};
+use core::{f64::consts::PI, fmt::Debug};
 use delegate::delegate;
 use derivative::Derivative;
 use derive_builder::Builder;
@@ -8,7 +9,6 @@ use ensnare_proc_macros::Control;
 use kahan::KahanSum;
 use nalgebra::{Matrix3, Matrix3x1};
 use serde::{Deserialize, Serialize};
-use std::{f64::consts::PI, fmt::Debug};
 use strum::EnumCount as UseEnumCount;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
@@ -866,7 +866,7 @@ pub enum SteppedEnvelopeFunction {
 
 #[derive(Clone, Debug, Default)]
 pub struct SteppedEnvelopeStep {
-    pub interval: std::ops::Range<SignalType>,
+    pub interval: core::ops::Range<SignalType>,
     pub start_value: SignalType,
     pub end_value: SignalType,
     pub step_function: SteppedEnvelopeFunction,
@@ -878,7 +878,7 @@ pub struct SteppedEnvelope {
 }
 impl SteppedEnvelope {
     const EMPTY_STEP: SteppedEnvelopeStep = SteppedEnvelopeStep {
-        interval: std::ops::Range {
+        interval: core::ops::Range {
             start: 0.0,
             end: 0.0,
         },
@@ -2270,7 +2270,7 @@ mod tests {
             step_function: SteppedEnvelopeFunction,
         ) -> Self {
             Self {
-                interval: std::ops::Range {
+                interval: core::ops::Range {
                     start: start_time,
                     end: if duration == f64::MAX {
                         duration

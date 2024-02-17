@@ -101,7 +101,7 @@ impl HandlesMidi for LfoControllerCore {}
 impl LfoControllerCore {
     pub fn notify_change_oscillator(&mut self) {}
 
-    pub const fn frequency_range() -> std::ops::RangeInclusive<ParameterType> {
+    pub const fn frequency_range() -> core::ops::RangeInclusive<ParameterType> {
         0.0..=100.0
     }
 }

@@ -7,10 +7,10 @@ use super::{
 };
 use crate::prelude::*;
 use anyhow::Result;
+use core::fmt::Debug;
 use delegate::delegate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, option::Option};
 
 /// [Orchestrator] brings together all a project's musical instruments and
 /// effects. Working mainly with [Composer] and [Automator](crate::Automator),

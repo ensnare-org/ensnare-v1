@@ -7,12 +7,12 @@ use crate::{
     },
     prelude::*,
 };
+use core::ops::RangeInclusive;
 use eframe::{
     egui::{Frame, PointerButton, Sense, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
-use std::ops::RangeInclusive;
 
 #[derive(Debug)]
 pub struct ComposerWidget<'a> {

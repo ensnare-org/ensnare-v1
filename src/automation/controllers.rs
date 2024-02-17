@@ -234,7 +234,7 @@ pub struct ControlTripEphemerals {
     /// The type of path we should be following.
     current_path: ControlTripPath,
     /// The range of values for the current step.
-    value_range: std::ops::RangeInclusive<ControlValue>,
+    value_range: core::ops::RangeInclusive<ControlValue>,
     /// The timespan of the current step.
     time_range: TimeRange,
 

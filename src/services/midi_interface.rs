@@ -309,7 +309,7 @@ impl MidiInputHandler {
         Err(anyhow::format_err!("failed to restore input port"))
     }
 }
-impl std::fmt::Debug for MidiInputHandler {
+impl core::fmt::Debug for MidiInputHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MidiInputHandler")
             .field("conn_in", &0i32)
@@ -325,7 +325,7 @@ struct MidiOutputHandler {
     outputs: Vec<(usize, String)>,
     sender: Sender<MidiInterfaceServiceEvent>,
 }
-impl std::fmt::Debug for MidiOutputHandler {
+impl core::fmt::Debug for MidiOutputHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.outputs)
     }

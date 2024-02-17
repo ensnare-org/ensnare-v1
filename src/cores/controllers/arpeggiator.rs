@@ -4,7 +4,6 @@ use crate::{composition::NoteSequencer, prelude::*};
 use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::option::Option;
 use strum_macros::{Display, EnumCount, EnumIter, FromRepr, IntoStaticStr};
 
 #[derive(

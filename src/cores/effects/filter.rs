@@ -1,12 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, traits::CanPrototype};
+use core::f64::consts::PI;
 use delegate::delegate;
 use derivative::Derivative;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
-use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Derivative, Control, Builder, Serialize, Deserialize)]
 #[derivative(Default)]

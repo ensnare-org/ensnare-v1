@@ -1,9 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use core::fmt::Debug;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
 /// Controls the wet/dry mix of arranged effects.
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]

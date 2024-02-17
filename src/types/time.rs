@@ -47,7 +47,7 @@ impl Tempo {
         self.0 / 60.0
     }
 
-    pub fn range() -> std::ops::RangeInclusive<ParameterType> {
+    pub fn range() -> core::ops::RangeInclusive<ParameterType> {
         Self::MIN_VALUE..=Self::MAX_VALUE
     }
 }
@@ -360,8 +360,8 @@ impl MusicalTime {
     }
 
     /// Returns a [Range] that contains nothing.
-    pub fn empty_range() -> std::ops::Range<Self> {
-        std::ops::Range {
+    pub fn empty_range() -> core::ops::Range<Self> {
+        core::ops::Range {
             start: Self::TIME_MAX,
             end: Self::TIME_MAX,
         }
@@ -464,7 +464,7 @@ impl Sub<Self> for MusicalTime {
 #[serde(rename_all = "kebab-case")]
 pub struct ViewRange(
     #[derivative(Default(value = "MusicalTime::START..MusicalTime::new_with_beats(4)"))]
-    pub  std::ops::Range<MusicalTime>,
+    pub  core::ops::Range<MusicalTime>,
 );
 impl From<Range<MusicalTime>> for ViewRange {
     fn from(value: Range<MusicalTime>) -> Self {
@@ -476,7 +476,7 @@ impl From<Range<MusicalTime>> for ViewRange {
 /// determine which time slice to handle during [Controls::work()].
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct TimeRange(pub std::ops::Range<MusicalTime>);
+pub struct TimeRange(pub core::ops::Range<MusicalTime>);
 impl TimeRange {
     pub fn new_with_start_and_end(start: MusicalTime, end: MusicalTime) -> Self {
         Self(start..end)

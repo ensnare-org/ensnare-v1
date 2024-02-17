@@ -24,7 +24,7 @@ impl<'a> LegendWidget<'a> {
         move |ui: &mut eframe::egui::Ui| LegendWidget::new(view_range).ui(ui)
     }
 
-    pub(super) fn steps(view_range: &ViewRange) -> std::iter::StepBy<std::ops::Range<usize>> {
+    pub(super) fn steps(view_range: &ViewRange) -> std::iter::StepBy<core::ops::Range<usize>> {
         let beat_count = view_range.0.end.total_beats() - view_range.0.start.total_beats();
         let step = (beat_count as f32).log10().round() as usize;
         (view_range.0.start.total_beats()..view_range.0.end.total_beats()).step_by(step * 2)

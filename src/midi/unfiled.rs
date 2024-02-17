@@ -1,9 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use core::fmt::Display;
 use derive_more::Display as DeriveDisplay;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use strum_macros::FromRepr;
 
 pub use midly::live::LiveEvent;

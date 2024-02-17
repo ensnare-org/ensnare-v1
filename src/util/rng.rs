@@ -2,26 +2,26 @@
 
 //! Provides a random-number generator for debugging and testing.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use byteorder::{BigEndian, ByteOrder};
 
 /// A pseudorandom number generator (PRNG) for applications that don't require
-/// cryptographically secure random numbers. Pass the same number to
-/// [Rng::new_with_seed()] to get the same stream back again.
+/// cryptographically secure random numbers.
 #[derive(Debug)]
 pub struct Rng(oorandom::Rand64);
 impl Default for Rng {
     fn default() -> Self {
-        // This is a poor source of entropy if we want the random-number stream
-        // to be unpredictable. It's fine for generating different test sets
-        // from run to run.
-        let seed = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        let mut bytes = [0u8; 16];
+
+        // We want to panic if this fails.
+        getrandom::getrandom(&mut bytes).unwrap();
+        let seed = BigEndian::read_u128(&bytes);
+
         Self::new_with_seed(seed)
     }
 }
 impl Rng {
+    /// Pass the same number to [Rng::new_with_seed()] to get the same stream
+    /// back again. Good for reproducing test failures.
     pub fn new_with_seed(seed: u128) -> Self {
         Self(oorandom::Rand64::new(seed))
     }
@@ -38,7 +38,7 @@ impl Rng {
         self.0.rand_float()
     }
 
-    pub fn rand_range(&mut self, range: std::ops::Range<u64>) -> u64 {
+    pub fn rand_range(&mut self, range: core::ops::Range<u64>) -> u64 {
         self.0.rand_range(range)
     }
 }

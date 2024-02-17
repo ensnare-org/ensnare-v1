@@ -7,13 +7,19 @@ pub mod prelude {
 }
 
 pub use channel_pair::ChannelPair;
-pub use mod_serial::ModSerial;
-pub use paths::{FileType, Paths};
 pub use rng::Rng;
 pub use selection_set::SelectionSet;
 
 mod channel_pair;
-mod mod_serial;
-pub mod paths;
 pub mod rng;
 pub mod selection_set;
+
+#[cfg(feature = "std")]
+pub use mod_serial::ModSerial;
+#[cfg(feature = "std")]
+mod mod_serial;
+
+#[cfg(feature = "std")]
+pub use paths::{FileType, Paths};
+#[cfg(feature = "std")]
+pub mod paths;

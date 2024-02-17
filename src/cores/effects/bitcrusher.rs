@@ -80,7 +80,7 @@ impl BitcrusherCore {
 
     // TODO - write a custom type for range 0..16
 
-    pub fn bits_range() -> std::ops::RangeInclusive<u8> {
+    pub fn bits_range() -> core::ops::RangeInclusive<u8> {
         0..=16
     }
 }
@@ -95,7 +95,7 @@ impl Serializable for BitcrusherCore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::f64::consts::PI;
+    use core::f64::consts::PI;
 
     const CRUSHED_PI: SampleType = 0.14062929166539506;
 

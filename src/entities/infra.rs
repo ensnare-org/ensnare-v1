@@ -6,7 +6,7 @@ use delegate::delegate;
 use derive_more::Display;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std::{collections::hash_map, option::Option};
+use std::collections::hash_map;
 
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.

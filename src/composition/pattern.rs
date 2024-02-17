@@ -2,10 +2,10 @@
 
 use crate::{prelude::*, types::ColorScheme, util::Rng};
 use anyhow::anyhow;
+use core::fmt::Display;
 use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 
 /// Identifies a [Pattern].
 #[derive(
@@ -201,7 +201,7 @@ impl Pattern {
             .max()
             .unwrap_or_default();
 
-        // This is how we deal with std::ops::Range<> being inclusive start, exclusive
+        // This is how we deal with Range<> being inclusive start, exclusive
         // end. It matters because we want the calculated duration to be rounded
         // up to the next measure, but we don't want a note-off event right on
         // the edge to extend that calculation to include another bar.

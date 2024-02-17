@@ -1,10 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{prelude::*, util::Rng};
-use core::ops::{Range, Sub};
+use core::ops::{Add, Mul, Range, Sub};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Mul};
 
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.
