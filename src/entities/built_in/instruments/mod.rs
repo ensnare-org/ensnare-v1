@@ -4,7 +4,7 @@
 use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
 use crate::{
     cores::{
-        effects::{BiQuadFilterLowPass24dbCore, BiQuadFilterLowPass24dbCoreBuilder},
+        effects::BiQuadFilterLowPass24dbCoreBuilder,
         instruments::{
             DrumkitCore, FmSynthCore, FmSynthCoreBuilder, LfoRouting, SamplerCore, WelshSynthCore,
             WelshSynthCoreBuilder,
