@@ -305,9 +305,10 @@ impl BiQuadFilterLowPass12dbChannel {
 #[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterHighPassCore {
     #[control]
-    #[derivative(Default(value = "500.0.into()"))]
+    #[derivative(Default(value = "3000.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
+    #[derivative(Default(value = "3.0.into()"))]
     q: ParameterType,
 
     #[serde(skip)]
@@ -544,10 +545,11 @@ impl BiQuadFilterAllPassChannel {
 #[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct BiQuadFilterBandPassCore {
     #[control]
-    #[derivative(Default(value = "500.0.into()"))]
+    #[derivative(Default(value = "3500.0.into()"))]
     cutoff: FrequencyHz,
     #[control]
-    bandwidth: ParameterType, // TODO: maybe this should be FrequencyHz
+    #[derivative(Default(value = "0.5.into()"))]
+    bandwidth: ParameterType, // TODO: what's a good type for this concept?
 
     #[serde(skip)]
     #[builder(setter(skip))]
