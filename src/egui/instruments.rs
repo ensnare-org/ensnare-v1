@@ -1,12 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::{
-    effects::BiQuadFilterLowPass24dbWidget,
-    modulators::{DcaWidget, DcaWidgetAction},
+    BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
+    EnvelopeWidget, OscillatorWidget,
 };
 use crate::{
     cores::instruments::{DrumkitCore, SamplerCore, WelshSynthCore},
-    egui::unfiled::{EnvelopeWidget, OscillatorWidget},
     prelude::*,
 };
 use eframe::egui::{CollapsingHeader, Slider, Widget};
@@ -166,9 +165,11 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {
+                let mut action = None;
                 if ui
                     .add(BiQuadFilterLowPass24dbWidget::widget(
                         &mut self.inner.filter,
+                        &mut action,
                     ))
                     .changed()
                 {
@@ -179,6 +180,13 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                     .changed()
                 {
                     self.inner.notify_change_filter_envelope();
+                }
+                if let Some(action) = action {
+                    match action {
+                        BiQuadFilterWidgetAction::Link(source, param) => {
+                            *self.action = Some(WelshWidgetAction::Link(source, param));
+                        }
+                    }
                 }
             })
             .header_response;

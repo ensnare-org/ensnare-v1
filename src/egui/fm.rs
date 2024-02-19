@@ -1,11 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::modulators::{DcaWidget, DcaWidgetAction};
-use crate::{
-    cores::instruments::FmSynthCore,
-    egui::unfiled::{EnvelopeWidget, OscillatorWidget},
-    prelude::*,
-};
+use super::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget};
+use crate::{cores::instruments::FmSynthCore, prelude::*};
 use eframe::egui::{CollapsingHeader, Slider, Widget};
 use strum_macros::Display;
 

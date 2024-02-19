@@ -2,7 +2,6 @@
 
 pub use control_bar::{ControlBar, ControlBarAction, ControlBarWidget};
 pub use core::DragNormalWidget;
-pub use generators::{EnvelopeWidget, OscillatorWidget};
 pub use indicators::{activity_indicator, level_indicator};
 pub use misc::ObliqueStrategiesWidget;
 pub use placeholder::wiggler;
@@ -11,7 +10,6 @@ pub use util::fill_remaining_ui_space;
 
 mod control_bar;
 mod core;
-mod generators;
 mod indicators;
 mod misc;
 mod placeholder;

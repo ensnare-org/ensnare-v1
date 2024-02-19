@@ -9,10 +9,10 @@ pub mod prelude {
     pub use super::Displays;
     pub use super::{
         CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
-        Controllable, Controls, ControlsAsProxy, EntityBounds, Generates, GeneratesEnvelope,
-        HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices, Ticks,
-        TransformsAudio, WorkEvent,
+        Controllable, Controls, ControlsAsProxy, DisplaysAction, EntityBounds, Generates,
+        GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
+        IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
+        Ticks, TransformsAudio, WorkEvent,
     };
 }
 

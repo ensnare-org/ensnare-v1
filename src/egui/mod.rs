@@ -19,10 +19,11 @@ pub use controllers::{
 pub use cursor::CursorWidget;
 pub use effects::{
     BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
-    BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget,
+    BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction,
 };
 pub use entities::EntityPaletteWidget;
 pub use fm::{FmSynthWidget, FmSynthWidgetAction};
+pub use generators::{EnvelopeWidget, OscillatorWidget};
 pub use grid::GridWidget;
 pub use instruments::{
     DrumkitWidget, DrumkitWidgetAction, SamplerWidget, SamplerWidgetAction, WelshWidget,
@@ -37,6 +38,7 @@ pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
 pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 pub use transport::TransportWidget;
 pub use unfiled::*;
+pub(crate) use util::dnd_drop_zone_with_inner_response;
 
 mod audio;
 mod automation;
@@ -47,6 +49,7 @@ mod cursor;
 mod effects;
 mod entities;
 mod fm;
+mod generators;
 mod grid;
 mod instruments;
 mod legend;
@@ -60,3 +63,4 @@ mod timeline;
 mod track;
 mod transport;
 mod unfiled;
+mod util;
