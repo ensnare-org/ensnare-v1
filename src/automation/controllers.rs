@@ -10,8 +10,8 @@ use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
-/// [Timer] runs for a specified amount of time, then indicates that it's done.
-/// It is useful when you need something to happen after a certain amount of
+/// Runs for a specified amount of time, then indicates that it's done. It is
+/// useful when you need something to happen after a certain amount of
 /// wall-clock time, rather than musical time.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -94,7 +94,7 @@ impl Controls for TimerCore {
 }
 
 // TODO: needs tests!
-/// [Trigger] issues a control signal after a specified amount of time.
+/// Issues a control event after a specified amount of time.
 #[derive(Debug, Default, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TriggerCore {

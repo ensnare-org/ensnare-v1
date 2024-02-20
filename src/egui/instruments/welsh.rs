@@ -1,73 +1,15 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{
-    BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
-    EnvelopeWidget, OscillatorWidget,
-};
 use crate::{
-    cores::instruments::{DrumkitCore, SamplerCore, WelshSynthCore},
+    cores::instruments::WelshSynthCore,
+    egui::{
+        BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
+        EnvelopeWidget, OscillatorWidget,
+    },
     prelude::*,
 };
 use eframe::egui::{CollapsingHeader, Slider, Widget};
 use strum_macros::Display;
-
-#[derive(Debug, Display)]
-pub enum SamplerWidgetAction {
-    Link(ControlLinkSource, ControlIndex),
-}
-
-#[derive(Debug)]
-pub struct SamplerWidget<'a> {
-    inner: &'a mut SamplerCore,
-    action: &'a mut Option<SamplerWidgetAction>,
-}
-impl<'a> SamplerWidget<'a> {
-    fn new(inner: &'a mut SamplerCore, action: &'a mut Option<SamplerWidgetAction>) -> Self {
-        Self { inner, action }
-    }
-
-    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
-    pub fn widget(
-        inner: &'a mut SamplerCore,
-        action: &'a mut Option<SamplerWidgetAction>,
-    ) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| SamplerWidget::new(inner, action).ui(ui)
-    }
-}
-impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label(format!("Filename: {:?}", self.inner.path()))
-    }
-}
-
-#[derive(Debug, Display)]
-pub enum DrumkitWidgetAction {
-    Link(ControlLinkSource, ControlIndex),
-}
-
-#[derive(Debug)]
-pub struct DrumkitWidget<'a> {
-    inner: &'a mut DrumkitCore,
-    action: &'a mut Option<DrumkitWidgetAction>,
-}
-impl<'a> DrumkitWidget<'a> {
-    fn new(inner: &'a mut DrumkitCore, action: &'a mut Option<DrumkitWidgetAction>) -> Self {
-        Self { inner, action }
-    }
-
-    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
-    pub fn widget(
-        inner: &'a mut DrumkitCore,
-        action: &'a mut Option<DrumkitWidgetAction>,
-    ) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| DrumkitWidget::new(inner, action).ui(ui)
-    }
-}
-impl<'a> eframe::egui::Widget for DrumkitWidget<'a> {
-    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label(format!("Name: {:?}", self.inner.name()))
-    }
-}
 
 #[derive(Debug, Display)]
 pub enum WelshWidgetAction {

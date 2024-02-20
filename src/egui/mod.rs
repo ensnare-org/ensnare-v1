@@ -4,20 +4,19 @@
 
 // Public/reusable
 pub use {
+    chrome::{ControlBar, ControlBarAction, ControlBarWidget, TransportWidget},
     composition::ComposerWidget,
     entities::EntityPaletteWidget,
     generators::{EnvelopeWidget, OscillatorWidget},
+    glue::DragNormalWidget,
+    misc::ObliqueStrategiesWidget,
     modulators::{DcaWidget, DcaWidgetAction},
     project::{ProjectAction, ProjectWidget},
     settings::{AudioSettingsWidget, MidiSettingsWidget},
     timeline::{TimelineIconStripAction, TimelineIconStripWidget},
-    transport::TransportWidget,
-    unfiled::{
-        ControlBar, ControlBarAction, ControlBarWidget, DragNormalWidget, ObliqueStrategiesWidget,
-    },
 };
 
-/// Exported only for widget explorer.
+/// Exported only for widget explorer example.
 // TODO maybe replace with a sneaky factory
 pub mod widget_explorer {
     pub use super::{
@@ -25,8 +24,8 @@ pub mod widget_explorer {
         controllers::{ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget},
         grid::GridWidget,
         legend::LegendWidget,
+        placeholders::Wiggler,
         track::{make_title_bar_galley, TitleBarWidget},
-        unfiled::wiggler,
     };
 }
 
@@ -37,10 +36,9 @@ pub(crate) use {
         BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
         BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction,
     },
-    fm::{FmSynthWidget, FmSynthWidgetAction},
     instruments::{
-        DrumkitWidget, DrumkitWidgetAction, SamplerWidget, SamplerWidgetAction, WelshWidget,
-        WelshWidgetAction,
+        DrumkitWidget, DrumkitWidgetAction, FmSynthWidget, FmSynthWidgetAction, SamplerWidget,
+        SamplerWidgetAction, WelshWidget, WelshWidgetAction,
     },
 };
 
@@ -57,26 +55,27 @@ pub(in crate::egui) use {
 
 mod audio;
 mod automation;
+mod chrome;
 mod colors;
 mod composition;
 mod controllers;
 mod cursor;
 mod effects;
 mod entities;
-mod fm;
 mod generators;
+mod glue;
 mod grid;
 mod indicators;
 mod instruments;
 mod legend;
 mod midi;
+mod misc;
 mod modulators;
 mod orchestration;
+mod placeholders;
 mod project;
 mod settings;
 mod signal_chain;
 mod timeline;
 mod track;
-mod transport;
-mod unfiled;
 mod util;

@@ -1,5 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+//! Thin wrappers around stock egui widgets that make them easier to use with
+//! Ensnare types.
+
 use crate::prelude::*;
 use eframe::egui::DragValue;
 

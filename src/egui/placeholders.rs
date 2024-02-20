@@ -6,18 +6,17 @@ use eframe::{
     epaint::{pos2, vec2, Color32, Pos2, Rect, Shape, Stroke},
 };
 
-/// Wraps a [Wiggler] as a [Widget](eframe::egui::Widget).
-pub fn wiggler() -> impl eframe::egui::Widget {
-    move |ui: &mut eframe::egui::Ui| Wiggler::new().ui(ui)
-}
-
 /// A placeholder widget that fills available space with an animation.
 #[derive(Debug, Default)]
-struct Wiggler {}
+pub struct Wiggler {}
 impl Wiggler {
     #[allow(missing_docs)]
     pub fn new() -> Self {
         Default::default()
+    }
+
+    pub fn widget() -> impl eframe::egui::Widget {
+        move |ui: &mut eframe::egui::Ui| Wiggler::new().ui(ui)
     }
 }
 impl eframe::egui::Widget for Wiggler {

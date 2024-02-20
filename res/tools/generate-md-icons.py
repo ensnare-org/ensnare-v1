@@ -24,7 +24,6 @@ import sys
 # Browse available icons at https://fonts.google.com/icons?icon.platform=web
 ICONS = {
     'av': ['play_arrow', 'pause', 'stop'],
-    'action': ['drag_indicator']
 }
 
 md_dir = sys.argv[1]
@@ -51,7 +50,6 @@ for (group, icons) in ICONS.items():
 # Browse available symbols at https://fonts.google.com/icons
 SYMBOLS = [
     'audio_file',
-    'drag_indicator',
     'file_open',
     'file_save',
     'new_window',

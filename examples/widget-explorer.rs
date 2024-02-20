@@ -21,8 +21,8 @@ use ensnare::{
     composition::{NoteSequencer, NoteSequencerBuilder},
     egui::{
         widget_explorer::{
-            analyze_spectrum, make_title_bar_galley, wiggler, FrequencyDomainWidget, GridWidget,
-            LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
+            analyze_spectrum, make_title_bar_galley, FrequencyDomainWidget, GridWidget,
+            LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget, Wiggler,
         },
         ComposerWidget,
     },
@@ -471,7 +471,7 @@ impl WigglerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(wiggler());
+            ui.add(Wiggler::widget());
         }
     }
 }

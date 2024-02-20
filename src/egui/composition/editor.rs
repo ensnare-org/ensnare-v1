@@ -1,13 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use super::{CarouselAction, CarouselWidget};
 use crate::{
-    egui::{
-        colors::ColorSchemeConverter,
-        fill_remaining_ui_space,
-        unfiled::{CarouselAction, CarouselWidget},
-    },
+    egui::{colors::ColorSchemeConverter, fill_remaining_ui_space},
     prelude::*,
 };
+
 use core::ops::RangeInclusive;
 use eframe::{
     egui::{Frame, PointerButton, Sense, Widget},
