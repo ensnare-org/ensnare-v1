@@ -5,12 +5,10 @@ use super::{
     composition::ArrangementWidget,
     cursor::CursorWidget,
     signal_chain::{SignalChainItem, SignalChainWidget, SignalChainWidgetAction},
+    util::fill_remaining_ui_space,
     GridWidget,
 };
-use crate::{
-    egui::unfiled::fill_remaining_ui_space, orchestration::TrackTitle, prelude::*,
-    types::ColorScheme,
-};
+use crate::{orchestration::TrackTitle, prelude::*, types::ColorScheme};
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},

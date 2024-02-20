@@ -38,7 +38,7 @@ pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
 pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
 pub use transport::TransportWidget;
 pub use unfiled::*;
-pub(crate) use util::dnd_drop_zone_with_inner_response;
+pub(crate) use util::{dnd_drop_zone_with_inner_response, fill_remaining_ui_space};
 
 mod audio;
 mod automation;

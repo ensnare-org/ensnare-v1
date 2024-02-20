@@ -3,7 +3,8 @@
 use crate::{
     egui::{
         colors::ColorSchemeConverter,
-        unfiled::{fill_remaining_ui_space, CarouselAction, CarouselWidget},
+        fill_remaining_ui_space,
+        unfiled::{CarouselAction, CarouselWidget},
     },
     prelude::*,
 };
