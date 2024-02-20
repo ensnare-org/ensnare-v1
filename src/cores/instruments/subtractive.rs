@@ -6,6 +6,7 @@ use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use strum_macros::{EnumCount, FromRepr};
 
 #[derive(
@@ -26,6 +27,9 @@ pub enum LfoRouting {
     Pitch,
     PulseWidth,
     FilterCutoff,
+    FilterResonance,
+    Pitch2,
+    PulseWidth2,
 }
 
 #[derive(Debug, Default)]
@@ -135,6 +139,13 @@ impl Ticks for SubtractiveSynthVoice {
                     let lfo_for_pitch = lfo * self.lfo_depth;
                     self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
                     self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+                } else if matches!(self.lfo_routing, LfoRouting::Pitch2) {
+                    let lfo_for_pitch = lfo * self.lfo_depth;
+                    self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+                } else if matches!(self.lfo_routing, LfoRouting::PulseWidth2) {
+                    let lfo_for_pitch = lfo * self.lfo_depth;
+                    self.oscillator_2
+                        .set_waveform(Waveform::PulseWidth(lfo_for_pitch.into()));
                 }
 
                 // Oscillators
@@ -159,6 +170,14 @@ impl Ticks for SubtractiveSynthVoice {
                     let lfo_for_cutoff = lfo * self.lfo_depth;
                     self.filter
                         .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
+                } else if matches!(self.lfo_routing, LfoRouting::FilterResonance) {
+                    // TODO - it's unlikely this is correct. I copied/pasted
+                    // while converting old patches and for the first time
+                    // encountered a resonance setting.
+                    let lfo_for_resonance = lfo * self.lfo_depth;
+                    self.filter.set_passband_ripple(
+                        (self.filter_cutoff_start * (lfo_for_resonance.0 + 1.0)).into(),
+                    );
                 }
                 let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
 
@@ -371,6 +390,24 @@ impl SubtractiveSynthCore {
                 &self.filter_envelope,
             )
         })
+    }
+
+    pub fn load_patch(path: &PathBuf) -> anyhow::Result<Self> {
+        let mut path = path.clone();
+        path.set_extension("json");
+        let json = std::fs::read_to_string(&path)?;
+        let mut patch = serde_json::from_str::<Self>(&json)?;
+        // patch.e.load_path = Some(path);
+        patch.after_deser();
+        Ok(patch)
+    }
+
+    pub fn save_patch(&mut self, path: &PathBuf) -> anyhow::Result<()> {
+        let mut path = path.clone();
+        path.set_extension("json");
+        let json = serde_json::to_string_pretty(&self)?;
+        std::fs::write(&path, json)?;
+        Ok(())
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {

@@ -83,6 +83,7 @@ pub struct Oscillator {
 
     /// Hertz. Any positive number. 440 = A4
     #[control]
+    #[serde(skip)]
     pub frequency: FrequencyHz,
 
     /// if not zero, then ignores the `frequency` field and uses this one
@@ -92,15 +93,18 @@ pub struct Oscillator {
 
     /// Designed for pitch correction at construction time.
     #[control]
+    #[serde(default, alias = "tune")]
     frequency_tune: Ratio,
 
     /// [-1, 1] is typical range, with -1 halving the frequency, and 1 doubling
     /// it. Designed for LFOs.
     #[control]
+    #[serde(default)]
     frequency_modulation: BipolarNormal,
 
     /// A factor applied to the root frequency. It is used for FM synthesis.
     #[control]
+    #[serde(default)]
     linear_frequency_modulation: ParameterType,
 
     #[serde(skip)]

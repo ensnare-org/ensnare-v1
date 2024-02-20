@@ -29,7 +29,7 @@
   },
   "glide": 0,
   "unison": false,
-  "polyphony": "",
+  "polyphony": "multi",
   "filter-type-24db": {
     "cutoff-hz": 40,
     "cutoff-pct": 0.1

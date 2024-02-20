@@ -26,7 +26,7 @@
   "oscillator-2-sync": true,
   "noise": 0,
   "lfo": {
-    "routing": "pitch-osc2",
+    "routing": "pitch-2",
     "waveform": "triangle",
     "frequency": 4,
     "depth": {

@@ -1,0 +1,49 @@
+{
+  "oscillator-1": {
+    "waveform": "sawtooth",
+    "fixed-frequency": null,
+    "frequency-tune": 1.0,
+    "frequency-modulation": 0.0,
+    "linear-frequency-modulation": 0.0
+  },
+  "oscillator-2": {
+    "waveform": "square",
+    "fixed-frequency": null,
+    "frequency-tune": 1.0,
+    "frequency-modulation": 0.0,
+    "linear-frequency-modulation": 0.0
+  },
+  "oscillator-2-sync": false,
+  "oscillator-mix": 0.5,
+  "amp-envelope": {
+    "attack": 0.0,
+    "decay": 0.0,
+    "sustain": 1.0,
+    "release": 0.02666666666666667
+  },
+  "dca": {
+    "gain": 1.0,
+    "pan": 0.0
+  },
+  "lfo": {
+    "waveform": "sawtooth",
+    "fixed-frequency": null,
+    "frequency-tune": 1.0,
+    "frequency-modulation": 0.0,
+    "linear-frequency-modulation": 0.0
+  },
+  "lfo-routing": "PulseWidth",
+  "lfo-depth": 0.0,
+  "filter": {
+    "cutoff": 120.0,
+    "passband-ripple": 1.0
+  },
+  "filter-cutoff-start": 1.0,
+  "filter-cutoff-end": 1.0,
+  "filter-envelope": {
+    "attack": 0.11,
+    "decay": 0.10666666666666667,
+    "sustain": 0.0,
+    "release": 0.10666666666666667
+  }
+}

@@ -28,7 +28,7 @@
   "oscillator-2-sync": true,
   "noise": 0,
   "lfo": {
-    "routing": "pw-osc1",
+    "routing": "pulse-width",
     "waveform": "triangle",
     "frequency": 1.6,
     "depth": {

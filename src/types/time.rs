@@ -522,6 +522,9 @@ impl From<Range<MusicalTime>> for TimeRange {
 #[serde(rename_all = "kebab-case")]
 pub struct Seconds(pub f64);
 impl Seconds {
+    /// The number of seconds in a Normal(1.0)
+    const SCALE_FACTOR: f64 = 30.0;
+
     pub fn zero() -> Seconds {
         Seconds(0.0)
     }
@@ -535,19 +538,29 @@ impl From<f64> for Seconds {
         Self(value)
     }
 }
-impl From<f32> for Seconds {
-    fn from(value: f32) -> Self {
-        Self(value as f64)
-    }
-}
 impl From<Seconds> for f64 {
     fn from(value: Seconds) -> Self {
         value.0
     }
 }
+impl From<f32> for Seconds {
+    fn from(value: f32) -> Self {
+        Self(value as f64)
+    }
+}
 impl From<Seconds> for f32 {
     fn from(value: Seconds) -> Self {
         value.0 as f32
+    }
+}
+impl From<Normal> for Seconds {
+    fn from(value: Normal) -> Self {
+        Self(value.0 * Self::SCALE_FACTOR)
+    }
+}
+impl From<Seconds> for Normal {
+    fn from(value: Seconds) -> Self {
+        Self(value.0.clamp(0.0, Seconds::SCALE_FACTOR) / Seconds::SCALE_FACTOR)
     }
 }
 impl Add<f64> for Seconds {
