@@ -2,14 +2,12 @@
 
 pub use control_bar::{ControlBar, ControlBarAction, ControlBarWidget};
 pub use core::DragNormalWidget;
-pub use indicators::{activity_indicator, level_indicator};
 pub use misc::ObliqueStrategiesWidget;
 pub use placeholder::wiggler;
-pub use unfiled_xx::{CarouselAction, CarouselWidget, DraggableIconWidget, IconWidget};
+pub use unfiled_xx::{CarouselAction, CarouselWidget};
 
 mod control_bar;
 mod core;
-mod indicators;
 mod misc;
 mod placeholder;
 mod unfiled_xx;

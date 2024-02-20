@@ -22,8 +22,9 @@ use egui_notify::Toasts;
 use ensnare::{
     app_version,
     egui::{
-        ControlBar, ControlBarAction, ControlBarWidget, ObliqueStrategiesWidget,
-        TimelineIconStripAction, TimelineIconStripWidget, TransportWidget,
+        ComposerWidget, ControlBar, ControlBarAction, ControlBarWidget, EntityPaletteWidget,
+        ObliqueStrategiesWidget, ProjectAction, ProjectWidget, TimelineIconStripAction,
+        TimelineIconStripWidget, TransportWidget,
     },
     prelude::*,
     traits::DisplaysAction,

@@ -2,43 +2,58 @@
 
 //! Widgets that work with the [egui](https://www.egui.rs/) GUI library.
 
-/// The most commonly used imports.
-pub mod prelude {
+// Public/reusable
+pub use {
+    composition::ComposerWidget,
+    entities::EntityPaletteWidget,
+    generators::{EnvelopeWidget, OscillatorWidget},
+    modulators::{DcaWidget, DcaWidgetAction},
+    project::{ProjectAction, ProjectWidget},
+    settings::{AudioSettingsWidget, MidiSettingsWidget},
+    timeline::{TimelineIconStripAction, TimelineIconStripWidget},
+    transport::TransportWidget,
+    unfiled::{
+        ControlBar, ControlBarAction, ControlBarWidget, DragNormalWidget, ObliqueStrategiesWidget,
+    },
+};
+
+/// Exported only for widget explorer.
+// TODO maybe replace with a sneaky factory
+pub mod widget_explorer {
     pub use super::{
-        ComposerWidget, EntityPaletteWidget, ProjectAction, ProjectWidget, WaveformWidget,
+        audio::{analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget},
+        controllers::{ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget},
+        grid::GridWidget,
+        legend::LegendWidget,
+        track::{make_title_bar_galley, TitleBarWidget},
+        unfiled::wiggler,
     };
 }
 
-pub use audio::{
-    analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
+// Internal use only
+pub(crate) use {
+    controllers::{ArpeggiatorWidget, LfoControllerWidget},
+    effects::{
+        BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
+        BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction,
+    },
+    fm::{FmSynthWidget, FmSynthWidgetAction},
+    instruments::{
+        DrumkitWidget, DrumkitWidgetAction, SamplerWidget, SamplerWidgetAction, WelshWidget,
+        WelshWidgetAction,
+    },
 };
-pub use composition::ComposerWidget;
-pub use controllers::{
-    ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget, PatternSequencerWidget,
+
+// Used only by other widgets
+pub(in crate::egui) use {
+    audio::{
+        analyze_spectrum, FrequencyDomainWidget, FrequencyWidget, TimeDomainWidget, WaveformWidget,
+    },
+    grid::GridWidget,
+    indicators::activity_indicator,
+    legend::LegendWidget,
+    util::{dnd_drop_zone_with_inner_response, fill_remaining_ui_space},
 };
-pub use cursor::CursorWidget;
-pub use effects::{
-    BiQuadFilterAllPassWidget, BiQuadFilterBandPassWidget, BiQuadFilterBandStopWidget,
-    BiQuadFilterHighPassWidget, BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction,
-};
-pub use entities::EntityPaletteWidget;
-pub use fm::{FmSynthWidget, FmSynthWidgetAction};
-pub use generators::{EnvelopeWidget, OscillatorWidget};
-pub use grid::GridWidget;
-pub use instruments::{
-    DrumkitWidget, DrumkitWidgetAction, SamplerWidget, SamplerWidgetAction, WelshWidget,
-    WelshWidgetAction,
-};
-pub use legend::LegendWidget;
-pub use modulators::{DcaWidget, DcaWidgetAction};
-pub use project::{ProjectAction, ProjectWidget};
-pub use settings::{AudioSettingsWidget, MidiSettingsWidget};
-pub use signal_chain::SignalChainItem;
-pub use timeline::{TimelineIconStripAction, TimelineIconStripWidget};
-pub use track::{make_title_bar_galley, TitleBarWidget, TrackWidget};
-pub use transport::TransportWidget;
-pub use unfiled::*;
-pub(crate) use util::{dnd_drop_zone_with_inner_response, fill_remaining_ui_space};
 
 mod audio;
 mod automation;
@@ -51,6 +66,7 @@ mod entities;
 mod fm;
 mod generators;
 mod grid;
+mod indicators;
 mod instruments;
 mod legend;
 mod midi;

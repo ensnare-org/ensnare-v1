@@ -19,14 +19,15 @@ use eframe::{
 use ensnare::{
     app_version,
     composition::{NoteSequencer, NoteSequencerBuilder},
+    egui::{
+        widget_explorer::{
+            analyze_spectrum, make_title_bar_galley, wiggler, FrequencyDomainWidget, GridWidget,
+            LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
+        },
+        ComposerWidget,
+    },
     orchestration::TrackTitle,
     prelude::*,
-};
-use ensnare::{
-    egui::{
-        analyze_spectrum, make_title_bar_galley, wiggler, ComposerWidget, FrequencyDomainWidget,
-        GridWidget, LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget,
-    },
     types::VisualizationQueue,
     util::Rng,
 };

@@ -23,9 +23,9 @@ version.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
-app_dirs2 = "2.5"                                                               # for utils::Paths
+app_dirs2 = "2.5"         # for utils::Paths
 bit-vec = "0.6.3"
-bounded-vec-deque = "0.1"                                                       # for VisualizationQueue
+bounded-vec-deque = "0.1" # for VisualizationQueue
 byteorder = "1.5.0"
 cpal = "0.15.2"
 crossbeam = "0.8"
@@ -138,9 +138,9 @@ required-features = ["std", "egui"]
 name = "entity-gui-explorer"
 required-features = ["std", "egui"]
 
-[[example]]
-name = "widget-explorer"
-required-features = ["std", "egui"]
+# [[example]]
+# name = "widget-explorer"
+# required-features = ["std", "egui"]
 
 [[example]]
 name = "render"

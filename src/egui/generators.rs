@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::DragNormalWidget;
+use super::{DragNormalWidget, WaveformWidget};
 use crate::prelude::*;
 use eframe::{
     egui::{Frame, Sense, Widget},

@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::FrequencyWidget;
+use super::{FrequencyWidget, WaveformWidget};
 use crate::{
     composition::{NoteSequencer, PatternSequencer},
     cores::controllers::{ArpeggiatorCore, ArpeggioMode},
