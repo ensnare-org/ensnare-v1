@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::cores::ToyControllerCore;
 use eframe::egui::Slider;
 use ensnare::prelude::*;
 use ensnare_proc_macros::{
@@ -7,8 +8,6 @@ use ensnare_proc_macros::{
     IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::cores::ToyControllerCore;
 
 #[derive(
     Debug,

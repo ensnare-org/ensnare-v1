@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-//! Toy Entities that wrap the corresponding toy devices in ensnare_core::toys.
+//! Toy Entities that wrap the corresponding toy devices.
 
 /// Recommended imports for easy onboarding.
 pub mod prelude {

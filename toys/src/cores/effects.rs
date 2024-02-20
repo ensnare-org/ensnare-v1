@@ -2,11 +2,12 @@
 
 use ensnare::prelude::*;
 use ensnare_proc_macros::Control;
+use serde::{Deserialize, Serialize};
 
 /// An effect that applies a negative gain.
-#[derive(Debug, Default, Control)]
+#[derive(Debug, Default, Control, Serialize, Deserialize)]
 pub struct ToyEffectCore {
-    /// The [ToyEffect] transformation is signal * -magnitude.
+    /// This effect transformation is signal * -magnitude.
     #[control]
     pub magnitude: Normal,
 

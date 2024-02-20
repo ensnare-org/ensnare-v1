@@ -1,12 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use crate::cores::ToyEffectCore;
 use ensnare::{egui::DragNormalWidget, prelude::*};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::cores::ToyEffectCore;
 
 #[derive(
     Debug,
@@ -23,7 +22,6 @@ use crate::cores::ToyEffectCore;
 #[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls)]
 pub struct ToyEffect {
     uid: Uid,
-    #[serde(skip)]
     inner: ToyEffectCore,
 }
 impl Displays for ToyEffect {
