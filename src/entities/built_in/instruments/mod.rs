@@ -1,13 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 #[cfg(feature = "egui")]
-use crate::egui::{FmSynthWidgetAction, WelshWidgetAction};
+use crate::egui::{FmSynthWidgetAction, SubtractiveSynthWidgetAction};
 use crate::{
     cores::{
         effects::BiQuadFilterLowPass24dbCoreBuilder,
         instruments::{
-            DrumkitCore, FmSynthCore, FmSynthCoreBuilder, LfoRouting, SamplerCore, WelshSynthCore,
-            WelshSynthCoreBuilder,
+            DrumkitCore, FmSynthCore, FmSynthCoreBuilder, LfoRouting, SamplerCore,
+            SubtractiveSynthCore, SubtractiveSynthCoreBuilder,
         },
     },
     egui::{DrumkitWidgetAction, SamplerWidgetAction},
@@ -192,20 +192,20 @@ impl Sampler {
     Serialize,
 )]
 #[entity(Controls, TransformsAudio)]
-pub struct WelshSynth {
+pub struct SubtractiveSynth {
     uid: Uid,
-    inner: WelshSynthCore,
+    inner: SubtractiveSynthCore,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
-    widget_action: Option<WelshWidgetAction>,
+    widget_action: Option<SubtractiveSynthWidgetAction>,
 
     #[cfg(feature = "egui")]
     #[serde(skip)]
     action: Option<DisplaysAction>,
 }
-impl WelshSynth {
-    pub fn new_with(uid: Uid, inner: WelshSynthCore) -> Self {
+impl SubtractiveSynth {
+    pub fn new_with(uid: Uid, inner: SubtractiveSynthCore) -> Self {
         Self {
             uid,
             inner,
@@ -215,9 +215,9 @@ impl WelshSynth {
     }
 
     pub fn new_with_factory_patch(uid: Uid) -> Self {
-        WelshSynth::new_with(
+        SubtractiveSynth::new_with(
             uid,
-            WelshSynthCoreBuilder::default()
+            SubtractiveSynthCoreBuilder::default()
                 .oscillator_1(
                     OscillatorBuilder::default()
                         .waveform(Waveform::Sine)
@@ -263,7 +263,7 @@ impl WelshSynth {
 mod egui {
     use super::*;
     use crate::{
-        egui::{DrumkitWidget, FmSynthWidget, SamplerWidget, WelshWidget},
+        egui::{DrumkitWidget, FmSynthWidget, SamplerWidget, SubtractiveSynthWidget},
         traits::DisplaysAction,
     };
 
@@ -342,15 +342,15 @@ mod egui {
         }
     }
 
-    impl Displays for WelshSynth {
+    impl Displays for SubtractiveSynth {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            let response = ui.add(WelshWidget::widget(
+            let response = ui.add(SubtractiveSynthWidget::widget(
                 &mut self.inner,
                 &mut self.widget_action,
             ));
             if let Some(action) = self.widget_action.take() {
                 match action {
-                    WelshWidgetAction::Link(uid, index) => {
+                    SubtractiveSynthWidgetAction::Link(uid, index) => {
                         self.set_action(DisplaysAction::Link(uid, index));
                     }
                 }

@@ -11,7 +11,7 @@ pub use {
         },
         Bitcrusher, Chorus, Compressor, Delay, Gain, Limiter, Reverb,
     },
-    instruments::{Drumkit, FmSynth, Sampler, WelshSynth},
+    instruments::{Drumkit, FmSynth, Sampler, SubtractiveSynth},
     //EntityFactory,
 };
 

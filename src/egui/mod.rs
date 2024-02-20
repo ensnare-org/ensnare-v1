@@ -38,7 +38,7 @@ pub(crate) use {
     },
     instruments::{
         DrumkitWidget, DrumkitWidgetAction, FmSynthWidget, FmSynthWidgetAction, SamplerWidget,
-        SamplerWidgetAction, WelshWidget, WelshWidgetAction,
+        SamplerWidgetAction, SubtractiveSynthWidget, SubtractiveSynthWidgetAction,
     },
 };
 

@@ -7,14 +7,16 @@ pub use {
     drumkit::DrumkitCore,
     fm::{FmSynthCore, FmSynthCoreBuilder},
     sampler::{SamplerCore, SamplerVoice},
+    subtractive::{
+        LfoRouting, SubtractiveSynthCore, SubtractiveSynthCoreBuilder, SubtractiveSynthVoice,
+    },
     test::{
         TestAudioSourceCore, TestAudioSourceCoreBuilder, TestControllerAlwaysSendsMidiMessageCore,
     },
-    welsh::{LfoRouting, WelshSynthCore, WelshSynthCoreBuilder, WelshVoice},
 };
 
 mod drumkit;
 mod fm;
 mod sampler;
+mod subtractive;
 mod test;
-mod welsh;

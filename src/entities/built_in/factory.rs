@@ -3,8 +3,8 @@
 use super::{
     Arpeggiator, BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop,
     BiQuadFilterHighPass, BiQuadFilterLowPass24db, Bitcrusher, Chorus, Compressor, Delay, Drumkit,
-    FmSynth, Gain, LfoController, Limiter, Reverb, Sampler, SignalPassthroughController, Timer,
-    Trigger, WelshSynth,
+    FmSynth, Gain, LfoController, Limiter, Reverb, Sampler, SignalPassthroughController,
+    SubtractiveSynth, Timer, Trigger,
 };
 use crate::{
     cores::{
@@ -184,8 +184,8 @@ impl BuiltInEntities {
             let _ = sampler.load(&Paths::default()); // TODO: we're ignoring the error
             Box::new(sampler)
         });
-        factory.register_entity_with_str_key(WelshSynth::ENTITY_KEY, |uid| {
-            Box::new(WelshSynth::new_with_factory_patch(uid))
+        factory.register_entity_with_str_key(SubtractiveSynth::ENTITY_KEY, |uid| {
+            Box::new(SubtractiveSynth::new_with_factory_patch(uid))
         });
 
         factory

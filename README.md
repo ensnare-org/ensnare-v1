@@ -21,7 +21,7 @@ backward-compatibility guarantee exists.
 It's too early to document the DAW GUI because it's changing quickly, but here
 are some things to try.
 
-- Drag one of the instruments (FM Synth, Welsh Synth, Sampler, Drumkit) to the
+- Drag one of the instruments (FM Synth, Subtractive Synth, Sampler, Drumkit) to the
   bottom of the first track to add it to that track.
 - If you have a MIDI keyboard attached to your PC, you should be able to pick it
   in Settings as a MIDI In. If you don't have a MIDI keyboard, your computer

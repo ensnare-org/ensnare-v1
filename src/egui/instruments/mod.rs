@@ -3,9 +3,9 @@
 pub use drumkit::{DrumkitWidget, DrumkitWidgetAction};
 pub use fm::{FmSynthWidget, FmSynthWidgetAction};
 pub use sampler::{SamplerWidget, SamplerWidgetAction};
-pub use welsh::{WelshWidget, WelshWidgetAction};
+pub use subtractive::{SubtractiveSynthWidget, SubtractiveSynthWidgetAction};
 
 mod drumkit;
 mod fm;
 mod sampler;
-mod welsh;
+mod subtractive;

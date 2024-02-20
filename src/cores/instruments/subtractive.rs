@@ -29,7 +29,7 @@ pub enum LfoRouting {
 }
 
 #[derive(Debug, Default)]
-pub struct WelshVoice {
+pub struct SubtractiveSynthVoice {
     pub oscillator_1: Oscillator,
     pub oscillator_2: Oscillator,
     pub oscillator_2_sync: bool,
@@ -53,9 +53,9 @@ pub struct WelshVoice {
     sample: StereoSample,
     ticks: usize,
 }
-impl IsStereoSampleVoice for WelshVoice {}
-impl IsVoice<StereoSample> for WelshVoice {}
-impl PlaysNotes for WelshVoice {
+impl IsStereoSampleVoice for SubtractiveSynthVoice {}
+impl IsVoice<StereoSample> for SubtractiveSynthVoice {}
+impl PlaysNotes for SubtractiveSynthVoice {
     fn is_playing(&self) -> bool {
         !self.amp_envelope.is_idle()
     }
@@ -79,7 +79,7 @@ impl PlaysNotes for WelshVoice {
         self.filter_envelope.trigger_release();
     }
 }
-impl Generates<StereoSample> for WelshVoice {
+impl Generates<StereoSample> for SubtractiveSynthVoice {
     fn value(&self) -> StereoSample {
         self.sample
     }
@@ -87,8 +87,8 @@ impl Generates<StereoSample> for WelshVoice {
         todo!()
     }
 }
-impl Serializable for WelshVoice {}
-impl Configurable for WelshVoice {
+impl Serializable for SubtractiveSynthVoice {}
+impl Configurable for SubtractiveSynthVoice {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.ticks = 0;
         self.lfo.update_sample_rate(sample_rate);
@@ -99,7 +99,7 @@ impl Configurable for WelshVoice {
         self.oscillator_2.update_sample_rate(sample_rate);
     }
 }
-impl Ticks for WelshVoice {
+impl Ticks for SubtractiveSynthVoice {
     fn tick(&mut self, tick_count: usize) {
         for _ in 0..tick_count {
             self.ticks += 1;
@@ -180,7 +180,7 @@ impl Ticks for WelshVoice {
         }
     }
 }
-impl WelshVoice {
+impl SubtractiveSynthVoice {
     pub fn new_with(
         oscillator_1: &Oscillator,
         oscillator_2: &Oscillator,
@@ -300,12 +300,12 @@ impl WelshVoice {
     }
 }
 
-/// A synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
+/// A subtractive synthesizer inspired by Fred Welsh's [Welsh's Synthesizer
 /// Cookbook](https://www.amazon.com/dp/B000ERHA4S/).
 #[derive(Debug, Default, Builder, Control, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[builder(default, build_fn(private, name = "build_from_builder"))]
-pub struct WelshSynthCore {
+pub struct SubtractiveSynthCore {
     #[control]
     pub oscillator_1: Oscillator,
     #[control]
@@ -336,11 +336,11 @@ pub struct WelshSynthCore {
 
     #[serde(skip)]
     #[builder(setter(skip))]
-    pub inner: Synthesizer<WelshVoice>,
+    pub inner: Synthesizer<SubtractiveSynthVoice>,
 }
-impl WelshSynthCoreBuilder {
+impl SubtractiveSynthCoreBuilder {
     /// The overridden Builder build() method.
-    pub fn build(&self) -> Result<WelshSynthCore, WelshSynthCoreBuilderError> {
+    pub fn build(&self) -> Result<SubtractiveSynthCore, SubtractiveSynthCoreBuilderError> {
         match self.build_from_builder() {
             Ok(mut s) => {
                 s.after_deser();
@@ -350,12 +350,12 @@ impl WelshSynthCoreBuilder {
         }
     }
 }
-impl WelshSynthCore {
+impl SubtractiveSynthCore {
     const VOICE_CAPACITY: usize = 8;
 
-    fn new_voice_store(&self) -> StealingVoiceStore<WelshVoice> {
-        StealingVoiceStore::<WelshVoice>::new_with_voice(Self::VOICE_CAPACITY, || {
-            WelshVoice::new_with(
+    fn new_voice_store(&self) -> StealingVoiceStore<SubtractiveSynthVoice> {
+        StealingVoiceStore::<SubtractiveSynthVoice>::new_with_voice(Self::VOICE_CAPACITY, || {
+            SubtractiveSynthVoice::new_with(
                 &self.oscillator_1,
                 &self.oscillator_2,
                 self.oscillator_2_sync,
@@ -373,7 +373,7 @@ impl WelshSynthCore {
         })
     }
 }
-impl Generates<StereoSample> for WelshSynthCore {
+impl Generates<StereoSample> for SubtractiveSynthCore {
     fn value(&self) -> StereoSample {
         self.inner.value()
     }
@@ -382,14 +382,15 @@ impl Generates<StereoSample> for WelshSynthCore {
         self.inner.generate(values);
     }
 }
-impl Serializable for WelshSynthCore {
+impl Serializable for SubtractiveSynthCore {
     fn before_ser(&mut self) {}
 
     fn after_deser(&mut self) {
-        self.inner = Synthesizer::<WelshVoice>::new_with(Box::new(self.new_voice_store()));
+        self.inner =
+            Synthesizer::<SubtractiveSynthVoice>::new_with(Box::new(self.new_voice_store()));
     }
 }
-impl Configurable for WelshSynthCore {
+impl Configurable for SubtractiveSynthCore {
     delegate! {
         to self.inner {
             fn sample_rate(&self) -> SampleRate;
@@ -401,12 +402,12 @@ impl Configurable for WelshSynthCore {
         }
     }
 }
-impl Ticks for WelshSynthCore {
+impl Ticks for SubtractiveSynthCore {
     fn tick(&mut self, tick_count: usize) {
         self.inner.tick(tick_count);
     }
 }
-impl HandlesMidi for WelshSynthCore {
+impl HandlesMidi for SubtractiveSynthCore {
     fn handle_midi_message(
         &mut self,
         channel: MidiChannel,
@@ -418,7 +419,7 @@ impl HandlesMidi for WelshSynthCore {
             MidiMessage::ProgramChange { program } => {
                 todo!()
                 // if let Some(program) = GeneralMidiProgram::from_u8(program.as_int()) {
-                //     if let Ok(_preset) = WelshSynth::general_midi_preset(&program) {
+                //     if let Ok(_preset) = SubtractiveSynth::general_midi_preset(&program) {
                 //         //  self.preset = preset;
                 //     } else {
                 //         println!("unrecognized patch from MIDI program change: {}", &program);
@@ -432,7 +433,7 @@ impl HandlesMidi for WelshSynthCore {
         }
     }
 }
-impl WelshSynthCore {
+impl SubtractiveSynthCore {
     pub fn preset_name(&self) -> &str {
         "none"
         //        self.preset.name.as_str()
@@ -531,7 +532,7 @@ mod tests {
     #[cfg(obsolete)]
     // TODO: refactor out to common test utilities
     #[allow(dead_code)]
-    fn write_voice(voice: &mut WelshVoice, duration: f64, basename: &str) {
+    fn write_voice(voice: &mut SubtractiveSynthVoice, duration: f64, basename: &str) {
         let mut clock = Clock::new_with(&ClockParams {
             bpm: DEFAULT_BPM,
             midi_ticks_per_second: DEFAULT_MIDI_TICKS_PER_SECOND,

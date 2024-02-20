@@ -97,7 +97,7 @@ fn edit_song() {
         )
         .unwrap();
 
-    let welsh_synth_uid = project
+    let sub_synth_uid = project
         .add_entity(
             lead_track_uid,
             factory
@@ -107,11 +107,11 @@ fn edit_song() {
         )
         .unwrap();
     assert!(project
-        .set_midi_receiver_channel(welsh_synth_uid, Some(MidiChannel::default()))
+        .set_midi_receiver_channel(sub_synth_uid, Some(MidiChannel::default()))
         .is_ok());
 
     // Hmmm, we don't like the sound of that synth; let's replace it with another.
-    let _ = project.remove_entity(welsh_synth_uid);
+    let _ = project.remove_entity(sub_synth_uid);
     let toy_synth_uid = project
         .add_entity(
             lead_track_uid,

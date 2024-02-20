@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::{
-    cores::instruments::WelshSynthCore,
+    cores::instruments::SubtractiveSynthCore,
     egui::{
         BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
         EnvelopeWidget, OscillatorWidget,
@@ -12,29 +12,32 @@ use eframe::egui::{CollapsingHeader, Slider, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
-pub enum WelshWidgetAction {
+pub enum SubtractiveSynthWidgetAction {
     Link(ControlLinkSource, ControlIndex),
 }
 
 #[derive(Debug)]
-pub struct WelshWidget<'a> {
-    inner: &'a mut WelshSynthCore,
-    action: &'a mut Option<WelshWidgetAction>,
+pub struct SubtractiveSynthWidget<'a> {
+    inner: &'a mut SubtractiveSynthCore,
+    action: &'a mut Option<SubtractiveSynthWidgetAction>,
 }
-impl<'a> WelshWidget<'a> {
-    fn new(inner: &'a mut WelshSynthCore, action: &'a mut Option<WelshWidgetAction>) -> Self {
+impl<'a> SubtractiveSynthWidget<'a> {
+    fn new(
+        inner: &'a mut SubtractiveSynthCore,
+        action: &'a mut Option<SubtractiveSynthWidgetAction>,
+    ) -> Self {
         Self { inner, action }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        inner: &'a mut WelshSynthCore,
-        action: &'a mut Option<WelshWidgetAction>,
+        inner: &'a mut SubtractiveSynthCore,
+        action: &'a mut Option<SubtractiveSynthWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| WelshWidget::new(inner, action).ui(ui)
+        move |ui: &mut eframe::egui::Ui| SubtractiveSynthWidget::new(inner, action).ui(ui)
     }
 }
-impl<'a> eframe::egui::Widget for WelshWidget<'a> {
+impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut response = CollapsingHeader::new("Oscillator 1")
             .default_open(true)
@@ -82,9 +85,9 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 if let Some(action) = action {
                     match action {
                         DcaWidgetAction::Link(source, index) => {
-                            *self.action = Some(WelshWidgetAction::Link(
+                            *self.action = Some(SubtractiveSynthWidgetAction::Link(
                                 source,
-                                index + WelshSynthCore::DCA_INDEX,
+                                index + SubtractiveSynthCore::DCA_INDEX,
                             ))
                         }
                     }
@@ -126,7 +129,7 @@ impl<'a> eframe::egui::Widget for WelshWidget<'a> {
                 if let Some(action) = action {
                     match action {
                         BiQuadFilterWidgetAction::Link(source, param) => {
-                            *self.action = Some(WelshWidgetAction::Link(source, param));
+                            *self.action = Some(SubtractiveSynthWidgetAction::Link(source, param));
                         }
                     }
                 }
