@@ -257,7 +257,11 @@ mod tests {
     #[test]
     fn mainline_test_synthesizer() {
         let mut s = TestSynthesizer::default();
-        s.handle_midi_message(MidiChannel(12), new_note_on(100, 99), &mut |_, _| {});
+        s.handle_midi_message(
+            MidiChannel(12),
+            MidiUtils::new_note_on(100, 99),
+            &mut |_, _| {},
+        );
 
         // Get a few samples because the oscillator correctly starts at zero.
         let mut samples = [StereoSample::default(); 5];

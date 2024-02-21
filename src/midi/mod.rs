@@ -5,17 +5,25 @@
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        new_note_off, new_note_on, u4, u7, MidiChannel, MidiEvent, MidiInterfaceServiceEvent,
-        MidiInterfaceServiceInput, MidiMessage, MidiNote, MidiPortDescriptor,
+        u4, u7, MidiChannel, MidiEvent, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
+        MidiMessage, MidiNote, MidiPortDescriptor, MidiUtils,
     };
 }
 
-pub use crate::services::{
-    MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
-};
-pub use unfiled::{
-    new_note_off, new_note_on, u4, u7, GeneralMidiPercussionProgram, GeneralMidiProgram, LiveEvent,
-    MidiChannel, MidiEvent, MidiMessage, MidiNote,
+pub use {
+    crate::services::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor},
+    general_midi::GeneralMidiPercussionProgram,
+    midly::{
+        live::LiveEvent,
+        num::{u4, u7},
+        MidiMessage,
+    },
+    note::MidiNote,
+    types::{MidiChannel, MidiEvent},
+    util::MidiUtils,
 };
 
-mod unfiled;
+mod general_midi;
+mod note;
+mod types;
+mod util;

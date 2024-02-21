@@ -159,7 +159,7 @@ mod tests {
         let _ = router.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));
         let _ = router.set_midi_receiver_channel(Uid(2), Some(MidiChannel(2)));
 
-        let m = new_note_on(1, 1);
+        let m = MidiUtils::new_note_on(1, 1);
 
         assert!(router.route(&mut repo, MidiChannel(99), m).is_ok());
         if let Ok(t) = tracker.read() {
@@ -217,7 +217,7 @@ mod tests {
         let _ = r.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));
         let _ = r.set_midi_receiver_channel(Uid(2), Some(MidiChannel(2)));
 
-        let m = new_note_on(1, 1);
+        let m = MidiUtils::new_note_on(1, 1);
 
         assert!(r.route(&mut repo, MidiChannel(1), m).is_ok());
         if let Ok(t) = tracker.read() {
@@ -237,7 +237,7 @@ mod tests {
                 "produced message should be received"
             );
         };
-        let m = new_note_on(2, 3);
+        let m = MidiUtils::new_note_on(2, 3);
         assert!(r.route(&mut repo, MidiChannel(2), m).is_ok());
         if let Ok(t) = tracker.read() {
             assert_eq!(
@@ -267,7 +267,7 @@ mod tests {
         let mut r = MidiRouter::default();
         let _ = r.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));
 
-        let m = new_note_on(1, 1);
+        let m = MidiUtils::new_note_on(1, 1);
 
         assert!(r.route(&mut repo, MidiChannel(1), m).is_err());
     }

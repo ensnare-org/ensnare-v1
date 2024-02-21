@@ -35,12 +35,18 @@ impl Controls for ToyControllerCore {
                 // then we still send the off note,
                 if self.is_enabled && self.is_performing {
                     self.is_playing = true;
-                    control_events_fn(WorkEvent::Midi(self.midi_channel_out, new_note_on(60, 127)));
+                    control_events_fn(WorkEvent::Midi(
+                        self.midi_channel_out,
+                        MidiUtils::new_note_on(60, 127),
+                    ));
                 }
             }
             TestControllerAction::NoteOff => {
                 if self.is_playing {
-                    control_events_fn(WorkEvent::Midi(self.midi_channel_out, new_note_off(60, 0)));
+                    control_events_fn(WorkEvent::Midi(
+                        self.midi_channel_out,
+                        MidiUtils::new_note_off(60, 0),
+                    ));
                 }
             }
         }

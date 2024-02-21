@@ -65,7 +65,7 @@ impl Configurable for MidiNoteMinder {}
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::midi::{new_note_off, new_note_on, MidiChannel, MidiMessage};
+    use crate::midi::{MidiChannel, MidiMessage, MidiUtils};
 
     fn gather_all_messages(mnm: &mut MidiNoteMinder) -> Vec<MidiMessage> {
         let mut v = Vec::default();
@@ -85,13 +85,17 @@ pub mod tests {
         // Unexpected note-off doesn't explode
         mnm.handle_midi_message(
             MidiChannel::default(),
-            new_note_off(42, 111),
+            MidiUtils::new_note_off(42, 111),
             &mut |_, _| {},
         );
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // normal
-        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_on(42, 99),
+            &mut |_, _| {},
+        );
         let msgs = gather_all_messages(&mut mnm);
         assert_eq!(msgs.len(), 1);
         assert_eq!(
@@ -103,7 +107,11 @@ pub mod tests {
         );
 
         // duplicate on doesn't explode or add twice
-        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 88), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_on(42, 88),
+            &mut |_, _| {},
+        );
         let msgs = gather_all_messages(&mut mnm);
         assert_eq!(msgs.len(), 1);
         assert_eq!(
@@ -115,21 +123,45 @@ pub mod tests {
         );
 
         // normal
-        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 77), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_off(42, 77),
+            &mut |_, _| {},
+        );
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // duplicate off doesn't explode
-        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 66), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_off(42, 66),
+            &mut |_, _| {},
+        );
         assert!(gather_all_messages(&mut mnm).is_empty());
 
         // velocity zero treated same as note-off
-        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_on(42, 99),
+            &mut |_, _| {},
+        );
         assert_eq!(gather_all_messages(&mut mnm).len(), 1);
-        mnm.handle_midi_message(MidiChannel::default(), new_note_off(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_off(42, 99),
+            &mut |_, _| {},
+        );
         assert!(gather_all_messages(&mut mnm).is_empty());
-        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 99), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_on(42, 99),
+            &mut |_, _| {},
+        );
         assert_eq!(gather_all_messages(&mut mnm).len(), 1);
-        mnm.handle_midi_message(MidiChannel::default(), new_note_on(42, 0), &mut |_, _| {});
+        mnm.handle_midi_message(
+            MidiChannel::default(),
+            MidiUtils::new_note_on(42, 0),
+            &mut |_, _| {},
+        );
         assert!(gather_all_messages(&mut mnm).is_empty());
     }
 }
