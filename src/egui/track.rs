@@ -8,7 +8,11 @@ use super::{
     util::fill_remaining_ui_space,
     GridWidget,
 };
-use crate::{orchestration::TrackTitle, prelude::*, types::ColorScheme};
+use crate::{
+    orchestration::{TrackTitle, TrackViewMode},
+    prelude::*,
+    types::ColorScheme,
+};
 use eframe::{
     egui::{Frame, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},

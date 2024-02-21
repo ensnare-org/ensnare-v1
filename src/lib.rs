@@ -8,8 +8,7 @@
 pub use all_entities::MiniDawEntities;
 pub use automation::Automator;
 pub use composition::Composer;
-pub use orchestration::Orchestrator;
-pub use project::Project;
+pub use orchestration::{Orchestrator, Project};
 pub use version::app_version;
 
 pub mod automation;
@@ -21,7 +20,6 @@ pub mod elements;
 pub mod entities;
 pub mod midi;
 pub mod orchestration;
-pub mod project;
 pub mod services;
 pub mod traits;
 pub mod types;
@@ -35,8 +33,7 @@ mod version;
 pub mod prelude {
     pub use super::{
         automation::prelude::*, composition::prelude::*, elements::prelude::*,
-        entities::prelude::*, midi::prelude::*, orchestration::prelude::*, project::prelude::*,
-        services::prelude::*, traits::prelude::*, types::prelude::*, util::prelude::*,
-        MiniDawEntities,
+        entities::prelude::*, midi::prelude::*, orchestration::prelude::*, services::prelude::*,
+        traits::prelude::*, types::prelude::*, util::prelude::*, MiniDawEntities,
     };
 }
