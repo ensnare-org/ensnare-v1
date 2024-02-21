@@ -1,4 +1,5 @@
 {
+  "preset-name": "digital-alarm-clock",
   "oscillator-1": {
     "waveform": {
       "pulse-width": 0.05

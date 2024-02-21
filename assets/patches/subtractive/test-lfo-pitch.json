@@ -1,4 +1,5 @@
 {
+  "preset-name": "test-lfo-pitch",
   "oscillator-1": {
     "waveform": "sine",
     "fixed-frequency": null,

@@ -1,4 +1,5 @@
 {
+  "preset-name": "conch-shell",
   "oscillator-1": {
     "waveform": "triangle",
     "fixed-frequency": null,

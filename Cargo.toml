@@ -27,6 +27,7 @@ app_dirs2 = "2.5"         # for utils::Paths
 bit-vec = "0.6.3"
 bounded-vec-deque = "0.1" # for VisualizationQueue
 byteorder = "1.5.0"
+convert_case = "0.6.0"
 cpal = "0.15.2"
 crossbeam = "0.8"
 crossbeam-channel = "0.5"
@@ -42,6 +43,7 @@ env_logger = "0.10"
 float-cmp = "0.9.0"
 getrandom = { version = "0.2.12", features = [] }
 hound = "3.5.1"
+include_dir = "0.7.3"
 kahan = "0.1.4"                                                                 # for Oscillator
 midir = "0.9.1"
 midly = "0.5.3"

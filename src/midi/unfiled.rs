@@ -213,6 +213,11 @@ impl Display for MidiNote {
         write!(f, "{}", s)
     }
 }
+impl From<u8> for MidiNote {
+    fn from(value: u8) -> Self {
+        Self::from_repr(value as usize).unwrap_or_default()
+    }
+}
 impl MidiNote {
     // TODO # rather than #
     pub fn note_name_with_octave(&self) -> &str {

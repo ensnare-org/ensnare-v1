@@ -1,4 +1,5 @@
 {
+  "preset-name": "side-stick",
   "oscillator-1": {
     "waveform": "none",
     "fixed-frequency": null,

@@ -1,4 +1,5 @@
 {
+  "preset-name": "clap",
   "oscillator-1": {
     "waveform": "none",
     "fixed-frequency": null,

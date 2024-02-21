@@ -1,4 +1,5 @@
 {
+  "preset-name": "oboe",
   "oscillator-1": {
     "waveform": {
       "pulse-width": 0.2

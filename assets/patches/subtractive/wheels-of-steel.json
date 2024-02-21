@@ -1,4 +1,5 @@
 {
+  "preset-name": "wheels-of-steel",
   "oscillator-1": {
     "waveform": "none",
     "fixed-frequency": null,

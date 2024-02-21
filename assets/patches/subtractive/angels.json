@@ -1,4 +1,5 @@
 {
+  "preset-name": "angels",
   "oscillator-1": {
     "waveform": "sawtooth",
     "fixed-frequency": null,

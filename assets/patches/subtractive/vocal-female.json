@@ -1,4 +1,5 @@
 {
+  "preset-name": "vocal-female",
   "oscillator-1": {
     "waveform": {
       "pulse-width": 0.05

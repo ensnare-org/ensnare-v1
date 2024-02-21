@@ -3,7 +3,7 @@
 use super::{DragNormalWidget, WaveformWidget};
 use crate::prelude::*;
 use eframe::{
-    egui::{Frame, Sense, Widget},
+    egui::{Frame, Sense, Slider, Widget},
     emath,
     epaint::{pos2, Color32, PathShape, Pos2, Rect, Shape, Stroke, Vec2},
 };
@@ -15,7 +15,15 @@ pub struct OscillatorWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for OscillatorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(WaveformWidget::widget(&mut self.oscillator.waveform))
+        let waveform_response = ui.add(WaveformWidget::widget(&mut self.oscillator.waveform));
+
+        let mut ratio = self.oscillator.frequency_tune().0;
+        let tune_response = ui.add(Slider::new(&mut ratio, 0.01..=8.0).text("Tune"));
+        if tune_response.changed() {
+            self.oscillator.set_frequency_tune(ratio.into());
+        }
+
+        waveform_response | tune_response
     }
 }
 impl<'a> OscillatorWidget<'a> {

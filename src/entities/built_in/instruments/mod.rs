@@ -257,6 +257,11 @@ impl SubtractiveSynth {
                 .unwrap(),
         )
     }
+
+    pub fn new_with_internal_patch(uid: Uid, patch_name: &str) -> anyhow::Result<Self> {
+        let inner = SubtractiveSynthCore::load_internal_patch(patch_name)?;
+        Ok(SubtractiveSynth::new_with(uid, inner))
+    }
 }
 
 #[cfg(feature = "egui")]

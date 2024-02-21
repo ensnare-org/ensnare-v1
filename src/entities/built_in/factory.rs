@@ -185,7 +185,7 @@ impl BuiltInEntities {
             Box::new(sampler)
         });
         factory.register_entity_with_str_key(SubtractiveSynth::ENTITY_KEY, |uid| {
-            Box::new(SubtractiveSynth::new_with_factory_patch(uid))
+            Box::new(SubtractiveSynth::new_with_internal_patch(uid, "cello").unwrap())
         });
 
         factory

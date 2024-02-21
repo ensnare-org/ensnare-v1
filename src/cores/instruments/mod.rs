@@ -9,6 +9,7 @@ pub use {
     sampler::{SamplerCore, SamplerVoice},
     subtractive::{
         LfoRouting, SubtractiveSynthCore, SubtractiveSynthCoreBuilder, SubtractiveSynthVoice,
+        PATCH_DIR as SUBTRACTIVE_PATCH_DIR,
     },
     test::{
         TestAudioSourceCore, TestAudioSourceCoreBuilder, TestControllerAlwaysSendsMidiMessageCore,

@@ -1,4 +1,5 @@
 {
+  "preset-name": "cowbell-analog",
   "oscillator-1": {
     "waveform": {
       "pulse-width": 0.1
@@ -13,7 +14,7 @@
       "pulse-width": 0.35
     },
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 1.3348398541700344,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },

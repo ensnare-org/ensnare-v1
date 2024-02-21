@@ -1,8 +1,9 @@
 {
+  "preset-name": "didgeridoo",
   "oscillator-1": {
     "waveform": "square",
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 0.5,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },
@@ -11,7 +12,7 @@
       "pulse-width": 0.25
     },
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 1.6808216693844686,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },

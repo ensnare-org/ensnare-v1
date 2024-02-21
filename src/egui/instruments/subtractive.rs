@@ -1,14 +1,15 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::{
-    cores::instruments::SubtractiveSynthCore,
+    cores::instruments::{SubtractiveSynthCore, SUBTRACTIVE_PATCH_DIR},
     egui::{
         BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
         EnvelopeWidget, OscillatorWidget,
     },
     prelude::*,
 };
-use eframe::egui::{CollapsingHeader, Slider, Widget};
+use convert_case::{Case, Casing};
+use eframe::egui::{CollapsingHeader, ComboBox, Slider, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
@@ -39,7 +40,50 @@ impl<'a> SubtractiveSynthWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut response = CollapsingHeader::new("Oscillator 1")
+        let mut response = ComboBox::from_label("Preset")
+            .selected_text(self.inner.preset_name().unwrap_or(&"None".to_string()))
+            .show_ui(ui, |ui| {
+                let mut bool_response = false;
+
+                ui.style_mut().wrap = Some(false);
+                ui.set_min_width(60.0);
+                let mut current_value = self
+                    .inner
+                    .preset_name()
+                    .cloned()
+                    .unwrap_or("None".to_string());
+                for patch in SUBTRACTIVE_PATCH_DIR.files() {
+                    let visible = patch
+                        .path()
+                        .to_str()
+                        .unwrap_or_default()
+                        .replace(".json", "")
+                        .to_case(Case::Title);
+                    if ui
+                        .selectable_value(&mut current_value, visible.clone(), visible.clone())
+                        .changed()
+                    {
+                        bool_response = true;
+
+                        // TODO - this is just a hack. It's doing real work on
+                        // the UI thread, and it doesn't handle failure well.
+                        *self.inner = SubtractiveSynthCore::load_patch_from_json(
+                            patch.contents_utf8().unwrap(),
+                        )
+                        .unwrap();
+                        self.inner.preset_name = Some(visible);
+                    }
+                }
+                bool_response
+            });
+        if let Some(bool_response) = response.inner {
+            if bool_response {
+                response.response.mark_changed();
+            }
+        }
+        let mut response = response.response;
+
+        response |= CollapsingHeader::new("Oscillator 1")
             .default_open(true)
             .id_source(ui.next_auto_id())
             .show(ui, |ui| {

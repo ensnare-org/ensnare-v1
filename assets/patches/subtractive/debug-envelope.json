@@ -1,4 +1,5 @@
 {
+  "preset-name": "debug-envelope",
   "oscillator-1": {
     "waveform": "debug-max",
     "fixed-frequency": null,

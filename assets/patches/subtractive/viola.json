@@ -1,4 +1,5 @@
 {
+  "preset-name": "viola",
   "oscillator-1": {
     "waveform": "sawtooth",
     "fixed-frequency": null,
@@ -11,7 +12,7 @@
       "pulse-width": 0.25
     },
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 1.4983070768766815,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },

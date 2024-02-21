@@ -1,13 +1,17 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{cores::effects::BiQuadFilterLowPass24dbCore, prelude::*};
+use anyhow::anyhow;
 use core::fmt::Debug;
 use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
+use include_dir::{include_dir, Dir};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use strum_macros::{EnumCount, FromRepr};
+
+pub static PATCH_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets/patches/subtractive");
 
 #[derive(
     Clone,
@@ -325,6 +329,8 @@ impl SubtractiveSynthVoice {
 #[serde(rename_all = "kebab-case")]
 #[builder(default, build_fn(private, name = "build_from_builder"))]
 pub struct SubtractiveSynthCore {
+    pub preset_name: Option<String>,
+
     #[control]
     pub oscillator_1: Oscillator,
     #[control]
@@ -392,14 +398,17 @@ impl SubtractiveSynthCore {
         })
     }
 
+    pub fn load_patch_from_json(json: &str) -> anyhow::Result<Self> {
+        let mut patch = serde_json::from_str::<Self>(&json)?;
+        patch.after_deser();
+        Ok(patch)
+    }
+
     pub fn load_patch(path: &PathBuf) -> anyhow::Result<Self> {
         let mut path = path.clone();
         path.set_extension("json");
         let json = std::fs::read_to_string(&path)?;
-        let mut patch = serde_json::from_str::<Self>(&json)?;
-        // patch.e.load_path = Some(path);
-        patch.after_deser();
-        Ok(patch)
+        Self::load_patch_from_json(json.as_str())
     }
 
     pub fn save_patch(&mut self, path: &PathBuf) -> anyhow::Result<()> {
@@ -408,6 +417,23 @@ impl SubtractiveSynthCore {
         let json = serde_json::to_string_pretty(&self)?;
         std::fs::write(&path, json)?;
         Ok(())
+    }
+
+    pub fn load_internal_patch(name: &str) -> anyhow::Result<Self> {
+        let path = format!("{}.json", name);
+        if let Some(file) = PATCH_DIR.get_file(path) {
+            if let Some(json) = file.contents_utf8() {
+                Self::load_patch_from_json(json)
+            } else {
+                Err(anyhow!("Couldn't read patch named '{name}'"))
+            }
+        } else {
+            Err(anyhow!("Couldn't find patch named '{name}'"))
+        }
+    }
+
+    pub fn preset_name(&self) -> Option<&String> {
+        self.preset_name.as_ref()
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {
@@ -471,11 +497,6 @@ impl HandlesMidi for SubtractiveSynthCore {
     }
 }
 impl SubtractiveSynthCore {
-    pub fn preset_name(&self) -> &str {
-        "none"
-        //        self.preset.name.as_str()
-    }
-
     pub fn notify_change_oscillator_1(&mut self) {
         self.inner.voices_mut().for_each(|v| {
             v.oscillator_1.update_from_prototype(&self.oscillator_1);

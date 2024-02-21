@@ -1,15 +1,16 @@
 {
+  "preset-name": "strings-pwm",
   "oscillator-1": {
     "waveform": "square",
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 0.9942404238175473,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },
   "oscillator-2": {
     "waveform": "square",
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 1.0057929410678534,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },

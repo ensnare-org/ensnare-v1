@@ -1,4 +1,5 @@
 {
+  "preset-name": "riti",
   "oscillator-1": {
     "waveform": "square",
     "fixed-frequency": null,

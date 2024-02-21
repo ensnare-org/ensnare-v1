@@ -62,6 +62,17 @@ pub enum OscillatorTune {
     Float(ParameterType),
     Osc { octave: i8, semi: i8, cent: i8 },
 }
+impl From<OscillatorTune> for Ratio {
+    fn from(val: OscillatorTune) -> Self {
+        match val {
+            OscillatorTune::Note(_) => Ratio::from(1.0),
+            OscillatorTune::Float(value) => Ratio::from(value),
+            OscillatorTune::Osc { octave, semi, cent } => {
+                OscillatorSettings::semis_and_cents(octave as i16 * 12 + semi as i16, cent as f64)
+            }
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -191,14 +202,37 @@ fn main() -> anyhow::Result<()> {
         .collect::<Result<Vec<_>, io::Error>>()?;
 
     for path in paths {
-        println!("Processing {path:?}");
+        let preset_name = path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
+            .replace(".json", "");
+        println!("Processing {preset_name:?}");
         let patch = WelshPatchSettings::load_patch(&path)?;
 
+        let fixed_frequency_1: Option<FrequencyHz> =
+            if let OscillatorTune::Note(midi_note) = patch.oscillator_1.tune {
+                Some(MidiNote::from(midi_note).into())
+            } else {
+                None
+            };
+        let fixed_frequency_2: Option<FrequencyHz> =
+            if let OscillatorTune::Note(midi_note) = patch.oscillator_2.tune {
+                println!("YES! {midi_note}");
+                Some(MidiNote::from(midi_note).into())
+            } else {
+                None
+            };
         let oscillator_1 = OscillatorBuilder::default()
             .waveform(patch.oscillator_1.waveform)
+            .frequency_tune(patch.oscillator_1.tune.into())
+            .fixed_frequency(fixed_frequency_1)
             .build()?;
         let oscillator_2 = OscillatorBuilder::default()
             .waveform(patch.oscillator_2.waveform)
+            .frequency_tune(patch.oscillator_2.tune.into())
+            .fixed_frequency(fixed_frequency_2)
             .build()?;
         let oscillator_mix = if patch.oscillator_1.mix + patch.oscillator_2.mix != 0.0 {
             patch.oscillator_1.mix / (patch.oscillator_1.mix + patch.oscillator_2.mix)
@@ -239,6 +273,7 @@ fn main() -> anyhow::Result<()> {
             .filter_cutoff_start(patch.filter_type_24db.cutoff_hz.into())
             .filter_cutoff_end(patch.filter_envelope_weight.into())
             .filter_envelope(filter_envelope)
+            .preset_name(Some(preset_name))
             .build()?;
 
         if let Some(patch_name) = path.file_stem().as_ref() {

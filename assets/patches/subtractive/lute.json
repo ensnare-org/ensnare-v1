@@ -1,8 +1,9 @@
 {
+  "preset-name": "lute",
   "oscillator-1": {
     "waveform": "sawtooth",
     "fixed-frequency": null,
-    "frequency-tune": 1.0,
+    "frequency-tune": 2.0,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0
   },

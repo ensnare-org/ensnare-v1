@@ -1,4 +1,5 @@
 {
+  "preset-name": "bass-clarinet",
   "oscillator-1": {
     "waveform": "square",
     "fixed-frequency": null,

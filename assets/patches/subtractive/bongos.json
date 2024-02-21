@@ -1,4 +1,5 @@
 {
+  "preset-name": "bongos",
   "oscillator-1": {
     "waveform": "triangle",
     "fixed-frequency": null,
