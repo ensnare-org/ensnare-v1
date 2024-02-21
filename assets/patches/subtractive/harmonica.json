@@ -32,7 +32,7 @@
   },
   "lfo": {
     "waveform": "triangle",
-    "fixed-frequency": null,
+    "fixed-frequency": 1.600000023841858,
     "frequency-tune": 1.0,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0

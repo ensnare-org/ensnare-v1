@@ -201,36 +201,6 @@ impl Ticks for Oscillator {
     }
 }
 impl Oscillator {
-    // pub fn new_with(
-    //     waveform: Waveform,
-    //     frequency: FrequencyHz,
-    //     frequency_tune: Ratio,
-    //     frequency_modulation: BipolarNormal,
-    // ) -> Self {
-    //     Self {
-    //         waveform,
-    //         frequency,
-    //         // TODO https://github.com/sowbug/groove/issues/135
-    //         // fixed_frequency: params.fixed_frequency(),
-    //         frequency_tune,
-    //         frequency_modulation,
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn new_with_waveform(waveform: Waveform) -> Self {
-    //     Self::new_with(
-    //         waveform,
-    //         Default::default(),
-    //         Default::default(),
-    //         Default::default(),
-    //     )
-    // }
-
-    // pub fn new_with_waveform_and_frequency(waveform: Waveform, frequency: FrequencyHz) -> Self {
-    //     Self::new_with(waveform, frequency, Default::default(), Default::default())
-    // }
-
     fn adjusted_frequency(&self) -> FrequencyHz {
         let unmodulated_frequency = if let Some(fixed_frequency) = self.fixed_frequency {
             fixed_frequency
@@ -417,6 +387,9 @@ impl Oscillator {
 impl CanPrototype for Oscillator {
     fn update_from_prototype(&mut self, prototype: &Self) -> &Self {
         self.set_waveform(prototype.waveform());
+        if let Some(ff) = prototype.fixed_frequency() {
+            self.set_fixed_frequency(ff);
+        }
         self.set_frequency(prototype.frequency());
         self.set_frequency_tune(prototype.frequency_tune());
         self.set_frequency_modulation(prototype.frequency_modulation());

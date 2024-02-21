@@ -1,7 +1,7 @@
 {
   "preset-name": "tambourine",
   "oscillator-1": {
-    "waveform": "none",
+    "waveform": "noise",
     "fixed-frequency": null,
     "frequency-tune": 1.0,
     "frequency-modulation": 0.0,
@@ -28,7 +28,7 @@
   },
   "lfo": {
     "waveform": "none",
-    "fixed-frequency": null,
+    "fixed-frequency": 0.0,
     "frequency-tune": 1.0,
     "frequency-modulation": 0.0,
     "linear-frequency-modulation": 0.0

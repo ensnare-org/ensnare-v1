@@ -66,7 +66,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
         let carrier_response = CollapsingHeader::new("Carrier")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 let carrier_response = ui.add(OscillatorWidget::widget(&mut self.inner.carrier));
                 if carrier_response.changed() {
                     self.inner.notify_change_carrier();
@@ -83,7 +83,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
         let modulator_response = CollapsingHeader::new("Modulator")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 let modulator_response =
                     ui.add(OscillatorWidget::widget(&mut self.inner.modulator));
                 if modulator_response.changed() {
@@ -101,7 +101,7 @@ impl<'a> eframe::egui::Widget for FmSynthWidget<'a> {
         let dca_response = CollapsingHeader::new("DCA")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 let mut action = None;
                 let response = ui.add(DcaWidget::widget(&mut self.inner.dca, &mut action));
                 if let Some(action) = action {

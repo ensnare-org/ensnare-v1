@@ -211,6 +211,11 @@ fn main() -> anyhow::Result<()> {
         println!("Processing {preset_name:?}");
         let patch = WelshPatchSettings::load_patch(&path)?;
 
+        let (oscillator_1_waveform, oscillator_2_waveform) = if patch.noise != 0.0 {
+            (Waveform::Noise, Waveform::None)
+        } else {
+            (patch.oscillator_1.waveform, patch.oscillator_2.waveform)
+        };
         let fixed_frequency_1: Option<FrequencyHz> =
             if let OscillatorTune::Note(midi_note) = patch.oscillator_1.tune {
                 Some(MidiNote::from(midi_note).into())
@@ -225,19 +230,23 @@ fn main() -> anyhow::Result<()> {
                 None
             };
         let oscillator_1 = OscillatorBuilder::default()
-            .waveform(patch.oscillator_1.waveform)
+            .waveform(oscillator_1_waveform)
             .frequency_tune(patch.oscillator_1.tune.into())
             .fixed_frequency(fixed_frequency_1)
             .build()?;
         let oscillator_2 = OscillatorBuilder::default()
-            .waveform(patch.oscillator_2.waveform)
+            .waveform(oscillator_2_waveform)
             .frequency_tune(patch.oscillator_2.tune.into())
             .fixed_frequency(fixed_frequency_2)
             .build()?;
-        let oscillator_mix = if patch.oscillator_1.mix + patch.oscillator_2.mix != 0.0 {
-            patch.oscillator_1.mix / (patch.oscillator_1.mix + patch.oscillator_2.mix)
+        let oscillator_mix = if patch.noise != 0.0 {
+            patch.noise
         } else {
-            0.5
+            if patch.oscillator_1.mix + patch.oscillator_2.mix != 0.0 {
+                patch.oscillator_1.mix / (patch.oscillator_1.mix + patch.oscillator_2.mix)
+            } else {
+                0.5
+            }
         };
         let amp_envelope = EnvelopeBuilder::default()
             .attack(patch.amp_envelope.attack.into())
@@ -247,7 +256,7 @@ fn main() -> anyhow::Result<()> {
             .build()?;
         let lfo_oscillator = OscillatorBuilder::default()
             .waveform(patch.lfo.waveform)
-            .frequency(patch.lfo.frequency.into())
+            .fixed_frequency(Some(patch.lfo.frequency.into()))
             .build()?;
         let filter = BiQuadFilterLowPass24dbCoreBuilder::default()
             .cutoff(patch.filter_type_24db.cutoff_hz.into())

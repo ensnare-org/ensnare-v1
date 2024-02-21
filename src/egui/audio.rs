@@ -10,13 +10,15 @@ use eframe::{
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
 
+use super::DragNormalWidget;
+
 #[derive(Debug)]
 pub struct WaveformWidget<'a> {
-    waveform: &'a mut Waveform,
+    inner: &'a mut Waveform,
 }
 impl<'a> WaveformWidget<'a> {
-    fn new(waveform: &'a mut Waveform) -> Self {
-        Self { waveform }
+    fn new(inner: &'a mut Waveform) -> Self {
+        Self { inner }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
@@ -27,12 +29,12 @@ impl<'a> WaveformWidget<'a> {
 impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut r = ComboBox::new(ui.next_auto_id(), "Waveform")
-            .selected_text(self.waveform.to_string())
+            .selected_text(self.inner.to_string())
             .show_ui(ui, |ui| {
                 let mut bool_response = false;
                 for w in Waveform::iter() {
                     let s: &'static str = w.into();
-                    if ui.selectable_value(self.waveform, w, s).changed() {
+                    if ui.selectable_value(self.inner, w, s).changed() {
                         bool_response = true;
                     }
                 }
@@ -43,7 +45,20 @@ impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
                 r.response.mark_changed();
             }
         }
-        r.response
+
+        let mut response = r.response;
+
+        if let Waveform::PulseWidth(pulse_width) = self.inner {
+            let mut normal = pulse_width.clone();
+            let pulse_width_response =
+                ui.add(DragNormalWidget::widget(&mut normal, "Duty cycle: "));
+            if pulse_width_response.changed() {
+                *self.inner = Waveform::PulseWidth(normal);
+            }
+            response |= pulse_width_response;
+        }
+
+        response
     }
 }
 

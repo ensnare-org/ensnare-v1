@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use derivative::Derivative;
+use eframe::emath::Numeric;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
@@ -357,6 +358,22 @@ impl From<u7> for FrequencyHz {
 impl Display for FrequencyHz {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.0))
+    }
+}
+#[cfg(feature = "egui")]
+impl Numeric for FrequencyHz {
+    const INTEGRAL: bool = false;
+
+    const MIN: Self = Self(0.01);
+
+    const MAX: Self = Self(22050.0);
+
+    fn to_f64(self) -> f64 {
+        self.0
+    }
+
+    fn from_f64(num: f64) -> Self {
+        Self(num)
     }
 }
 

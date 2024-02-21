@@ -9,7 +9,7 @@ use ensnare_proc_macros::Control;
 use include_dir::{include_dir, Dir};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use strum_macros::{EnumCount, FromRepr};
+use strum_macros::{Display, EnumCount, EnumIter, EnumString, FromRepr};
 
 pub static PATCH_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets/patches/subtractive");
 
@@ -18,7 +18,9 @@ pub static PATCH_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets/patches/sub
     Copy,
     Debug,
     Default,
+    Display,
     EnumCount,
+    EnumIter,
     FromRepr,
     PartialEq,
     serde::Deserialize,

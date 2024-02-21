@@ -4,7 +4,7 @@ use super::{DragNormalWidget, WaveformWidget};
 use crate::prelude::*;
 use eframe::{
     egui::{Frame, Sense, Slider, Widget},
-    emath,
+    emath::{self, Numeric},
     epaint::{pos2, Color32, PathShape, Pos2, Rect, Shape, Stroke, Vec2},
 };
 
@@ -34,6 +34,37 @@ impl<'a> OscillatorWidget<'a> {
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| OscillatorWidget::new(oscillator).ui(ui)
+    }
+}
+
+/// An egui widget for [Oscillator] that's being used as an LFO.
+#[derive(Debug)]
+pub struct LfoWidget<'a> {
+    oscillator: &'a mut Oscillator,
+}
+impl<'a> eframe::egui::Widget for LfoWidget<'a> {
+    fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let waveform_response = ui.add(WaveformWidget::widget(&mut self.oscillator.waveform));
+
+        let mut frequency = self.oscillator.fixed_frequency().unwrap_or_default();
+        let frequency_response = ui.add(
+            Slider::new(&mut frequency, FrequencyHz::MIN..=FrequencyHz(64.0)).text("Frequency"),
+        );
+        if frequency_response.changed() {
+            self.oscillator.set_fixed_frequency(frequency);
+        }
+
+        waveform_response | frequency_response
+    }
+}
+impl<'a> LfoWidget<'a> {
+    fn new(oscillator: &'a mut Oscillator) -> Self {
+        Self { oscillator }
+    }
+
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
+    pub fn widget(oscillator: &'a mut Oscillator) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| LfoWidget::new(oscillator).ui(ui)
     }
 }
 

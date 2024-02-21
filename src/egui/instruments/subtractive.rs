@@ -3,8 +3,9 @@
 use crate::{
     cores::instruments::{SubtractiveSynthCore, SUBTRACTIVE_PATCH_DIR},
     egui::{
-        BiQuadFilterLowPass24dbWidget, BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction,
-        EnvelopeWidget, OscillatorWidget,
+        generators::LfoWidget, util::EnumComboBoxWidget, BiQuadFilterLowPass24dbWidget,
+        BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction, EnvelopeWidget, LfoControllerWidget,
+        OscillatorWidget,
     },
     prelude::*,
 };
@@ -86,7 +87,7 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
         response |= CollapsingHeader::new("Oscillator 1")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 if ui
                     .add(OscillatorWidget::widget(&mut self.inner.oscillator_1))
                     .changed()
@@ -98,7 +99,7 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
         response |= CollapsingHeader::new("Oscillator 2")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 if ui
                     .add(OscillatorWidget::widget(&mut self.inner.oscillator_2))
                     .changed()
@@ -115,10 +116,25 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
             self.inner.set_oscillator_mix(oscillator_mix.into());
         }
 
+        if let Some(lfo_response) = CollapsingHeader::new("LFO")
+            .default_open(true)
+            .id_source(ui.next_auto_id())
+            .show_unindented(ui, |ui| {
+                ui.add(LfoWidget::widget(&mut self.inner.lfo))
+                    | ui.add(EnumComboBoxWidget::new(
+                        &mut self.inner.lfo_routing,
+                        "Routing",
+                    ))
+            })
+            .body_response
+        {
+            response |= lfo_response;
+        }
+
         response |= CollapsingHeader::new("DCA")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 let mut action = None;
                 if ui
                     .add(DcaWidget::widget(&mut self.inner.dca, &mut action))
@@ -141,7 +157,7 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
         response |= CollapsingHeader::new("Amplitude")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 if ui
                     .add(EnvelopeWidget::widget(&mut self.inner.amp_envelope))
                     .changed()
@@ -153,7 +169,7 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
         response |= CollapsingHeader::new("Low-Pass Filter")
             .default_open(true)
             .id_source(ui.next_auto_id())
-            .show(ui, |ui| {
+            .show_unindented(ui, |ui| {
                 let mut action = None;
                 if ui
                     .add(BiQuadFilterLowPass24dbWidget::widget(
