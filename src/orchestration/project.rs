@@ -324,6 +324,7 @@ impl Project {
         };
         let mut writer = hound::WavWriter::create(path, spec)?;
 
+        self.skip_to_start();
         self.play();
 
         let mut detected_silence_after_performance = false;
