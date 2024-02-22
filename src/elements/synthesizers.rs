@@ -184,8 +184,15 @@ impl<V: IsStereoSampleVoice> HandlesMidi for Synthesizer<V> {
                         voice.aftertouch(vel);
                     }
                 }
-                #[allow(unused_variables)]
-                MidiMessage::Controller { controller, value } => todo!(),
+                MidiMessage::Controller {
+                    controller,
+                    value: _,
+                } => match controller.as_int() {
+                    123 => {
+                        vs.voices_mut().for_each(|v| v.note_off(0.into()));
+                    }
+                    _ => {}
+                },
                 #[allow(unused_variables)]
                 MidiMessage::ProgramChange { program } => todo!(),
                 #[allow(unused_variables)]

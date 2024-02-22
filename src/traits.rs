@@ -294,9 +294,7 @@ pub trait HasSettings {
 /// Passes MIDI messages to the caller.
 pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
 
-/// Takes standard MIDI messages. Implementers can ignore MidiChannel if it's
-/// not important, as the virtual cabling model tries to route only relevant
-/// traffic to individual devices. midi_messages_fn allows the implementor to
+/// Takes standard MIDI messages. midi_messages_fn allows the implementor to
 /// produce more MIDI messages in response to this message. For example, an
 /// arpeggiator might produce notes in response to a note-on.
 ///

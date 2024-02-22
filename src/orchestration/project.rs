@@ -530,6 +530,10 @@ impl Controls for Project {
         self.automator.stop();
         self.orchestrator.stop();
         self.composer.stop();
+
+        self.track_to_midi_router
+            .values_mut()
+            .for_each(|router| router.all_notes_off(&mut self.orchestrator.entity_repo));
     }
 
     fn skip_to_start(&mut self) {

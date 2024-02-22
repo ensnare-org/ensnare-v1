@@ -147,9 +147,15 @@ impl HandlesMidi for ArpeggiatorCore {
             }
             MidiMessage::Aftertouch { key: _, vel: _ } => todo!(),
             MidiMessage::Controller {
-                controller: _,
+                controller,
                 value: _,
-            } => todo!(),
+            } => match controller.as_int() {
+                123 => {
+                    self.e.note_semaphore = 0;
+                    self.e.is_sequencer_enabled = false;
+                }
+                _ => {}
+            },
             MidiMessage::ProgramChange { program: _ } => todo!(),
             MidiMessage::ChannelAftertouch { vel: _ } => todo!(),
             MidiMessage::PitchBend { bend: _ } => todo!(),

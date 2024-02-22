@@ -66,6 +66,20 @@ impl MidiRouter {
             Ok(())
         }
     }
+
+    /// Sends CC 123 to every instrument, which is supposed to shut all notes off.
+    pub fn all_notes_off(&mut self, entity_repo: &mut EntityRepository) {
+        for channel in MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE {
+            let _ = self.route(
+                entity_repo,
+                MidiChannel(channel),
+                MidiMessage::Controller {
+                    controller: 123.into(),
+                    value: 0.into(),
+                },
+            );
+        }
+    }
 }
 impl Serializable for MidiRouter {
     fn before_ser(&mut self) {}
