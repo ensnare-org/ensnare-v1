@@ -15,7 +15,6 @@ use crate::{
             BiQuadFilterLowPass24dbCoreBuilder, BitcrusherCoreBuilder, DelayCoreBuilder,
             GainCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder,
         },
-        instruments::FmSynthCoreBuilder,
     },
     elements::OscillatorBuilder,
     prelude::*,
@@ -32,6 +31,8 @@ impl BuiltInEntities {
     pub fn register(
         mut factory: EntityFactory<dyn EntityBounds>,
     ) -> EntityFactory<dyn EntityBounds> {
+        let include_internals = false;
+
         // Controllers
         factory.register_entity_with_str_key(Arpeggiator::ENTITY_KEY, |uid| {
             Box::new(Arpeggiator::new_with(
@@ -48,28 +49,29 @@ impl BuiltInEntities {
                     .unwrap(),
             ))
         });
-        factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
-            Box::new(SignalPassthroughController::new_with(uid))
-        });
-        factory.register_entity_with_str_key("signal-amplitude-passthrough", |uid| {
-            Box::new(SignalPassthroughController::new_amplitude_passthrough_type(
-                uid,
-            ))
-        });
-        factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |uid| {
-            Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type(uid))
-        });
-        factory.register_entity_with_str_key(Timer::ENTITY_KEY, |uid| {
-            Box::new(Timer::new_with(uid, MusicalTime::DURATION_QUARTER))
-        });
-        factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
-            Box::new(Trigger::new_with(
-                uid,
-                crate::automation::TimerCore::new_with(MusicalTime::DURATION_QUARTER),
-                ControlValue(1.0),
-            ))
-        });
-
+        if include_internals {
+            factory.register_entity_with_str_key(SignalPassthroughController::ENTITY_KEY, |uid| {
+                Box::new(SignalPassthroughController::new_with(uid))
+            });
+            factory.register_entity_with_str_key("signal-amplitude-passthrough", |uid| {
+                Box::new(SignalPassthroughController::new_amplitude_passthrough_type(
+                    uid,
+                ))
+            });
+            factory.register_entity_with_str_key("signal-amplitude-inverted-passthrough", |uid| {
+                Box::new(SignalPassthroughController::new_amplitude_inverted_passthrough_type(uid))
+            });
+            factory.register_entity_with_str_key(Timer::ENTITY_KEY, |uid| {
+                Box::new(Timer::new_with(uid, MusicalTime::DURATION_QUARTER))
+            });
+            factory.register_entity_with_str_key(Trigger::ENTITY_KEY, |uid| {
+                Box::new(Trigger::new_with(
+                    uid,
+                    crate::automation::TimerCore::new_with(MusicalTime::DURATION_QUARTER),
+                    ControlValue(1.0),
+                ))
+            });
+        }
         // Effects
         factory.register_entity_with_str_key(Bitcrusher::ENTITY_KEY, |uid| {
             Box::new(Bitcrusher::new_with(
@@ -150,17 +152,19 @@ impl BuiltInEntities {
                 LimiterCoreBuilder::default().build().unwrap(),
             ))
         });
-        // TODO: this is lazy. It's too hard right now to adjust parameters within
-        // code, so I'm creating a special instrument with the parameters I want.
-        factory.register_entity_with_str_key("mute", |uid| {
-            Box::new(Gain::new_with(
-                uid,
-                GainCoreBuilder::default()
-                    .ceiling(Normal::minimum())
-                    .build()
-                    .unwrap(),
-            ))
-        });
+        if include_internals {
+            // TODO: this is lazy. It's too hard right now to adjust parameters within
+            // code, so I'm creating a special instrument with the parameters I want.
+            factory.register_entity_with_str_key("mute", |uid| {
+                Box::new(Gain::new_with(
+                    uid,
+                    GainCoreBuilder::default()
+                        .ceiling(Normal::minimum())
+                        .build()
+                        .unwrap(),
+                ))
+            });
+        }
         factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |uid| {
             Box::new(Reverb::new_with(
                 uid,
