@@ -62,16 +62,9 @@ fn demo_sidechaining() {
             None,
         )
         .unwrap();
+
     // In this demo, we don't want to hear the kick track.
-    assert!(project
-        .add_entity(
-            sidechain_track_uid,
-            factory
-                .new_entity(&EntityKey::from("mute"), Uid::default())
-                .unwrap(),
-            None
-        )
-        .is_ok());
+    project.set_track_output(sidechain_track_uid, Normal::zero());
 
     // Add the lead track that we want to duck.
     let lead_track_uid = project.create_track(None).unwrap();
