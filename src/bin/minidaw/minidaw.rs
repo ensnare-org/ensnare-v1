@@ -16,7 +16,7 @@ use eframe::{
     epaint::Vec2,
     App, CreationContext,
 };
-use egui_dock::{DockArea, DockState, Node, NodeIndex, Style, TabViewer};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabViewer};
 use egui_notify::Toasts;
 use ensnare::{
     app_version,
@@ -44,38 +44,45 @@ pub(super) struct MiniDawEphemeral {
     pub(super) is_project_performing: bool,
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, PartialEq)]
 enum TabType {
-    Palette(Arc<EntityFactory<dyn EntityBounds>>),
-    Composer(Option<Arc<RwLock<Project>>>),
-    Arrangement(Option<Arc<RwLock<Project>>>),
-    Detail(Option<Arc<RwLock<Project>>>, Uid, String),
+    Palette,
+    Composer,
+    Arrangement,
+    Detail(Uid, String),
 }
 
 struct MiniDawTabViewer<'a> {
     pub action: &'a mut Option<ProjectAction>,
+    pub factory: Arc<EntityFactory<dyn EntityBounds>>,
+    pub project: &'a Option<Arc<RwLock<Project>>>,
 }
 impl<'a> TabViewer for MiniDawTabViewer<'a> {
     type Tab = Tab;
 
     fn title(&mut self, tab: &mut Self::Tab) -> WidgetText {
-        tab.to_string().into()
+        match tab {
+            TabType::Palette => "Palette".into(),
+            TabType::Composer => "Composer".into(),
+            TabType::Arrangement => "Arrangement".into(),
+            TabType::Detail(_, title) => title.clone().into(),
+        }
     }
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
         match tab {
-            TabType::Palette(factory) => {
-                ui.add(EntityPaletteWidget::widget(factory.sorted_keys()));
+            TabType::Palette => {
+                ui.add(EntityPaletteWidget::widget(self.factory.sorted_keys()));
             }
-            TabType::Composer(project) => {
-                if let Some(project) = project.as_mut() {
+            TabType::Composer => {
+                if let Some(project) = self.project {
                     if let Ok(mut project) = project.write() {
                         ui.add(ComposerWidget::widget(&mut project.composer));
                     }
                 }
             }
-            TabType::Arrangement(project) => {
-                if let Some(project) = project.as_mut() {
+            TabType::Arrangement => {
+                if let Some(project) = self.project {
                     if let Ok(mut project) = project.write() {
                         project.view_state.cursor = Some(project.transport.current_time());
                         project.view_state.view_range = Self::calculate_project_view_range(
@@ -87,8 +94,8 @@ impl<'a> TabViewer for MiniDawTabViewer<'a> {
                     }
                 }
             }
-            TabType::Detail(project, uid, title) => {
-                if let Some(project) = project.as_mut() {
+            TabType::Detail(uid, title) => {
+                if let Some(project) = self.project {
                     if let Ok(mut project) = project.write() {
                         ui.heading(title);
                         ui.separator();
@@ -162,6 +169,7 @@ pub(super) struct MiniDaw {
     rendering_state: RenderingState,
 
     dock: DockState<Tab>,
+    detail_node_index: NodeIndex,
 
     e: MiniDawEphemeral,
 
@@ -181,7 +189,7 @@ impl MiniDaw {
         settings.set_midi_sender(midi_service.sender());
         let project_service = ProjectService::new_with(&factory);
         let control_bar = ControlBar::default();
-        let tree = Self::create_tree(&factory, None);
+        let (dock, detail_node_index) = Self::create_tree();
 
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
@@ -202,7 +210,8 @@ impl MiniDaw {
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
             rendering_state: Default::default(),
-            dock: tree,
+            dock,
+            detail_node_index,
             e: Default::default(),
             modifiers: Modifiers::default(),
         };
@@ -218,29 +227,22 @@ impl MiniDaw {
         r
     }
 
-    fn create_tree(
-        factory: &Arc<EntityFactory<dyn EntityBounds>>,
-        project: Option<Arc<RwLock<Project>>>,
-    ) -> DockState<Tab> {
-        let mut dock_state = DockState::new(
-            [TabType::Arrangement(project.clone())]
-                .into_iter()
-                .collect(),
-        );
+    /// Returns the NodeIndex of the pane below the arrangement.
+    fn create_tree() -> (DockState<TabType>, NodeIndex) {
+        let mut dock_state = DockState::new([TabType::Arrangement].into_iter().collect());
 
-        let [_, b] = dock_state.main_surface_mut().split_left(
+        let [a, _] = dock_state.main_surface_mut().split_left(
             NodeIndex::root(),
             0.3,
-            vec![TabType::Palette(Arc::clone(factory))],
+            vec![TabType::Palette],
         );
 
-        let [_, _] = dock_state.main_surface_mut().split_below(
-            b,
-            0.7,
-            vec![TabType::Composer(project.clone())],
-        );
+        let [_, new_index] =
+            dock_state
+                .main_surface_mut()
+                .split_below(a, 0.7, vec![TabType::Composer]);
 
-        dock_state
+        (dock_state, new_index)
     }
 
     /// Watches certain channels and asks for a repaint, which triggers the
@@ -344,7 +346,10 @@ impl MiniDaw {
                             }
                         }
                         self.project = Some(Arc::clone(&new_project));
-                        self.dock = Self::create_tree(&self.factory, Some(new_project));
+
+                        // TODO: if we decide to save the layout (which we
+                        // will), the dock probably moves into the project.
+                        (self.dock, self.detail_node_index) = Self::create_tree();
                     }
                     ProjectServiceEvent::LoadFailed(path, e) => {
                         self.toasts
@@ -505,15 +510,27 @@ impl MiniDaw {
                 ));
             }
             ProjectAction::SelectEntity(uid, title) => {
-                if let Some(project) = self.project.as_ref() {
-                    if let Some(leaf) = self.dock.focused_leaf() {
-                        self.dock.split(
-                            leaf,
-                            egui_dock::Split::Below,
-                            0.7,
-                            Node::leaf(TabType::Detail(Some(Arc::clone(project)), uid, title)),
-                        );
+                // TODO: this seems really cumbersome. I'm new to the egui_dock
+                // crate.
+                let found = self.dock.iter_all_tabs().find(|((_, _), tab)| {
+                    if let TabType::Detail(tab_uid, _) = tab {
+                        uid == *tab_uid
+                    } else {
+                        false
                     }
+                });
+
+                if let Some(((_, _), tab)) = found {
+                    if let Some((surface_index, node_index, tab_index)) = self.dock.find_tab(tab) {
+                        self.dock
+                            .set_active_tab((surface_index, node_index, tab_index));
+                    }
+                } else {
+                    self.dock.set_focused_node_and_surface((
+                        SurfaceIndex::main(),
+                        self.detail_node_index,
+                    ));
+                    self.dock.push_to_focused_leaf(TabType::Detail(uid, title));
                 }
             }
             ProjectAction::RemoveEntity(uid) => {
@@ -650,11 +667,13 @@ impl App for MiniDaw {
         CentralPanel::default().show(ctx, |ui| {
             DockArea::new(&mut self.dock)
                 .style(Style::from_egui(ui.style().as_ref()))
-                .show_close_buttons(false)
+                .show_close_buttons(true)
                 .show_inside(
                     ui,
                     &mut MiniDawTabViewer {
                         action: &mut action,
+                        factory: Arc::clone(&self.factory),
+                        project: &self.project,
                     },
                 )
         });
