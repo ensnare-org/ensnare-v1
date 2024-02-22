@@ -63,6 +63,7 @@ pub struct ProjectViewState {
     // Which tracks are selected.
     pub track_selection_set: SelectionSet<TrackUid>,
     // Which widget to render in the track arrangement section.
+    #[serde(default)]
     pub track_view_mode: FxHashMap<TrackUid, TrackViewMode>,
     // The current playback point. This is redundant -- copied from Transport.
     pub cursor: Option<MusicalTime>,
@@ -335,7 +336,7 @@ impl Project {
                 let _ = writer.write_sample(right);
             }
             if !self.is_performing() {
-                if samples.iter().all(|s| *s == StereoSample::SILENCE) {
+                if samples.iter().all(|s| s.almost_silent()) {
                     detected_silence_after_performance = true;
                 }
             }

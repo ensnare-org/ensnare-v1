@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub struct MidiRouter {
     pub midi_receivers: FxHashMap<MidiChannel, Vec<Uid>>,
+
+    #[serde(skip)]
     pub uid_to_channel: FxHashMap<Uid, MidiChannel>,
 }
 impl MidiRouter {
@@ -68,7 +70,14 @@ impl MidiRouter {
 impl Serializable for MidiRouter {
     fn before_ser(&mut self) {}
 
-    fn after_deser(&mut self) {}
+    fn after_deser(&mut self) {
+        self.uid_to_channel.clear();
+        for (channel, uids) in self.midi_receivers.iter() {
+            for uid in uids {
+                self.uid_to_channel.insert(*uid, *channel);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

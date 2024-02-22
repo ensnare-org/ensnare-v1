@@ -52,6 +52,10 @@ impl Sample {
             (v * MAX_AMPLITUDE) as i16
         }
     }
+
+    fn almost_silent(&self) -> bool {
+        self.0.abs() < 0.000000000001
+    }
 }
 impl AddAssign for Sample {
     fn add_assign(&mut self, rhs: Self) {
@@ -191,6 +195,10 @@ impl StereoSample {
     /// Converts [StereoSample] into a pair of i16 scaled to i16::MIN..i16::MAX
     pub fn into_i16(&self) -> (i16, i16) {
         (self.0.into_i16(), self.1.into_i16())
+    }
+
+    pub(crate) fn almost_silent(&self) -> bool {
+        self.0.almost_silent() && self.1.almost_silent()
     }
 }
 impl Add for StereoSample {
