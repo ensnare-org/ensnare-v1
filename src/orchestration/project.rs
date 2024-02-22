@@ -409,7 +409,7 @@ impl Project {
             } else if let Some(path) = self.e.load_path.as_ref() {
                 path.clone()
             } else {
-                PathBuf::from("ensnare-minidaw-project.json")
+                return Err(anyhow!("Can't save without a path"));
             }
         };
 

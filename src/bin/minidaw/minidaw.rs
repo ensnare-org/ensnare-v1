@@ -29,6 +29,7 @@ use ensnare::{
     prelude::*,
     traits::DisplaysAction,
 };
+use native_dialog::FileDialog;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -315,27 +316,13 @@ impl MiniDaw {
             ControlBarAction::Play => self.send_to_project(ProjectServiceInput::ProjectPlay),
             ControlBarAction::Stop => self.send_to_project(ProjectServiceInput::ProjectStop),
             ControlBarAction::New => self.send_to_project(ProjectServiceInput::ProjectNew),
-
-            ControlBarAction::Open(path) => {
-                {
-                    let this = &mut *self;
-                    this.send_to_project(ProjectServiceInput::ProjectLoad(path));
-                };
-            }
-            ControlBarAction::Save(path) => {
-                {
-                    let this = &mut *self;
-                    let path = Some(path);
-                    this.send_to_project(ProjectServiceInput::ProjectSave(path));
-                };
-            }
+            ControlBarAction::Open => self.handle_ui_load_action(),
+            ControlBarAction::Save => self.handle_ui_save_action(),
             ControlBarAction::ToggleSettings => {
                 self.rendering_state.is_settings_panel_open =
                     !self.rendering_state.is_settings_panel_open;
             }
-            ControlBarAction::ExportToWav(path) => {
-                self.send_to_project(ProjectServiceInput::ProjectExportToWav(Some(path)))
-            }
+            ControlBarAction::ExportToWav => self.handle_ui_export_action(),
         }
     }
 
@@ -507,31 +494,66 @@ impl MiniDaw {
         }
     }
 
+    fn handle_ui_load_action(&mut self) {
+        if let Ok(Some(path)) = FileDialog::new()
+            .add_filter("Project", &["json"])
+            .show_open_single_file()
+        {
+            self.send_to_project(ProjectServiceInput::ProjectLoad(path));
+        }
+    }
+
+    fn handle_ui_save_action(&mut self) {
+        let project_has_path = if let Some(project) = self.project.as_ref() {
+            if let Ok(project) = project.read() {
+                project.load_path().is_some()
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        let path = if project_has_path {
+            None
+        } else {
+            if let Ok(path) = FileDialog::new()
+                .add_filter("Project", &["json"])
+                .show_save_single_file()
+            {
+                path
+            } else {
+                None
+            }
+        };
+
+        // If the user cancels the save dialog, path will be None, which will
+        // cause the save action to fail silently. That's OK.
+        self.send_to_project(ProjectServiceInput::ProjectSave(path));
+    }
+
+    fn handle_ui_export_action(&mut self) {
+        if let Ok(Some(path)) = FileDialog::new()
+            .add_filter("WAV", &["wav"])
+            .show_save_single_file()
+        {
+            ProjectServiceInput::ProjectExportToWav(Some(path));
+        }
+    }
+
     fn handle_menu_bar_action(&mut self, action: Option<MenuBarAction>) {
         let Some(action) = action else { return };
         match action {
             MenuBarAction::Quit => self.exit_requested = true,
             MenuBarAction::ProjectNew => self.send_to_project(ProjectServiceInput::ProjectNew),
-            MenuBarAction::ProjectOpen => {
-                self.send_to_project(ProjectServiceInput::ProjectLoad(PathBuf::from(
-                    "minidaw-project.json",
-                )));
-            }
-            MenuBarAction::ProjectSave => {
-                self.send_to_project(ProjectServiceInput::ProjectSave(None))
-            }
-            MenuBarAction::ProjectExportToWav => self.send_to_project(
-                ProjectServiceInput::ProjectExportToWav(Some(PathBuf::from("minidaw-project.wav"))),
-            ),
-            MenuBarAction::TrackNewMidi => {
-                self.send_to_project(ProjectServiceInput::TrackNewMidi);
-            }
+            MenuBarAction::ProjectOpen => self.handle_ui_load_action(),
+            MenuBarAction::ProjectSave => self.handle_ui_save_action(),
+            MenuBarAction::ProjectExportToWav => self.handle_ui_export_action(),
+            MenuBarAction::TrackNewMidi => self.send_to_project(ProjectServiceInput::TrackNewMidi),
             MenuBarAction::TrackNewAudio => {
-                self.send_to_project(ProjectServiceInput::TrackNewAudio);
+                self.send_to_project(ProjectServiceInput::TrackNewAudio)
             }
-            MenuBarAction::TrackNewAux => {
-                self.send_to_project(ProjectServiceInput::TrackNewAux);
-            }
+            MenuBarAction::TrackNewAux => self.send_to_project(ProjectServiceInput::TrackNewAux),
             MenuBarAction::TrackDuplicate => todo!(),
             MenuBarAction::TrackDelete => todo!(),
             MenuBarAction::TrackRemoveSelectedPatterns => todo!(),

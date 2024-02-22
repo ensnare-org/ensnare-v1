@@ -31,13 +31,8 @@ are some things to try.
 - To duplicate an arranged pattern, select it and press Control-D (or Command-D
   on a Mac).
 - To delete an arranged pattern, select it and press the Delete key.
-- To save your project, press the Save button. **BEWARE** that the app uses a
-  single file (`minidaw-project.json`) for loading and saving, so you can't have
-  more than one project right now! Also **BEWARE** that the app won't confirm
-  quitting or opening a saved project over your current one, so **expect to lose
-  work**!
-- Export your creation via the Export to WAV button. Look for
-  `minidaw-project.wav` and send it to your friends!
+- To save your project, press the Save button.
+- Export your creation via the Export to WAV button and send it to your friends!
 
 Other things being worked on now:
 

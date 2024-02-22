@@ -53,14 +53,14 @@ pub enum ControlBarAction {
     /// The user asked to create a new project.
     New,
 
-    /// The user asked to load the project having the given filename.
-    Open(PathBuf),
+    /// The user asked to load a project.
+    Open,
 
-    /// The user asked to save the current project to the given filename.
-    Save(PathBuf),
+    /// The user asked to save the current project.
+    Save,
 
-    /// The user asked to export the current project as a WAV to the given filename.
-    ExportToWav(PathBuf),
+    /// The user asked to export the current project as a WAV.
+    ExportToWav,
 
     /// The user pressed the settings icon.
     ToggleSettings,
@@ -137,9 +137,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .on_hover_text("Open project")
                 .clicked()
             {
-                *self.action = Some(ControlBarAction::Open(PathBuf::from(
-                    "minidaw-project.json",
-                )));
+                *self.action = Some(ControlBarAction::Open);
             }
             if ui
                 .add(ImageButton::new(
@@ -151,9 +149,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .on_hover_text("Save project")
                 .clicked()
             {
-                *self.action = Some(ControlBarAction::Save(PathBuf::from(
-                    "minidaw-project.json",
-                )));
+                *self.action = Some(ControlBarAction::Save);
             }
             if ui
                 .add(ImageButton::new(
@@ -165,9 +161,7 @@ impl<'a> eframe::egui::Widget for ControlBarWidget<'a> {
                 .on_hover_text("Export project to WAV")
                 .clicked()
             {
-                *self.action = Some(ControlBarAction::ExportToWav(PathBuf::from(
-                    "minidaw-project.wav",
-                )));
+                *self.action = Some(ControlBarAction::ExportToWav);
             }
             ui.separator();
             ui.allocate_ui_with_layout(
