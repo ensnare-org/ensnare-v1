@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 //! A digital audio workstation.
 
 use anyhow::anyhow;
