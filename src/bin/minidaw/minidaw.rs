@@ -533,11 +533,33 @@ impl MiniDaw {
     }
 
     fn handle_ui_export_action(&mut self) {
+        let suggested_filename = if let Some(project) = self.project.as_ref() {
+            if let Ok(project) = project.read() {
+                if let Some(path) = project.load_path() {
+                    let mut path_copy = path.clone();
+                    path_copy.set_extension("wav");
+                    if let Some(s) = path_copy.into_os_string().to_str() {
+                        Some(s.to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let suggested_filename = suggested_filename.unwrap_or("exported.wav".into());
+
         if let Ok(Some(path)) = FileDialog::new()
             .add_filter("WAV", &["wav"])
+            .set_filename(&suggested_filename)
             .show_save_single_file()
         {
-            ProjectServiceInput::ProjectExportToWav(Some(path));
+            self.send_to_project(ProjectServiceInput::ProjectExportToWav(Some(path)));
         }
     }
 

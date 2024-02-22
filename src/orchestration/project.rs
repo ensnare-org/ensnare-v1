@@ -324,13 +324,20 @@ impl Project {
         let mut writer = hound::WavWriter::create(path, spec)?;
 
         self.play();
-        while self.is_performing() {
+
+        let mut detected_silence_after_performance = false;
+        while !detected_silence_after_performance {
             let mut samples = [StereoSample::SILENCE; 64];
             self.generate_frames(&mut samples, None);
             for sample in samples {
                 let (left, right) = sample.into_i16();
                 let _ = writer.write_sample(left);
                 let _ = writer.write_sample(right);
+            }
+            if !self.is_performing() {
+                if samples.iter().all(|s| *s == StereoSample::SILENCE) {
+                    detected_silence_after_performance = true;
+                }
             }
         }
         Ok(())
