@@ -54,7 +54,7 @@ impl Sample {
     }
 
     fn almost_silent(&self) -> bool {
-        self.0.abs() < 0.000000000001
+        self.0.abs() < 0.00001
     }
 }
 impl AddAssign for Sample {
