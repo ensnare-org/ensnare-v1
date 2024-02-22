@@ -185,6 +185,12 @@ impl<'a> Widget for TrackWidget<'a> {
                         .as_ref()
                         .map(|fg| Arc::clone(&fg));
                     let response = ui.add(TitleBarWidget::widget(font_galley));
+                    response.context_menu(|ui| {
+                        if ui.button("Next Timeline View").clicked() {
+                            ui.close_menu();
+                            self.project.advance_track_view_mode(&track_uid);
+                        }
+                    });
                     if response.clicked() {
                         *self.action = Some(TrackWidgetAction::Clicked);
                     }

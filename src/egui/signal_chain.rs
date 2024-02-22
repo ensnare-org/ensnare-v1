@@ -51,6 +51,7 @@ impl<'a> Widget for SignalChainWidget<'a> {
 
                         let _ = item_response.context_menu(|ui| {
                             if ui.button("Remove").clicked() {
+                                ui.close_menu();
                                 *self.action = Some(SignalChainWidgetAction::Remove(*uid));
                             }
                         });

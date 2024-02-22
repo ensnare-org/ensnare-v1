@@ -53,12 +53,10 @@ SYMBOLS = [
     'file_open',
     'file_save',
     'new_window',
-    'piano',
     'play_arrow',
     'playlist_add_circle',
     'settings',
     'stop',
-    'view_timeline',
 ]
 for (symbol) in SYMBOLS:
     outfile = "res/images/md-symbols/{symbol}.png".format(symbol=symbol)

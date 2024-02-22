@@ -13,7 +13,6 @@ pub use {
     modulators::{DcaWidget, DcaWidgetAction},
     project::{ProjectAction, ProjectWidget},
     settings::{AudioSettingsWidget, MidiSettingsWidget},
-    timeline::{TimelineIconStripAction, TimelineIconStripWidget},
 };
 
 /// Exported only for widget explorer example.
@@ -76,6 +75,5 @@ mod placeholders;
 mod project;
 mod settings;
 mod signal_chain;
-mod timeline;
 mod track;
 mod util;

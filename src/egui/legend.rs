@@ -55,21 +55,6 @@ impl<'a> eframe::egui::Widget for LegendWidget<'a> {
                 ui.style().noninteractive().text_color(),
             );
         }
-
-        response.context_menu(|ui| {
-            if ui.button("Start x2").clicked() {
-                self.view_range.0.start = self.view_range.0.start * 2;
-                ui.close_menu();
-            }
-            if ui.button("Start x0.5").clicked() {
-                self.view_range.0.start = self.view_range.0.start / 2;
-                ui.close_menu();
-            }
-            if ui.button("Start +4").clicked() {
-                self.view_range.0.start += MusicalTime::new_with_beats(4);
-                ui.close_menu();
-            }
-        });
         response
     }
 }

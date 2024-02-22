@@ -68,8 +68,9 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                             self.selection_set.contains(pattern_uid),
                         ));
                         icon_response.dnd_set_drag_payload(pattern_uid.clone());
-                        let context_response = icon_response.context_menu(|ui| {
+                        icon_response.context_menu(|ui| {
                             if ui.button("Delete pattern").clicked() {
+                                ui.close_menu();
                                 *self.action = Some(CarouselAction::DeletePattern(*pattern_uid));
                             }
                         });

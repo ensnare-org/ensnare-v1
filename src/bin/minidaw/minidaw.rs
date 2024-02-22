@@ -11,44 +11,125 @@ use crate::{
 };
 use crossbeam_channel::{Select, Sender};
 use eframe::{
-    egui::{
-        CentralPanel, Context, Event, Layout, Modifiers, ScrollArea, SidePanel, TopBottomPanel,
-    },
+    egui::{CentralPanel, Context, Event, Layout, Modifiers, TopBottomPanel, Ui, WidgetText},
     emath::{Align, Align2},
     epaint::Vec2,
     App, CreationContext,
 };
+use egui_dock::{DockArea, DockState, Node, NodeIndex, Style, TabViewer};
 use egui_notify::Toasts;
 use ensnare::{
     app_version,
     egui::{
         ComposerWidget, ControlBar, ControlBarAction, ControlBarWidget, EntityPaletteWidget,
-        ObliqueStrategiesWidget, ProjectAction, ProjectWidget, TimelineIconStripAction,
-        TimelineIconStripWidget, TransportWidget,
+        ObliqueStrategiesWidget, ProjectAction, ProjectWidget, TransportWidget,
     },
     prelude::*,
     traits::DisplaysAction,
 };
 use native_dialog::FileDialog;
 use std::{
-    path::PathBuf,
     sync::{Arc, RwLock},
     time::Duration,
 };
+use strum_macros::Display;
 
 #[derive(Debug, Default)]
 pub(super) struct RenderingState {
-    pub(super) is_composer_visible: bool,
     pub(super) is_settings_panel_open: bool,
-    pub(super) is_detail_open: bool,
-    pub(super) detail_uid: Option<Uid>,
-    pub(super) detail_title: String,
 }
 
 #[derive(Debug, Default)]
 pub(super) struct MiniDawEphemeral {
     pub(super) is_project_performing: bool,
 }
+
+#[derive(Debug, Display)]
+enum TabType {
+    Palette(Arc<EntityFactory<dyn EntityBounds>>),
+    Composer(Option<Arc<RwLock<Project>>>),
+    Arrangement(Option<Arc<RwLock<Project>>>),
+    Detail(Option<Arc<RwLock<Project>>>, Uid, String),
+}
+
+struct MiniDawTabViewer<'a> {
+    pub action: &'a mut Option<ProjectAction>,
+}
+impl<'a> TabViewer for MiniDawTabViewer<'a> {
+    type Tab = Tab;
+
+    fn title(&mut self, tab: &mut Self::Tab) -> WidgetText {
+        tab.to_string().into()
+    }
+
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        match tab {
+            TabType::Palette(factory) => {
+                ui.add(EntityPaletteWidget::widget(factory.sorted_keys()));
+            }
+            TabType::Composer(project) => {
+                if let Some(project) = project.as_mut() {
+                    if let Ok(mut project) = project.write() {
+                        ui.add(ComposerWidget::widget(&mut project.composer));
+                    }
+                }
+            }
+            TabType::Arrangement(project) => {
+                if let Some(project) = project.as_mut() {
+                    if let Ok(mut project) = project.write() {
+                        project.view_state.cursor = Some(project.transport.current_time());
+                        project.view_state.view_range = Self::calculate_project_view_range(
+                            &project.time_signature(),
+                            project.composer.extent(),
+                        );
+
+                        let _ = ui.add(ProjectWidget::widget(&mut project, self.action));
+                    }
+                }
+            }
+            TabType::Detail(project, uid, title) => {
+                if let Some(project) = project.as_mut() {
+                    if let Ok(mut project) = project.write() {
+                        ui.heading(title);
+                        ui.separator();
+                        let mut action = None;
+                        if let Some(entity) = project.orchestrator.entity_repo.entity_mut(*uid) {
+                            entity.ui(ui);
+                            action = entity.take_action();
+                        }
+                        if let Some(action) = action {
+                            match action {
+                                DisplaysAction::Link(source, index) => match source {
+                                    ControlLinkSource::Entity(source_uid) => {
+                                        let _ = project.link(source_uid, *uid, index);
+                                    }
+                                    ControlLinkSource::Path(path_uid) => {
+                                        let _ = project.link_path(path_uid, *uid, index);
+                                    }
+                                    ControlLinkSource::None => panic!(),
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn closeable(&mut self, tab: &mut Self::Tab) -> bool {
+        matches!(tab, TabType::Detail(..))
+    }
+}
+impl<'a> MiniDawTabViewer<'a> {
+    fn calculate_project_view_range(
+        time_signature: &TimeSignature,
+        extent: TimeRange,
+    ) -> ViewRange {
+        ViewRange(extent.0.start..extent.0.end + MusicalTime::new_with_bars(time_signature, 1))
+    }
+}
+
+type Tab = TabType;
 
 pub(super) struct MiniDaw {
     // factory creates new entities.
@@ -80,6 +161,8 @@ pub(super) struct MiniDaw {
 
     rendering_state: RenderingState,
 
+    dock: DockState<Tab>,
+
     e: MiniDawEphemeral,
 
     // Copy of keyboard modifier state at top of frame
@@ -98,6 +181,7 @@ impl MiniDaw {
         settings.set_midi_sender(midi_service.sender());
         let project_service = ProjectService::new_with(&factory);
         let control_bar = ControlBar::default();
+        let tree = Self::create_tree(&factory, None);
 
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
@@ -109,7 +193,7 @@ impl MiniDaw {
                 project_service,
                 settings.receiver(),
             ),
-            project: Default::default(),
+            project: None,
             menu_bar: MenuBar::new_with(&factory),
             factory,
             settings,
@@ -118,6 +202,7 @@ impl MiniDaw {
             oblique_strategies_mgr: Default::default(),
             exit_requested: Default::default(),
             rendering_state: Default::default(),
+            dock: tree,
             e: Default::default(),
             modifiers: Modifiers::default(),
         };
@@ -131,6 +216,31 @@ impl MiniDaw {
 
         r.spawn_app_channel_watcher(cc.egui_ctx.clone());
         r
+    }
+
+    fn create_tree(
+        factory: &Arc<EntityFactory<dyn EntityBounds>>,
+        project: Option<Arc<RwLock<Project>>>,
+    ) -> DockState<Tab> {
+        let mut dock_state = DockState::new(
+            [TabType::Arrangement(project.clone())]
+                .into_iter()
+                .collect(),
+        );
+
+        let [_, b] = dock_state.main_surface_mut().split_left(
+            NodeIndex::root(),
+            0.3,
+            vec![TabType::Palette(Arc::clone(factory))],
+        );
+
+        let [_, _] = dock_state.main_surface_mut().split_below(
+            b,
+            0.7,
+            vec![TabType::Composer(project.clone())],
+        );
+
+        dock_state
     }
 
     /// Watches certain channels and asks for a repaint, which triggers the
@@ -233,7 +343,8 @@ impl MiniDaw {
                                     .set_duration(Some(Duration::from_secs(2)));
                             }
                         }
-                        self.project = Some(new_project);
+                        self.project = Some(Arc::clone(&new_project));
+                        self.dock = Self::create_tree(&self.factory, Some(new_project));
                     }
                     ProjectServiceEvent::LoadFailed(path, e) => {
                         self.toasts
@@ -339,93 +450,6 @@ impl MiniDaw {
         self.toasts.show(ui.ctx());
     }
 
-    fn show_left(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::vertical().show(ui, |ui| {
-            ui.add(EntityPaletteWidget::widget(self.factory.sorted_keys()))
-        });
-    }
-
-    fn show_right(&mut self, ui: &mut eframe::egui::Ui) {
-        ScrollArea::vertical().show(ui, |ui| {
-            if let Some(uid) = self.rendering_state.detail_uid {
-                if let Some(project) = self.project.as_mut() {
-                    if let Ok(mut project) = project.write() {
-                        ui.heading(self.rendering_state.detail_title.as_str());
-                        ui.separator();
-                        let mut action = None;
-                        if let Some(entity) = project.orchestrator.entity_repo.entity_mut(uid) {
-                            entity.ui(ui);
-                            action = entity.take_action();
-                        }
-                        if let Some(action) = action {
-                            match action {
-                                DisplaysAction::Link(source, index) => match source {
-                                    ControlLinkSource::Entity(source_uid) => {
-                                        let _ = project.link(source_uid, uid, index);
-                                    }
-                                    ControlLinkSource::Path(path_uid) => {
-                                        let _ = project.link_path(path_uid, uid, index);
-                                    }
-                                    ControlLinkSource::None => panic!(),
-                                },
-                            }
-                        }
-                    }
-                }
-            } else {
-                ui.heading("No instrument selected");
-            }
-        });
-    }
-
-    fn show_center(&mut self, ui: &mut eframe::egui::Ui) {
-        let mut action = None;
-        ui.add(TimelineIconStripWidget::widget(&mut action));
-        if let Some(action) = action {
-            match action {
-                TimelineIconStripAction::NextTrackViewMode => {
-                    self.send_to_project(ProjectServiceInput::NextTimelineDisplayer);
-                }
-                TimelineIconStripAction::ShowComposer => {
-                    self.rendering_state.is_composer_visible =
-                        !self.rendering_state.is_composer_visible;
-                }
-            }
-        }
-        let mut action = None;
-        if let Some(project) = self.project.as_mut() {
-            if let Ok(mut project) = project.write() {
-                project.view_state.cursor = Some(project.transport.current_time());
-                project.view_state.view_range = Self::calculate_project_view_range(
-                    &project.time_signature(),
-                    project.composer.extent(),
-                );
-                eframe::egui::Window::new("Composer")
-                    .open(&mut self.rendering_state.is_composer_visible)
-                    .default_width(ui.available_width())
-                    .anchor(
-                        eframe::emath::Align2::LEFT_BOTTOM,
-                        eframe::epaint::vec2(5.0, 5.0),
-                    )
-                    .show(ui.ctx(), |ui| {
-                        let response = ui.add(ComposerWidget::widget(&mut project.composer));
-                        response
-                    });
-
-                let _ = ui.add(ProjectWidget::widget(&mut project, &mut action));
-            }
-        }
-        if let Some(action) = action {
-            self.handle_project_action(action);
-        }
-
-        // If we're performing, then we know the screen is updating, so we
-        // should draw it.
-        if self.e.is_project_performing {
-            ui.ctx().request_repaint();
-        }
-    }
-
     fn show_settings_panel(&mut self, ctx: &Context) {
         eframe::egui::Window::new("Settings")
             .open(&mut self.rendering_state.is_settings_panel_open)
@@ -481,12 +505,16 @@ impl MiniDaw {
                 ));
             }
             ProjectAction::SelectEntity(uid, title) => {
-                // This is a view-only thing, so we can add a field in this
-                // struct and use it to decide what to display. No need to get
-                // Project involved.
-                self.rendering_state.detail_uid = Some(uid);
-                self.rendering_state.detail_title = title.clone();
-                self.rendering_state.is_detail_open = true;
+                if let Some(project) = self.project.as_ref() {
+                    if let Some(leaf) = self.dock.focused_leaf() {
+                        self.dock.split(
+                            leaf,
+                            egui_dock::Split::Below,
+                            0.7,
+                            Node::leaf(TabType::Detail(Some(Arc::clone(project)), uid, title)),
+                        );
+                    }
+                }
             }
             ProjectAction::RemoveEntity(uid) => {
                 self.send_to_project(ProjectServiceInput::ProjectRemoveEntity(uid))
@@ -603,13 +631,6 @@ impl MiniDaw {
             eprintln!("Error {e} while sending ProjectServiceInput");
         }
     }
-
-    fn calculate_project_view_range(
-        time_signature: &TimeSignature,
-        extent: TimeRange,
-    ) -> ViewRange {
-        ViewRange(extent.0.start..extent.0.end + MusicalTime::new_with_bars(time_signature, 1))
-    }
 }
 impl App for MiniDaw {
     fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
@@ -624,17 +645,22 @@ impl App for MiniDaw {
             .resizable(false)
             .exact_height(24.0)
             .show(ctx, |ui| self.show_bottom(ui));
-        SidePanel::left("left-panel")
-            .resizable(true)
-            .default_width(240.0)
-            .width_range(160.0..=480.0)
-            .show(ctx, |ui| self.show_left(ui));
-        SidePanel::right("right-panel")
-            .resizable(true)
-            .default_width(160.0)
-            .width_range(160.0..=480.0)
-            .show(ctx, |ui| self.show_right(ui));
-        CentralPanel::default().show(ctx, |ui| self.show_center(ui));
+        let mut action = None;
+
+        CentralPanel::default().show(ctx, |ui| {
+            DockArea::new(&mut self.dock)
+                .style(Style::from_egui(ui.style().as_ref()))
+                .show_close_buttons(false)
+                .show_inside(
+                    ui,
+                    &mut MiniDawTabViewer {
+                        action: &mut action,
+                    },
+                )
+        });
+        if let Some(action) = action {
+            self.handle_project_action(action);
+        }
 
         self.show_settings_panel(ctx);
 
