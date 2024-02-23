@@ -16,32 +16,34 @@
 It's too early to document the DAW GUI because it's changing quickly, but here
 are some things to try.
 
-- Drag one of the instruments (FM Synth, Subtractive Synth, Sampler, Drumkit) to the
-  bottom of the first track to add it to that track.
+- Drag one of the instruments (FM Synth, Subtractive Synth, Sampler, Drumkit) to
+  the bottom of the first track to add it to that track.
 - If you have a MIDI keyboard attached to your PC, you should be able to pick it
-  in Settings as a MIDI In. If you don't have a MIDI keyboard, your computer
-  keyboard is a virtual MIDI keyboard. The keys A-K are white keys, and the row
-  above has the black keys. Use the left and right arrows to change octaves.
+  in Settings as a MIDI In (you might have to restart the app after plugging the
+  keyboard in). If you don't have a MIDI keyboard, your computer keyboard is a
+  virtual MIDI keyboard. The keys A-K are white keys, and the row above has the
+  black keys. Use the left and right arrows to change octaves.
 - Drag an effect to the track with your instrument to change the sound.
 - Click any effect or instrument on a track to edit its parameters. Some are
   missing their editors -- sorry!
 - Right-click any effect or instrument on a track to remove it.
-- Click the little piano icon to show the Composer, where you can create
-  patterns. Drag a pattern to a track to arrange it.
+- Create patterns in the Composer tab. Drag a pattern to a track to arrange it.
 - To duplicate an arranged pattern, select it and press Control-D (or Command-D
   on a Mac).
 - To delete an arranged pattern, select it and press the Delete key.
-- To save your project, press the Save button.
+- To save your project, press the Save button. Open works, too.
 - Export your creation via the Export to WAV button and send it to your friends!
 
 Other things being worked on now:
 
-- Synth patches. Today, each synth has a default that doesn't sound awful, but
-  there is no patch or sample library.
-- Automation. The icon to the left of the Composer piano icon switches to the
-  automation view, but for now it doesn't do anything useful. (You can drag the
-  path to some of the controls in the instrument detail view, and that will
-  establish a link letting the path automate the control.)
+- Only the subtractive synth has patches/presets. You can only load them; you
+  can't save new ones..
+- Automation. If you right-click on a track's title bar, you can switch to the
+  automation view. (You can drag the path to some of the controls in the
+  instrument detail view, and that will establish a link letting the path
+  automate the control.) You can't edit the automation tracks yet; they're
+  randomly generated. Try dragging an automation path to the FmSynth's pan
+  slider!
 
 [File a GitHub issue](https://github.com/ensnare-org/ensnare/issues) to help
 prioritize work!
