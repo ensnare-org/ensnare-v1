@@ -16,7 +16,7 @@ use eframe::{
     epaint::Vec2,
     App, CreationContext,
 };
-use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabViewer};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex, TabViewer};
 use egui_notify::Toasts;
 use ensnare::{
     app_version,
@@ -501,6 +501,21 @@ impl MiniDaw {
         });
     }
 
+    // TODO: this seems really cumbersome. I'm new to the egui_dock
+    // crate.
+    fn find_detail_tab(&self, uid: Uid) -> Option<(SurfaceIndex, NodeIndex, TabIndex)> {
+        if let Some(((_, _), tab)) = self.dock.iter_all_tabs().find(|((_, _), tab)| {
+            if let TabType::Detail(tab_uid, _) = tab {
+                uid == *tab_uid
+            } else {
+                false
+            }
+        }) {
+            return self.dock.find_tab(tab);
+        }
+        None
+    }
+
     fn handle_project_action(&mut self, action: ProjectAction) {
         match action {
             ProjectAction::NewDeviceForTrack(track_uid, key) => {
@@ -510,21 +525,9 @@ impl MiniDaw {
                 ));
             }
             ProjectAction::SelectEntity(uid, title) => {
-                // TODO: this seems really cumbersome. I'm new to the egui_dock
-                // crate.
-                let found = self.dock.iter_all_tabs().find(|((_, _), tab)| {
-                    if let TabType::Detail(tab_uid, _) = tab {
-                        uid == *tab_uid
-                    } else {
-                        false
-                    }
-                });
-
-                if let Some(((_, _), tab)) = found {
-                    if let Some((surface_index, node_index, tab_index)) = self.dock.find_tab(tab) {
-                        self.dock
-                            .set_active_tab((surface_index, node_index, tab_index));
-                    }
+                if let Some((surface_index, node_index, tab_index)) = self.find_detail_tab(uid) {
+                    self.dock
+                        .set_active_tab((surface_index, node_index, tab_index));
                 } else {
                     self.dock.set_focused_node_and_surface((
                         SurfaceIndex::main(),
@@ -534,6 +537,10 @@ impl MiniDaw {
                 }
             }
             ProjectAction::RemoveEntity(uid) => {
+                // Get rid of the detail tab if there is one.
+                if let Some((surface_index, node_index, tab_index)) = self.find_detail_tab(uid) {
+                    self.dock.remove_tab((surface_index, node_index, tab_index));
+                }
                 self.send_to_project(ProjectServiceInput::ProjectRemoveEntity(uid))
             }
         }
