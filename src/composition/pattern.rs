@@ -87,9 +87,7 @@ impl PatternBuilder {
     }
 
     // Clamped to number of divisions implied by time signature
-    pub fn random(&mut self) -> &mut Self {
-        let mut rng = Rng::default();
-
+    pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
         for _ in 0..rng.rand_range(8..16) {
             let time_signature = self.time_signature.unwrap_or_default();
             let ts_top = time_signature.top as u64;

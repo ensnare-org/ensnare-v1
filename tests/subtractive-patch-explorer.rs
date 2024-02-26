@@ -1,6 +1,8 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use ensnare::{cores::instruments::SubtractiveSynthCore, entities::SubtractiveSynth, prelude::*};
+use ensnare::{
+    cores::instruments::SubtractiveSynthCore, entities::SubtractiveSynth, prelude::*, util::Rng,
+};
 use std::{io, path::PathBuf};
 
 fn render_subtractive_patches() -> anyhow::Result<()> {
@@ -22,6 +24,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
         let synth_uid = project.add_entity(track_uid, Box::new(synth), None)?;
         project.set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))?;
 
+        let mut rng = Rng::default();
         let pattern = PatternBuilder::default()
             .note_sequence(
                 vec![
@@ -29,7 +32,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
                 ],
                 None,
             )
-            .random()
+            .random(&mut rng)
             .build()
             .unwrap();
         let pattern_uid = project.add_pattern(pattern, None)?;

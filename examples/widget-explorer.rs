@@ -298,10 +298,12 @@ impl NoteSequencerSettings {
     }
 
     fn make_default_sequencer() -> NoteSequencer {
+        let mut rng = Rng::default();
         NoteSequencerBuilder::default()
-            .random(TimeRange(
-                MusicalTime::START..MusicalTime::new_with_beats(128),
-            ))
+            .random(
+                &mut rng,
+                TimeRange(MusicalTime::START..MusicalTime::new_with_beats(128)),
+            )
             .build()
             .unwrap()
     }

@@ -129,9 +129,7 @@ impl NoteSequencerBuilder {
     }
 
     /// Produces a random sequence of quarter-note notes. For debugging.
-    pub fn random(&mut self, range: TimeRange) -> &mut Self {
-        let mut rng = Rng::default();
-
+    pub fn random(&mut self, rng: &mut Rng, range: TimeRange) -> &mut Self {
         for _ in 0..32 {
             let beat_range = range.0.start.total_beats() as u64..range.0.end.total_beats() as u64;
             let note_start = MusicalTime::new_with_beats(rng.rand_range(beat_range) as usize);

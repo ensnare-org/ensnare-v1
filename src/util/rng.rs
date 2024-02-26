@@ -10,13 +10,9 @@ use byteorder::{BigEndian, ByteOrder};
 pub struct Rng(oorandom::Rand64);
 impl Default for Rng {
     fn default() -> Self {
-        let mut bytes = [0u8; 16];
-
-        // We want to panic if this fails.
-        getrandom::getrandom(&mut bytes).unwrap();
-        let seed = BigEndian::read_u128(&bytes);
-
-        Self::new_with_seed(seed)
+        // We want to panic if this fails, because it indicates that a core OS
+        // facility isn't functioning.
+        Self::new_with_seed(Self::generate_seed().unwrap())
     }
 }
 impl Rng {
@@ -24,6 +20,13 @@ impl Rng {
     /// back again. Good for reproducing test failures.
     pub fn new_with_seed(seed: u128) -> Self {
         Self(oorandom::Rand64::new(seed))
+    }
+
+    pub fn generate_seed() -> anyhow::Result<u128> {
+        let mut bytes = [0u8; 16];
+
+        getrandom::getrandom(&mut bytes)?;
+        Ok(BigEndian::read_u128(&bytes))
     }
 
     pub fn rand_u64(&mut self) -> u64 {

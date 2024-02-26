@@ -5,7 +5,7 @@ use crate::{
     orchestration::TrackUid,
     prelude::*,
     types::ColorScheme,
-    util::SelectionSet,
+    util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
 use rustc_hash::FxHashMap;
@@ -55,6 +55,10 @@ pub struct Composer {
 pub struct ComposerEphemerals {
     pub pattern_selection_set: SelectionSet<PatternUid>,
     pub arrangement_selection_set: SelectionSet<ArrangementUid>,
+
+    // This RNG shouldn't be repeatable. Composer should normally generate truly
+    // new elements each time.
+    pub rng: Rng,
 
     tracks_to_sequencers: FxHashMap<TrackUid, PatternSequencer>,
 

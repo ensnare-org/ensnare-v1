@@ -86,6 +86,14 @@ pub struct ProjectEphemerals {
     /// A non-owned VecDeque that acts as a ring buffer of the most recent
     /// generated audio frames.
     pub visualization_queue: Option<VisualizationQueue>,
+
+    /// The random source for all entropic behavior that should be consistenly
+    /// replayable. Example: a noise generator or a random arpeggiator should
+    /// use this source because a the project should render the same way each
+    /// time. Non-example: a GUI action that generates a random pattern should
+    /// not use this source because the expectation is that the GUI action will
+    /// be different each time.
+    pub rng: Rng,
 }
 
 /// A musical piece. Also knows how to render the piece to digital audio.
@@ -98,6 +106,9 @@ pub struct Project {
     pub track_titles: FxHashMap<TrackUid, TrackTitle>,
     #[serde(default)]
     pub track_color_schemes: FxHashMap<TrackUid, ColorScheme>,
+
+    /// The seed to instantiate a new RNG on each replay of the project.
+    pub rng_seed: u128,
 
     pub transport: Transport,
     pub orchestrator: Orchestrator,
@@ -163,8 +174,12 @@ impl Project {
     /// Starts with a default project and configures for easy first use.
     pub fn new_project() -> Self {
         let mut r = Self::default();
+        r.set_rng_seed(Rng::generate_seed().unwrap());
         let _ = r.create_starter_tracks();
 
+        // Temp to fill in the signal path while we're building its UI. This RNG
+        // is different from the project's RNG. This one is more like an
+        // interactive GUI action, and should really be different each time.
         let mut rng = Rng::default();
         let _ = r.automator.add_path(
             SignalPathBuilder::default()
@@ -479,6 +494,15 @@ impl Project {
         self.export_to_wav(path)?;
         Ok(())
     }
+
+    fn reset_rng(&mut self) {
+        self.e.rng = Rng::new_with_seed(self.rng_seed);
+    }
+
+    pub fn set_rng_seed(&mut self, seed: u128) {
+        self.rng_seed = seed;
+        self.reset_rng();
+    }
 }
 impl Generates<StereoSample> for Project {
     delegate! {
@@ -538,6 +562,7 @@ impl Controls for Project {
     }
 
     fn skip_to_start(&mut self) {
+        self.reset_rng();
         self.transport.skip_to_start();
         self.automator.skip_to_start();
         self.orchestrator.skip_to_start();
@@ -1059,6 +1084,45 @@ mod tests {
         assert!(
             matches!(message, MidiMessage::NoteOn { .. },),
             "Received message should be a note-on message"
+        );
+    }
+
+    #[test]
+    fn project_rng_is_random_but_repeatable() {
+        let mut prior_seed = 0;
+        let are_any_different = (0..10).any(|_| {
+            let p = Project::new_project();
+            let seed = p.rng_seed;
+            let is_different = prior_seed != seed;
+            prior_seed = seed;
+            is_different
+        });
+        assert!(
+            are_any_different,
+            "Among several new projects, at least one's RNG seed should be different"
+        );
+
+        let mut p = Project::new_project();
+        let seed = p.rng_seed;
+        let prior_num = p.e.rng.rand_i64();
+        let prior_num_2 = p.e.rng.rand_i64();
+
+        let mut p = Project::new_project();
+
+        // Just in case RNG seed is totally broken, ask for one number and throw
+        // it away so that the sequence is misaligned.
+        let _throwaway_num = p.e.rng.rand_i64();
+
+        p.set_rng_seed(seed);
+        assert_eq!(
+            prior_num,
+            p.e.rng.rand_i64(),
+            "Restoring a seed should cause project to generate same RNG stream"
+        );
+        assert_eq!(
+            prior_num_2,
+            p.e.rng.rand_i64(),
+            "Restoring a seed should cause project to generate same RNG stream"
         );
     }
 }

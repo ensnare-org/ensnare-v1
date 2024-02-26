@@ -13,6 +13,7 @@ use eframe::{
     epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
 
+/// Renders a [Composer].
 #[derive(Debug)]
 pub struct ComposerWidget<'a> {
     composer: &'a mut Composer,
@@ -38,15 +39,13 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                     } | {
                         let item_response = ui.button("Add Random");
                         if item_response.clicked() {
-                            let _ = self.composer.add_pattern(
-                                PatternBuilder::default()
-                                    .time_signature(self.composer.time_signature())
-                                    .random()
-                                    .color_scheme(self.composer.suggest_next_pattern_color_scheme())
-                                    .build()
-                                    .unwrap(),
-                                None,
-                            );
+                            let contents = PatternBuilder::default()
+                                .time_signature(self.composer.time_signature())
+                                .random(&mut self.composer.e.rng)
+                                .color_scheme(self.composer.suggest_next_pattern_color_scheme())
+                                .build()
+                                .unwrap();
+                            let _ = self.composer.add_pattern(contents, None);
                         }
                         item_response
                     };

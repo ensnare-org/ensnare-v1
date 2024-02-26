@@ -319,7 +319,7 @@ mod tests {
         fx.update_sample_rate(SampleRate::DEFAULT);
 
         // We should keep getting back what we put in.
-        let mut rng = Rng::default();
+        let mut rng = Rng::new_with_seed(12345u128);
         for i in 0..SampleRate::DEFAULT_SAMPLE_RATE {
             let random_bipolar_normal = rng.rand_float() * 2.0 - 1.0;
             let sample = Sample::from(random_bipolar_normal);

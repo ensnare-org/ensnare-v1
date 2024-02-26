@@ -175,9 +175,7 @@ impl TriggerCore {
 
 impl ControlTripBuilder {
     /// Generates a random [ControlTrip]. For development/prototyping only.
-    pub fn random(&mut self, start: MusicalTime) -> &mut Self {
-        let mut rng = Rng::default();
-
+    pub fn random(&mut self, rng: &mut Rng, start: MusicalTime) -> &mut Self {
         let mut pos = start;
         for _ in 0..rng.rand_range(5..8) {
             self.step(
