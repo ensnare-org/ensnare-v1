@@ -233,7 +233,7 @@ impl MiniDaw {
 
         let [a, _] = dock_state.main_surface_mut().split_left(
             NodeIndex::root(),
-            0.3,
+            0.15,
             vec![TabType::Palette],
         );
 
