@@ -1251,7 +1251,8 @@ impl BiQuadFilter {
         let w0 = 2.0f64 * PI * cutoff / sample_rate.0 as f64;
         let w0cos = w0.cos();
         let w0sin = w0.sin();
-        let alpha = w0sin * (2.0f64.ln() / 2.0 * bandwidth.max(ParameterType::EPSILON) * w0 / w0.sin()).sinh();
+        let alpha = w0sin
+            * (2.0f64.ln() / 2.0 * bandwidth.max(ParameterType::EPSILON) * w0 / w0.sin()).sinh();
         (w0, w0cos, w0sin, alpha)
     }
 
@@ -1264,7 +1265,9 @@ impl BiQuadFilter {
         let w0 = 2.0f64 * PI * cutoff / sample_rate.0 as f64;
         let w0cos = w0.cos();
         let w0sin = w0.sin();
-        let alpha = w0sin / 2.0 * ((db_gain + 1.0 / db_gain.max(ParameterType::EPSILON)) * (1.0 / s - 1.0) + 2.0).sqrt();
+        let alpha = w0sin / 2.0
+            * ((db_gain + 1.0 / db_gain.max(ParameterType::EPSILON)) * (1.0 / s - 1.0) + 2.0)
+                .sqrt();
         (w0, w0cos, w0sin, alpha)
     }
 
