@@ -117,6 +117,10 @@ pub trait Configurable {
     /// Signature L in terms of global Time Signature G.
     #[allow(unused_variables)]
     fn update_time_signature(&mut self, time_signature: TimeSignature) {}
+
+    /// Sent to indicate that it's time to reset internal state. Oscillators
+    /// should reset phase, etc.
+    fn reset(&mut self) {}
 }
 
 /// A way for an [Entity] to do work corresponding to one or more frames.

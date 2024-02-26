@@ -145,8 +145,9 @@ pub struct OscillatorEphemerals {
     // to the start.
     is_sync_pending: bool,
 
-    // Set on init and reset().
-    reset_handled: bool,
+    // reset() is requested.
+    #[derivative(Default(value = "true"))]
+    reset_pending: bool,
 
     c: Configurables,
 }
@@ -174,13 +175,17 @@ impl Configurable for Oscillator {
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.e.c.update_sample_rate(sample_rate);
-        self.e.reset_handled = false;
+        self.reset();
+    }
+
+    fn reset(&mut self) {
+        self.e.reset_pending = true;
     }
 }
 impl Ticks for Oscillator {
     fn tick(&mut self, tick_count: usize) {
         for _ in 0..tick_count {
-            if !self.e.reset_handled {
+            if self.e.reset_pending {
                 self.e.ticks = 0; // TODO: this might not be the right thing to do
 
                 self.update_delta();
@@ -189,14 +194,10 @@ impl Ticks for Oscillator {
             } else {
                 self.e.ticks += 1;
             }
-
             let cycle_position = self.calculate_cycle_position();
             let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
             self.e.signal = BipolarNormal::from(amplitude_for_position);
-
-            // We need this to be at the end of tick() because any code running
-            // during tick() might look at it.
-            self.e.reset_handled = true;
+            self.e.reset_pending = false;
         }
     }
 }
@@ -294,14 +295,14 @@ impl Oscillator {
 
         // If we haven't just reset, add delta to the previous position and mod
         // 1.0.
-        let next_cycle_position_unrounded = if !self.e.reset_handled {
+        let next_cycle_position_unrounded = if self.e.reset_pending {
             0.0
         } else {
             self.e.cycle_position += self.e.delta;
             self.e.cycle_position.sum()
         };
 
-        self.e.should_sync = if !self.e.reset_handled {
+        self.e.should_sync = if self.e.reset_pending {
             // If we're in the first post-reset tick(), then we want other
             // oscillators to sync.
             true

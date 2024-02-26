@@ -242,6 +242,10 @@ impl Configurable for Orchestrator {
     fn update_time_signature(&mut self, time_signature: TimeSignature) {
         self.entity_repo.update_time_signature(time_signature)
     }
+
+    fn reset(&mut self) {
+        self.entity_repo.reset();
+    }
 }
 impl Serializable for Orchestrator {
     fn before_ser(&mut self) {

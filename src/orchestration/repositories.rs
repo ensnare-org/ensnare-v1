@@ -292,6 +292,10 @@ impl Configurable for EntityRepository {
             .values_mut()
             .for_each(|e| e.update_time_signature(time_signature))
     }
+
+    fn reset(&mut self) {
+        self.entities.values_mut().for_each(|e| e.reset());
+    }
 }
 impl Ticks for EntityRepository {
     fn tick(&mut self, tick_count: usize) {

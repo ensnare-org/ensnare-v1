@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-//! Representation of a whole music project, including support for serialization.
+//! Representation of a whole music project, including support for
+//! serialization.
 
 use crate::{
     automation::Automator,
@@ -331,6 +332,7 @@ impl Project {
         self.e.is_finished = self.composer.is_finished() && self.orchestrator.is_finished();
     }
 
+    /// Renders the project as a WAV file to the specified path.
     pub fn export_to_wav(&mut self, path: PathBuf) -> anyhow::Result<()> {
         let spec = hound::WavSpec {
             channels: 2,
@@ -529,6 +531,13 @@ impl Configurable for Project {
         self.composer.update_time_signature(time_signature);
     }
 
+    fn reset(&mut self) {
+        self.reset_rng();
+        self.transport.reset();
+        self.orchestrator.reset();
+        self.composer.reset();
+    }
+
     delegate! {
         to self.transport {
             fn sample_rate(&self) -> SampleRate;
@@ -562,7 +571,7 @@ impl Controls for Project {
     }
 
     fn skip_to_start(&mut self) {
-        self.reset_rng();
+        self.reset();
         self.transport.skip_to_start();
         self.automator.skip_to_start();
         self.orchestrator.skip_to_start();
@@ -657,10 +666,10 @@ impl Serializable for Project {
 mod tests {
     use super::*;
     use crate::{
-        cores::instruments::{TestAudioSourceCore, TestAudioSourceCoreBuilder},
+        cores::instruments::TestAudioSourceCoreBuilder,
         entities::{
             TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
-            TestInstrument, TestInstrumentCountsMidiMessages,
+            TestInstrumentCountsMidiMessages,
         },
     };
     use ensnare_proc_macros::{IsEntity, Metadata};
