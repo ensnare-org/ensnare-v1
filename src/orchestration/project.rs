@@ -294,6 +294,7 @@ impl Project {
         frames: &mut [StereoSample],
         mut midi_events_fn: Option<&mut MidiMessagesFn>,
     ) {
+        let is_finished_at_start = self.e.is_finished;
         let time_range = self.transport.advance(frames.len());
         self.update_time_range(&time_range);
         self.work(&mut |e| {
@@ -305,7 +306,7 @@ impl Project {
                 }
             }
         });
-        if self.e.is_finished {
+        if !is_finished_at_start && self.e.is_finished {
             self.stop();
         }
         self.generate(frames);
