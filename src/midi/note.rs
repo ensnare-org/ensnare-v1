@@ -1,6 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use core::fmt::Display;
+use core::{
+    fmt::Display,
+    ops::{Add, AddAssign, Sub},
+};
 use strum_macros::FromRepr;
 
 /// There are two different mappings of piano notes to MIDI numbers. They both
@@ -30,7 +33,7 @@ use strum_macros::FromRepr;
 //         index += 1
 // ```
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Default, FromRepr)]
+#[derive(Clone, Copy, Debug, Default, FromRepr, PartialEq, PartialOrd)]
 pub enum MidiNote {
     CSub0 = 0,
     CsSub0 = 1,
@@ -176,6 +179,67 @@ impl Display for MidiNote {
 impl From<u8> for MidiNote {
     fn from(value: u8) -> Self {
         Self::from_repr(value as usize).unwrap_or_default()
+    }
+}
+impl Add<u8> for MidiNote {
+    type Output = Self;
+
+    fn add(self, rhs: u8) -> Self::Output {
+        let mut val = self as usize;
+        val += rhs as usize;
+        if val > Self::G9 as usize {
+            Self::G9
+        } else {
+            MidiNote::from_repr(val).unwrap()
+        }
+    }
+}
+impl Add<f32> for MidiNote {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        let rhs = rhs as u8;
+        self + rhs
+    }
+}
+impl Sub<u8> for MidiNote {
+    type Output = Self;
+
+    fn sub(self, rhs: u8) -> Self::Output {
+        let mut val = self as i16;
+        val -= rhs as i16;
+        if val < Self::CSub0 as i16 {
+            Self::CSub0
+        } else {
+            MidiNote::from_repr(val as usize).unwrap()
+        }
+    }
+}
+impl Sub<f32> for MidiNote {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        let rhs = rhs as u8;
+        self - rhs
+    }
+}
+impl AddAssign<f32> for MidiNote {
+    fn add_assign(&mut self, rhs: f32) {
+        let val = (*self as u8 as f32) + rhs;
+        if let Some(v) = MidiNote::from_repr(val as usize) {
+            *self = v;
+        } else if val < 0.0 {
+            *self = MidiNote::CSub0;
+        } else {
+            *self = MidiNote::G9;
+        }
+    }
+}
+impl Sub<MidiNote> for MidiNote {
+    type Output = Self;
+
+    fn sub(self, rhs: MidiNote) -> Self::Output {
+        self - rhs as u8
     }
 }
 impl MidiNote {

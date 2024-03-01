@@ -5,10 +5,9 @@ use crate::{
     egui::{colors::ColorSchemeConverter, fill_remaining_ui_space},
     prelude::*,
 };
-
-use core::ops::RangeInclusive;
+use core::ops::{Range, RangeInclusive};
 use eframe::{
-    egui::{Frame, PointerButton, Sense, Widget},
+    egui::{Frame, PointerButton, Sense, Vec2, Widget},
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, Color32, FontId, Rect, RectShape, Rounding, Shape, Stroke},
 };
@@ -104,7 +103,7 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
             .single_selection()
             .cloned()
         {
-            if let Some(pattern) = self.composer.pattern_mut(pattern_uid) {
+            if let Some(pattern) = self.composer.patterns.get_mut(&pattern_uid) {
                 // inner_margin() should be half of the Frame stroke width to leave room
                 // for it. Thanks vikrinox on the egui Discord.
                 Frame::default()
@@ -115,33 +114,24 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                         let available_size = ui.available_size();
                         let (_id, rect) =
                             ui.allocate_space(vec2(available_size.x, available_size.y - 10.0));
+
+                        // Leave a margin for the editor axis labels.
                         let mut rect = rect;
                         *rect.left_mut() += 20.0;
                         *rect.top_mut() += 20.0;
 
+                        if self.composer.e.editor_bounds_x == Range::<MusicalTime>::default() {
+                            self.composer.e.editor_bounds_x =
+                                MusicalTime::START..MusicalTime::new_with_beats(4);
+                        }
+                        if self.composer.e.editor_bounds_y == Range::<MidiNote>::default() {
+                            self.composer.e.editor_bounds_y = MidiNote::C4..MidiNote::C5;
+                        }
+
+                        let min_window = self.composer.e.editor_bounds_y.start as u8;
+                        let max_window = self.composer.e.editor_bounds_y.end as u8;
+
                         // Overlay the grid
-                        let min_note = pattern
-                            .notes
-                            .iter()
-                            .map(|note| note.key)
-                            .min()
-                            .unwrap_or(MidiNote::C3 as u8);
-                        let max_note = pattern
-                            .notes
-                            .iter()
-                            .map(|note| note.key)
-                            .max()
-                            .unwrap_or(MidiNote::C3 as u8);
-                        let min_window = if min_note < MidiNote::C0 as u8 {
-                            MidiNote::CSub0 as u8
-                        } else {
-                            min_note - 12
-                        };
-                        let max_window = if max_note > MidiNote::G8 as u8 {
-                            MidiNote::G9 as u8
-                        } else {
-                            max_note + 12
-                        };
                         ui.add_enabled_ui(false, |ui| {
                             ui.allocate_ui_at_rect(rect, |ui| {
                                 ui.add(PatternGridWidget::widget(
@@ -161,7 +151,80 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                             })
                             .inner;
 
-                        //   let response = ui.allocate_ui_at_rect(rect, |ui| ui.label("hi mom")).inner;
+                        // Handle pinch/zoom. TODO: this is being done in the
+                        // top-level widget, which didn't know anything about
+                        // screen coordinates. Either move this down to a widget
+                        // that does, or reconsider the current division into
+                        // grid/pattern sub-widgets.
+                        if let Some(hover_pos) = response.hover_pos() {
+                            let zoom_factor = ui.input(|i| i.zoom_delta_2d());
+                            if zoom_factor != Vec2::splat(1.0) {
+                                let first_note_f32 = min_window as f32;
+                                let last_note_f32 = max_window as f32;
+                                let note_range_f32 = last_note_f32..=first_note_f32;
+                                let to_screen = RectTransform::from_to(
+                                    eframe::epaint::Rect::from_x_y_ranges(
+                                        0.0..=1.0,
+                                        note_range_f32,
+                                    ),
+                                    rect,
+                                );
+                                let from_screen = to_screen.inverse();
+
+                                // See
+                                // https://github.com/emilk/egui/blob/master/crates/egui_plot/src/lib.rs,
+                                // which I was physically near when I barfed out
+                                // this code. Errors and hacks are my own.
+                                let center = from_screen * hover_pos;
+                                self.composer.e.editor_bounds_y.start = ((center.y
+                                    + (self.composer.e.editor_bounds_y.start as u8 as f32
+                                        - center.y)
+                                        / (zoom_factor.y as f32))
+                                    as u8)
+                                    .into();
+                                self.composer.e.editor_bounds_y.end = ((center.y
+                                    + (self.composer.e.editor_bounds_y.end as u8 as f32 - center.y)
+                                        / (zoom_factor.y as f32))
+                                    as u8)
+                                    .into();
+
+                                // Did we zoom into a zero-length range?
+                                if self.composer.e.editor_bounds_y.start
+                                    == self.composer.e.editor_bounds_y.end
+                                {
+                                    if self.composer.e.editor_bounds_y.start == MidiNote::G9 {
+                                        self.composer.e.editor_bounds_y.start = MidiNote::F9;
+                                        self.composer.e.editor_bounds_y.end = MidiNote::G9;
+                                    } else {
+                                        self.composer.e.editor_bounds_y.end =
+                                            self.composer.e.editor_bounds_y.start + 1;
+                                    }
+                                }
+                            }
+
+                            if response.dragged_by(PointerButton::Primary) {
+                                let delta = -response.drag_delta();
+
+                                // TODO: this kind of logic needs to be turned into reusable transform/clamp methods
+                                if self.composer.e.editor_bounds_y.start + delta.y < MidiNote::CSub0
+                                {
+                                    self.composer.e.editor_bounds_y.end =
+                                        self.composer.e.editor_bounds_y.end
+                                            - self.composer.e.editor_bounds_y.start;
+                                    self.composer.e.editor_bounds_y.start = MidiNote::CSub0;
+                                } else if self.composer.e.editor_bounds_y.end + delta.y
+                                    > MidiNote::G9
+                                {
+                                    self.composer.e.editor_bounds_y.start = MidiNote::G9
+                                        - (self.composer.e.editor_bounds_y.end
+                                            - self.composer.e.editor_bounds_y.start);
+                                    self.composer.e.editor_bounds_y.end = MidiNote::G9;
+                                } else {
+                                    self.composer.e.editor_bounds_y.start += delta.y;
+                                    self.composer.e.editor_bounds_y.end += delta.y;
+                                }
+                            }
+                        }
 
                         fill_remaining_ui_space(ui);
                         response
@@ -247,13 +310,16 @@ impl eframe::egui::Widget for PatternGridWidget {
 
         const COLUMN_ROW_HIGHLIGHT_COLOR: Color32 = Color32::from_rgb(32, 32, 32);
 
+        // TODO: get story straight on inclusive/exclusive range
+        let exclusive_note_range = *self.note_range.start()..*self.note_range.end();
+
         // Draw the horizontal note dividers.
         for key in self.note_range {
-            let is_hovering = Some(key) == cursor_key;
+            let is_hovering = Some(key) == cursor_key && exclusive_note_range.contains(&key);
             let left = to_screen * pos2(0.0, key as f32);
             let right = to_screen * pos2(sections as f32, key as f32);
             let bottom_right = to_screen * pos2(sections as f32, (key + 1) as f32);
-            let stroke = if (key - MidiNote::C0 as u8) % 12 == 0 {
+            let stroke = if key % 12 == 0 {
                 visuals.fg_stroke
             } else {
                 visuals.bg_stroke
@@ -399,7 +465,7 @@ impl<'a> PatternEditorWidget<'a> {
 impl<'a> eframe::egui::Widget for PatternEditorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let desired_size = ui.available_size();
-        let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click());
+        let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click_and_drag());
         let sections = self.pattern.time_signature().bottom * 4;
         let first_note = *self.note_range.start();
         let last_note = *self.note_range.end();
@@ -411,6 +477,9 @@ impl<'a> eframe::egui::Widget for PatternEditorWidget<'a> {
             rect,
         );
         let from_screen = to_screen.inverse();
+
+        // TODO: get story straight on inclusive/exclusive range
+        let exclusive_note_range = *self.note_range.start()..*self.note_range.end();
 
         // Identify the local x and y values of the cursor.
         let (key, position) = if let Some(screen_pos) = ui.ctx().pointer_interact_pos() {
@@ -452,48 +521,52 @@ impl<'a> eframe::egui::Widget for PatternEditorWidget<'a> {
             ColorSchemeConverter::to_color32(self.pattern.color_scheme);
         let mut drew_hovered = false;
         for note in self.pattern.notes.iter() {
-            let note_rect = Self::rect_for_note(&to_screen, note);
+            if exclusive_note_range.contains(&note.key) {
+                let note_rect = Self::rect_for_note(&to_screen, note);
 
-            let hovered = Some(note.key) == key
-                && if let Some(position) = position {
-                    note.extent.0.contains(&position)
+                let hovered = Some(note.key) == key
+                    && if let Some(position) = position {
+                        note.extent.0.contains(&position)
+                    } else {
+                        false
+                    };
+                if hovered {
+                    drew_hovered = true;
+                }
+                let stroke = if hovered {
+                    ui.ctx().style().visuals.widgets.active.fg_stroke
                 } else {
-                    false
+                    ui.ctx().style().visuals.widgets.active.bg_stroke
                 };
-            if hovered {
-                drew_hovered = true;
-            }
-            let stroke = if hovered {
-                ui.ctx().style().visuals.widgets.active.fg_stroke
-            } else {
-                ui.ctx().style().visuals.widgets.active.bg_stroke
-            };
 
-            shapes.push(Shape::Rect(RectShape::new(
-                note_rect,
-                Rounding::default(),
-                background_color,
-                stroke,
-            )));
+                shapes.push(Shape::Rect(RectShape::new(
+                    note_rect,
+                    Rounding::default(),
+                    background_color,
+                    stroke,
+                )));
+            }
         }
         if !drew_hovered {
             if let Some(key) = key {
-                if let Some(position) = position {
-                    // The `* 4` is here because I haven't decided whether a
-                    // pattern is always time sig's top x bottom # of divisions,
-                    // or else 4x that (each note value divided by 4)
-                    shapes.push(Shape::Rect(RectShape::new(
-                        Self::rect_for_note(
-                            &to_screen,
-                            &Note::new_with(key, position, self.division_duration() * 4),
-                        ),
-                        Rounding::default(),
-                        Color32::from_rgb(64, 64, 64),
-                        Stroke {
-                            width: 1.0,
-                            color: Color32::DARK_GRAY,
-                        },
-                    )))
+                if exclusive_note_range.contains(&key) {
+                    if let Some(position) = position {
+                        // The `* 4` is here because I haven't decided whether a
+                        // pattern is always time sig's top x bottom # of divisions,
+                        // or else 4x that (each note value divided by 4)
+                        shapes.push(Shape::Rect(RectShape::new(
+                            Self::rect_for_note(
+                                &to_screen,
+                                &Note::new_with(key, position, self.division_duration() * 4),
+                            ),
+                            Rounding::default(),
+                            Color32::from_rgb(64, 64, 64),
+                            Stroke {
+                                width: 1.0,
+                                color: Color32::DARK_GRAY,
+                            },
+                        )))
+                    }
                 }
             }
         }

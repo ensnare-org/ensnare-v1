@@ -8,6 +8,7 @@ use crate::{
     util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
+use core::ops::Range;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use strum::EnumCount;
@@ -73,6 +74,10 @@ pub struct ComposerEphemerals {
     // Each time something changes in the repo, this number will change. Use the
     // provided methods to manage a local copy of it and decide whether to act.
     mod_serial: ModSerial,
+
+    // The visible portion of the pattern editor.
+    pub(crate) editor_bounds_x: Range<MusicalTime>,
+    pub(crate) editor_bounds_y: Range<MidiNote>,
 }
 impl Composer {
     pub fn add_pattern(
