@@ -109,6 +109,7 @@ pub struct Project {
     pub track_color_schemes: FxHashMap<TrackUid, ColorScheme>,
 
     /// The seed to instantiate a new RNG on each replay of the project.
+    #[serde(default)]
     pub rng_seed: u128,
 
     pub transport: Transport,
