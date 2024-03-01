@@ -2,6 +2,7 @@
 
 //! Useful things that don't have anything to do with digital audio.
 
+/// The most commonly used imports.
 pub mod prelude {
     pub use super::{ChannelPair, ModSerial};
 }

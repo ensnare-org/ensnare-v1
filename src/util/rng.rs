@@ -3,6 +3,7 @@
 //! Provides a random-number generator for debugging and testing.
 
 use byteorder::{BigEndian, ByteOrder};
+use delegate::delegate;
 
 /// A pseudorandom number generator (PRNG) for applications that don't require
 /// cryptographically secure random numbers.
@@ -15,6 +16,7 @@ impl Default for Rng {
         Self::new_with_seed(Self::generate_seed().unwrap())
     }
 }
+#[allow(missing_docs)]
 impl Rng {
     /// Pass the same number to [Rng::new_with_seed()] to get the same stream
     /// back again. Good for reproducing test failures.
@@ -22,6 +24,8 @@ impl Rng {
         Self(oorandom::Rand64::new(seed))
     }
 
+    /// Create a sufficiently high-quality random number that's suitable for
+    /// [Rng].
     pub fn generate_seed() -> anyhow::Result<u128> {
         let mut bytes = [0u8; 16];
 
@@ -29,20 +33,13 @@ impl Rng {
         Ok(BigEndian::read_u128(&bytes))
     }
 
-    pub fn rand_u64(&mut self) -> u64 {
-        self.0.rand_u64()
-    }
-
-    pub fn rand_i64(&mut self) -> i64 {
-        self.0.rand_i64()
-    }
-
-    pub fn rand_float(&mut self) -> f64 {
-        self.0.rand_float()
-    }
-
-    pub fn rand_range(&mut self, range: core::ops::Range<u64>) -> u64 {
-        self.0.rand_range(range)
+    delegate! {
+        to self.0 {
+            pub fn rand_u64(&mut self) -> u64;
+            pub fn rand_i64(&mut self) -> i64;
+            pub fn rand_float(&mut self) -> f64;
+            pub fn rand_range(&mut self, range: core::ops::Range<u64>) -> u64;
+        }
     }
 }
 
