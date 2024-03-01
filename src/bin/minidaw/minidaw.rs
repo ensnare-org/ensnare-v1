@@ -11,7 +11,7 @@ use crate::{
 };
 use crossbeam_channel::{Select, Sender};
 use eframe::{
-    egui::{CentralPanel, Context, Event, Layout, Modifiers, TopBottomPanel, Ui, WidgetText},
+    egui::{CentralPanel, Context, Layout, Modifiers, TopBottomPanel, Ui, WidgetText},
     emath::{Align, Align2},
     epaint::Vec2,
     App, CreationContext,
@@ -482,17 +482,6 @@ impl MiniDaw {
                                 *pressed,
                                 *physical_key,
                             ));
-                        }
-                    }
-                    Event::MouseWheel {
-                        delta, modifiers, ..
-                    } => {
-                        if modifiers.command_only() {
-                            if delta.y > 0.0 {
-                                eprintln!("zoom timeline in")
-                            } else {
-                                eprintln!("zoom timeline out")
-                            }
                         }
                     }
                     _ => {}
