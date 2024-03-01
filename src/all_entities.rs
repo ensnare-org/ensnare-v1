@@ -9,10 +9,7 @@ use crate::prelude::*;
 pub struct MiniDawEntities {}
 impl MiniDawEntities {
     /// Registers all the entities in this collection.
-    pub fn register(
-        mut factory: EntityFactory<dyn EntityBounds>,
-    ) -> EntityFactory<dyn EntityBounds> {
-        let factory = BuiltInEntities::register(factory);
-        factory
+    pub fn register(factory: EntityFactory<dyn EntityBounds>) -> EntityFactory<dyn EntityBounds> {
+        BuiltInEntities::register(factory)
     }
 }
