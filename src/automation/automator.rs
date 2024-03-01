@@ -53,7 +53,6 @@ impl Automator {
         if let Some(controllables) = match source {
             ControlLinkSource::Entity(uid) => self.controllables.get(&uid),
             ControlLinkSource::Path(path_uid) => self.path_links.get(&path_uid),
-            ControlLinkSource::None => panic!(),
         } {
             controllables.iter().for_each(|link| {
                 if let Some(entity) = entity_repo.entity_mut(link.uid) {

@@ -107,9 +107,10 @@ pub trait Controls: Send {
 /// can generate Control events, so we express them here as variants.
 #[derive(Debug, Display, Copy, Clone)]
 pub enum ControlLinkSource {
+    /// An Entity source.
     Entity(Uid),
+    /// A Path source.
     Path(PathUid),
-    None,
 }
 impl From<Uid> for ControlLinkSource {
     fn from(uid: Uid) -> Self {
@@ -122,10 +123,12 @@ impl From<PathUid> for ControlLinkSource {
     }
 }
 
+/// Callback for [ControlsAsProxy::work_as_proxy()].
 pub type ControlProxyEventsFn<'a> = dyn FnMut(ControlLinkSource, WorkEvent) + 'a;
 
 /// A version of [Controls] for collections of entities.
 #[allow(unused_variables)]
 pub trait ControlsAsProxy: Controls {
+    /// Allows a collection of entities to do work.
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {}
 }

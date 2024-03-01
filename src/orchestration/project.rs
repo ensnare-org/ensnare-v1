@@ -592,12 +592,11 @@ impl Controls for Project {
     fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
         let mut events = Vec::default();
         self.automator
-            .work_as_proxy(&mut |source, event| events.push((source, event)));
-        self.composer
-            .work(&mut |event| events.push((ControlLinkSource::None, event)));
+            .work_as_proxy(&mut |source, event| events.push((Some(source), event)));
+        self.composer.work(&mut |event| events.push((None, event)));
         self.orchestrator
-            .work_as_proxy(&mut |uid, event| events.push((uid, event)));
-        while let Some((uid, event)) = events.pop() {
+            .work_as_proxy(&mut |source, event| events.push((Some(source), event)));
+        while let Some((source, event)) = events.pop() {
             match event {
                 WorkEvent::Midi(_, _) => {
                     // This is a logic error because it means that we don't know
@@ -616,7 +615,9 @@ impl Controls for Project {
                     control_events_fn(event);
                 }
                 WorkEvent::Control(value) => {
-                    self.dispatch_control_event(uid, value);
+                    if let Some(source) = source {
+                        self.dispatch_control_event(source, value);
+                    }
                 }
             }
         }
