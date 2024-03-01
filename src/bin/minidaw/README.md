@@ -27,7 +27,9 @@ are some things to try.
 - Click any effect or instrument on a track to edit its parameters. Some are
   missing their editors -- sorry!
 - Right-click any effect or instrument on a track to remove it.
-- Create patterns in the Composer tab. Drag a pattern to a track to arrange it.
+- Create patterns in the Composer tab. Hold down the Control/Command key and
+  drag/scroll to pan/zoom.
+- To arrange a pattern, drag its icon from the Composer to a track.
 - To duplicate an arranged pattern, select it and press Control-D (or Command-D
   on a Mac).
 - To delete an arranged pattern, select it and press the Delete key.
