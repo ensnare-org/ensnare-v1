@@ -117,6 +117,8 @@ fn main() -> anyhow::Result<()> {
             .with_title(MiniDaw::NAME)
             .with_inner_size(eframe::epaint::vec2(1280.0, 720.0))
             .to_owned(),
+        vsync: true,
+        centered: true,
         ..Default::default()
     };
 
