@@ -27,6 +27,7 @@ impl ToyEffectCore {
         self.magnitude = magnitude;
     }
 
+    #[allow(dead_code)]
     pub fn magnitude(&self) -> Normal {
         self.magnitude
     }
