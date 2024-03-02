@@ -20,6 +20,16 @@ pub struct Arrangement {
     pub position: MusicalTime,
     pub duration: MusicalTime,
 }
+impl HasExtent for Arrangement {
+    fn extent(&self) -> TimeRange {
+        TimeRange(self.position..self.position + self.duration)
+    }
+
+    fn set_extent(&mut self, extent: TimeRange) {
+        self.position = extent.start();
+        self.duration = extent.duration();
+    }
+}
 
 /// [Composer] owns the musical score. It doesn't know anything about
 /// instruments that can help perform the score.
@@ -135,6 +145,10 @@ impl Composer {
         position: MusicalTime,
     ) -> Result<ArrangementUid> {
         if let Some(pattern) = self.patterns.get(&pattern_uid) {
+            if !self.is_arrangement_area_available(track_uid, pattern, position) {
+                return Err(anyhow!("Pattern {pattern_uid} at position {position} would overlap with existing arrangement"));
+            }
+
             let arrangement_uid = self.arrangement_uid_factory.mint_next();
             self.arrangements.insert(
                 arrangement_uid,
@@ -264,6 +278,29 @@ impl Composer {
 
     pub fn suggest_next_pattern_color_scheme(&self) -> ColorScheme {
         ColorScheme::from_repr(self.patterns.len() % ColorScheme::COUNT).unwrap_or_default()
+    }
+
+    // Composer enforces that no patterns should overlap in the arrangement.
+    // TODO: this will be tricky if the user arranges a pattern and then edits
+    // it later!
+    fn is_arrangement_area_available(
+        &self,
+        track_uid: TrackUid,
+        pattern: &Pattern,
+        position: MusicalTime,
+    ) -> bool {
+        let pattern_extent = TimeRange(position..position + pattern.duration());
+        if let Some(arrangement_uids) = self.tracks_to_ordered_arrangement_uids.get(&track_uid) {
+            arrangement_uids.iter().all(|auid| {
+                if let Some(arrangement) = self.arrangements.get(auid) {
+                    !(pattern_extent.overlaps(arrangement.extent()))
+                } else {
+                    true
+                }
+            })
+        } else {
+            true
+        }
     }
 }
 impl Controls for Composer {
@@ -406,8 +443,11 @@ mod tests {
 
         let track_1_uid = TrackUid(1);
         let track_2_uid = TrackUid(2);
+        // This is placed far out in the track so that it doesn't interfere with
+        // subsequent pattern arrangements. We want it to stay in the
+        // arrangement because we use it when we're testing pattern deletion.
         let _ = c
-            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::START)
+            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::ONE_BEAT * 16)
             .unwrap();
         assert_eq!(
             c.tracks_to_ordered_arrangement_uids.len(),
@@ -421,11 +461,16 @@ mod tests {
                 .len(),
             1
         );
+
         let arrangement_1_uid = c
             .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 1)
             .unwrap();
         let arrangement_2_uid = c
-            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 2)
+            .arrange_pattern(
+                track_1_uid,
+                pattern_1_uid,
+                MusicalTime::DURATION_WHOLE * 1 + MusicalTime::ONE_BEAT * 4,
+            )
             .unwrap();
         assert_eq!(c.tracks_to_ordered_arrangement_uids.len(), 1);
         assert_eq!(
@@ -440,7 +485,11 @@ mod tests {
             .arrange_pattern(track_2_uid, pattern_2_uid, MusicalTime::DURATION_WHOLE * 3)
             .unwrap();
         let arrangement_4_uid = c
-            .arrange_pattern(track_2_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 3)
+            .arrange_pattern(
+                track_2_uid,
+                pattern_1_uid,
+                MusicalTime::DURATION_WHOLE * 3 + MusicalTime::ONE_BEAT * 4,
+            )
             .unwrap();
         assert_eq!(
             c.tracks_to_ordered_arrangement_uids.len(),
@@ -521,5 +570,95 @@ mod tests {
         assert_eq!(c.pattern_color_schemes.len(), 1);
         c.before_ser();
         assert!(c.pattern_color_schemes.is_empty());
+    }
+
+    #[test]
+    fn composer_durations() {
+        let mut rng = Rng::new_with_seed(42);
+        let track_uid = TrackUid(1);
+        let mut c = Composer::default();
+        assert_eq!(
+            c.duration(),
+            MusicalTime::TIME_ZERO,
+            "New composer should have duration zero"
+        );
+
+        let p1 = PatternBuilder::default().random(&mut rng).build().unwrap();
+        let p1_duration = p1.duration();
+        let p2 = PatternBuilder::default().random(&mut rng).build().unwrap();
+        let p2_duration = p2.duration();
+
+        let puid1 = c.add_pattern(p1, None).unwrap();
+        let puid2 = c.add_pattern(p2, None).unwrap();
+
+        let a1 = c
+            .arrange_pattern(track_uid, puid1, MusicalTime::START)
+            .unwrap();
+        assert_eq!(c.duration(), p1_duration, "After adding one pattern at start, composer's duration should equal pattern's duration");
+        let a2 = c
+            .arrange_pattern(track_uid, puid2, MusicalTime::START + p1_duration)
+            .unwrap();
+        assert_eq!(c.duration(), p1_duration + p2_duration, "After adding two consecutive normal-sized patterns, composer's duration should equal their durations' sum");
+
+        c.unarrange(track_uid, a2);
+        assert_eq!(c.duration(), p1_duration, "After removing last pattern in arrangement, composer duration should shrink appropriately");
+        c.unarrange(track_uid, a1);
+        assert_eq!(
+            c.duration(),
+            MusicalTime::TIME_ZERO,
+            "After removing only pattern, composer duration should return to zero"
+        );
+    }
+
+    #[test]
+    fn composer_disallows_overlapping_patterns() {
+        let mut rng = Rng::new_with_seed(42);
+        let mut c = Composer::default();
+
+        let p1 = PatternBuilder::default().random(&mut rng).build().unwrap();
+        let p1_duration = p1.duration();
+        let p2 = PatternBuilder::default().random(&mut rng).build().unwrap();
+        let p2_duration = p2.duration();
+        let p3 = PatternBuilder::default().random(&mut rng).build().unwrap();
+        let _p3_duration = p3.duration();
+
+        let puid1 = c.add_pattern(p1, None).unwrap();
+        let puid2 = c.add_pattern(p2, None).unwrap();
+        let puid3 = c.add_pattern(p3, None).unwrap();
+        let track_uid = TrackUid(1);
+
+        let a1 = c
+            .arrange_pattern(track_uid, puid1, MusicalTime::START)
+            .unwrap();
+        let a2 = c.arrange_pattern(track_uid, puid2, p1_duration).unwrap();
+        assert_eq!(
+            c.duration(),
+            p1_duration + p2_duration,
+            "Sanity check: composer duration == duration of two arranged patterns"
+        );
+        assert!(c
+            .arrange_pattern(
+                track_uid,
+                puid3,
+                p1_duration + p2_duration - MusicalTime::ONE_UNIT
+            )
+            .is_err(), "Composer should disallow arrangement of pattern whose start is within another arranged pattern.");
+
+        c.unarrange(track_uid, a1);
+        assert!(
+            c.arrange_pattern(track_uid, puid3, MusicalTime::START + MusicalTime::ONE_UNIT)
+                .is_err(),
+            "Composer should disallow arrangement of pattern whose extent crosses a later pattern's start."
+        );
+
+        c.unarrange(track_uid, a2);
+        let a3_result =
+            c.arrange_pattern(track_uid, puid3, MusicalTime::START + MusicalTime::ONE_UNIT);
+        assert!(a3_result.is_ok(), "Composer should allow arrangement of pattern in area formerly occupied by since-unarranged patterns.");
+    }
+
+    #[test]
+    fn composer_detects_overlaps_after_pattern_edit() {
+        // TODO: we don't handle this yet.
     }
 }

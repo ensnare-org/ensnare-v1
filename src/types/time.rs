@@ -502,6 +502,20 @@ impl TimeRange {
     pub fn shift_right(&self, time: MusicalTime) -> TimeRange {
         TimeRange(self.0.start + time..self.0.end + time)
     }
+
+    // Returns true if this TimeRange overlaps with the given one.
+    pub fn overlaps(&self, other: TimeRange) -> bool {
+        // https://stackoverflow.com/a/3269471
+        self.0.start < other.0.end && other.0.start < self.0.end
+    }
+
+    pub fn start(&self) -> MusicalTime {
+        self.0.start
+    }
+
+    pub fn end(&self) -> MusicalTime {
+        self.0.end
+    }
 }
 impl HasExtent for TimeRange {
     fn extent(&self) -> TimeRange {
