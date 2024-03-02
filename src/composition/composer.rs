@@ -145,7 +145,11 @@ impl Composer {
         position: MusicalTime,
     ) -> Result<ArrangementUid> {
         if let Some(pattern) = self.patterns.get(&pattern_uid) {
-            if !self.is_arrangement_area_available(track_uid, pattern, position) {
+            if !self.is_arrangement_area_available(
+                track_uid,
+                &pattern.extent().translate_to(position),
+                None,
+            ) {
                 return Err(anyhow!("Pattern {pattern_uid} at position {position} would overlap with existing arrangement"));
             }
 
@@ -172,6 +176,48 @@ impl Composer {
             Ok(arrangement_uid)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
+        }
+    }
+
+    /// Sets a new position for an existing arrangement. Optionally duplicates
+    /// the existing arrangement, leaves it in place, and creates a new one in
+    /// the new position.
+    pub fn move_arrangement(
+        &mut self,
+        track_uid: TrackUid,
+        arrangement_uid: ArrangementUid,
+        new_position: MusicalTime,
+        copy_original: bool,
+    ) -> Result<ArrangementUid> {
+        if let Some(arrangements) = self.tracks_to_ordered_arrangement_uids.get_mut(&track_uid) {
+            if let Some(arrangement) = self.arrangements.get(&arrangement_uid) {
+                if copy_original {
+                    self.arrange_pattern(track_uid, arrangement.pattern_uid, new_position)
+                } else {
+                    let new_extent = arrangement.extent().translate_to(new_position);
+                    if !self.is_arrangement_area_available(
+                        track_uid,
+                        &new_extent,
+                        Some(arrangement_uid),
+                    ) {
+                        return Err(anyhow!("Moving arrangement {arrangement_uid} to {new_extent:?} would overlap with existing arrangement"));
+                    }
+
+                    // We have to look this up twice, first immutably, then _mut, to
+                    // keep the borrow checker happy.
+                    if let Some(arrangement) = self.arrangements.get_mut(&arrangement_uid) {
+                        arrangement.position = new_position;
+                        self.replay_arrangements();
+                    }
+                    Ok(arrangement_uid)
+                }
+            } else {
+                Err(anyhow!("Arrangement {arrangement_uid} not found"))
+            }
+        } else {
+            Err(anyhow!(
+                "Arrangement {arrangement_uid} not found in track {track_uid}"
+            ))
         }
     }
 
@@ -281,23 +327,27 @@ impl Composer {
     }
 
     // Composer enforces that no patterns should overlap in the arrangement.
-    // TODO: this will be tricky if the user arranges a pattern and then edits
-    // it later!
+    // Optionally supply a single ArrangementUid that is to be excluded from the
+    // test set, which is useful if you are moving an existing arrangement and
+    // don't care if it overlaps with itself. TODO: this will be tricky if the
+    // user arranges a pattern and then edits it later!
     fn is_arrangement_area_available(
         &self,
         track_uid: TrackUid,
-        pattern: &Pattern,
-        position: MusicalTime,
+        pattern_extent: &TimeRange,
+        arrangement_to_skip: Option<ArrangementUid>,
     ) -> bool {
-        let pattern_extent = TimeRange(position..position + pattern.duration());
         if let Some(arrangement_uids) = self.tracks_to_ordered_arrangement_uids.get(&track_uid) {
-            arrangement_uids.iter().all(|auid| {
-                if let Some(arrangement) = self.arrangements.get(auid) {
-                    !(pattern_extent.overlaps(arrangement.extent()))
-                } else {
-                    true
-                }
-            })
+            arrangement_uids
+                .iter()
+                .filter(|auid| Some(*auid) != arrangement_to_skip.as_ref())
+                .all(|auid| {
+                    if let Some(arrangement) = self.arrangements.get(auid) {
+                        !(pattern_extent.overlaps(arrangement.extent()))
+                    } else {
+                        true
+                    }
+                })
         } else {
             true
         }

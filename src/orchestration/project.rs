@@ -161,6 +161,7 @@ impl Project {
             pub fn notify_pattern_change(&mut self);
             pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
             pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<ArrangementUid>;
+            pub fn move_arrangement(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid, new_position: MusicalTime, copy_original: bool) -> Result<ArrangementUid>;
             pub fn unarrange(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid);
         }
         to self.automator {

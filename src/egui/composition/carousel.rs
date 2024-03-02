@@ -1,10 +1,14 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{egui::colors::ColorSchemeConverter, prelude::*, util::SelectionSet};
+use crate::{
+    egui::{colors::ColorSchemeConverter, track::TrackSource},
+    prelude::*,
+    util::SelectionSet,
+};
 use eframe::{
-    egui::{Id as EguiId, Image, ImageButton, Sense, Widget},
+    egui::Widget,
     emath::RectTransform,
-    epaint::{pos2, Color32, Pos2, Rect, RectShape, Rounding, Shape, Stroke, Vec2},
+    epaint::{Color32, Stroke},
 };
 use rustc_hash::FxHashMap;
 
@@ -67,7 +71,7 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                             colors,
                             self.selection_set.contains(pattern_uid),
                         ));
-                        icon_response.dnd_set_drag_payload(pattern_uid.clone());
+                        icon_response.dnd_set_drag_payload(TrackSource::PatternUid(*pattern_uid));
                         icon_response.context_menu(|ui| {
                             if ui.button("Delete pattern").clicked() {
                                 ui.close_menu();
@@ -78,7 +82,6 @@ impl<'a> eframe::egui::Widget for CarouselWidget<'a> {
                             self.selection_set.click(pattern_uid, false);
                         };
                     }
-                    let dd_id = EguiId::new("piano roll").with(pattern_uid);
                 });
             });
         })

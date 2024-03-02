@@ -499,8 +499,13 @@ impl TimeRange {
 
     /// Adds to both start and end. This is less ambiguous than implementing
     /// Add<MusicalTime>, which could reasonably add only to the end.
-    pub fn shift_right(&self, time: MusicalTime) -> TimeRange {
-        TimeRange(self.0.start + time..self.0.end + time)
+    pub fn translate(&self, delta: MusicalTime) -> TimeRange {
+        TimeRange(self.0.start + delta..self.0.end + delta)
+    }
+
+    /// Sets a new start without changing the duration.
+    pub fn translate_to(&self, new_start: MusicalTime) -> TimeRange {
+        TimeRange(new_start..new_start + self.duration())
     }
 
     // Returns true if this TimeRange overlaps with the given one.

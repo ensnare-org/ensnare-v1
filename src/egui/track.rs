@@ -98,6 +98,12 @@ impl TitleBarWidget {
 }
 
 #[derive(Debug)]
+pub enum TrackSource {
+    PatternUid(PatternUid),
+    ArrangementUid(ArrangementUid),
+}
+
+#[derive(Debug)]
 pub struct TrackWidgetInfo<'a> {
     pub track_uid: TrackUid,
     pub signal_items: &'a [SignalChainItem],
@@ -205,122 +211,152 @@ impl<'a> Widget for TrackWidget<'a> {
                     // Build the track content with the device view beneath it.
                     ui.vertical(|ui| {
                         let mut time = None;
-                        let (_, payload) = ui.dnd_drop_zone::<PatternUid>(Frame::default(), |ui| {
-                            // Determine the rectangle that all the composited
-                            // layers will use.
-                            let desired_size = vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
-                            let (_id, rect) = ui.allocate_space(desired_size);
+                        let (_, payload) =
+                            ui.dnd_drop_zone::<TrackSource>(Frame::default(), |ui| {
+                                // Determine the rectangle that all the composited
+                                // layers will use.
+                                let desired_size =
+                                    vec2(ui.available_width(), Self::TIMELINE_HEIGHT);
+                                let (_id, rect) = ui.allocate_space(desired_size);
 
-                            let temp_range =
-                                ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
+                                let temp_range =
+                                    ViewRange(MusicalTime::START..MusicalTime::DURATION_WHOLE);
 
-                            let from_screen = RectTransform::from_to(
-                                rect,
-                                Rect::from_x_y_ranges(
-                                    self.project.view_state.view_range.0.start.total_units() as f32
-                                        ..=self.project.view_state.view_range.0.end.total_units()
-                                            as f32,
-                                    rect.top()..=rect.bottom(),
-                                ),
-                            );
+                                let from_screen = RectTransform::from_to(
+                                    rect,
+                                    Rect::from_x_y_ranges(
+                                        self.project.view_state.view_range.0.start.total_units()
+                                            as f32
+                                            ..=self
+                                                .project
+                                                .view_state
+                                                .view_range
+                                                .0
+                                                .end
+                                                .total_units()
+                                                as f32,
+                                        rect.top()..=rect.bottom(),
+                                    ),
+                                );
 
-                            // The Grid is always disabled and drawn first.
-                            let _ = ui.add_enabled_ui(false, |ui| {
-                                ui.allocate_ui_at_rect(rect, |ui| {
-                                    ui.add(GridWidget::widget(
-                                        temp_range.clone(),
-                                        self.project.view_state.view_range.clone(),
-                                    ))
-                                })
-                                .inner
-                            });
+                                // The Grid is always disabled and drawn first.
+                                let _ = ui.add_enabled_ui(false, |ui| {
+                                    ui.allocate_ui_at_rect(rect, |ui| {
+                                        ui.add(GridWidget::widget(
+                                            temp_range.clone(),
+                                            self.project.view_state.view_range.clone(),
+                                        ))
+                                    })
+                                    .inner
+                                });
 
-                            // Draw the widget corresponding to the current mode.
-                            match self
-                                .project
-                                .view_state
-                                .track_view_mode
-                                .get(&track_uid)
-                                .copied()
-                                .unwrap_or_default()
-                            {
-                                TrackViewMode::Composition => {
-                                    ui.add_enabled_ui(true, |ui| {
-                                        ui.allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(ArrangementWidget::widget(
-                                                self.track_info.track_uid,
-                                                &mut self.project.composer,
-                                                &self.project.view_state.view_range,
-                                                self.track_info.color_scheme,
-                                            ));
-                                        });
-                                    });
-                                }
-                                TrackViewMode::Control(path_id) => {
-                                    ui.add_enabled_ui(true, |ui| {
-                                        ui.allocate_ui_at_rect(rect, |ui| {
-                                            if let Some(signal_path) =
-                                                self.project.automator.paths.get_mut(&path_id)
-                                            {
-                                                let response = ui.add(SignalPathWidget::widget(
-                                                    signal_path,
-                                                    self.project.view_state.view_range.clone(),
+                                // Draw the widget corresponding to the current mode.
+                                match self
+                                    .project
+                                    .view_state
+                                    .track_view_mode
+                                    .get(&track_uid)
+                                    .copied()
+                                    .unwrap_or_default()
+                                {
+                                    TrackViewMode::Composition => {
+                                        ui.add_enabled_ui(true, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                ui.add(ArrangementWidget::widget(
+                                                    self.track_info.track_uid,
+                                                    &mut self.project.composer,
+                                                    &self.project.view_state.view_range,
+                                                    self.track_info.color_scheme,
                                                 ));
-                                                response.dnd_set_drag_payload(
-                                                    ControlLinkSource::Path(path_id),
-                                                )
-                                            }
+                                            });
                                         });
-                                    });
-                                }
-                                TrackViewMode::SomethingElse => {
-                                    ui.add_enabled_ui(true, |ui| {
-                                        ui.allocate_ui_at_rect(rect, |ui| {
-                                            ui.label("something else111!!!!")
+                                    }
+                                    TrackViewMode::Control(path_id) => {
+                                        ui.add_enabled_ui(true, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                if let Some(signal_path) =
+                                                    self.project.automator.paths.get_mut(&path_id)
+                                                {
+                                                    let response =
+                                                        ui.add(SignalPathWidget::widget(
+                                                            signal_path,
+                                                            self.project
+                                                                .view_state
+                                                                .view_range
+                                                                .clone(),
+                                                        ));
+                                                    response.dnd_set_drag_payload(
+                                                        ControlLinkSource::Path(path_id),
+                                                    )
+                                                }
+                                            });
                                         });
-                                    });
+                                    }
+                                    TrackViewMode::SomethingElse => {
+                                        ui.add_enabled_ui(true, |ui| {
+                                            ui.allocate_ui_at_rect(rect, |ui| {
+                                                ui.label("something else111!!!!")
+                                            });
+                                        });
+                                    }
                                 }
-                            }
 
-                            // Next, if it's present, draw the cursor.
-                            if let Some(position) = self.project.view_state.cursor {
-                                if self.project.view_state.view_range.0.contains(&position) {
-                                    let _ = ui
-                                        .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(CursorWidget::widget(
-                                                position,
-                                                self.project.view_state.view_range.clone(),
-                                            ))
-                                        })
-                                        .inner;
+                                // Next, if it's present, draw the cursor.
+                                if let Some(position) = self.project.view_state.cursor {
+                                    if self.project.view_state.view_range.0.contains(&position) {
+                                        let _ = ui
+                                            .allocate_ui_at_rect(rect, |ui| {
+                                                ui.add(CursorWidget::widget(
+                                                    position,
+                                                    self.project.view_state.view_range.clone(),
+                                                ))
+                                            })
+                                            .inner;
+                                    }
                                 }
-                            }
 
-                            time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
-                                let time_pos = from_screen * pointer_pos;
-                                let time = MusicalTime::new_with_units(time_pos.x as usize);
-                                if self.project.view_state.view_range.0.contains(&time) {
-                                    let _ = ui
-                                        .allocate_ui_at_rect(rect, |ui| {
-                                            ui.add(CursorWidget::widget(
-                                                time,
-                                                self.project.view_state.view_range.clone(),
-                                            ))
-                                        })
-                                        .inner;
-                                }
-                                Some(time)
-                            } else {
-                                None
-                            };
-                        });
-                        if let Some(pattern_uid) = payload {
+                                time = if let Some(pointer_pos) = ui.ctx().pointer_interact_pos() {
+                                    let time_pos = from_screen * pointer_pos;
+                                    let time = MusicalTime::new_with_units(time_pos.x as usize);
+                                    if self.project.view_state.view_range.0.contains(&time) {
+                                        let _ = ui
+                                            .allocate_ui_at_rect(rect, |ui| {
+                                                ui.add(CursorWidget::widget(
+                                                    time,
+                                                    self.project.view_state.view_range.clone(),
+                                                ))
+                                            })
+                                            .inner;
+                                    }
+                                    Some(time)
+                                } else {
+                                    None
+                                };
+                            });
+                        if let Some(track_source) = payload {
                             if let Some(time) = time {
                                 let position =
                                     time.quantized_to_measure(&self.project.time_signature());
-                                let _ =
-                                    self.project
-                                        .arrange_pattern(track_uid, *pattern_uid, position);
+                                match *track_source {
+                                    TrackSource::PatternUid(pattern_uid) => {
+                                        let _ = self.project.arrange_pattern(
+                                            track_uid,
+                                            pattern_uid,
+                                            position,
+                                        );
+                                    }
+                                    TrackSource::ArrangementUid(arrangement_uid) => {
+                                        let shift_pressed = ui.input(|input_state| {
+                                            input_state.modifiers.shift_only()
+                                        });
+                                        let _ = self.project.move_arrangement(
+                                            track_uid,
+                                            arrangement_uid,
+                                            position,
+                                            shift_pressed,
+                                        );
+                                    }
+                                }
 
                                 // Nice touch: if you drag to track and it's
                                 // displaying a different mode from

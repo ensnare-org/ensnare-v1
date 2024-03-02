@@ -175,7 +175,7 @@ impl Sequences for NoteSequencer {
         });
         self.e
             .extent
-            .expand_with_range(&note.extent().shift_right(position));
+            .expand_with_range(&note.extent().translate(position));
         self.notes.push(note);
         Ok(())
     }
@@ -346,7 +346,7 @@ impl Sequences for PatternSequencer {
         });
         self.e
             .extent
-            .expand_with_range(&pattern.extent().shift_right(position));
+            .expand_with_range(&pattern.extent().translate(position));
         self.patterns.push((channel, pattern));
         Ok(())
     }

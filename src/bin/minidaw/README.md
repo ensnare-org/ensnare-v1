@@ -30,8 +30,9 @@ are some things to try.
 - Create patterns in the Composer tab. Hold down the Control/Command key and
   drag/scroll to pan/zoom.
 - To arrange a pattern, drag its icon from the Composer to a track.
+- Drag an arranged pattern to move it.
 - To duplicate an arranged pattern, select it and press Control-D (or Command-D
-  on a Mac).
+  on a Mac), or shift-drag it to the new position.
 - To delete an arranged pattern, select it and press the Delete key.
 - To save your project, press the Save button. Open works, too.
 - Export your creation via the Export to WAV button and send it to your friends!

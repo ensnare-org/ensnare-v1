@@ -1,6 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{egui::colors::ColorSchemeConverter, prelude::*, types::ColorScheme};
+use crate::{
+    egui::{colors::ColorSchemeConverter, track::TrackSource},
+    prelude::*,
+    types::ColorScheme,
+};
 use core::ops::Range;
 use eframe::{
     egui::{style::WidgetVisuals, Modifiers, Sense, Widget},
@@ -19,7 +23,8 @@ pub struct ArrangementWidget<'a> {
 impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.allocate_ui(vec2(ui.available_width(), 64.0), |ui| {
-            let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
+            let (response, painter) =
+                ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
             let x_range_f32 = self.view_range.0.start.total_units() as f32
                 ..=self.view_range.0.end.total_units() as f32;
             let y_range = i8::MAX as f32..=u8::MIN as f32;
@@ -30,23 +35,11 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
             let (track_foreground_color, track_background_color) =
                 ColorSchemeConverter::to_color32(self.color_scheme);
 
-            let (clicked, position) = if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
+            let interact_position = if let Some(click_pos) = ui.ctx().pointer_interact_pos() {
                 let local_pos = from_screen * click_pos;
-                if response.clicked() {
-                    let time = MusicalTime::new_with_units(local_pos.x as usize)
-                        .quantized(MusicalTime::new_with_parts(1));
-                    let key = local_pos.y as u8;
-                    let note = Note::new_with(key, time, MusicalTime::DURATION_QUARTER);
-                    eprintln!("Saw a click at {time}, note {note:?}");
-                    // self.sequencer.toggle_note(note);
-                    // self.sequencer.calculate_events();
-                }
-                (
-                    response.clicked(),
-                    Some(MusicalTime::new_with_units(local_pos.x as usize)),
-                )
+                Some(MusicalTime::new_with_units(local_pos.x as usize))
             } else {
-                (false, None)
+                None
             };
 
             let visuals = if ui.is_enabled() {
@@ -77,13 +70,18 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
                             {
                                 let arrangement_extent = arrangement.position
                                     ..arrangement.position + arrangement.duration;
-                                if let Some(position) = position {
+                                if let Some(position) = interact_position {
                                     if arrangement_extent.contains(&position) {
-                                        if clicked {
+                                        if response.clicked() {
                                             self.composer
                                                 .e
                                                 .arrangement_selection_set
                                                 .click(arrangement_uid, is_control_down);
+                                        }
+                                        if response.dragged() {
+                                            response.dnd_set_drag_payload(
+                                                TrackSource::ArrangementUid(*arrangement_uid),
+                                            );
                                         }
                                     }
                                 }
