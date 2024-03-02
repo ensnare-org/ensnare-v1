@@ -70,7 +70,6 @@ mod legend;
 mod midi;
 mod misc;
 mod modulators;
-mod orchestration;
 mod placeholders;
 mod project;
 mod settings;
