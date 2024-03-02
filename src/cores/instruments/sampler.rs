@@ -15,7 +15,7 @@ use std::{
 #[derive(Debug, Default)]
 pub struct SamplerVoice {
     sample_rate: SampleRate,
-    samples: Arc<Vec<StereoSample>>,
+    samples: Option<Arc<Vec<StereoSample>>>,
 
     root_frequency: FrequencyHz,
     frequency: FrequencyHz,
@@ -54,10 +54,13 @@ impl PlaysNotes for SamplerVoice {
 impl Generates<StereoSample> for SamplerVoice {
     fn value(&self) -> StereoSample {
         if self.is_playing {
-            self.samples[self.sample_pointer as usize]
-        } else {
-            StereoSample::SILENCE
+            if let Some(samples) = self.samples.as_ref() {
+                if samples.len() != 0 {
+                    return samples[self.sample_pointer as usize];
+                }
+            }
         }
+        StereoSample::SILENCE
     }
 
     #[allow(unused_variables)]
@@ -72,9 +75,12 @@ impl Ticks for SamplerVoice {
                 if !self.was_reset {
                     self.sample_pointer += self.sample_pointer_delta;
                 }
-                while self.sample_pointer as usize >= self.samples.len() {
-                    self.is_playing = false;
-                    self.sample_pointer -= self.samples.len() as f64;
+                if let Some(samples) = self.samples.as_ref() {
+                    debug_assert_ne!(samples.len(), 0);
+                    while self.sample_pointer as usize >= samples.len() {
+                        self.is_playing = false;
+                        self.sample_pointer -= samples.len() as f64;
+                    }
                 }
             }
             if self.was_reset {
@@ -95,6 +101,11 @@ impl SamplerVoice {
         if !root_frequency.0.is_normal() {
             panic!("strange number given for root frequency: {root_frequency}");
         }
+        let samples = if samples.len() != 0 {
+            Some(samples)
+        } else {
+            None
+        };
         Self {
             sample_rate: Default::default(),
             samples,
