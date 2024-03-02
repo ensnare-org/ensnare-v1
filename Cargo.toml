@@ -73,7 +73,7 @@ egui_extras_xt = { git = "https://github.com/sowbug/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
-ensnare-toys = { version = "0.0.9", path = "toys" }
+ensnare-toys = { path = "toys" }
 more-asserts = "0.3.1"
 regex = "1.7"
 strum = "0.26"
