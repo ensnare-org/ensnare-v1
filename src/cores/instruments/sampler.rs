@@ -36,7 +36,7 @@ impl PlaysNotes for SamplerVoice {
     fn note_on(&mut self, key: u7, velocity: u7) {
         self.is_playing = true;
         self.sample_pointer = 0.0;
-        self.frequency = FrequencyHz::from(MidiNote::from_repr(key.as_int() as usize).unwrap());
+        self.frequency = MidiNote::from_repr(key.as_int() as usize).unwrap().into();
         self.sample_pointer_delta = (self.frequency / self.root_frequency).into();
     }
 
@@ -53,7 +53,11 @@ impl PlaysNotes for SamplerVoice {
 }
 impl Generates<StereoSample> for SamplerVoice {
     fn value(&self) -> StereoSample {
-        self.samples[self.sample_pointer as usize]
+        if self.is_playing {
+            self.samples[self.sample_pointer as usize]
+        } else {
+            StereoSample::SILENCE
+        }
     }
 
     #[allow(unused_variables)]
@@ -68,9 +72,9 @@ impl Ticks for SamplerVoice {
                 if !self.was_reset {
                     self.sample_pointer += self.sample_pointer_delta;
                 }
-                if self.sample_pointer as usize >= self.samples.len() {
+                while self.sample_pointer as usize >= self.samples.len() {
                     self.is_playing = false;
-                    self.sample_pointer = 0.0;
+                    self.sample_pointer -= self.samples.len() as f64;
                 }
             }
             if self.was_reset {
