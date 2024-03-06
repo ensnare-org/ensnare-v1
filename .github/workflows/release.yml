@@ -25,12 +25,11 @@ jobs:
           sudo apt -y install gcc clang mold libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev librust-alsa-sys-dev libssl-dev 
         if: startsWith(matrix.os, 'ubuntu')
 
-      - name: Install latest Rust nightly
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
-          override: true
-          target: ${{ matrix.target }}
+          toolchain: stable
+          targets: ${{matrix.target}}
       - name: Install cargo components for .deb
         run: cargo install cargo-deb
         if: startsWith(matrix.os, 'ubuntu')
@@ -42,7 +41,7 @@ jobs:
 
         # Get the source
       - name: Check out source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
         # Build and test
       - name: Set version environment variables
@@ -97,12 +96,12 @@ jobs:
           - aarch64-apple-darwin          # ARM OS X
           # - riscv64gc-unknown-linux-gnu # The future!
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
-          target: ${{ matrix.target }}
-          override: true
+          toolchain: stable
+          targets: ${{matrix.target}}
       - name: Install cargo components for .deb
         run: cargo install cargo-deb
       - name: Set version environment variables
@@ -112,11 +111,8 @@ jobs:
           echo 'GIT_DESCRIBE<<QQEOFQQ' >> $GITHUB_ENV
           git describe --tags          >> $GITHUB_ENV
           echo 'QQEOFQQ'               >> $GITHUB_ENV
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
       - name: Build installer
         run: cargo deb --target ${{ matrix.target }} --no-build --no-strip
       - name: Upload artifacts
