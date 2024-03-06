@@ -26,7 +26,6 @@ jobs:
           sudo apt -qq update
           sudo apt -y install gcc clang mold libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev librust-alsa-sys-dev libssl-dev 
         if: startsWith(matrix.os, 'ubuntu')
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -97,6 +96,11 @@ jobs:
           - armv7-unknown-linux-gnueabihf # Raspberry Pi 3/4 32-bit
           # - riscv64gc-unknown-linux-gnu # The future!
     steps:
+      # Set up the build machine
+      - name: Install Linux x86_64 build dependencies
+        run: |
+          sudo apt -qq update
+          sudo apt -y install gcc clang mold libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev librust-alsa-sys-dev libssl-dev 
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -113,7 +117,10 @@ jobs:
           git describe --tags          >> $GITHUB_ENV
           echo 'QQEOFQQ'               >> $GITHUB_ENV
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }}
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+            target: ${{matrix.target}}
+            args: "--locked --release"
       - name: Build installer
         run: cargo deb --target ${{ matrix.target }} --no-build --no-strip
       - name: Upload artifacts
