@@ -674,3 +674,24 @@ Still separate crates:
   - **toys**
   - **services**
   - **proc-macros**
+
+# 2024-03-05: signal generators
+
+Today I looked at unifying Envelope and ControlTrip/SignalPath, reasoning that
+they both look like envelopes. Differences I identified:
+
+1. Envelope operates on a sample granularity, while CT/SP operates on
+   MusicalTime ranges. These are both just time divisions, but they're not
+   identical.
+2. Envelope emits a value per sample, while CT/SP emits ControlEvents only upon
+   changes. This sounds a lot like #1, but the difference is during a flat step,
+   Envelope keeps emitting values, but CT/SP emits just one at the start of the
+   step.
+3. Envelope is mostly event-driven (note on/off), while CT/SP just starts,
+   plays, and stops.
+
+So I'm less optimistic about my original hope of creating a single engine that
+both would use. Instead, there might be a single data structure representing the
+sequences of steps, and each will implement its own code for that data. But not
+all is lost! I think that a single widget can allow editing of that structure,
+as long as it's smart enough to respect policies like ADSR for envelopes.
