@@ -1041,28 +1041,33 @@ impl SignalStepType {
     }
 }
 
+/// Emits a signal that varies over time. The signal is divided into steps.
 #[derive(Debug, Default, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "kebab-case")]
 #[builder(build_fn(private, name = "build_from_builder"))]
 pub struct SignalPath {
+    /// Each step in the signal.
     #[builder(default, setter(each(name = "step", into)))]
     pub steps: Vec<SignalStepType>,
 
+    /// The current [ControlValue].
     #[serde(skip)]
     #[builder(setter(skip))]
-    time_range: TimeRange,
+    value: Option<ControlValue>,
 
+    /// The last [ControlValue] emitted by this [SignalPath]. This is needed to
+    /// avoid emitting the same value each cycle if the value hasn't changed.
     #[serde(skip)]
     #[builder(setter(skip))]
     last_value: Option<ControlValue>,
 
     #[serde(skip)]
     #[builder(setter(skip))]
-    value: Option<ControlValue>,
+    extent: TimeRange,
 
     #[serde(skip)]
     #[builder(setter(skip))]
-    extent: TimeRange,
+    time_range: TimeRange,
 }
 impl SignalPath {
     fn produce_event(&mut self, control_events_fn: &mut ControlEventsFn) {
@@ -1113,7 +1118,9 @@ impl HasExtent for SignalPath {
         self.extent.clone()
     }
 
-    fn set_extent(&mut self, extent: TimeRange) {}
+    fn set_extent(&mut self, extent: TimeRange) {
+        // not applicable; extent is derived from the extents of the steps.
+    }
 }
 impl Controls for SignalPath {
     fn time_range(&self) -> Option<TimeRange> {
@@ -2411,7 +2418,6 @@ mod tests {
     #[test]
     fn signal_path_mainline_flat() {
         const EXPECTED_VALUE: ControlValue = ControlValue(0.5);
-        let control_value_range: ControlRange = (EXPECTED_VALUE..EXPECTED_VALUE).into();
         let extent: TimeRange = (MusicalTime::START..MusicalTime::new_with_beats(1)).into();
         let mut path = SignalPathBuilder::default()
             .step(SignalStepType::Flat(EXPECTED_VALUE, extent.clone()))
