@@ -787,9 +787,7 @@ impl WidgetExplorer {
             });
             ui.heading("Timeline");
             self.legend.show(ui);
-            Self::wrap_item(SignalPathSettings::NAME, ui, |ui| {
-                self.signal_path.show(ui)
-            });
+            Self::wrap_item(SignalPathSettings::NAME, ui, |ui| self.signal_path.show(ui));
             //         self.track_widget.show(ui);
 
             Self::wrap_item(DevicePaletteSettings::NAME, ui, |ui| {
