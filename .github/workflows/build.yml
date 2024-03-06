@@ -72,6 +72,10 @@ jobs:
           - armv7-unknown-linux-gnueabihf # Raspberry Pi 3/4 32-bit
           # - riscv64gc-unknown-linux-gnu   # The future!
     steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt -qq update
+          sudo apt -y install pkg-config gcc clang mold libclang-dev librust-alsa-sys-dev
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
