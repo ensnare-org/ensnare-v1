@@ -16,6 +16,8 @@ jobs:
             os: windows-latest
           - target: x86_64-apple-darwin
             os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
         # Set up the build machine
@@ -93,7 +95,6 @@ jobs:
         target:
           - aarch64-unknown-linux-gnu     # ARM Chromebooks & 64-bit RPi
           - armv7-unknown-linux-gnueabihf # Raspberry Pi 3/4 32-bit
-          - aarch64-apple-darwin          # ARM OS X
           # - riscv64gc-unknown-linux-gnu # The future!
     steps:
       - uses: actions/checkout@v4
