@@ -9,8 +9,8 @@ use anyhow::anyhow;
 use derivative::Derivative;
 use eframe::{
     egui::{
-        self, warn_if_debug_build, CollapsingHeader, DragValue, Id, Layout, ScrollArea, Slider,
-        Style, Ui, ViewportBuilder, Widget,
+        self, warn_if_debug_build, CollapsingHeader, DragValue, Frame, Id, Layout, ScrollArea,
+        Slider, Style, Ui, ViewportBuilder, Widget,
     },
     emath::Align,
     epaint::{vec2, Galley},
@@ -22,7 +22,8 @@ use ensnare::{
     egui::{
         widget_explorer::{
             analyze_spectrum, make_title_bar_galley, FrequencyDomainWidget, GridWidget,
-            LegendWidget, NoteSequencerWidget, TimeDomainWidget, TitleBarWidget, Wiggler,
+            LegendWidget, NoteSequencerWidget, SignalPathWidget, TimeDomainWidget, TitleBarWidget,
+            Wiggler,
         },
         ComposerWidget,
     },
@@ -53,6 +54,49 @@ impl LegendSettings {
     }
 }
 impl Displays for LegendSettings {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        ui.checkbox(&mut self.hide, "Hide");
+        ui.label("View range");
+        let mut range_start = self.range.0.start.total_beats();
+        let mut range_end = self.range.0.end.total_beats();
+        let start_response = ui.add(Slider::new(&mut range_start, 0..=128));
+        if start_response.changed() {
+            self.range.0.start = MusicalTime::new_with_beats(range_start);
+        };
+        let end_response = ui.add(Slider::new(&mut range_end, 1..=256));
+        if end_response.changed() {
+            self.range.0.end = MusicalTime::new_with_beats(range_end);
+        };
+        start_response | end_response
+    }
+}
+
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+struct SignalPathSettings {
+    hide: bool,
+    signal_path: SignalPath,
+    #[derivative(Default(
+        value = "(MusicalTime::START..MusicalTime::new_with_beats(128)).into()"
+    ))]
+    range: ViewRange,
+}
+impl SignalPathSettings {
+    const NAME: &'static str = "Signal Path";
+
+    fn show(&mut self, ui: &mut eframe::egui::Ui) {
+        if !self.hide {
+            Frame::default().show(ui, |ui| {
+                ui.set_max_height(256.0);
+                ui.add(SignalPathWidget::widget(
+                    &mut self.signal_path,
+                    self.range.clone(),
+                ))
+            });
+        }
+    }
+}
+impl Displays for SignalPathSettings {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.checkbox(&mut self.hide, "Hide");
         ui.label("View range");
@@ -251,10 +295,10 @@ impl GridSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(GridWidget::widget(
-                self.range.clone(),
-                self.view_range.clone(),
-            ));
+            ui.add_enabled(
+                false,
+                GridWidget::widget(self.range.clone(), self.view_range.clone()),
+            );
         }
     }
 
@@ -616,7 +660,7 @@ impl SampleClip {
 struct WidgetExplorer {
     legend: LegendSettings,
     grid: GridSettings,
-    //    track_widget: TrackSettings,
+    signal_path: SignalPathSettings,
     device_palette: DevicePaletteSettings,
     // signal_chain: SignalChainSettings,
     note_sequencer: NoteSequencerSettings,
@@ -637,6 +681,7 @@ impl WidgetExplorer {
         Self {
             legend: Default::default(),
             grid: Default::default(),
+            signal_path: Default::default(),
             device_palette: DevicePaletteSettings::new(factory),
             note_sequencer: Default::default(),
             title_bar: Default::default(),
@@ -667,6 +712,7 @@ impl WidgetExplorer {
                 self.frequency_domain.ui(ui)
             });
             Self::wrap_settings(LegendSettings::NAME, ui, |ui| self.legend.ui(ui));
+            Self::wrap_settings(SignalPathSettings::NAME, ui, |ui| self.signal_path.ui(ui));
             //            Self::wrap_settings(TrackSettings::NAME, ui, |ui| self.track_widget.ui(ui));
             Self::wrap_settings(DevicePaletteSettings::NAME, ui, |ui| {
                 self.device_palette.ui(ui)
@@ -741,6 +787,9 @@ impl WidgetExplorer {
             });
             ui.heading("Timeline");
             self.legend.show(ui);
+            Self::wrap_item(SignalPathSettings::NAME, ui, |ui| {
+                self.signal_path.show(ui)
+            });
             //         self.track_widget.show(ui);
 
             Self::wrap_item(DevicePaletteSettings::NAME, ui, |ui| {
