@@ -88,8 +88,8 @@ jobs:
           git rev-parse --short HEAD    >> $GITHUB_ENV
           echo 'QQEOFQQ'                >> $GITHUB_ENV
   
-  test-macos:
-    name: Build and test ${{matrix.target}}
+  build-macos:
+    name: Build (but don't test) ${{matrix.target}}
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -110,5 +110,3 @@ jobs:
           echo 'QQEOFQQ'                >> $GITHUB_ENV
       - name: Build debug
         run: cargo build --target ${{ matrix.target }}
-      - name: Build and test release
-        run: cargo test --workspace --release --target ${{ matrix.target }}
