@@ -212,6 +212,9 @@ impl BipolarNormal {
     pub const fn range() -> RangeInclusive<f64> {
         -1.0..=1.0
     }
+    pub const fn new_const(value: f64) -> Self {
+        Self(value)
+    }
 }
 impl Default for BipolarNormal {
     fn default() -> Self {

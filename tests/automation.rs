@@ -132,16 +132,21 @@ fn demo_signal_path_automation() {
 
     // Create a SignalPath that ramps from zero to max over the desired
     // amount of time.
-
     let path = SignalPathBuilder::default()
-        .step(SignalStepType::Linear(
-            (ControlValue::MIN..ControlValue::MAX).into(),
-            (MusicalTime::START..MusicalTime::ONE_BEAT * 4).into(),
-        ))
-        .step(SignalStepType::Flat(
-            ControlValue::MAX,
-            (MusicalTime::new_with_beats(4)..MusicalTime::TIME_MAX).into(),
-        ))
+        .point(
+            SignalPointBuilder::default()
+                .when(MusicalTime::START)
+                .value(BipolarNormal::minimum())
+                .build()
+                .unwrap(),
+        )
+        .point(
+            SignalPointBuilder::default()
+                .when(MusicalTime::new_with_beats(4))
+                .value(BipolarNormal::maximum())
+                .build()
+                .unwrap(),
+        )
         .build()
         .unwrap();
     let path_uid = project.add_path(path).unwrap();

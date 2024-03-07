@@ -50,6 +50,7 @@ midir = "0.9.1"
 midly = "0.5.3"
 nalgebra = "0.32.3"                                                       # for Envelope
 native-dialog = "0.7.0"
+nonoverlapping_interval_tree = "0.1.5"
 once_cell = "1.19.0"
 oorandom = "11.1.3"
 rustc-hash = "1.1.0"

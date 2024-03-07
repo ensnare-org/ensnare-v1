@@ -149,7 +149,7 @@ pub trait MessageBounds: core::fmt::Debug + Send {}
 /// Implementers of [Controls] produce these events. Only the system receives
 /// them; rather than forwarding them directly, the system converts them into
 /// something else that might then get forwarded to recipients.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WorkEvent {
     /// A MIDI message sent to a channel.
     Midi(MidiChannel, MidiMessage),

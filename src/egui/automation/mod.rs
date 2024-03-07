@@ -2,9 +2,13 @@
 
 use crate::prelude::*;
 use eframe::{
-    egui::{Sense, Widget},
+    egui::{
+        Sense,
+        Shape::{self, LineSegment},
+        Vec2, Widget,
+    },
     emath::RectTransform,
-    epaint::{pos2, Color32, Rect, Stroke},
+    epaint::{pos2, Rect},
 };
 
 /// An egui widget that draws a SignalPath overlaid in the track view.
@@ -36,93 +40,129 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
             Rect::from_x_y_ranges(
                 self.view_range.0.start.total_units() as f32
                     ..=self.view_range.0.end.total_units() as f32,
-                ControlValue::MAX.0 as f32..=ControlValue::MIN.0 as f32,
+                BipolarNormal::MAX as f32..=BipolarNormal::MIN as f32,
             ),
             response.rect,
         );
+        let from_screen = to_screen.inverse();
+        let stroke = ui.ctx().style().visuals.widgets.inactive.fg_stroke;
 
-        let stroke = if ui.is_enabled() {
-            ui.ctx().style().visuals.widgets.active.fg_stroke
-        } else {
-            ui.ctx().style().visuals.widgets.inactive.fg_stroke
-        };
+        let mut shapes = Vec::default();
+        let mut point_shapes = Vec::default();
 
-        let mut prior_end_pos = None;
-        self.signal_path.steps.iter_mut().for_each(|step| {
-            let (start_pos, end_pos) = {
-                match &step {
-                    SignalStepType::Flat(value, extent) => {
-                        let v =
-                            to_screen * pos2(extent.0.start.total_units() as f32, value.0 as f32);
-                        (v, v)
-                    }
-                    SignalStepType::Linear(range, extent) => {
-                        let start_pos = to_screen
-                            * pos2(extent.0.start.total_units() as f32, range.0.start.0 as f32);
-                        let end_pos = to_screen
-                            * pos2(extent.0.end.total_units() as f32, range.0.end.0 as f32);
-                        (start_pos, end_pos)
-                    }
-                    SignalStepType::Logarithmic(..) => todo!(),
-                    SignalStepType::Exponential(..) => todo!(),
-                    SignalStepType::AdsrIdle
-                    | SignalStepType::AdsrAttack(_)
-                    | SignalStepType::AdsrDecay(_)
-                    | SignalStepType::AdsrSustain(_)
-                    | SignalStepType::AdsrRelease(_) => {
-                        panic!("How did this happen?")
-                    }
+        let mut prior_when = None;
+        let mut prior_value = None;
+        let mut point_to_remove = None;
+        let mut point_to_add = None;
+        self.signal_path
+            .points
+            .iter_mut()
+            .enumerate()
+            .for_each(|(index, point)| {
+                if prior_when.is_none() {
+                    prior_when = Some(MusicalTime::START);
                 }
-            };
+                if prior_value.is_none() {
+                    prior_value = Some(point.value);
+                }
+                let prior_when_unwrapped = prior_when.unwrap();
+                let prior_value_unwrapped = prior_value.unwrap();
 
-            // If we're hovering over this step, highlight it.
-            let stroke = if response.hovered() {
-                if let Some(hover_pos) = ui.ctx().pointer_interact_pos() {
-                    if hover_pos.x >= start_pos.x && hover_pos.x < end_pos.x {
-                        // if response.clicked() {
-                        //     let from_screen = to_screen.inverse();
-                        //     let hover_pos_local = from_screen * hover_pos;
-                        //     step.value_range =
-                        //         ControlRange::from(hover_pos_local.y..hover_pos_local.y);
-                        // } else if response.secondary_clicked() {
-                        //     // step.path = step.path.next();
-                        //     // TODO huh?
-                        // }
+                let (start_pos, end_pos) = {
+                    let start_pos = to_screen
+                        * pos2(
+                            prior_when_unwrapped.total_units() as f32,
+                            prior_value_unwrapped.0 as f32,
+                        );
+                    let end_pos =
+                        to_screen * pos2(point.when.total_units() as f32, point.value.0 as f32);
+                    (start_pos, end_pos)
+                };
 
-                        Stroke {
-                            width: stroke.width * 2.0,
-                            color: Color32::YELLOW,
+                shapes.push(LineSegment {
+                    points: [start_pos, end_pos],
+                    stroke,
+                });
+
+                const CONTROL_POINT_RADIUS: f32 = 6.0;
+                const CONTROL_POINT_VISUAL_RADIUS: f32 = 4.0;
+                let size = Vec2::splat(2.0 * CONTROL_POINT_RADIUS);
+                let point_rect = Rect::from_center_size(end_pos, size);
+                let point_id = response.id.with(index);
+                let point_response = ui.interact(point_rect, point_id, Sense::click_and_drag());
+                let _context_response = point_response.context_menu(|ui| {
+                    if ui.button("Remove point").clicked() {
+                        ui.close_menu();
+                        point_to_remove = Some(point.clone());
+                    }
+                });
+                if point_response.drag_delta() != Vec2::ZERO {
+                    let updated_point_pos = end_pos + point_response.drag_delta();
+                    let back_to_local = (from_screen * updated_point_pos).clamp(
+                        pos2(
+                            prior_when_unwrapped.total_units() as f32,
+                            BipolarNormal::MIN as f32,
+                        ),
+                        pos2(
+                            MusicalTime::TIME_MAX.total_units() as f32,
+                            BipolarNormal::MAX as f32,
+                        ),
+                    );
+                    point.when = MusicalTime::new_with_units(back_to_local.x as usize);
+                    point.value = BipolarNormal::from(back_to_local.y);
+                }
+
+                let line_rect = Rect::from_two_pos(start_pos, end_pos);
+                let line_id = response.id.with(index + 262144);
+                let line_response = ui.interact(line_rect, line_id, Sense::hover());
+                let _context_response = line_response.context_menu(|ui| {
+                    if !ui.ctx().is_context_menu_open() {
+                        if let Some(interact_pos) = line_response.interact_pointer_pos() {
+                            ui.ctx()
+                                .memory_mut(|m| m.data.insert_temp(line_id, interact_pos));
                         }
-                    } else {
-                        stroke
                     }
-                } else {
-                    stroke
-                }
-            } else {
-                stroke
-            };
+                    let button_response = ui.button("Add point");
+                    if button_response.clicked() {
+                        ui.close_menu();
+                        if let Some(interact_pos) = ui.ctx().memory(|m| m.data.get_temp(line_id)) {
+                            point_to_add = Some(MusicalTime::new_with_units(
+                                (from_screen * interact_pos).x as usize,
+                            ));
+                        }
+                    }
+                });
 
-            // Draw according to the step type.
-            match &step {
-                SignalStepType::Flat(..) | SignalStepType::Linear(..) => {
-                    painter.line_segment([start_pos, end_pos], stroke);
-                }
-                SignalStepType::Logarithmic(..) => todo!(),
-                SignalStepType::Exponential(..) => todo!(),
-                SignalStepType::AdsrIdle => todo!(),
-                SignalStepType::AdsrAttack(_) => todo!(),
-                SignalStepType::AdsrDecay(_) => todo!(),
-                SignalStepType::AdsrSustain(_) => todo!(),
-                SignalStepType::AdsrRelease(_) => todo!(),
-            }
+                point_shapes.push(Shape::circle_filled(
+                    end_pos,
+                    CONTROL_POINT_VISUAL_RADIUS,
+                    ui.style().interact(&point_response).fg_stroke.color,
+                ));
 
-            // The line should be continuous even if consecutive steps aren't lined up.
-            if let Some(prior_end_pos) = prior_end_pos {
-                painter.line_segment([prior_end_pos, start_pos], stroke);
+                prior_when = Some(point.when);
+                prior_value = Some(point.value);
+            });
+        if let Some(point) = point_to_remove {
+            self.signal_path.remove_point(point);
+        }
+        if let Some(when) = point_to_add {
+            self.signal_path.add_point(when);
+        }
+        if let Some(when) = prior_when {
+            if let Some(value) = prior_value {
+                if when != MusicalTime::TIME_MAX {
+                    let start_pos = to_screen * pos2(when.total_units() as f32, value.0 as f32);
+                    let end_pos = to_screen * pos2(MusicalTime::TIME_MAX.total_units() as f32, 1.0);
+                    shapes.push(LineSegment {
+                        points: [start_pos, end_pos],
+                        stroke,
+                    });
+                }
             }
-            prior_end_pos = Some(end_pos);
-        });
+        }
+
+        painter.extend(shapes);
+        painter.extend(point_shapes);
 
         response
     }
