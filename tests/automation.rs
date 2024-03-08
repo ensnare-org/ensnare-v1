@@ -149,7 +149,7 @@ fn demo_signal_path_automation() {
         )
         .build()
         .unwrap();
-    let path_uid = project.add_path(path).unwrap();
+    let path_uid = project.add_path(track_uid, path).unwrap();
 
     // Hook it up to the pan parameter.
     assert!(project

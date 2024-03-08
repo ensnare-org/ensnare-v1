@@ -204,19 +204,25 @@ impl SignalPath {
     }
 
     pub(crate) fn add_point(&mut self, when: MusicalTime) {
-        if let Some(value) = self.calculate_value(when) {
-            let new_signal_point = SignalPoint { when, value };
-            if let Some((next_index, _)) = self
-                .points
-                .iter()
-                .enumerate()
-                .find(|(_, point)| point.when >= when)
-            {
-                self.points.insert(next_index, new_signal_point);
-            } else {
-                self.points.push(new_signal_point);
-            }
+        let value = self.calculate_value(when).unwrap_or_default();
+        let new_signal_point = SignalPoint { when, value };
+        if let Some((next_index, _)) = self
+            .points
+            .iter()
+            .enumerate()
+            .find(|(_, point)| point.when >= when)
+        {
+            self.points.insert(next_index, new_signal_point);
+        } else {
+            self.points.push(new_signal_point);
         }
+        // TODO: if this gets expensive, break it down into point-by-point
+        // and call the subroutine from here.
+        self.after_deser();
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.points.is_empty()
     }
 }
 

@@ -3,7 +3,7 @@
 use crate::{automation::SignalPath, prelude::*};
 use eframe::{
     egui::{
-        Sense,
+        Align2, FontId, Sense,
         Shape::{self, LineSegment},
         Vec2, Widget,
     },
@@ -36,6 +36,8 @@ impl<'a> SignalPathWidget<'a> {
 impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
+        let mut inset_rect = response.rect.shrink(16.0);
+        inset_rect.set_bottom(response.rect.bottom());
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
                 self.view_range.0.start.total_units() as f32
@@ -80,7 +82,9 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
             .collect();
         // Effectively shift limits and add infinite right so that everyone has
         // a right limit.
-        right_limits.remove(0);
+        if !right_limits.is_empty() {
+            right_limits.remove(0);
+        }
         right_limits.push(MusicalTime::TIME_MAX.total_units() as f32);
 
         self.signal_path
@@ -126,14 +130,45 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
                         point_to_remove = Some(point.clone());
                     }
                 });
-                if point_response.drag_delta() != Vec2::ZERO {
+                if point_response.dragged() {
                     let updated_point_pos = end_pos + point_response.drag_delta();
-                    let back_to_local = (from_screen * updated_point_pos).clamp(
-                        pos2(when_range.start, BipolarNormal::MIN as f32),
-                        pos2(when_range.end, BipolarNormal::MAX as f32),
-                    );
-                    point.when = MusicalTime::new_with_units(back_to_local.x as usize);
-                    point.value = BipolarNormal::from(back_to_local.y);
+
+                    // TODO: this is not smart enough, but I haven't figured out
+                    // the best way to behave when the text goes out of bounds.
+                    let text_pos = inset_rect.clamp(updated_point_pos);
+
+                    if point_response.drag_delta() != Vec2::ZERO {
+                        let back_to_local = (from_screen * updated_point_pos).clamp(
+                            pos2(when_range.start, BipolarNormal::MIN as f32),
+                            pos2(when_range.end, BipolarNormal::MAX as f32),
+                        );
+                        // TODO: quantize (kind of tricky because we're trying
+                        // to accumulate a delta)
+                        point.when = MusicalTime::new_with_units(back_to_local.x as usize);
+                        point.value = BipolarNormal::from(back_to_local.y);
+                    }
+                    const LABEL_OFFSET: f32 = 4.0;
+                    const LABEL_FONT_SIZE: f32 = 14.0;
+                    point_shapes.push(ui.fonts(|f| {
+                        Shape::text(
+                            f,
+                            text_pos + Vec2::new(-LABEL_OFFSET, 0.0),
+                            Align2::RIGHT_BOTTOM,
+                            format!("{}", point.when),
+                            FontId::proportional(LABEL_FONT_SIZE),
+                            ui.style().visuals.text_color(),
+                        )
+                    }));
+                    point_shapes.push(ui.fonts(|f| {
+                        Shape::text(
+                            f,
+                            text_pos + Vec2::new(LABEL_OFFSET, 0.0),
+                            Align2::LEFT_BOTTOM,
+                            format!("{}%", (point.value.0 * 100.0).round()),
+                            FontId::proportional(LABEL_FONT_SIZE),
+                            ui.style().visuals.text_color(),
+                        )
+                    }));
                 }
 
                 point_shapes.push(Shape::circle_filled(
@@ -162,6 +197,20 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
                     });
                 }
             }
+        }
+
+        // Add explanatory text if the area is blank.
+        if self.signal_path.is_empty() {
+            shapes.push(ui.fonts(|f| {
+                Shape::text(
+                    f,
+                    response.rect.center(),
+                    Align2::CENTER_CENTER,
+                    "Right-click to add a control point",
+                    FontId::proportional(18.0),
+                    ui.style().visuals.text_color(),
+                )
+            }));
         }
 
         painter.extend(shapes);

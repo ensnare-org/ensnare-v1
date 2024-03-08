@@ -34,18 +34,28 @@ impl From<&str> for ProjectTitle {
     }
 }
 impl ProjectTitle {
+    /// TODO: I don't know why From<&str> didn't give us this for free.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
+/// Indicates what should be shown in the track view.
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum TrackViewMode {
+    /// Shows arranged note [Pattern]s.
     #[default]
     Composition,
+    /// Shows one [SignalPath].
     Control(PathUid),
+    /// Placeholder during development.
     SomethingElse,
+}
+
+enum SignalPathNextError {
+    ThereAreNone,
+    ReachedEndOfList,
 }
 
 /// Groups all the persistent fields related to the project GUI view.
@@ -117,6 +127,7 @@ pub struct Project {
     pub automator: Automator,
     pub composer: Composer,
     pub track_to_midi_router: FxHashMap<TrackUid, MidiRouter>,
+    track_to_paths: FxHashMap<TrackUid, Vec<PathUid>>,
 
     pub view_state: ProjectViewState,
 
@@ -167,7 +178,6 @@ impl Project {
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
             pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
-            pub fn add_path(&mut self, path: SignalPath) -> Result<PathUid>;
             pub fn remove_path(&mut self, path_uid: PathUid) -> Option<SignalPath>;
             pub fn link_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex) -> Result<()> ;
             pub fn unlink_path(&mut self, path_uid: PathUid);
@@ -179,17 +189,6 @@ impl Project {
         let mut r = Self::default();
         r.set_rng_seed(Rng::generate_seed().unwrap());
         let _ = r.create_starter_tracks();
-
-        // Temp to fill in the signal path while we're building its UI. This RNG
-        // is different from the project's RNG. This one is more like an
-        // interactive GUI action, and should really be different each time.
-        let mut rng = Rng::default();
-        let _ = r.automator.add_path(
-            SignalPathBuilder::default()
-                .random(&mut rng)
-                .build()
-                .unwrap(),
-        );
 
         // hack - default to a 1-minute song
         r.view_state.view_range = ViewRange(
@@ -453,27 +452,83 @@ impl Project {
         self.e.load_path.as_ref()
     }
 
+    pub fn add_path(&mut self, track_uid: TrackUid, path: SignalPath) -> Result<PathUid> {
+        let path_uid = self.automator.add_path(path)?;
+        self.track_to_paths
+            .entry(track_uid)
+            .or_default()
+            .push(path_uid);
+        Ok(path_uid)
+    }
+
+    /// Picks the next view mode for the given track.
     pub fn advance_track_view_mode(&mut self, track_uid: &TrackUid) {
-        let mode = self
-            .view_state
+        let mode = match self.track_view_mode(track_uid) {
+            TrackViewMode::Composition => self.next_track_view_mode_with_path_uid(track_uid, None),
+            TrackViewMode::Control(path_uid) => {
+                self.next_track_view_mode_with_path_uid(track_uid, Some(path_uid))
+            }
+            TrackViewMode::SomethingElse => TrackViewMode::Composition,
+        };
+        self.set_track_view_mode(track_uid, mode);
+    }
+
+    fn track_view_mode(&self, track_uid: &TrackUid) -> TrackViewMode {
+        self.view_state
             .track_view_mode
             .get(track_uid)
             .copied()
-            .unwrap_or_default();
-        self.view_state.track_view_mode.insert(
-            track_uid.clone(),
-            match mode {
-                TrackViewMode::Composition => TrackViewMode::Control(PathUid(1024)),
-                TrackViewMode::Control(..) => TrackViewMode::SomethingElse,
-                TrackViewMode::SomethingElse => TrackViewMode::Composition,
-            },
-        );
+            .unwrap_or_default()
     }
 
-    pub fn set_track_view_mode(&mut self, track_uid: &TrackUid, mode: TrackViewMode) {
+    pub(crate) fn set_track_view_mode(&mut self, track_uid: &TrackUid, mode: TrackViewMode) {
         self.view_state
             .track_view_mode
             .insert(track_uid.clone(), mode);
+    }
+
+    fn next_track_view_mode_with_path_uid(
+        &mut self,
+        track_uid: &TrackUid,
+        path_uid: Option<PathUid>,
+    ) -> TrackViewMode {
+        match self.next_signal_path(track_uid, path_uid) {
+            Ok(next_path_uid) => TrackViewMode::Control(next_path_uid),
+            Err(err) => match err {
+                SignalPathNextError::ThereAreNone => {
+                    let path = SignalPathBuilder::default().build().unwrap();
+                    if let Ok(new_path_uid) = self.add_path(*track_uid, path) {
+                        TrackViewMode::Control(new_path_uid)
+                    } else {
+                        TrackViewMode::SomethingElse
+                    }
+                }
+                SignalPathNextError::ReachedEndOfList => TrackViewMode::SomethingElse,
+            },
+        }
+    }
+
+    fn next_signal_path(
+        &self,
+        track_uid: &TrackUid,
+        current_path_uid: Option<PathUid>,
+    ) -> Result<PathUid, SignalPathNextError> {
+        if let Some(path_uids) = self.track_to_paths.get(track_uid) {
+            if let Some(current_path_uid) = current_path_uid {
+                if let Some(index) = path_uids.iter().position(|puid| *puid == current_path_uid) {
+                    let next_index = index + 1;
+                    if next_index < path_uids.len() {
+                        return Ok(path_uids[next_index]);
+                    } else {
+                        return Err(SignalPathNextError::ReachedEndOfList);
+                    }
+                }
+            }
+            if let Some(path_uid) = path_uids.first().copied() {
+                return Ok(path_uid);
+            }
+        }
+        Err(SignalPathNextError::ThereAreNone)
     }
 
     pub fn notify_transport_sample_rate_change(&mut self) {
@@ -1135,6 +1190,63 @@ mod tests {
             prior_num_2,
             p.e.rng.rand_i64(),
             "Restoring a seed should cause project to generate same RNG stream"
+        );
+    }
+
+    #[test]
+    fn track_view_modes() {
+        let mut p = Project::new_project();
+        let track_1 = p.create_track(None).unwrap();
+        let track_2 = p.create_track(None).unwrap();
+
+        assert_eq!(
+            p.track_view_mode(&track_1),
+            TrackViewMode::default(),
+            "Initial view is composition/default"
+        );
+        assert_eq!(
+            p.track_view_mode(&track_2),
+            TrackViewMode::Composition,
+            "Initial view is composition"
+        );
+
+        p.advance_track_view_mode(&track_1);
+        let mode_phase_1 = p.track_view_mode(&track_1);
+        assert!(
+            matches!(mode_phase_1, TrackViewMode::Control(..)),
+            "Advancing past composition view should create a new control view"
+        );
+        assert_eq!(
+            p.track_view_mode(&track_2),
+            TrackViewMode::Composition,
+            "Setting one track's view shouldn't change any other's view"
+        );
+
+        p.advance_track_view_mode(&track_1);
+        assert_eq!(
+            p.track_view_mode(&track_1),
+            TrackViewMode::SomethingElse,
+            "Advancing past control view should go to next"
+        );
+        p.advance_track_view_mode(&track_1);
+        assert_eq!(
+            p.track_view_mode(&track_1),
+            TrackViewMode::Composition,
+            "Advancing past last view should go to first"
+        );
+
+        p.advance_track_view_mode(&track_1);
+        let mode_phase_2 = p.track_view_mode(&track_1);
+        assert_eq!(
+            mode_phase_2, mode_phase_1,
+            "Second time around, should return to same control view"
+        );
+        p.advance_track_view_mode(&track_1);
+        p.advance_track_view_mode(&track_1);
+        assert_eq!(
+            p.track_view_mode(&track_2),
+            TrackViewMode::Composition,
+            "If there was already one control view, we shouldn't keep creating new ones"
         );
     }
 }
