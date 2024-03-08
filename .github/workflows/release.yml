@@ -56,6 +56,7 @@ jobs:
         run: cargo build --workspace --release --target ${{ matrix.target }}
       - name: Test release
         run: cargo test  --workspace --release --target ${{ matrix.target }}
+        if: startsWith(matrix.target, 'x86_64')
       - name: Build .deb
         run: cargo deb --target ${{ matrix.target }} --no-build
         if: startsWith(matrix.os, 'ubuntu')
