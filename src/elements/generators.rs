@@ -1126,7 +1126,6 @@ impl Serializable for SignalPath {
                 value: last_value.unwrap_or_else(|| p.value)..p.value,
             };
             if when.end != MusicalTime::START {
-                eprintln!("Added: {when:?} {step:?}");
                 self.e.steps.insert(when, step);
             }
             last_when = p.when;
@@ -1139,7 +1138,6 @@ impl Serializable for SignalPath {
                 when: when.clone(),
                 value: last_value..last_value,
             };
-            eprintln!("Added: {when:?} {step:?}");
             self.e.steps.insert(when, step);
         }
     }
@@ -2581,7 +2579,10 @@ mod tests {
                 MusicalTime::ONE_BEAT * 1000,
                 MusicalTime::DURATION_SIXTEENTH,
             ),
-            (MusicalTime::TIME_MAX, MusicalTime::TIME_ZERO),
+            (
+                MusicalTime::TIME_MAX - MusicalTime::ONE_UNIT,
+                MusicalTime::TIME_ZERO,
+            ),
         ] {
             let time_range = TimeRange::new_with_start_and_duration(start, duration);
             let mut events = Vec::default();
