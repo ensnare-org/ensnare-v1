@@ -2,8 +2,6 @@
 
 //! Main struct for MiniDaw application.
 
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use crate::{
     events::{MiniDawEvent, MiniDawEventAggregationService, MiniDawInput},
     menu::{MenuBar, MenuBarAction},
