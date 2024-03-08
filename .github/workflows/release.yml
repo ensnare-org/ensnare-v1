@@ -5,7 +5,7 @@ on:
     types: [created]
 
 jobs:
-  release-x86_64:
+  release-native:
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +44,6 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-        # Build and test
       - name: Set version environment variables
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
         # https://stackoverflow.com/a/65972328/344467
@@ -52,9 +51,7 @@ jobs:
           echo 'GIT_DESCRIBE<<QQEOFQQ' >> $GITHUB_ENV
           git describe --tags          >> $GITHUB_ENV
           echo 'QQEOFQQ'               >> $GITHUB_ENV
-      - name: Build release
-        run: cargo build --workspace --release --target ${{ matrix.target }}
-      - name: Test release
+      - name: Test release (if target is x86_64)
         run: cargo test  --workspace --release --target ${{ matrix.target }}
         if: startsWith(matrix.target, 'x86_64')
       - name: Build .deb
@@ -64,17 +61,17 @@ jobs:
       #   run: cargo wix -p ensnare -v --nocapture
       #   if: startsWith(matrix.os, 'windows')
 
-        # Upload build products
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ensnare-minidaw-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/minidaw*
-      - name: Upload binaries
+      - name: Build and upload binaries
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: minidaw
+          target: ${{ matrix.target }}
           include: README.md,LICENSE.md,assets,projects
           leading_dir: true
           archive: ensnare-minidaw-$tag-$target
