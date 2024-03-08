@@ -49,8 +49,6 @@ pub enum TrackViewMode {
     Composition,
     /// Shows one [SignalPath].
     Control(PathUid),
-    /// Placeholder during development.
-    SomethingElse,
 }
 
 enum SignalPathNextError {
@@ -468,7 +466,6 @@ impl Project {
             TrackViewMode::Control(path_uid) => {
                 self.next_track_view_mode_with_path_uid(track_uid, Some(path_uid))
             }
-            TrackViewMode::SomethingElse => TrackViewMode::Composition,
         };
         self.set_track_view_mode(track_uid, mode);
     }
@@ -500,10 +497,10 @@ impl Project {
                     if let Ok(new_path_uid) = self.add_path(*track_uid, path) {
                         TrackViewMode::Control(new_path_uid)
                     } else {
-                        TrackViewMode::SomethingElse
+                        TrackViewMode::Composition
                     }
                 }
-                SignalPathNextError::ReachedEndOfList => TrackViewMode::SomethingElse,
+                SignalPathNextError::ReachedEndOfList => TrackViewMode::Composition,
             },
         }
     }
@@ -1225,12 +1222,6 @@ mod tests {
         p.advance_track_view_mode(&track_1);
         assert_eq!(
             p.track_view_mode(&track_1),
-            TrackViewMode::SomethingElse,
-            "Advancing past control view should go to next"
-        );
-        p.advance_track_view_mode(&track_1);
-        assert_eq!(
-            p.track_view_mode(&track_1),
             TrackViewMode::Composition,
             "Advancing past last view should go to first"
         );
@@ -1241,7 +1232,6 @@ mod tests {
             mode_phase_2, mode_phase_1,
             "Second time around, should return to same control view"
         );
-        p.advance_track_view_mode(&track_1);
         p.advance_track_view_mode(&track_1);
         assert_eq!(
             p.track_view_mode(&track_2),

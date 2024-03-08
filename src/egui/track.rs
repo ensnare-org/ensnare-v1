@@ -292,13 +292,6 @@ impl<'a> Widget for TrackWidget<'a> {
                                             });
                                         });
                                     }
-                                    TrackViewMode::SomethingElse => {
-                                        ui.add_enabled_ui(true, |ui| {
-                                            ui.allocate_ui_at_rect(rect, |ui| {
-                                                ui.label("something else111!!!!")
-                                            });
-                                        });
-                                    }
                                 }
 
                                 // Next, if it's present, draw the cursor.
