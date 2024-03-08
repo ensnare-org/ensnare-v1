@@ -10,11 +10,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Automator {
-    pub controllables: FxHashMap<Uid, Vec<ControlLink>>,
+    controllables: FxHashMap<Uid, Vec<ControlLink>>,
 
     uid_factory: PathUidFactory,
     pub paths: FxHashMap<PathUid, SignalPath>,
-    pub path_links: FxHashMap<PathUid, Vec<ControlLink>>,
+    path_links: FxHashMap<PathUid, Vec<ControlLink>>,
 
     #[serde(skip)]
     is_finished: bool,
