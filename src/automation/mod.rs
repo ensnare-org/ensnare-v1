@@ -28,11 +28,15 @@ pub mod prelude {
     pub use super::{
         ControlEventsFn, ControlIndex, ControlLink, ControlLinkSource, ControlName,
         ControlProxyEventsFn, ControlRange, ControlValue, Controllable, Controls, ControlsAsProxy,
+        PathUid, PathUidFactory, SignalPath, SignalPathBuilder, SignalPointBuilder,
     };
 }
 
 pub use automator::Automator;
 pub use controllers::{TimerCore, TriggerCore};
+pub use signal_path::{
+    PathUid, PathUidFactory, SignalPath, SignalPathBuilder, SignalPoint, SignalPointBuilder,
+};
 pub use traits::{
     ControlEventsFn, ControlLinkSource, ControlProxyEventsFn, Controllable, Controls,
     ControlsAsProxy,
@@ -41,5 +45,6 @@ pub use types::{ControlIndex, ControlLink, ControlName, ControlRange, ControlVal
 
 mod automator;
 mod controllers;
+mod signal_path;
 mod traits;
 mod types;

@@ -6,11 +6,7 @@
 /// The most commonly used imports.
 pub mod prelude {
     pub use super::{
-        generators::{
-            Envelope, EnvelopeBuilder, Oscillator, OscillatorBuilder, PathUid, PathUidFactory,
-            SignalPath, SignalPathBuilder, SignalPoint, SignalPointBuilder, SignalStepType,
-            Waveform,
-        },
+        generators::{Envelope, EnvelopeBuilder, Oscillator, OscillatorBuilder, Waveform},
         modulators::Dca,
         synthesizers::Synthesizer,
         transport::{Transport, TransportBuilder},
@@ -18,10 +14,7 @@ pub mod prelude {
     };
 }
 
-pub use generators::{
-    Envelope, EnvelopeBuilder, Oscillator, OscillatorBuilder, PathUid, PathUidFactory, SignalPath,
-    Waveform,
-};
+pub use generators::{Envelope, EnvelopeBuilder, Oscillator, OscillatorBuilder, Waveform};
 pub use modulators::Dca;
 pub use synthesizers::Synthesizer;
 pub use transport::{Transport, TransportBuilder};

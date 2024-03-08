@@ -1,10 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{
-    elements::{PathUid, PathUidFactory, SignalPath},
-    orchestration::EntityRepository,
-    prelude::*,
-};
+use super::{PathUid, PathUidFactory, SignalPath};
+use crate::{orchestration::EntityRepository, prelude::*};
 use anyhow::{anyhow, Result};
 use core::fmt::Debug;
 use rustc_hash::FxHashMap;
