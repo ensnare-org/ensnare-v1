@@ -1047,6 +1047,7 @@ impl SignalStepType {
 #[serde(rename_all = "kebab-case")]
 pub struct SignalPoint {
     pub(crate) when: MusicalTime,
+    #[builder(default)]
     pub(crate) value: BipolarNormal,
 }
 
@@ -1094,6 +1095,7 @@ impl SignalPathBuilder {
     pub fn build(&self) -> Result<SignalPath, SignalPathBuilderError> {
         match self.build_from_builder() {
             Ok(mut s) => {
+                Self::verify_point_ordering(&s)?;
                 s.after_deser();
                 Ok(s)
             }
@@ -1101,6 +1103,7 @@ impl SignalPathBuilder {
         }
     }
 
+    /// Construct a random path. Useful for debugging and prototyping.
     pub fn random(&mut self, rng: &mut Rng) -> &mut Self {
         let mut cursor = MusicalTime::START;
         for _ in 0..8 {
@@ -1112,6 +1115,21 @@ impl SignalPathBuilder {
             cursor += MusicalTime::DURATION_QUARTER;
         }
         self
+    }
+
+    /// Ensures that all points were added in ascending time order. Consecutive
+    /// points with the same time are OK, but they can't go back in time.
+    fn verify_point_ordering(s: &SignalPath) -> Result<(), SignalPathBuilderError> {
+        let mut last_point_time = MusicalTime::START;
+        for p in s.points.iter() {
+            if p.when < last_point_time {
+                return Err(SignalPathBuilderError::ValidationError(format!(
+                    "Point {p:?}'s time field is out of order"
+                )));
+            }
+            last_point_time = p.when;
+        }
+        Ok(())
     }
 }
 impl Serializable for SignalPath {
@@ -2653,5 +2671,40 @@ mod tests {
 
             path.reset();
         }
+    }
+
+    #[test]
+    fn signal_path_builder_rejects_out_of_order_points() {
+        let r = SignalPathBuilder::default()
+            .point(
+                SignalPointBuilder::default()
+                    .when(MusicalTime::new_with_beats(1))
+                    .build()
+                    .unwrap(),
+            )
+            .point(
+                SignalPointBuilder::default()
+                    .when(MusicalTime::new_with_beats(2))
+                    .build()
+                    .unwrap(),
+            )
+            .build();
+        assert!(r.is_ok());
+
+        let r = SignalPathBuilder::default()
+            .point(
+                SignalPointBuilder::default()
+                    .when(MusicalTime::new_with_beats(2))
+                    .build()
+                    .unwrap(),
+            )
+            .point(
+                SignalPointBuilder::default()
+                    .when(MusicalTime::new_with_beats(1))
+                    .build()
+                    .unwrap(),
+            )
+            .build();
+        assert!(r.is_err());
     }
 }
