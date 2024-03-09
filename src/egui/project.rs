@@ -37,7 +37,8 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
         // ones.
         let response = ui
             .horizontal(|ui| {
-                ui.add_enabled(false, TitleBarWidget::widget(None));
+                let mut action = None;
+                ui.add_enabled(false, TitleBarWidget::widget(None, &mut action));
                 ui.add(LegendWidget::widget(
                     &mut self.project.view_state.view_range,
                 ));

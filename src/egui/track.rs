@@ -14,7 +14,7 @@ use crate::{
     types::ColorScheme,
 };
 use eframe::{
-    egui::{Frame, Margin, Sense, TextFormat, Widget},
+    egui::{Frame, Image, ImageButton, Margin, Sense, TextFormat, Widget},
     emath::{Align, RectTransform},
     epaint::{
         text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
@@ -40,12 +40,19 @@ pub fn make_title_bar_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> A
     ui.ctx().fonts(|f| f.layout_job(job))
 }
 
+#[derive(Debug, Display)]
+pub enum TitleBarWidgetAction {
+    /// The next-timeline button was pressed.
+    NextTimelineView,
+}
+
 /// An egui widget that draws a track's sideways title bar.
 #[derive(Debug)]
-pub struct TitleBarWidget {
+pub struct TitleBarWidget<'a> {
     font_galley: Option<Arc<Galley>>,
+    action: &'a mut Option<TitleBarWidgetAction>,
 }
-impl eframe::egui::Widget for TitleBarWidget {
+impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let available_size = vec2(16.0, ui.available_height());
         ui.set_min_size(available_size);
@@ -66,34 +73,57 @@ impl eframe::egui::Widget for TitleBarWidget {
             .fill(fill_color)
             .show(ui, |ui| {
                 ui.allocate_ui(available_size, |ui| {
-                    let (response, painter) = ui.allocate_painter(available_size, Sense::click());
-                    if let Some(font_galley) = &self.font_galley {
-                        let t = Shape::Text(TextShape {
-                            pos: response.rect.left_bottom(),
-                            galley: Arc::clone(font_galley),
-                            underline: Stroke::default(),
-                            override_text_color: None,
-                            angle: 2.0 * PI * 0.75,
-                            fallback_color: Color32::YELLOW,
-                            opacity_factor: 1.0,
-                        });
-                        painter.add(t);
-                    }
-                    response
+                    ui.vertical(|ui| {
+                        if ui
+                            .add(ImageButton::new(
+                                Image::new(eframe::egui::include_image!(
+                                    "../../res/images/md-symbols/menu.png"
+                                ))
+                                .fit_to_original_size(0.5),
+                            ))
+                            .on_hover_text("Next Timeline View")
+                            .clicked()
+                        {
+                            *self.action = Some(TitleBarWidgetAction::NextTimelineView);
+                        }
+
+                        let (response, painter) =
+                            ui.allocate_painter(ui.available_size(), Sense::click());
+                        if let Some(font_galley) = &self.font_galley {
+                            let t = Shape::Text(TextShape {
+                                pos: response.rect.left_bottom(),
+                                galley: Arc::clone(font_galley),
+                                underline: Stroke::default(),
+                                override_text_color: None,
+                                angle: 2.0 * PI * 0.75,
+                                fallback_color: Color32::YELLOW,
+                                opacity_factor: 1.0,
+                            });
+                            painter.add(t);
+                        }
+                        response
+                    })
+                    .inner
                 })
                 .inner
             })
             .inner
     }
 }
-impl TitleBarWidget {
-    fn new(font_galley: Option<Arc<Galley>>) -> Self {
-        Self { font_galley }
+impl<'a> TitleBarWidget<'a> {
+    fn new(font_galley: Option<Arc<Galley>>, action: &'a mut Option<TitleBarWidgetAction>) -> Self {
+        Self {
+            font_galley,
+            action,
+        }
     }
 
     /// Don't have a font_galley? Check out [make_title_bar_galley()].
-    pub fn widget(font_galley: Option<Arc<Galley>>) -> impl eframe::egui::Widget {
-        move |ui: &mut eframe::egui::Ui| TitleBarWidget::new(font_galley).ui(ui)
+    pub fn widget(
+        font_galley: Option<Arc<Galley>>,
+        action: &'a mut Option<TitleBarWidgetAction>,
+    ) -> impl eframe::egui::Widget + 'a {
+        move |ui: &mut eframe::egui::Ui| TitleBarWidget::new(font_galley, action).ui(ui)
     }
 }
 
@@ -190,13 +220,15 @@ impl<'a> Widget for TrackWidget<'a> {
                         .title_font_galley
                         .as_ref()
                         .map(|fg| Arc::clone(&fg));
-                    let response = ui.add(TitleBarWidget::widget(font_galley));
-                    response.context_menu(|ui| {
-                        if ui.button("Next Timeline View").clicked() {
-                            ui.close_menu();
-                            self.project.advance_track_view_mode(&track_uid);
+                    let mut action = None;
+                    let response = ui.add(TitleBarWidget::widget(font_galley, &mut action));
+                    if let Some(action) = action {
+                        match action {
+                            TitleBarWidgetAction::NextTimelineView => {
+                                self.project.advance_track_view_mode(&track_uid)
+                            }
                         }
-                    });
+                    }
                     if response.clicked() {
                         *self.action = Some(TrackWidgetAction::Clicked);
                     }

@@ -444,7 +444,7 @@ impl ToyInstrumentSettings {
 struct TitleBarSettings {
     hide: bool,
     title: TrackTitle,
-    font_galley: Option<std::sync::Arc<Galley>>,
+    font_galley: Option<Arc<Galley>>,
 }
 
 impl Displays for TitleBarSettings {
@@ -466,9 +466,11 @@ impl TitleBarSettings {
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             if let Some(font_galley) = &self.font_galley {
-                ui.add(TitleBarWidget::widget(Some(std::sync::Arc::clone(
-                    font_galley,
-                ))));
+                let mut action = None;
+                ui.add(TitleBarWidget::widget(
+                    Some(Arc::clone(font_galley)),
+                    &mut action,
+                ));
             }
         }
     }
