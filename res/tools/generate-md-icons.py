@@ -43,7 +43,9 @@ for (group, icons) in ICONS.items():
                                                                             name=name),
                 "-density", "576",
                 "-background", "none",
-                "-negate", outfile]
+                "-negate",
+                "-define", "png:exclude-chunks=date,time",
+                outfile]
         subprocess.run(args)
         subprocess.run(["mogrify", "-strip", outfile])
 
@@ -52,6 +54,7 @@ SYMBOLS = [
     'audio_file',
     'file_open',
     'file_save',
+    'menu',
     'new_window',
     'play_arrow',
     'playlist_add_circle',
@@ -65,6 +68,7 @@ for (symbol) in SYMBOLS:
                                                                                                   symbol=symbol),
             "-density", "576",
             "-background", "none",
+            "-define", "png:exclude-chunks=date,time",
             "-negate", outfile]
     subprocess.run(args)
     subprocess.run(["mogrify", "-strip", outfile])
