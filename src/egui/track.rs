@@ -74,19 +74,20 @@ impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
             .show(ui, |ui| {
                 ui.allocate_ui(available_size, |ui| {
                     ui.vertical(|ui| {
-                        if ui
-                            .add(ImageButton::new(
-                                Image::new(eframe::egui::include_image!(
-                                    "../../res/images/md-symbols/menu.png"
+                        if self.font_galley.is_some() {
+                            if ui
+                                .add(ImageButton::new(
+                                    Image::new(eframe::egui::include_image!(
+                                        "../../res/images/md-symbols/menu.png"
+                                    ))
+                                    .fit_to_original_size(0.5),
                                 ))
-                                .fit_to_original_size(0.5),
-                            ))
-                            .on_hover_text("Next Timeline View")
-                            .clicked()
-                        {
-                            *self.action = Some(TitleBarWidgetAction::NextTimelineView);
+                                .on_hover_text("Next Timeline View")
+                                .clicked()
+                            {
+                                *self.action = Some(TitleBarWidgetAction::NextTimelineView);
+                            }
                         }
-
                         let (response, painter) =
                             ui.allocate_painter(ui.available_size(), Sense::click());
                         if let Some(font_galley) = &self.font_galley {
