@@ -63,7 +63,7 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
                         .memory_mut(|m| m.data.insert_temp(response.id, interact_pos));
                 }
             }
-            let button_response = ui.button("Add");
+            let button_response = ui.button("Add point");
             if button_response.clicked() {
                 ui.close_menu();
                 if let Some(interact_pos) = ui.ctx().memory(|m| m.data.get_temp(response.id)) {

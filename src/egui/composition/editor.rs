@@ -23,7 +23,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             let r = {
                 ui.horizontal(|ui| {
                     let response = {
-                        let item_response = ui.button("New Pattern");
+                        let item_response = ui.button("New pattern");
                         if item_response.clicked() {
                             let _ = self.composer.add_pattern(
                                 PatternBuilder::default()
@@ -36,7 +36,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
                         }
                         item_response
                     } | {
-                        let item_response = ui.button("Add Random");
+                        let item_response = ui.button("Add random");
                         if item_response.clicked() {
                             let contents = PatternBuilder::default()
                                 .time_signature(self.composer.time_signature())

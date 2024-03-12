@@ -42,8 +42,10 @@ pub fn make_title_bar_galley(ui: &mut eframe::egui::Ui, title: &TrackTitle) -> A
 
 #[derive(Debug, Display)]
 pub enum TitleBarWidgetAction {
-    /// The next-timeline button was pressed.
+    /// Switch to the next timeline view.
     NextTimelineView,
+    /// Add a new automation lane.
+    NewAutomationLane,
 }
 
 /// An egui widget that draws a track's sideways title bar.
@@ -75,18 +77,32 @@ impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
                 ui.allocate_ui(available_size, |ui| {
                     ui.vertical(|ui| {
                         if self.font_galley.is_some() {
-                            if ui
-                                .add(ImageButton::new(
-                                    Image::new(eframe::egui::include_image!(
-                                        "../../res/images/md-symbols/menu.png"
+                            ui.horizontal(|ui| {
+                                if ui
+                                    .add(ImageButton::new(
+                                        Image::new(eframe::egui::include_image!(
+                                            "../../res/images/md-symbols/menu.png"
+                                        ))
+                                        .fit_to_original_size(0.5),
                                     ))
-                                    .fit_to_original_size(0.5),
-                                ))
-                                .on_hover_text("Next Timeline View")
-                                .clicked()
-                            {
-                                *self.action = Some(TitleBarWidgetAction::NextTimelineView);
-                            }
+                                    .on_hover_text("Next timeline view")
+                                    .clicked()
+                                {
+                                    *self.action = Some(TitleBarWidgetAction::NextTimelineView);
+                                }
+                                if ui
+                                    .add(ImageButton::new(
+                                        Image::new(eframe::egui::include_image!(
+                                            "../../res/images/md-symbols/add.png"
+                                        ))
+                                        .fit_to_original_size(0.5),
+                                    ))
+                                    .on_hover_text("New automation lane")
+                                    .clicked()
+                                {
+                                    *self.action = Some(TitleBarWidgetAction::NewAutomationLane);
+                                }
+                            });
                         }
                         let (response, painter) =
                             ui.allocate_painter(ui.available_size(), Sense::click());
@@ -226,7 +242,18 @@ impl<'a> Widget for TrackWidget<'a> {
                     if let Some(action) = action {
                         match action {
                             TitleBarWidgetAction::NextTimelineView => {
-                                self.project.advance_track_view_mode(&track_uid)
+                                self.project.advance_track_view_mode(track_uid);
+                            }
+                            TitleBarWidgetAction::NewAutomationLane => {
+                                if let Ok(path_uid) = self.project.add_path(
+                                    track_uid,
+                                    SignalPathBuilder::default().build().unwrap(),
+                                ) {
+                                    self.project.set_track_view_mode(
+                                        track_uid,
+                                        TrackViewMode::Control(path_uid),
+                                    );
+                                }
                             }
                         }
                     }
@@ -389,7 +416,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                 // composition, then switch to the one that
                                 // shows the result of what you just did.
                                 self.project
-                                    .set_track_view_mode(&track_uid, TrackViewMode::Composition);
+                                    .set_track_view_mode(track_uid, TrackViewMode::Composition);
                             }
                         }
 

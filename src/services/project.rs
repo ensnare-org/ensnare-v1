@@ -254,7 +254,7 @@ impl ProjectServiceDaemon {
                         let selected_track_uids = project.view_state.track_selection_set.clone();
                         selected_track_uids
                             .iter()
-                            .for_each(|track_uid| project.advance_track_view_mode(track_uid));
+                            .for_each(|track_uid| project.advance_track_view_mode(*track_uid));
                     }
                 }
                 ProjectServiceInput::AudioQueue(queue) => {

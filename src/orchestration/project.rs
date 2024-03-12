@@ -460,7 +460,7 @@ impl Project {
     }
 
     /// Picks the next view mode for the given track.
-    pub fn advance_track_view_mode(&mut self, track_uid: &TrackUid) {
+    pub fn advance_track_view_mode(&mut self, track_uid: TrackUid) {
         let mode = match self.track_view_mode(track_uid) {
             TrackViewMode::Composition => self.next_track_view_mode_with_path_uid(track_uid, None),
             TrackViewMode::Control(path_uid) => {
@@ -470,15 +470,15 @@ impl Project {
         self.set_track_view_mode(track_uid, mode);
     }
 
-    fn track_view_mode(&self, track_uid: &TrackUid) -> TrackViewMode {
+    fn track_view_mode(&self, track_uid: TrackUid) -> TrackViewMode {
         self.view_state
             .track_view_mode
-            .get(track_uid)
+            .get(&track_uid)
             .copied()
             .unwrap_or_default()
     }
 
-    pub(crate) fn set_track_view_mode(&mut self, track_uid: &TrackUid, mode: TrackViewMode) {
+    pub(crate) fn set_track_view_mode(&mut self, track_uid: TrackUid, mode: TrackViewMode) {
         self.view_state
             .track_view_mode
             .insert(track_uid.clone(), mode);
@@ -486,7 +486,7 @@ impl Project {
 
     fn next_track_view_mode_with_path_uid(
         &mut self,
-        track_uid: &TrackUid,
+        track_uid: TrackUid,
         path_uid: Option<PathUid>,
     ) -> TrackViewMode {
         match self.next_signal_path(track_uid, path_uid) {
@@ -494,7 +494,7 @@ impl Project {
             Err(err) => match err {
                 SignalPathNextError::ThereAreNone => {
                     let path = SignalPathBuilder::default().build().unwrap();
-                    if let Ok(new_path_uid) = self.add_path(*track_uid, path) {
+                    if let Ok(new_path_uid) = self.add_path(track_uid, path) {
                         TrackViewMode::Control(new_path_uid)
                     } else {
                         TrackViewMode::Composition
@@ -507,10 +507,10 @@ impl Project {
 
     fn next_signal_path(
         &self,
-        track_uid: &TrackUid,
+        track_uid: TrackUid,
         current_path_uid: Option<PathUid>,
     ) -> Result<PathUid, SignalPathNextError> {
-        if let Some(path_uids) = self.track_to_paths.get(track_uid) {
+        if let Some(path_uids) = self.track_to_paths.get(&track_uid) {
             if let Some(current_path_uid) = current_path_uid {
                 if let Some(index) = path_uids.iter().position(|puid| *puid == current_path_uid) {
                     let next_index = index + 1;
@@ -1197,44 +1197,44 @@ mod tests {
         let track_2 = p.create_track(None).unwrap();
 
         assert_eq!(
-            p.track_view_mode(&track_1),
+            p.track_view_mode(track_1),
             TrackViewMode::default(),
             "Initial view is composition/default"
         );
         assert_eq!(
-            p.track_view_mode(&track_2),
+            p.track_view_mode(track_2),
             TrackViewMode::Composition,
             "Initial view is composition"
         );
 
-        p.advance_track_view_mode(&track_1);
-        let mode_phase_1 = p.track_view_mode(&track_1);
+        p.advance_track_view_mode(track_1);
+        let mode_phase_1 = p.track_view_mode(track_1);
         assert!(
             matches!(mode_phase_1, TrackViewMode::Control(..)),
             "Advancing past composition view should create a new control view"
         );
         assert_eq!(
-            p.track_view_mode(&track_2),
+            p.track_view_mode(track_2),
             TrackViewMode::Composition,
             "Setting one track's view shouldn't change any other's view"
         );
 
-        p.advance_track_view_mode(&track_1);
+        p.advance_track_view_mode(track_1);
         assert_eq!(
-            p.track_view_mode(&track_1),
+            p.track_view_mode(track_1),
             TrackViewMode::Composition,
             "Advancing past last view should go to first"
         );
 
-        p.advance_track_view_mode(&track_1);
-        let mode_phase_2 = p.track_view_mode(&track_1);
+        p.advance_track_view_mode(track_1);
+        let mode_phase_2 = p.track_view_mode(track_1);
         assert_eq!(
             mode_phase_2, mode_phase_1,
             "Second time around, should return to same control view"
         );
-        p.advance_track_view_mode(&track_1);
+        p.advance_track_view_mode(track_1);
         assert_eq!(
-            p.track_view_mode(&track_2),
+            p.track_view_mode(track_2),
             TrackViewMode::Composition,
             "If there was already one control view, we shouldn't keep creating new ones"
         );

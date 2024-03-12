@@ -51,6 +51,7 @@ for (group, icons) in ICONS.items():
 
 # Browse available symbols at https://fonts.google.com/icons
 SYMBOLS = [
+    'add',
     'audio_file',
     'file_open',
     'file_save',
