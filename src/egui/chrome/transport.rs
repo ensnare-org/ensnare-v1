@@ -6,6 +6,7 @@ use eframe::egui::{ComboBox, DragValue, Label, RichText, Ui, Widget};
 use strum::IntoEnumIterator;
 use strum_macros::{AsRefStr, EnumIter, IntoStaticStr};
 
+/// Renders a [Transport].
 #[derive(Debug)]
 pub struct TransportWidget<'a> {
     transport: &'a mut Transport,

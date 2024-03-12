@@ -15,6 +15,7 @@ impl Wiggler {
         Default::default()
     }
 
+    /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget() -> impl eframe::egui::Widget {
         move |ui: &mut eframe::egui::Ui| Wiggler::new().ui(ui)
     }

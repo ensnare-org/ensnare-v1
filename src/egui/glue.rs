@@ -6,7 +6,7 @@
 use crate::prelude::*;
 use eframe::egui::DragValue;
 
-/// An egui widget that makes it easier to work with a [DragValue] and a Normal.
+/// An egui widget that makes it easier to work with a [DragValue] and a [Normal].
 #[derive(Debug)]
 pub struct DragNormalWidget<'a> {
     normal: &'a mut Normal,
@@ -25,6 +25,7 @@ impl<'a> DragNormalWidget<'a> {
         move |ui: &mut eframe::egui::Ui| DragNormalWidget::new(normal).prefix(prefix).ui(ui)
     }
 
+    #[allow(missing_docs)]
     pub fn prefix(mut self, prefix: impl ToString) -> Self {
         self.prefix = Some(prefix.to_string());
         self
