@@ -133,7 +133,7 @@ pub struct FilterPreset {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct EnvelopeParams {
+pub struct EnvelopeParams {
     attack: Seconds,
     decay: Seconds,
     sustain: Normal,
@@ -190,8 +190,7 @@ impl WelshPatchSettings {
         let mut path = path.clone();
         path.set_extension("json");
         let json = std::fs::read_to_string(&path)?;
-        let mut patch = serde_json::from_str::<Self>(&json)?;
-        // patch.e.load_path = Some(path);
+        let patch = serde_json::from_str::<Self>(&json)?;
         Ok(patch)
     }
 }
