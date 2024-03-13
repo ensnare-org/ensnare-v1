@@ -1,13 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{
-    signal_chain::SignalChainItem,
     track::{
         make_title_bar_galley, TitleBarWidget, TrackWidget, TrackWidgetAction, TrackWidgetInfo,
     },
     LegendWidget,
 };
-use crate::prelude::*;
+use crate::{orchestration::TrackViewMode, prelude::*};
 use eframe::{egui::Widget, epaint::Galley};
 use std::sync::Arc;
 use strum_macros::Display;
@@ -64,38 +63,15 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         .cloned()
                         .unwrap_or_default();
 
-                    // TODO: this feels cacheable.
-                    let signal_items: Vec<SignalChainItem> = {
-                        if let Some(entity_uids) = self
-                            .project
-                            .orchestrator
-                            .entity_repo
-                            .uids_for_track
-                            .get(&track_uid)
-                        {
-                            entity_uids.iter().fold(Vec::default(), |mut v, uid| {
-                                if let Some(entity) =
-                                    self.project.orchestrator.entity_repo.entity(*uid)
-                                {
-                                    v.push((*uid, entity.name().to_string(), true));
-                                }
-
-                                v
-                            })
-                        } else {
-                            Vec::default()
-                        }
-                    };
-
                     let mut action = None;
                     let track_info = TrackWidgetInfo {
                         track_uid,
-                        signal_items: &signal_items,
                         title_font_galley: font_galley,
                         color_scheme,
                     };
                     ui.add(TrackWidget::widget(&track_info, self.project, &mut action));
                     if let Some(action) = action {
+                        let mut switch_to_composition = false;
                         match action {
                             TrackWidgetAction::SelectEntity(uid, name) => {
                                 *self.action = Some(ProjectAction::SelectEntity(uid, name));
@@ -116,6 +92,47 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                     EntityKey::from(key),
                                 ));
                             }
+                            TrackWidgetAction::AdvanceTimelineView(track_uid) => {
+                                self.project.advance_track_view_mode(track_uid);
+                            }
+                            TrackWidgetAction::CreateAutomationLane(track_uid) => {
+                                if let Ok(path_uid) = self.project.add_path(
+                                    track_uid,
+                                    SignalPathBuilder::default().build().unwrap(),
+                                ) {
+                                    self.project.set_track_view_mode(
+                                        track_uid,
+                                        TrackViewMode::Control(path_uid),
+                                    );
+                                }
+                            }
+                            TrackWidgetAction::ArrangePattern(pattern_uid, position) => {
+                                let _ =
+                                    self.project
+                                        .arrange_pattern(track_uid, pattern_uid, position);
+                                switch_to_composition = true;
+                            }
+                            TrackWidgetAction::MoveArrangement(
+                                arrangement_uid,
+                                position,
+                                is_shift_pressed,
+                            ) => {
+                                let _ = self.project.move_arrangement(
+                                    track_uid,
+                                    arrangement_uid,
+                                    position,
+                                    is_shift_pressed,
+                                );
+                                switch_to_composition = true;
+                            }
+                        }
+                        if switch_to_composition {
+                            // Nice touch: if you drag to track and it's
+                            // displaying a different mode from
+                            // composition, then switch to the one that
+                            // shows the result of what you just did.
+                            self.project
+                                .set_track_view_mode(track_uid, TrackViewMode::Composition);
                         }
                     }
                 }

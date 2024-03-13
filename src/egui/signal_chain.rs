@@ -1,12 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::fill_remaining_ui_space;
-use crate::prelude::*;
+use crate::{orchestration::SignalChainItem, prelude::*};
 use eframe::egui::{Button, Frame, Sense, Widget};
 use strum_macros::Display;
-
-/// Utility
-pub type SignalChainItem = (Uid, String, bool);
 
 #[derive(Debug, Display)]
 pub enum SignalChainWidgetAction {
@@ -37,29 +34,29 @@ impl<'a> Widget for SignalChainWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let (response, payload) = ui.dnd_drop_zone::<EntityKey>(Frame::default(), |ui| {
             ui.horizontal_centered(|ui| {
-                self.items
-                    .iter()
-                    .for_each(|(uid, name, is_control_source)| {
-                        let item_response =
-                            ui.add(SignalItemWidget::widget(name.clone(), *is_control_source));
+                self.items.iter().for_each(|item| {
+                    let item_response = ui.add(SignalItemWidget::widget(
+                        item.name.clone(),
+                        item.is_control_source,
+                    ));
 
-                        // We do this rather than wrapping with Ui::dnd_drag_source()
-                        // because of https://github.com/emilk/egui/issues/2730.
-                        item_response.dnd_set_drag_payload(ControlLinkSource::Entity(*uid));
+                    // We do this rather than wrapping with Ui::dnd_drag_source()
+                    // because of https://github.com/emilk/egui/issues/2730.
+                    item_response.dnd_set_drag_payload(ControlLinkSource::Entity(item.uid));
 
-                        ui.separator();
+                    ui.separator();
 
-                        let _ = item_response.context_menu(|ui| {
-                            if ui.button("Remove").clicked() {
-                                ui.close_menu();
-                                *self.action = Some(SignalChainWidgetAction::Remove(*uid));
-                            }
-                        });
-                        if item_response.clicked() {
-                            *self.action =
-                                Some(SignalChainWidgetAction::Select(*uid, name.clone()));
+                    let _ = item_response.context_menu(|ui| {
+                        if ui.button("Remove").clicked() {
+                            ui.close_menu();
+                            *self.action = Some(SignalChainWidgetAction::Remove(item.uid));
                         }
                     });
+                    if item_response.clicked() {
+                        *self.action =
+                            Some(SignalChainWidgetAction::Select(item.uid, item.name.clone()));
+                    }
+                });
                 fill_remaining_ui_space(ui);
             })
             .inner

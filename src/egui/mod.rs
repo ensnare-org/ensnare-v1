@@ -20,7 +20,7 @@ pub use {
 pub mod widget_explorer {
     pub use super::{
         audio::{analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget},
-        automation::SignalPathWidget,
+        automation::{SignalPathWidget, Target, TargetNode},
         controllers::{ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget},
         grid::GridWidget,
         legend::LegendWidget,

@@ -6,6 +6,7 @@
 use crate::{
     automation::Automator,
     composition::Composer,
+    egui::widget_explorer::{Target, TargetNode},
     orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
     types::{AudioQueue, ColorScheme, VisualizationQueue},
@@ -67,15 +68,30 @@ enum SignalPathNextError {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectViewState {
-    // The part of the project to show in the UI.
+    /// The part of the project to show in the UI.
     pub view_range: ViewRange,
-    // Which tracks are selected.
+    /// Which tracks are selected.
     pub track_selection_set: SelectionSet<TrackUid>,
-    // Which widget to render in the track arrangement section.
+    /// Which widget to render in the track arrangement section.
     #[serde(default)]
     pub track_view_mode: FxHashMap<TrackUid, TrackViewMode>,
-    // The current playback point. This is redundant -- copied from Transport.
+    /// The current playback point. This is redundant -- copied from Transport.
     pub cursor: Option<MusicalTime>,
+}
+
+/// Utility
+#[derive(Debug)]
+pub struct SignalChainItem {
+    pub uid: Uid,
+    pub name: String,
+    pub is_control_source: bool,
+}
+
+/// Temporary information associated with each track.
+#[derive(Debug, Default)]
+pub struct TrackInfo {
+    pub signal_chain: Vec<SignalChainItem>,
+    pub node: TargetNode,
 }
 
 #[derive(Debug, Default)]
@@ -103,6 +119,8 @@ pub struct ProjectEphemerals {
     /// not use this source because the expectation is that the GUI action will
     /// be different each time.
     pub rng: Rng,
+
+    pub track_info: FxHashMap<TrackUid, TrackInfo>,
 }
 
 /// A musical piece. Also knows how to render the piece to digital audio.
@@ -143,9 +161,6 @@ impl Project {
         to self.orchestrator {
             pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
-
-            pub fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>, uid: Option<Uid>) -> Result<Uid>;
-            pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
 
             pub fn get_humidity(&self, uid: &Uid) -> Normal;
             pub fn set_humidity(&mut self, uid: Uid, humidity: Normal);
@@ -297,11 +312,6 @@ impl Project {
             .move_entity(uid, new_track_uid, new_position);
         self.set_midi_receiver_channel(uid, midi_channel);
         result
-    }
-
-    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
-        self.set_midi_receiver_channel(uid, None)?;
-        self.orchestrator.remove_entity(uid)
     }
 
     fn generate_frames(
@@ -555,9 +565,98 @@ impl Project {
         self.e.rng = Rng::new_with_seed(self.rng_seed);
     }
 
+    /// Sets this project's random number generator seed, which is used to
+    /// deterministically (repeatably) generate a stream of pseudorandom numbers
+    /// used throughout the project.
     pub fn set_rng_seed(&mut self, seed: u128) {
         self.rng_seed = seed;
         self.reset_rng();
+    }
+
+    /// Adds an entity to the given track. If the [Uid] is not specified,
+    /// generates a new one. Returns the [Uid] if adding was successful.
+    pub fn add_entity(
+        &mut self,
+        track_uid: TrackUid,
+        entity: Box<dyn EntityBounds>,
+        uid: Option<Uid>,
+    ) -> Result<Uid> {
+        let r = self.orchestrator.add_entity(track_uid, entity, uid);
+        if let Ok(uid) = r {
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
+    }
+
+    /// Deletes and discards an existing entity.
+    pub fn delete_entity(&mut self, uid: Uid) -> Result<()> {
+        self.set_midi_receiver_channel(uid, None)?;
+        let track_uid = self.orchestrator.track_for_entity(uid);
+        let r = self.orchestrator.delete_entity(uid);
+        if let Some(track_uid) = track_uid {
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
+    }
+
+    /// Removes an existing entity from the project and returns it to the
+    /// caller.
+    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
+        self.set_midi_receiver_channel(uid, None)?;
+        let track_uid = self.orchestrator.track_for_entity(uid);
+        let r = self.orchestrator.remove_entity(uid);
+        if let Some(track_uid) = track_uid {
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
+    }
+
+    /// Regenerates cacheable information associated with a track's entities.
+    fn regenerate_signal_chain(&mut self, track_uid: TrackUid) {
+        let track_info = self.e.track_info.entry(track_uid).or_default();
+        let mut instruments = Vec::default();
+        let signal_chain: Vec<SignalChainItem> = {
+            if let Some(entity_uids) = self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
+            {
+                entity_uids.iter().fold(Vec::default(), |mut v, uid| {
+                    if let Some(entity) = self.orchestrator.entity_repo.entity(*uid) {
+                        v.push(SignalChainItem {
+                            uid: *uid,
+                            name: entity.name().to_string(),
+                            is_control_source: true,
+                        });
+                        let mut controllables = Vec::default();
+                        for i in 0..entity.control_index_count() {
+                            let index = ControlIndex(i);
+                            controllables.push(TargetNode {
+                                children: None,
+                                node: Target::Controllable(
+                                    index,
+                                    ControlName(
+                                        entity.control_name_for_index(index).unwrap().to_string(),
+                                    ),
+                                ),
+                            });
+                        }
+                        if !controllables.is_empty() {
+                            instruments.push(TargetNode {
+                                children: Some(controllables),
+                                node: Target::Instrument(*uid, entity.name().into()),
+                            });
+                        }
+                    }
+
+                    v
+                })
+            } else {
+                Vec::default()
+            }
+        };
+        track_info.signal_chain = signal_chain;
+        track_info.node = TargetNode {
+            children: Some(instruments),
+            node: Target::Root,
+        };
     }
 }
 impl Generates<StereoSample> for Project {
@@ -727,17 +826,16 @@ mod tests {
             TestInstrumentCountsMidiMessages,
         },
     };
-    use ensnare_proc_macros::{IsEntity, Metadata};
+    use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use std::sync::Arc;
 
     trait TestEntity: EntityBounds {}
 
     /// An [IsEntity] that sends one Control event each time work() is called.
-    #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
+    #[derive(Debug, Default, Control, IsEntity, Metadata, Serialize, Deserialize)]
     #[serde(rename_all = "kebab-case")]
     #[entity(
         Configurable,
-        Controllable,
         Displays,
         GeneratesStereoSample,
         HandlesMidi,

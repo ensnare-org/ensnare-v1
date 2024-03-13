@@ -60,7 +60,7 @@ impl TestAudioSourceCore {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Control)]
 pub struct TestControllerAlwaysSendsMidiMessageCore {
     midi_note: u8,
     is_performing: bool,

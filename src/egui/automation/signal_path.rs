@@ -11,16 +11,75 @@ use eframe::{
     epaint::{pos2, Rect},
 };
 
+#[derive(Debug, Default)]
+pub enum Target {
+    /// The root of the target node tree.
+    #[default]
+    Root,
+    /// An instrument that has controllable parameters.
+    Instrument(Uid, String),
+    /// An instrument's controllable parameter.
+    Controllable(ControlIndex, ControlName),
+}
+
+#[derive(Debug, Default)]
+pub struct TargetNode {
+    pub children: Option<Vec<TargetNode>>,
+    pub node: Target,
+}
+impl TargetNode {
+    fn ui(&self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        match &self.node {
+            Target::Root => {
+                ui.menu_button("Target", |ui| {
+                    if let Some(children) = &self.children {
+                        for child in children.iter() {
+                            child.ui(ui);
+                        }
+                    }
+                })
+                .response
+            }
+
+            Target::Instrument(uid, name) => {
+                ui.menu_button(name, |ui| {
+                    if let Some(children) = &self.children {
+                        for child in children.iter() {
+                            child.ui(ui);
+                        }
+                    }
+                })
+                .response
+            }
+            Target::Controllable(index, name) => {
+                let mut is_checked = false;
+                let response = ui.checkbox(&mut is_checked, &name.0);
+                if response.changed() {
+                    ui.close_menu();
+                    eprintln!("hook up {index}");
+                }
+                response
+            }
+        }
+    }
+}
+
 /// An egui widget that draws a SignalPath overlaid in the track view.
 #[derive(Debug)]
 pub struct SignalPathWidget<'a> {
     signal_path: &'a mut SignalPath,
+    target_root: &'a TargetNode,
     view_range: ViewRange,
 }
 impl<'a> SignalPathWidget<'a> {
-    fn new(signal_path: &'a mut SignalPath, view_range: ViewRange) -> Self {
+    fn new(
+        signal_path: &'a mut SignalPath,
+        target_root: &'a TargetNode,
+        view_range: ViewRange,
+    ) -> Self {
         Self {
             signal_path,
+            target_root,
             view_range,
         }
     }
@@ -28,9 +87,12 @@ impl<'a> SignalPathWidget<'a> {
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         signal_path: &'a mut SignalPath,
+        target_root: &'a TargetNode,
         view_range: ViewRange,
     ) -> impl eframe::egui::Widget + 'a {
-        move |ui: &mut eframe::egui::Ui| SignalPathWidget::new(signal_path, view_range).ui(ui)
+        move |ui: &mut eframe::egui::Ui| {
+            SignalPathWidget::new(signal_path, target_root, view_range).ui(ui)
+        }
     }
 }
 impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
@@ -72,6 +134,8 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
                     ));
                 }
             }
+
+            let _target_menu = self.target_root.ui(ui);
         });
 
         let mut right_limits: Vec<f32> = self

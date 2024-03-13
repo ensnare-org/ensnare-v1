@@ -9,6 +9,11 @@ use serde::{Deserialize, Serialize};
 /// for end-user viewing, but it's good for debugging.
 #[derive(Debug, Display)]
 pub struct ControlName(pub String);
+impl From<&str> for ControlName {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.

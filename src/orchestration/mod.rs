@@ -10,7 +10,7 @@ pub mod prelude {
 pub use bus::{BusRoute, BusStation};
 pub use midi_router::MidiRouter;
 pub use orchestrator::Orchestrator;
-pub use project::{Project, ProjectTitle, ProjectViewState, TrackViewMode};
+pub use project::{Project, ProjectTitle, ProjectViewState, SignalChainItem, TrackViewMode};
 pub(crate) use repositories::EntityRepository;
 pub use track::{TrackTitle, TrackUid, TrackUidFactory};
 

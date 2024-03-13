@@ -1,10 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{
-    automation::SignalPathWidget,
+    automation::{SignalPathWidget, Target, TargetNode},
     composition::ArrangementWidget,
     cursor::CursorWidget,
-    signal_chain::{SignalChainItem, SignalChainWidget, SignalChainWidgetAction},
+    signal_chain::{SignalChainWidget, SignalChainWidgetAction},
     util::fill_remaining_ui_space,
     GridWidget,
 };
@@ -151,9 +151,8 @@ pub enum TrackSource {
 }
 
 #[derive(Debug)]
-pub struct TrackWidgetInfo<'a> {
+pub struct TrackWidgetInfo {
     pub track_uid: TrackUid,
-    pub signal_items: &'a [SignalChainItem],
     pub title_font_galley: Option<Arc<Galley>>,
     pub color_scheme: ColorScheme,
 }
@@ -168,12 +167,17 @@ pub enum TrackWidgetAction {
     Clicked,
     /// Add a new device to this track.
     NewDevice(EntityKey),
+    /// Show the next timeline view.
+    AdvanceTimelineView(TrackUid),
+    CreateAutomationLane(TrackUid),
+    ArrangePattern(PatternUid, MusicalTime),
+    MoveArrangement(ArrangementUid, MusicalTime, bool),
 }
 
 /// An egui component that draws a track.
 #[derive(Debug)]
 pub struct TrackWidget<'a> {
-    track_info: &'a TrackWidgetInfo<'a>,
+    track_info: &'a TrackWidgetInfo,
     project: &'a mut Project,
     action: &'a mut Option<TrackWidgetAction>,
 }
@@ -182,7 +186,7 @@ impl<'a> TrackWidget<'a> {
     const TRACK_HEIGHT: f32 = 96.0;
 
     fn new(
-        track_info: &'a TrackWidgetInfo<'a>,
+        track_info: &'a TrackWidgetInfo,
         project: &'a mut Project,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> Self {
@@ -195,7 +199,7 @@ impl<'a> TrackWidget<'a> {
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
-        track_info: &'a TrackWidgetInfo<'a>,
+        track_info: &'a TrackWidgetInfo,
         project: &'a mut Project,
         action: &'a mut Option<TrackWidgetAction>,
     ) -> impl Widget + 'a {
@@ -205,6 +209,8 @@ impl<'a> TrackWidget<'a> {
 impl<'a> Widget for TrackWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let track_uid = self.track_info.track_uid;
+        let time_signature = self.project.time_signature().clone();
+        let track_info = self.project.e.track_info.entry(track_uid).or_default();
 
         // inner_margin() should be half of the Frame stroke width to leave room
         // for it. Thanks vikrinox on the egui Discord.
@@ -242,18 +248,12 @@ impl<'a> Widget for TrackWidget<'a> {
                     if let Some(action) = action {
                         match action {
                             TitleBarWidgetAction::NextTimelineView => {
-                                self.project.advance_track_view_mode(track_uid);
+                                *self.action =
+                                    Some(TrackWidgetAction::AdvanceTimelineView(track_uid));
                             }
                             TitleBarWidgetAction::NewAutomationLane => {
-                                if let Ok(path_uid) = self.project.add_path(
-                                    track_uid,
-                                    SignalPathBuilder::default().build().unwrap(),
-                                ) {
-                                    self.project.set_track_view_mode(
-                                        track_uid,
-                                        TrackViewMode::Control(path_uid),
-                                    );
-                                }
+                                *self.action =
+                                    Some(TrackWidgetAction::CreateAutomationLane(track_uid));
                             }
                         }
                     }
@@ -340,6 +340,7 @@ impl<'a> Widget for TrackWidget<'a> {
                                                     let response =
                                                         ui.add(SignalPathWidget::widget(
                                                             signal_path,
+                                                            &track_info.node,
                                                             self.project
                                                                 .view_state
                                                                 .view_range
@@ -388,35 +389,25 @@ impl<'a> Widget for TrackWidget<'a> {
                             });
                         if let Some(track_source) = payload {
                             if let Some(time) = time {
-                                let position =
-                                    time.quantized_to_measure(&self.project.time_signature());
+                                let position = time.quantized_to_measure(&time_signature);
                                 match *track_source {
                                     TrackSource::PatternUid(pattern_uid) => {
-                                        let _ = self.project.arrange_pattern(
-                                            track_uid,
+                                        *self.action = Some(TrackWidgetAction::ArrangePattern(
                                             pattern_uid,
                                             position,
-                                        );
+                                        ));
                                     }
                                     TrackSource::ArrangementUid(arrangement_uid) => {
                                         let shift_pressed = ui.input(|input_state| {
                                             input_state.modifiers.shift_only()
                                         });
-                                        let _ = self.project.move_arrangement(
-                                            track_uid,
+                                        *self.action = Some(TrackWidgetAction::MoveArrangement(
                                             arrangement_uid,
                                             position,
                                             shift_pressed,
-                                        );
+                                        ));
                                     }
                                 }
-
-                                // Nice touch: if you drag to track and it's
-                                // displaying a different mode from
-                                // composition, then switch to the one that
-                                // shows the result of what you just did.
-                                self.project
-                                    .set_track_view_mode(track_uid, TrackViewMode::Composition);
                             }
                         }
 
@@ -424,7 +415,7 @@ impl<'a> Widget for TrackWidget<'a> {
                         ui.scope(|ui| {
                             let mut action = None;
                             ui.add(SignalChainWidget::widget(
-                                self.track_info.signal_items,
+                                &track_info.signal_chain,
                                 &mut action,
                             ));
 

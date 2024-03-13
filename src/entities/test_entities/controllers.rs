@@ -2,7 +2,8 @@
 
 use crate::{cores::instruments::TestControllerAlwaysSendsMidiMessageCore, prelude::*};
 use ensnare_proc_macros::{
-    InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable, IsEntity, Metadata,
+    InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
+    IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +35,7 @@ impl TestController {
     Debug,
     Default,
     InnerConfigurable,
+    InnerControllable,
     InnerControls,
     InnerHandlesMidi,
     InnerSerializable,
@@ -42,14 +44,7 @@ impl TestController {
     Serialize,
     Deserialize,
 )]
-#[entity(
-    Controllable,
-    Displays,
-    GeneratesStereoSample,
-    SkipInner,
-    Ticks,
-    TransformsAudio
-)]
+#[entity(Displays, GeneratesStereoSample, SkipInner, Ticks, TransformsAudio)]
 pub struct TestControllerAlwaysSendsMidiMessage {
     uid: Uid,
     #[serde(skip)]
