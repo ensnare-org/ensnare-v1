@@ -103,7 +103,6 @@ impl<'a> SignalPathWidget<'a> {
                 for target in self.targets.iter() {
                     let (_response, changed_info) = target.ui(ui);
                     if let Some(info) = changed_info {
-                        eprintln!("info -> {info:?}");
                         action = Some(SignalPathWidgetAction::LinkTarget(
                             target.uid, info.0, info.1,
                         ));
@@ -156,9 +155,6 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
 
             // Display the automation-target menu.
             let (_target_menu, action) = self.targets_ui(ui);
-            if let Some(action) = action.as_ref() {
-                eprintln!("{action:?}");
-            }
             *self.action = action;
         });
 

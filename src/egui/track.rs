@@ -357,7 +357,6 @@ impl<'a> Widget for TrackWidget<'a> {
                                                                 param,
                                                                 should_link,
                                                             ) => {
-                                                                eprintln!("yaaaaass {uid} {param} {should_link}");
                                                                 if should_link {
                                                                     *self.action = Some(TrackWidgetAction::LinkPath(path_uid, uid, param));
                                                                 } else {
