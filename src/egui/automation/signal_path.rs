@@ -3,7 +3,7 @@
 use crate::{automation::SignalPath, prelude::*};
 use eframe::{
     egui::{
-        Align2, FontId, Sense,
+        Align2, FontId, Response, Sense,
         Shape::{self, LineSegment},
         Vec2, Widget,
     },
@@ -11,88 +11,107 @@ use eframe::{
     epaint::{pos2, Rect},
 };
 
+/// A container of information about a Controllable target that's used to help
+/// egui draw the context menu for [SignalPath]s.
 #[derive(Debug, Default)]
-pub enum Target {
-    /// The root of the target node tree.
-    #[default]
-    Root,
-    /// An instrument that has controllable parameters.
-    Instrument(Uid, String),
-    /// An instrument's controllable parameter.
-    Controllable(ControlIndex, ControlName),
+pub struct TargetInstrument {
+    pub uid: Uid,
+    pub name: String,
+    pub controllables: Vec<(ControlName, bool)>,
 }
-
-#[derive(Debug, Default)]
-pub struct TargetNode {
-    pub children: Option<Vec<TargetNode>>,
-    pub node: Target,
-}
-impl TargetNode {
-    fn ui(&self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        match &self.node {
-            Target::Root => {
-                ui.menu_button("Target", |ui| {
-                    if let Some(children) = &self.children {
-                        for child in children.iter() {
-                            child.ui(ui);
-                        }
+impl TargetInstrument {
+    fn ui(
+        &self,
+        ui: &mut eframe::egui::Ui,
+    ) -> (eframe::egui::Response, Option<(ControlIndex, bool)>) {
+        let mut changed_info = None;
+        let response = ui
+            .menu_button(self.name.clone(), |ui| {
+                for (index, controllable) in self.controllables.iter().enumerate() {
+                    let (response, is_checked) = self.controllable_ui(ui, controllable);
+                    if response.changed() {
+                        changed_info = Some((ControlIndex(index), is_checked));
                     }
-                })
-                .response
-            }
-
-            Target::Instrument(uid, name) => {
-                ui.menu_button(name, |ui| {
-                    if let Some(children) = &self.children {
-                        for child in children.iter() {
-                            child.ui(ui);
-                        }
-                    }
-                })
-                .response
-            }
-            Target::Controllable(index, name) => {
-                let mut is_checked = false;
-                let response = ui.checkbox(&mut is_checked, &name.0);
-                if response.changed() {
-                    ui.close_menu();
-                    eprintln!("hook up {index}");
                 }
-                response
-            }
-        }
+            })
+            .response;
+        (response, changed_info)
     }
+
+    fn controllable_ui(
+        &self,
+        ui: &mut eframe::egui::Ui,
+        controllable: &(ControlName, bool),
+    ) -> (Response, bool) {
+        let mut is_checked = controllable.1;
+        let response = ui.checkbox(&mut is_checked, &controllable.0 .0);
+        if response.changed() {
+            ui.close_menu();
+            // The caller should check .changed() and deal with it.
+        }
+        (response, is_checked)
+    }
+}
+
+#[derive(Debug)]
+pub enum SignalPathWidgetAction {
+    LinkTarget(Uid, ControlIndex, bool),
 }
 
 /// An egui widget that draws a SignalPath overlaid in the track view.
 #[derive(Debug)]
 pub struct SignalPathWidget<'a> {
     signal_path: &'a mut SignalPath,
-    target_root: &'a TargetNode,
+    targets: &'a Vec<TargetInstrument>,
     view_range: ViewRange,
+    action: &'a mut Option<SignalPathWidgetAction>,
 }
 impl<'a> SignalPathWidget<'a> {
     fn new(
         signal_path: &'a mut SignalPath,
-        target_root: &'a TargetNode,
+        targets: &'a Vec<TargetInstrument>,
         view_range: ViewRange,
+        action: &'a mut Option<SignalPathWidgetAction>,
     ) -> Self {
         Self {
             signal_path,
-            target_root,
+            targets,
             view_range,
+            action,
         }
     }
 
     /// Instantiates a widget suitable for adding to a [Ui](eframe::egui::Ui).
     pub fn widget(
         signal_path: &'a mut SignalPath,
-        target_root: &'a TargetNode,
+        targets: &'a Vec<TargetInstrument>,
         view_range: ViewRange,
+        action: &'a mut Option<SignalPathWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| {
-            SignalPathWidget::new(signal_path, target_root, view_range).ui(ui)
+            SignalPathWidget::new(signal_path, targets, view_range, action).ui(ui)
         }
+    }
+
+    fn targets_ui(
+        &self,
+        ui: &mut eframe::egui::Ui,
+    ) -> (Response, std::option::Option<SignalPathWidgetAction>) {
+        let mut action = None;
+        let response = ui
+            .menu_button("Target", |ui| {
+                for target in self.targets.iter() {
+                    let (_response, changed_info) = target.ui(ui);
+                    if let Some(info) = changed_info {
+                        eprintln!("info -> {info:?}");
+                        action = Some(SignalPathWidgetAction::LinkTarget(
+                            target.uid, info.0, info.1,
+                        ));
+                    }
+                }
+            })
+            .response;
+        (response, action)
     }
 }
 impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
@@ -135,7 +154,12 @@ impl<'a> eframe::egui::Widget for SignalPathWidget<'a> {
                 }
             }
 
-            let _target_menu = self.target_root.ui(ui);
+            // Display the automation-target menu.
+            let (_target_menu, action) = self.targets_ui(ui);
+            if let Some(action) = action.as_ref() {
+                eprintln!("{action:?}");
+            }
+            *self.action = action;
         });
 
         let mut right_limits: Vec<f32> = self

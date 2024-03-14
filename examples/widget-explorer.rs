@@ -22,8 +22,8 @@ use ensnare::{
     egui::{
         widget_explorer::{
             analyze_spectrum, make_title_bar_galley, FrequencyDomainWidget, GridWidget,
-            LegendWidget, NoteSequencerWidget, SignalPathWidget, Target, TargetNode,
-            TimeDomainWidget, TitleBarWidget, Wiggler,
+            LegendWidget, NoteSequencerWidget, SignalPathWidget, TimeDomainWidget, TitleBarWidget,
+            Wiggler,
         },
         ComposerWidget,
     },
@@ -87,15 +87,14 @@ impl SignalPathSettings {
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
             Frame::default().show(ui, |ui| {
-                let node = TargetNode {
-                    children: None,
-                    node: Target::Root,
-                };
+                let targets = Vec::default();
                 ui.set_max_height(256.0);
+                let mut action = None;
                 ui.add(SignalPathWidget::widget(
                     &mut self.signal_path,
-                    &node,
+                    &targets,
                     self.range.clone(),
+                    &mut action,
                 ))
             });
         }

@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::{
-    automation::{SignalPathWidget, Target, TargetNode},
+    automation::{SignalPathWidget, SignalPathWidgetAction},
     composition::ArrangementWidget,
     cursor::CursorWidget,
     signal_chain::{SignalChainWidget, SignalChainWidgetAction},
@@ -172,6 +172,8 @@ pub enum TrackWidgetAction {
     CreateAutomationLane(TrackUid),
     ArrangePattern(PatternUid, MusicalTime),
     MoveArrangement(ArrangementUid, MusicalTime, bool),
+    LinkPath(PathUid, Uid, ControlIndex),
+    UnlinkPath(PathUid, Uid, ControlIndex),
 }
 
 /// An egui component that draws a track.
@@ -331,23 +333,41 @@ impl<'a> Widget for TrackWidget<'a> {
                                             });
                                         });
                                     }
-                                    TrackViewMode::Control(path_id) => {
+                                    TrackViewMode::Control(path_uid) => {
                                         ui.add_enabled_ui(true, |ui| {
                                             ui.allocate_ui_at_rect(rect, |ui| {
                                                 if let Some(signal_path) =
-                                                    self.project.automator.paths.get_mut(&path_id)
+                                                    self.project.automator.paths.get_mut(&path_uid)
                                                 {
+                                                    let mut signal_path_action = None;
                                                     let response =
                                                         ui.add(SignalPathWidget::widget(
                                                             signal_path,
-                                                            &track_info.node,
+                                                            &track_info.targets,
                                                             self.project
                                                                 .view_state
                                                                 .view_range
                                                                 .clone(),
+                                                            &mut signal_path_action,
                                                         ));
+                                                    if let Some(action) = signal_path_action {
+                                                        match action {
+                                                            SignalPathWidgetAction::LinkTarget(
+                                                                uid,
+                                                                param,
+                                                                should_link,
+                                                            ) => {
+                                                                eprintln!("yaaaaass {uid} {param} {should_link}");
+                                                                if should_link {
+                                                                    *self.action = Some(TrackWidgetAction::LinkPath(path_uid, uid, param));
+                                                                } else {
+                                                                    *self.action = Some(TrackWidgetAction::UnlinkPath(path_uid, uid, param));
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                     response.dnd_set_drag_payload(
-                                                        ControlLinkSource::Path(path_id),
+                                                        ControlLinkSource::Path(path_uid),
                                                     )
                                                 }
                                             });

@@ -125,6 +125,14 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                 );
                                 switch_to_composition = true;
                             }
+                            TrackWidgetAction::LinkPath(path_uid, uid, param) => {
+                                let _ = self.project.link_path(path_uid, uid, param);
+                                self.project.regenerate_signal_chain(track_uid);
+                            }
+                            TrackWidgetAction::UnlinkPath(path_uid, uid, param) => {
+                                self.project.unlink_path(path_uid, uid, param);
+                                self.project.regenerate_signal_chain(track_uid);
+                            }
                         }
                         if switch_to_composition {
                             // Nice touch: if you drag to track and it's

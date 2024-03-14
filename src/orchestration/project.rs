@@ -6,7 +6,7 @@
 use crate::{
     automation::Automator,
     composition::Composer,
-    egui::widget_explorer::{Target, TargetNode},
+    egui::TargetInstrument,
     orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
     types::{AudioQueue, ColorScheme, VisualizationQueue},
@@ -91,7 +91,7 @@ pub struct SignalChainItem {
 #[derive(Debug, Default)]
 pub struct TrackInfo {
     pub signal_chain: Vec<SignalChainItem>,
-    pub node: TargetNode,
+    pub targets: Vec<TargetInstrument>,
 }
 
 #[derive(Debug, Default)]
@@ -193,7 +193,7 @@ impl Project {
             pub fn unlink(&mut self, source: Uid, target: Uid, param: ControlIndex);
             pub fn remove_path(&mut self, path_uid: PathUid) -> Option<SignalPath>;
             pub fn link_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex) -> Result<()> ;
-            pub fn unlink_path(&mut self, path_uid: PathUid);
+            pub fn unlink_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex);
         }
     }
 
@@ -492,6 +492,7 @@ impl Project {
         self.view_state
             .track_view_mode
             .insert(track_uid.clone(), mode);
+        self.regenerate_signal_chain(track_uid);
     }
 
     fn next_track_view_mode_with_path_uid(
@@ -612,9 +613,23 @@ impl Project {
     }
 
     /// Regenerates cacheable information associated with a track's entities.
-    fn regenerate_signal_chain(&mut self, track_uid: TrackUid) {
+    /// TODO: figure out easy-to-understand rules about when this needs to be
+    /// called.
+    pub(crate) fn regenerate_signal_chain(&mut self, track_uid: TrackUid) {
         let track_info = self.e.track_info.entry(track_uid).or_default();
-        let mut instruments = Vec::default();
+        let mut targets = Vec::default();
+
+        // If the current view mode is to show a SignalPath, then we need to
+        // update the cache of controllable states for it.
+        let path_uid = if let Some(mode) = self.view_state.track_view_mode.get(&track_uid) {
+            match mode {
+                TrackViewMode::Composition => None,
+                TrackViewMode::Control(path_uid) => Some(path_uid.clone()),
+            }
+        } else {
+            None
+        };
+
         let signal_chain: Vec<SignalChainItem> = {
             if let Some(entity_uids) = self.orchestrator.entity_repo.uids_for_track.get(&track_uid)
             {
@@ -628,20 +643,25 @@ impl Project {
                         let mut controllables = Vec::default();
                         for i in 0..entity.control_index_count() {
                             let index = ControlIndex(i);
-                            controllables.push(TargetNode {
-                                children: None,
-                                node: Target::Controllable(
-                                    index,
-                                    ControlName(
-                                        entity.control_name_for_index(index).unwrap().to_string(),
-                                    ),
+
+                            let is_linked = if let Some(path_uid) = path_uid {
+                                self.automator.is_path_linked(path_uid, *uid, index)
+                            } else {
+                                false
+                            };
+
+                            controllables.push((
+                                ControlName(
+                                    entity.control_name_for_index(index).unwrap().to_string(),
                                 ),
-                            });
+                                is_linked,
+                            ));
                         }
                         if !controllables.is_empty() {
-                            instruments.push(TargetNode {
-                                children: Some(controllables),
-                                node: Target::Instrument(*uid, entity.name().into()),
+                            targets.push(TargetInstrument {
+                                uid: *uid,
+                                name: entity.name().to_string(),
+                                controllables,
                             });
                         }
                     }
@@ -653,10 +673,7 @@ impl Project {
             }
         };
         track_info.signal_chain = signal_chain;
-        track_info.node = TargetNode {
-            children: Some(instruments),
-            node: Target::Root,
-        };
+        track_info.targets = targets;
     }
 }
 impl Generates<StereoSample> for Project {

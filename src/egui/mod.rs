@@ -4,6 +4,7 @@
 
 // Public/reusable
 pub use {
+    automation::TargetInstrument,
     chrome::{ControlBar, ControlBarAction, ControlBarWidget, TransportWidget},
     composition::ComposerWidget,
     entities::EntityPaletteWidget,
@@ -20,7 +21,7 @@ pub use {
 pub mod widget_explorer {
     pub use super::{
         audio::{analyze_spectrum, FrequencyDomainWidget, TimeDomainWidget},
-        automation::{SignalPathWidget, Target, TargetNode},
+        automation::{SignalPathWidget, TargetInstrument},
         controllers::{ArpeggiatorWidget, LfoControllerWidget, NoteSequencerWidget},
         grid::GridWidget,
         legend::LegendWidget,

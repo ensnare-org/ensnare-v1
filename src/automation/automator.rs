@@ -93,8 +93,20 @@ impl Automator {
         }
     }
 
-    pub fn unlink_path(&mut self, path_uid: PathUid) {
-        self.path_links.entry(path_uid).or_default().clear();
+    pub fn unlink_path(&mut self, path_uid: PathUid, target_uid: Uid, param: ControlIndex) {
+        if let Some(links) = self.path_links.get_mut(&path_uid) {
+            links.retain(|link| link.uid != target_uid && link.param != param);
+        }
+    }
+
+    pub(crate) fn is_path_linked(&self, path_uid: PathUid, uid: Uid, param: ControlIndex) -> bool {
+        if let Some(links) = self.path_links.get(&path_uid) {
+            let test_link = ControlLink { uid, param };
+            // TODO: slow
+            links.contains(&test_link)
+        } else {
+            false
+        }
     }
 }
 impl Serializable for Automator {
