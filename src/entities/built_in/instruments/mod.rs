@@ -48,10 +48,10 @@ pub struct Drumkit {
     action: Option<DisplaysAction>,
 }
 impl Drumkit {
-    pub fn new_with(uid: Uid, name: &str, paths: &Paths) -> Self {
+    pub fn new_with(uid: Uid, name: &str) -> Self {
         Self {
             uid,
-            inner: DrumkitCore::new_with(name, paths),
+            inner: DrumkitCore::new_with(name),
             widget_action: Default::default(),
             action: Default::default(),
         }

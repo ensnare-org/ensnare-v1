@@ -6,6 +6,8 @@ use core::{
 };
 use strum_macros::FromRepr;
 
+use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionProgram};
+
 /// There are two different mappings of piano notes to MIDI numbers. They both
 /// agree that Midi note 0 is a C, but they otherwise differ by an octave. I
 /// originally picked C4=60, because that was the top Google search result's
@@ -179,6 +181,16 @@ impl Display for MidiNote {
 impl From<u8> for MidiNote {
     fn from(value: u8) -> Self {
         Self::from_repr(value as usize).unwrap_or_default()
+    }
+}
+impl From<GeneralMidiProgram> for MidiNote {
+    fn from(value: GeneralMidiProgram) -> Self {
+        Self::from_repr(value as usize).unwrap()
+    }
+}
+impl From<GeneralMidiPercussionProgram> for MidiNote {
+    fn from(value: GeneralMidiPercussionProgram) -> Self {
+        Self::from_repr(value as usize).unwrap()
     }
 }
 impl Add<u8> for MidiNote {

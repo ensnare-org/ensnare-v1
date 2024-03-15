@@ -19,16 +19,11 @@ pub struct DrumkitCore {
     name: String,
 
     #[serde(skip)]
-    paths: Paths,
-    #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
 }
 impl core::fmt::Debug for DrumkitCore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Drumkit")
-            .field("name", &self.name)
-            .field("paths", &self.paths)
-            .finish()
+        f.debug_struct("Drumkit").field("name", &self.name).finish()
     }
 }
 
@@ -71,7 +66,7 @@ impl HandlesMidi for DrumkitCore {
     }
 }
 impl DrumkitCore {
-    fn new_from_files(paths: &Paths, kit_name: &str) -> Self {
+    fn new_from_files(kit_name: &str) -> Self {
         let samples = vec![
             (GeneralMidiPercussionProgram::AcousticBassDrum, "Kick 1 R1"),
             (GeneralMidiPercussionProgram::ElectricBassDrum, "Kick 2 R1"),
@@ -100,9 +95,9 @@ impl DrumkitCore {
 
         let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
             samples.into_iter().flat_map(|(program, asset_name)| {
-                let filename =
-                    paths.build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
-                if let Ok(file) = paths.search_and_open(filename.as_path()) {
+                let filename = Paths::global()
+                    .build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
+                if let Ok(file) = Paths::global().search_and_open(filename.as_path()) {
                     if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
                         let program = program as u8;
                         Ok((
@@ -123,15 +118,14 @@ impl DrumkitCore {
 
         Self {
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store)),
-            paths: paths.clone(),
             name: kit_name.to_string(),
         }
     }
 
-    pub fn new_with(name: &str, paths: &Paths) -> Self {
+    pub fn new_with(name: &str) -> Self {
         // TODO: we're hardcoding samples/. Figure out a way to use the
         // system.
-        Self::new_from_files(paths, name)
+        Self::new_from_files(name)
     }
 
     pub fn name(&self) -> &str {

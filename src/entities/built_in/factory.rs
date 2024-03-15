@@ -177,7 +177,7 @@ impl BuiltInEntities {
 
         // Instruments
         factory.register_entity_with_str_key(Drumkit::ENTITY_KEY, |uid| {
-            Box::new(Drumkit::new_with(uid, "feed-me-seymour", &Paths::default()))
+            Box::new(Drumkit::new_with(uid, "feed-me-seymour"))
         });
         factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |uid| {
             Box::new(FmSynth::new_with_factory_patch(uid))
