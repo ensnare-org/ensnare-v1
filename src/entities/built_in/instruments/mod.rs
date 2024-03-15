@@ -12,15 +12,14 @@ use crate::{
     },
     egui::{DrumkitWidgetAction, SamplerWidgetAction},
     elements::OscillatorBuilder,
+    prelude::*,
     traits::DisplaysAction,
 };
-use crate::{prelude::*, util::Paths};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsEntity, Metadata,
 };
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(
     Debug,
@@ -165,17 +164,17 @@ pub struct Sampler {
     action: Option<DisplaysAction>,
 }
 impl Sampler {
-    pub fn new_with(uid: Uid, path: PathBuf, root: Option<FrequencyHz>) -> Self {
+    pub fn new_with(uid: Uid, source: SampleSource, root: Option<FrequencyHz>) -> Self {
         Self {
             uid,
-            inner: SamplerCore::new_with(path, root),
+            inner: SamplerCore::new_with(source, root),
             widget_action: Default::default(),
             action: Default::default(),
         }
     }
 
-    pub fn load(&mut self, paths: &Paths) -> anyhow::Result<()> {
-        self.inner.load(paths)
+    pub fn load(&mut self) -> anyhow::Result<()> {
+        self.inner.load()
     }
 }
 
@@ -332,6 +331,9 @@ mod egui {
                 match action {
                     SamplerWidgetAction::Link(source, index) => {
                         self.set_action(DisplaysAction::Link(source, index));
+                    }
+                    SamplerWidgetAction::Load(index) => {
+                        self.inner.set_source(SampleSource::SampleLibrary(index));
                     }
                 }
             }

@@ -20,7 +20,6 @@ use crate::{
     prelude::*,
     util::Paths,
 };
-use std::path::PathBuf;
 
 /// A collection of all entities that are suitable for normal use. Allows the
 /// creation of an [EntityFactory] that lets apps refer to entities by
@@ -184,8 +183,12 @@ impl BuiltInEntities {
             Box::new(FmSynth::new_with_factory_patch(uid))
         });
         factory.register_entity_with_str_key(Sampler::ENTITY_KEY, |uid| {
-            let mut sampler = Sampler::new_with(uid, PathBuf::from("stereo-pluck.wav"), None);
-            let _ = sampler.load(&Paths::default()); // TODO: we're ignoring the error
+            let mut sampler = Sampler::new_with(
+                uid,
+                SampleSource::SampleLibrary(SampleIndex::default()),
+                None,
+            );
+            let _ = sampler.load(); // TODO: we're ignoring the error
             Box::new(sampler)
         });
         factory.register_entity_with_str_key(SubtractiveSynth::ENTITY_KEY, |uid| {
@@ -314,6 +317,7 @@ mod tests {
 
     #[test]
     fn entity_passes() {
+        SampleLibrary::set_instance(SampleLibrary::default());
         let factory = BuiltInEntities::register(EntityFactory::default());
         let uid_factory = EntityUidFactory::default();
         for entity_key in factory.keys() {

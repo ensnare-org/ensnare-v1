@@ -122,11 +122,9 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
+    Paths::set_instance(Paths::default());
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory = MiniDawEntities::register(EntityFactory::default()).finalize();
-
-    // if DragDropManager::initialize(DragDropManager::default()).is_err() {
-    //     panic!("Couldn't set DragDropManager once_cell");
-    // }
 
     if let Err(e) = eframe::run_native(
         MiniDaw::NAME,

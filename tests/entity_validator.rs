@@ -4,6 +4,8 @@ use ensnare::prelude::*;
 
 #[test]
 fn entity_validator_production_entities() {
+    Paths::set_instance(Paths::default());
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory = BuiltInEntities::register(EntityFactory::default()).finalize();
     validate_factory_entities(&factory);
 }

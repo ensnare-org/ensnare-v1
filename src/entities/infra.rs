@@ -53,7 +53,7 @@ impl<E: EntityBounds + ?Sized> Default for EntityFactory<E> {
 }
 impl<E: EntityBounds + ?Sized> EntityFactory<E> {
     /// Specifies the range of [Uid]s that [EntityFactory] will never issue.
-    pub const MAX_RESERVED_UID: usize = 1023;
+    pub const MAX_RESERVED_UID: usize = 1024 - 1;
 
     /// Registers a new type for the given [EntityKey] using the given closure.
     pub fn register_entity(&mut self, key: EntityKey, f: EntityFactoryFn<E>) {

@@ -142,6 +142,7 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
 // removing them, as you'd expect a GUI DAW to do.
 #[test]
 fn program_song() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

@@ -1,13 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{entities::Gain, prelude::*};
-use ensnare_toys::{ToyEntities, ToySynth};
+use ensnare_toys::prelude::*;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good
 // experience and not merely possible).
 #[test]
 fn demo_sidechaining() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

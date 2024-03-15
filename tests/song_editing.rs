@@ -8,6 +8,7 @@ use ensnare_toys::prelude::*;
 
 #[test]
 fn edit_song() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

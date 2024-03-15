@@ -1,17 +1,19 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, util::Paths};
+use crate::{
+    prelude::*,
+    util::{
+        library::{SampleLibrary, SampleSource},
+        Paths,
+    },
+};
 use anyhow::{anyhow, Result};
 use ensnare_proc_macros::Control;
 use hound::WavReader;
 use serde::{Deserialize, Serialize};
-use std::{
-    fs::File,
-    io::BufReader,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{fs::File, io::BufReader, path::Path, sync::Arc};
 
+/// One sampler voice. Combine multiple of these to make a sampling synth.
 #[derive(Debug, Default)]
 pub struct SamplerVoice {
     sample_rate: SampleRate,
@@ -123,10 +125,11 @@ impl SamplerVoice {
     }
 }
 
+/// A sampling synthesizer.
 #[derive(Debug, Control, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SamplerCore {
-    path: PathBuf,
+    source: SampleSource,
 
     #[control]
     root: FrequencyHz,
@@ -196,9 +199,20 @@ impl Configurable for SamplerCore {
     }
 }
 impl SamplerCore {
-    pub fn load(&mut self, paths: &Paths) -> anyhow::Result<()> {
-        let path = paths.build_sample(&Vec::default(), Path::new(&self.path));
-        let file = paths.search_and_open(path.as_path())?;
+    pub fn load(&mut self) -> anyhow::Result<()> {
+        let path = match &self.source {
+            SampleSource::SampleLibrary(index) => {
+                if let Some(path) = SampleLibrary::global().path(*index) {
+                    Paths::global().build_sample(&Vec::default(), Path::new(&path))
+                } else {
+                    return Err(anyhow!("Couldn't find sample {index} in library"));
+                }
+            }
+            SampleSource::Path(path_buf) => {
+                Paths::global().build_sample(&Vec::default(), Path::new(&path_buf))
+            }
+        };
+        let file = Paths::global().search_and_open(path.as_path())?;
         let samples = Self::read_samples_from_file(&file)?;
         let samples = Arc::new(samples);
 
@@ -221,7 +235,7 @@ impl SamplerCore {
         Ok(())
     }
 
-    pub fn new_with(path: PathBuf, root: Option<FrequencyHz>) -> Self {
+    pub fn new_with(source: SampleSource, root: Option<FrequencyHz>) -> Self {
         let samples = Arc::new(Vec::default());
         let calculated_root = root.unwrap_or_default();
         let e = SamplerEphemerals {
@@ -236,7 +250,7 @@ impl SamplerCore {
 
         Self {
             e,
-            path,
+            source,
             root: calculated_root,
         }
     }
@@ -373,12 +387,15 @@ impl SamplerCore {
         self.e.calculated_root = calculated_root;
     }
 
-    pub fn path(&self) -> &PathBuf {
-        &self.path
+    pub fn source(&self) -> &SampleSource {
+        &self.source
     }
 
-    pub fn set_path(&mut self, path: PathBuf) {
-        self.path = path;
+    pub fn set_source(&mut self, source: SampleSource) {
+        if self.source != source {
+            self.source = source;
+            let _ = self.load();
+        }
     }
 }
 
@@ -396,9 +413,10 @@ mod tests {
 
     #[test]
     fn loading() {
-        let paths = paths_with_test_data_dir();
-        let mut sampler = SamplerCore::new_with(PathBuf::from("stereo-pluck.wav"), None);
-        assert!(sampler.load(&paths).is_ok());
+        Paths::set_instance(paths_with_test_data_dir());
+        let mut sampler =
+            SamplerCore::new_with(SampleSource::Path("stereo-pluck.wav".into()), None);
+        assert!(sampler.load().is_ok());
         assert_eq!(sampler.calculated_root(), FrequencyHz::from(440.0));
     }
 
@@ -430,9 +448,10 @@ mod tests {
     #[test]
     #[ignore = "riff_io crate is disabled, so we can't read root frequencies from files"]
     fn loading_with_root_frequency() {
-        let paths = paths_with_test_data_dir();
-        let mut sampler = SamplerCore::new_with(PathBuf::from("riff-acidized.wav"), None);
-        assert!(sampler.load(&paths).is_ok());
+        Paths::set_instance(paths_with_test_data_dir());
+        let mut sampler =
+            SamplerCore::new_with(SampleSource::Path("riff-acidized.wav".into()), None);
+        assert!(sampler.load().is_ok());
         eprintln!("calculated {} ", sampler.calculated_root());
         assert_eq!(
             sampler.calculated_root(),
@@ -440,26 +459,31 @@ mod tests {
             "acidized WAV should produce sample with embedded root note"
         );
 
-        let mut sampler =
-            SamplerCore::new_with(PathBuf::from("riff-acidized.wav"), Some(123.0.into()));
-        assert!(sampler.load(&paths).is_ok());
+        let mut sampler = SamplerCore::new_with(
+            SampleSource::Path("riff-acidized.wav".into()),
+            Some(123.0.into()),
+        );
+        assert!(sampler.load().is_ok());
         assert_eq!(
             sampler.calculated_root(),
             FrequencyHz::from(123.0),
             "specified parameter should override acidized WAV's embedded root note"
         );
 
-        let mut sampler =
-            SamplerCore::new_with(PathBuf::from("riff-not-acidized.wav"), Some(123.0.into()));
-        assert!(sampler.load(&paths).is_ok());
+        let mut sampler = SamplerCore::new_with(
+            SampleSource::Path("riff-not-acidized.wav".into()),
+            Some(123.0.into()),
+        );
+        assert!(sampler.load().is_ok());
         assert_eq!(
             sampler.calculated_root(),
             FrequencyHz::from(123.0),
             "specified parameter should be used for non-acidized WAV"
         );
 
-        let mut sampler = SamplerCore::new_with(PathBuf::from("riff-not-acidized.wav"), None);
-        assert!(sampler.load(&paths).is_ok());
+        let mut sampler =
+            SamplerCore::new_with(SampleSource::Path("riff-not-acidized.wav".into()), None);
+        assert!(sampler.load().is_ok());
         assert_eq!(
             sampler.calculated_root(),
             MidiNote::A4.into(),

@@ -695,3 +695,14 @@ both would use. Instead, there might be a single data structure representing the
 sequences of steps, and each will implement its own code for that data. But not
 all is lost! I think that a single widget can allow editing of that structure,
 as long as it's smart enough to respect policies like ADSR for envelopes.
+
+# 2024-03-14: egui InnerResponse<R>
+
+Insight: I have developed an idiom of my custom Widgets returning an Option<T>
+where T = an enum of a type belonging to each Widget. It's not awful, but it
+requires the caller to allocate the action variable beforehand. I did this
+because the Widget trait's single `ui()` method returns only a Response. I
+wonder whether it'd be better to develop a custom method that returns
+InnerResponse<T>. I suppose we'd lose the ability to `ui.add()` the Widget (in
+fact it wouldn't be a `Widget` anymore), but if they're returning custom
+actions, they weren't useful in the truly generic `Widget` sense anyway.

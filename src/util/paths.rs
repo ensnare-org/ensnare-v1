@@ -8,6 +8,7 @@ pub mod prelude {
 }
 
 use app_dirs2::{AppDataType, AppInfo};
+use once_cell::sync::OnceCell;
 use std::{
     env::{current_dir, current_exe},
     fs::File,
@@ -20,6 +21,8 @@ const APP_INFO: AppInfo = AppInfo {
     name: "Ensnare",
     author: "Mike Tsao <mike@sowbug.com>",
 };
+
+static INSTANCE: OnceCell<Paths> = OnceCell::new();
 
 /// How to load resources.
 #[derive(Debug, Display, EnumIter, IntoStaticStr)]
@@ -283,6 +286,14 @@ impl Paths {
         }
         path.push(filename);
         path
+    }
+
+    pub fn set_instance(instance: Self) {
+        INSTANCE.set(instance);
+    }
+
+    pub(crate) fn global() -> &'static Self {
+        INSTANCE.get().expect("Paths is not initialized")
     }
 }
 

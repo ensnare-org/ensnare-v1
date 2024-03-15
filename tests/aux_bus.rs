@@ -9,6 +9,7 @@ use ensnare_toys::prelude::*;
 // Demonstrates use of aux buses.
 #[test]
 fn aux_bus() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

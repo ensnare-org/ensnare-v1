@@ -10,6 +10,7 @@ use ensnare_toys::prelude::*;
 // Demonstrates the control (automation) system.
 #[test]
 fn demo_automation() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
@@ -90,6 +91,7 @@ fn demo_automation() {
 
 #[test]
 fn demo_signal_path_automation() {
+    SampleLibrary::set_instance(SampleLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
