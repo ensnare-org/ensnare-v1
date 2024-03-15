@@ -9,6 +9,7 @@ use ensnare_toys::prelude::*;
 #[test]
 fn demo_sidechaining() {
     SampleLibrary::set_instance(SampleLibrary::default());
+    KitLibrary::set_instance(KitLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

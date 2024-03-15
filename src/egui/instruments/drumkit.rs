@@ -1,7 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::{cores::instruments::DrumkitCore, prelude::*};
-use eframe::egui::Widget;
+use eframe::egui::{ComboBox, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
@@ -12,6 +12,7 @@ pub enum SamplerWidgetAction {
 #[derive(Debug, Display)]
 pub enum DrumkitWidgetAction {
     Link(ControlLinkSource, ControlIndex),
+    Load(KitIndex),
 }
 
 #[derive(Debug)]
@@ -34,6 +35,14 @@ impl<'a> DrumkitWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for DrumkitWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.label(format!("Name: {:?}", self.inner.name()))
+        let mut selected = self.inner.kit_index().0;
+        let choices = KitLibrary::global().names();
+        let combobox = ComboBox::from_label("Kit");
+        let response =
+            combobox.show_index(ui, &mut selected, choices.len(), |i| choices[i].to_string());
+        if response.changed() {
+            *self.action = Some(DrumkitWidgetAction::Load(selected.into()));
+        }
+        response
     }
 }

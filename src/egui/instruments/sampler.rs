@@ -35,9 +35,10 @@ impl<'a> eframe::egui::Widget for SamplerWidget<'a> {
         } else {
             0
         };
-        let choices = SampleLibrary::global().choices();
+        let choices = SampleLibrary::global().names();
         let combobox = ComboBox::from_label("Sample");
-        let response = combobox.show_index(ui, &mut selected, choices.len(), |i| choices[i]);
+        let response =
+            combobox.show_index(ui, &mut selected, choices.len(), |i| choices[i].to_string());
         if response.changed() {
             *self.action = Some(SamplerWidgetAction::Load(selected.into()));
         }

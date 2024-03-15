@@ -136,10 +136,14 @@ pub enum GeneralMidiProgram {
     Gunshot = 127,
 }
 
-/// The General MIDI percussion instruments. https://en.wikipedia.org/wiki/General_MIDI#Percussion
+/// The General MIDI percussion instruments.
+/// https://en.wikipedia.org/wiki/General_MIDI#Percussion
+///
+/// These numbers correspond to MIDI notes that assume a certain sound-per-key
+/// set is loaded. For example, AcousticBassDrum is MIDI note #35, which is MIDI note B1, which is the B key below C2
 #[allow(missing_docs)]
 #[derive(Clone, Copy)]
-pub enum GeneralMidiPercussionProgram {
+pub enum GeneralMidiPercussionCode {
     AcousticBassDrum = 35,
     ElectricBassDrum = 36,
     SideStick = 37,

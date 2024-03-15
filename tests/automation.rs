@@ -11,6 +11,7 @@ use ensnare_toys::prelude::*;
 #[test]
 fn demo_automation() {
     SampleLibrary::set_instance(SampleLibrary::default());
+    KitLibrary::set_instance(KitLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 
@@ -92,6 +93,7 @@ fn demo_automation() {
 #[test]
 fn demo_signal_path_automation() {
     SampleLibrary::set_instance(SampleLibrary::default());
+    KitLibrary::set_instance(KitLibrary::default());
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

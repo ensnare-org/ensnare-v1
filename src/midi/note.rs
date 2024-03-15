@@ -6,7 +6,7 @@ use core::{
 };
 use strum_macros::FromRepr;
 
-use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionProgram};
+use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionCode};
 
 /// There are two different mappings of piano notes to MIDI numbers. They both
 /// agree that Midi note 0 is a C, but they otherwise differ by an octave. I
@@ -15,9 +15,9 @@ use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionProgram};
 /// it as-is so that I don't have to rename my test data files. I don't think it
 /// matters because we're not actually mapping these to anything user-visible.
 ///
-/// A small disadvantage of C3=60 is that numbers 0-11 don't map to an easily
-/// described octave. So I'm calling that octave "Sub0" because I needed
-/// something in this enum.
+/// The numbers 0-11 are below C0, so we had to invent some terminology to
+/// indicate Octave -1. I'm calling that octave "Sub0" because I needed the
+/// enums to have legal Rust names.
 ///
 /// These also correspond to
 /// <https://en.wikipedia.org/wiki/Piano_key_frequencies>
@@ -188,8 +188,8 @@ impl From<GeneralMidiProgram> for MidiNote {
         Self::from_repr(value as usize).unwrap()
     }
 }
-impl From<GeneralMidiPercussionProgram> for MidiNote {
-    fn from(value: GeneralMidiPercussionProgram) -> Self {
+impl From<GeneralMidiPercussionCode> for MidiNote {
+    fn from(value: GeneralMidiPercussionCode) -> Self {
         Self::from_repr(value as usize).unwrap()
     }
 }

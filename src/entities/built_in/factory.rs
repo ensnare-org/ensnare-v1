@@ -18,7 +18,6 @@ use crate::{
     },
     elements::OscillatorBuilder,
     prelude::*,
-    util::Paths,
 };
 
 /// A collection of all entities that are suitable for normal use. Allows the
@@ -177,7 +176,9 @@ impl BuiltInEntities {
 
         // Instruments
         factory.register_entity_with_str_key(Drumkit::ENTITY_KEY, |uid| {
-            Box::new(Drumkit::new_with(uid, "feed-me-seymour"))
+            let mut drumkit = Box::new(Drumkit::new_with(uid, KitIndex::KIT_707));
+            let _ = drumkit.load();
+            drumkit
         });
         factory.register_entity_with_str_key(FmSynth::ENTITY_KEY, |uid| {
             Box::new(FmSynth::new_with_factory_patch(uid))
@@ -318,6 +319,7 @@ mod tests {
     #[test]
     fn entity_passes() {
         SampleLibrary::set_instance(SampleLibrary::default());
+        KitLibrary::set_instance(KitLibrary::default());
         let factory = BuiltInEntities::register(EntityFactory::default());
         let uid_factory = EntityUidFactory::default();
         for entity_key in factory.keys() {

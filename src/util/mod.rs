@@ -4,7 +4,10 @@
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{ChannelPair, ModSerial, Paths, SampleIndex, SampleLibrary, SampleSource};
+    pub use super::{
+        ChannelPair, KitIndex, KitItem, KitLibrary, ModSerial, Paths, SampleIndex, SampleLibrary,
+        SampleSource,
+    };
 }
 
 pub use channel_pair::ChannelPair;
@@ -25,5 +28,5 @@ pub use paths::{FileType, Paths};
 #[cfg(feature = "std")]
 pub mod paths;
 
-pub use library::{SampleIndex, SampleLibrary, SampleSource};
+pub use library::{KitIndex, KitItem, KitLibrary, SampleIndex, SampleLibrary, SampleSource};
 pub mod library;

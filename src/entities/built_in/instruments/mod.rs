@@ -48,13 +48,17 @@ pub struct Drumkit {
     action: Option<DisplaysAction>,
 }
 impl Drumkit {
-    pub fn new_with(uid: Uid, name: &str) -> Self {
+    pub fn new_with(uid: Uid, kit_index: KitIndex) -> Self {
         Self {
             uid,
-            inner: DrumkitCore::new_with(name),
+            inner: DrumkitCore::new_with_kit_index(kit_index),
             widget_action: Default::default(),
             action: Default::default(),
         }
+    }
+
+    pub fn load(&mut self) -> anyhow::Result<()> {
+        self.inner.load()
     }
 }
 
@@ -282,6 +286,7 @@ mod egui {
                     DrumkitWidgetAction::Link(payload, index) => {
                         self.set_action(DisplaysAction::Link(payload, index));
                     }
+                    DrumkitWidgetAction::Load(kit_index) => self.inner.set_kit_index(kit_index),
                 }
             }
             response

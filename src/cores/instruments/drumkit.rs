@@ -3,19 +3,24 @@
 use super::sampler::{SamplerCore, SamplerVoice};
 use crate::{
     elements::VoicePerNoteStore,
-    midi::{prelude::*, GeneralMidiPercussionProgram},
+    midi::prelude::*,
     prelude::*,
-    util::Paths,
+    util::{
+        library::{KitIndex, KitLibrary},
+        Paths,
+    },
 };
 use anyhow::anyhow;
 use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Control, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrumkitCore {
+    kit_index: KitIndex,
+
     name: String,
 
     #[serde(skip)]
@@ -23,7 +28,10 @@ pub struct DrumkitCore {
 }
 impl core::fmt::Debug for DrumkitCore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Drumkit").field("name", &self.name).finish()
+        f.debug_struct("Drumkit")
+            .field("index", &self.kit_index)
+            .field("name", &self.name)
+            .finish()
     }
 }
 
@@ -66,66 +74,53 @@ impl HandlesMidi for DrumkitCore {
     }
 }
 impl DrumkitCore {
-    fn new_from_files(kit_name: &str) -> Self {
-        let samples = vec![
-            (GeneralMidiPercussionProgram::AcousticBassDrum, "Kick 1 R1"),
-            (GeneralMidiPercussionProgram::ElectricBassDrum, "Kick 2 R1"),
-            (GeneralMidiPercussionProgram::ClosedHiHat, "Hat Closed R1"),
-            (GeneralMidiPercussionProgram::PedalHiHat, "Hat Closed R2"),
-            (GeneralMidiPercussionProgram::HandClap, "Clap R1"),
-            (GeneralMidiPercussionProgram::RideBell, "Cowbell R1"),
-            (GeneralMidiPercussionProgram::CrashCymbal1, "Crash R1"),
-            (GeneralMidiPercussionProgram::CrashCymbal2, "Crash R2"),
-            (GeneralMidiPercussionProgram::OpenHiHat, "Hat Open R1"),
-            (GeneralMidiPercussionProgram::RideCymbal1, "Ride R1"),
-            (GeneralMidiPercussionProgram::RideCymbal2, "Ride R2"),
-            (GeneralMidiPercussionProgram::SideStick, "Rim R1"),
-            (GeneralMidiPercussionProgram::AcousticSnare, "Snare 1 R1"),
-            (GeneralMidiPercussionProgram::ElectricSnare, "Snare 2 R1"),
-            (GeneralMidiPercussionProgram::Tambourine, "Tambourine R1"),
-            (GeneralMidiPercussionProgram::LowTom, "Tom 1 R1"),
-            (GeneralMidiPercussionProgram::LowMidTom, "Tom 1 R2"),
-            (GeneralMidiPercussionProgram::HiMidTom, "Tom 2 R1"),
-            (GeneralMidiPercussionProgram::HighTom, "Tom 3 R1"),
-            (GeneralMidiPercussionProgram::HighAgogo, "Cowbell R3"),
-            (GeneralMidiPercussionProgram::LowAgogo, "Cowbell R4"),
-        ];
-
-        let sample_dirs = vec!["elphnt.io", "707"];
-
+    pub fn new_with_kit_index(kit_index: KitIndex) -> Self {
         let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
-            samples.into_iter().flat_map(|(program, asset_name)| {
-                let filename = Paths::global()
-                    .build_sample(&sample_dirs, Path::new(&format!("{asset_name}.wav")));
-                if let Ok(file) = Paths::global().search_and_open(filename.as_path()) {
-                    if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
-                        let program = program as u8;
-                        Ok((
-                            u7::from(program),
-                            SamplerVoice::new_with_samples(
-                                Arc::new(samples),
-                                MidiNote::from_repr(program as usize).unwrap().into(),
-                            ),
-                        ))
-                    } else {
-                        Err(anyhow!("Unable to load sample from file {:?}.", filename))
-                    }
-                } else {
-                    Err(anyhow!("Couldn't find filename {:?} in hives", filename))
-                }
-            }),
+            Vec::<(midly::num::u7, SamplerVoice)>::default().into_iter(),
         );
 
         Self {
+            kit_index,
+            name: "Unknown".into(),
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store)),
-            name: kit_name.to_string(),
         }
     }
 
-    pub fn new_with(name: &str) -> Self {
-        // TODO: we're hardcoding samples/. Figure out a way to use the
-        // system.
-        Self::new_from_files(name)
+    pub fn load(&mut self) -> anyhow::Result<()> {
+        if let Some(kit) = KitLibrary::global().kit(self.kit_index) {
+            let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
+                kit.items.iter().enumerate().flat_map(|(index, item)| {
+                    if let Some(path) =
+                        SampleLibrary::global().path(SampleIndex(kit.library_offset + index))
+                    {
+                        let path = Paths::global().build_sample(&Vec::default(), path.as_path());
+                        if let Ok(file) = Paths::global().search_and_open(path.as_path()) {
+                            if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
+                                let note = item.key as u8;
+                                Ok((
+                                    u7::from(note),
+                                    SamplerVoice::new_with_samples(
+                                        Arc::new(samples),
+                                        MidiNote::from_repr(note as usize).unwrap().into(),
+                                    ),
+                                ))
+                            } else {
+                                Err(anyhow!("Unable to load sample from file {:?}.", path))
+                            }
+                        } else {
+                            Err(anyhow!("Couldn't find filename {:?} in hives", path))
+                        }
+                    } else {
+                        Err(anyhow!("Couldn't find path for item"))
+                    }
+                }),
+            );
+            self.inner_synth = Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store));
+
+            Ok(())
+        } else {
+            Err(anyhow!("Couldn't find kit {}", self.kit_index))
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -134,5 +129,16 @@ impl DrumkitCore {
 
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
+    }
+
+    pub fn kit_index(&self) -> KitIndex {
+        self.kit_index
+    }
+
+    pub(crate) fn set_kit_index(&mut self, kit_index: KitIndex) {
+        if kit_index != self.kit_index {
+            self.kit_index = kit_index;
+            self.load();
+        }
     }
 }

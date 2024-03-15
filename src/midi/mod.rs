@@ -12,7 +12,7 @@ pub mod prelude {
 
 pub use {
     crate::services::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor},
-    general_midi::GeneralMidiPercussionProgram,
+    general_midi::GeneralMidiPercussionCode,
     midly::{
         live::LiveEvent,
         num::{u4, u7},
