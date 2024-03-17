@@ -59,74 +59,96 @@ impl Default for SampleLibrary {
 
         // 707
         for (name, path) in [
-            ("Cowbell-r2", "Cowbell R2.wav"),
-            ("Crash-r1", "Crash R1.wav"),
-            ("Tom-2-r1", "Tom 2 R1.wav"),
-            ("Tambourine-r1", "Tambourine R1.wav"),
-            ("Tom-3-r1", "Tom 3 R1.wav"),
-            ("Kick-2-r3", "Kick 2 R3.wav"),
-            ("Rim-r3", "Rim R3.wav"),
-            ("Hat-closed-r1", "Hat Closed R1.wav"),
-            ("Tambourine-r4", "Tambourine R4.wav"),
-            ("Snare-1-r3", "Snare 1 R3.wav"),
-            ("Kick-2-r1", "Kick 2 R1.wav"),
-            ("Crash-r3", "Crash R3.wav"),
-            ("Hat-open-r4", "Hat Open R4.wav"),
-            ("Hat-open-r1", "Hat Open R1.wav"),
-            ("Hat-closed-r2", "Hat Closed R2.wav"),
-            ("Ride-r2", "Ride R2.wav"),
-            ("Tom-2-r4", "Tom 2 R4.wav"),
-            ("Tom-1-r2", "Tom 1 R2.wav"),
-            ("Crash-r4", "Crash R4.wav"),
-            ("Cowbell-r4", "Cowbell R4.wav"),
-            ("Ride-r1", "Ride R1.wav"),
-            ("Snare-1-r2", "Snare 1 R2.wav"),
-            ("Clap-r2", "Clap R2.wav"),
-            ("Clap-r3", "Clap R3.wav"),
-            ("Hat-open-r3", "Hat Open R3.wav"),
-            ("Kick-2-r4", "Kick 2 R4.wav"),
-            ("Clap-r1", "Clap R1.wav"),
-            ("Tambourine-r3", "Tambourine R3.wav"),
-            ("Tambourine-r2", "Tambourine R2.wav"),
-            ("Ride-r4", "Ride R4.wav"),
-            ("Cowbell-r3", "Cowbell R3.wav"),
-            ("Tom-3-r2", "Tom 3 R2.wav"),
-            ("Rim-r2", "Rim R2.wav"),
-            ("Rim-r1", "Rim R1.wav"),
-            ("Tom-1-r1", "Tom 1 R1.wav"),
-            ("Tom-2-r2", "Tom 2 R2.wav"),
-            ("Tom-3-r3", "Tom 3 R3.wav"),
-            ("Kick-1-r3", "Kick 1 R3.wav"),
-            ("Snare-1-r4", "Snare 1 R4.wav"),
-            ("Tom-2-r3", "Tom 2 R3.wav"),
-            ("Hat-closed-r4", "Hat Closed R4.wav"),
-            ("Snare-2-r4", "Snare 2 R4.wav"),
-            ("Kick-1-r4", "Kick 1 R4.wav"),
-            ("Snare-2-r2", "Snare 2 R2.wav"),
-            ("Kick-1-r1", "Kick 1 R1.wav"),
-            ("Kick-1-r2", "Kick 1 R2.wav"),
-            ("Hat-open-r2", "Hat Open R2.wav"),
-            ("Crash-r2", "Crash R2.wav"),
-            ("Hat-closed-r3", "Hat Closed R3.wav"),
-            ("Tom-1-r4", "Tom 1 R4.wav"),
-            ("Ride-r3", "Ride R3.wav"),
-            ("Clap-r4", "Clap R4.wav"),
-            ("Tom-1-r3", "Tom 1 R3.wav"),
-            ("Rim-r4", "Rim R4.wav"),
-            ("Kick-2-r2", "Kick 2 R2.wav"),
-            ("Snare-2-r3", "Snare 2 R3.wav"),
-            ("Tom-3-r4", "Tom 3 R4.wav"),
-            ("Cowbell-r1", "Cowbell R1.wav"),
-            ("Snare-1-r1", "Snare 1 R1.wav"),
-            ("Snare-2-r1", "Snare 2 R1.wav"),
+            (Self::KICK_1, "Kick 1 R1.wav"),
+            (Self::KICK_2, "Kick 2 R1.wav"),
+            (Self::SNARE_1, "Snare 1 R1.wav"),
+            (Self::SNARE_2, "Snare 2 R1.wav"),
+            (Self::TOM_LOW, "Tom 1 R1.wav"),
+            (Self::TOM_MEDIUM, "Tom 2 R1.wav"),
+            (Self::TOM_HIGH, "Tom 3 R1.wav"),
+            (Self::RIMSHOT, "Rim R1.wav"),
+            (Self::COWBELL, "Cowbell R1.wav"),
+            (Self::CLAP, "Clap R1.wav"),
+            (Self::TAMBOURINE, "Tambourine R1.wav"),
+            (Self::HI_HAT_CLOSED, "Hat Closed R1.wav"),
+            (Self::HI_HAT_OPEN, "Hat Open R1.wav"),
+            (Self::CYMBAL_CRASH, "Crash R1.wav"),
+            (Self::CYMBAL_RIDE, "Ride R1.wav"),
         ] {
-            r.push_sample(name, Some("elphnt.io/707".into()), path.into());
+            r.push_sample(name, Some("drumkits/707".into()), path.into());
+        }
+
+        // 808
+        for (name, path) in [
+            (Self::TOM_LOW, "LT00.WAV"),
+            (Self::HI_HAT_CLOSED, "CH.WAV"),
+            (Self::COWBELL, "CB.WAV"),
+            (Self::TOM_MEDIUM, "MT00.WAV"),
+            (Self::TOM_HIGH, "HT00.WAV"),
+            (Self::CONGA_MEDIUM, "MC00.WAV"),
+            (Self::CLAVES, "CL.WAV"),
+            (Self::KICK_2, "BD0025.WAV"),
+            (Self::HI_HAT_OPEN, "OH00.WAV"),
+            (Self::MARACA, "MA.WAV"),
+            (Self::CLAP, "CP.WAV"),
+            (Self::KICK_2, "BD0050.WAV"),
+            (Self::CYMBAL_CRASH, "CY0050.WAV"),
+            (Self::CONGA_LOW, "LC00.WAV"),
+            (Self::RIMSHOT, "RS.WAV"),
+            (Self::CONGA_HIGH, "HC00.WAV"),
+            (Self::SNARE, "SD0010.WAV"),
+        ] {
+            r.push_sample(name, Some("drumkits/808".into()), path.into());
+        }
+
+        // 909
+        for (name, path) in [
+            (Self::TOM_LOW, "LT0DA.WAV"),
+            (Self::HI_HAT_OPEN, "HHODA.WAV"),
+            (Self::HI_HAT_OPEN_TO_CLOSED, "OPCL1.WAV"),
+            (Self::RIMSHOT, "RIM63.WAV"),
+            (Self::HI_HAT_CLOSED_TO_OPEN, "CLOP4.WAV"),
+            (Self::TOM_MEDIUM, "MT0DA.WAV"),
+            (Self::CYMBAL_CRASH, "CSHD2.WAV"),
+            (Self::KICK, "BT0A0D3.WAV"),
+            (Self::CLAP, "HANDCLP2.WAV"),
+            (Self::HI_HAT_CLOSED, "HHCDA.WAV"),
+            (Self::TOM_HIGH, "HT0DA.WAV"),
+            (Self::SNARE, "ST0T0S7.WAV"),
+            (Self::CYMBAL_RIDE, "RIDED2.WAV"),
+        ] {
+            r.push_sample(name, Some("drumkits/909".into()), path.into());
         }
 
         r
     }
 }
 impl SampleLibrary {
+    const CLAP: &'static str = "Hand Clap";
+    const CLAVES: &'static str = "Claves";
+    const CONGA_HIGH: &'static str = "High Conga";
+    const CONGA_LOW: &'static str = "Low Conga";
+    const CONGA_MEDIUM: &'static str = "Medium Conga";
+    const COWBELL: &'static str = "Cowbell";
+    const CYMBAL_CRASH: &'static str = "Cymbal Crash";
+    const CYMBAL_RIDE: &'static str = "Cymbal Ride";
+    const HI_HAT_CLOSED: &'static str = "Closed Hat";
+    const HI_HAT_CLOSED_TO_OPEN: &'static str = "Closed-to-Open Hat";
+    const HI_HAT_OPEN: &'static str = "Open Hat";
+    const HI_HAT_OPEN_TO_CLOSED: &'static str = "Open-to-Closed Hat";
+    const KICK: &'static str = "Kick";
+    const KICK_1: &'static str = "Kick 1";
+    const KICK_2: &'static str = "Kick 2";
+    const MARACA: &'static str = "Maraca";
+    const RIMSHOT: &'static str = "Rimshot";
+    const SNARE: &'static str = "Snare";
+    const SNARE_1: &'static str = "Snare 1";
+    const SNARE_2: &'static str = "Snare 2";
+    const TAMBOURINE: &'static str = "Tambourine";
+    const TOM_HIGH: &'static str = "High Tom";
+    const TOM_LOW: &'static str = "Low Tom";
+    const TOM_MEDIUM: &'static str = "Med Tom";
+
     pub fn names(&self) -> &[String] {
         &self.names
     }
@@ -176,14 +198,14 @@ impl From<usize> for KitIndex {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct KitItem {
     pub(crate) name: String,
-    pub(crate) key: MidiNote,
+    pub(crate) note: MidiNote,
     pub(crate) index: SampleIndex,
 }
 impl KitItem {
     fn new_with(name: &str, note: MidiNote, index: SampleIndex) -> Self {
         Self {
             name: name.to_string(),
-            key: note,
+            note,
             index,
         }
     }

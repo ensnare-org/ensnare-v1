@@ -183,6 +183,16 @@ impl From<u8> for MidiNote {
         Self::from_repr(value as usize).unwrap_or_default()
     }
 }
+impl From<MidiNote> for u8 {
+    fn from(value: MidiNote) -> Self {
+        value as u8
+    }
+}
+impl From<MidiNote> for usize {
+    fn from(value: MidiNote) -> Self {
+        value as usize
+    }
+}
 impl From<GeneralMidiProgram> for MidiNote {
     fn from(value: GeneralMidiProgram) -> Self {
         Self::from_repr(value as usize).unwrap()

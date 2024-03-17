@@ -7,7 +7,7 @@ files = os.listdir(".")
 print(files)
 
 for file in files:
-    if file.endswith(".wav"):
+    if file.endswith(".WAV"):
         name = stringcase.spinalcase(file[:-4]).replace("--", "-")
         name = stringcase.titlecase(name[0]) + name[1:]
         print("(\"%s\", \"%s\")," % (name, file))
