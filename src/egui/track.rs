@@ -77,14 +77,14 @@ impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
                 ui.allocate_ui(available_size, |ui| {
                     ui.vertical(|ui| {
                         if self.font_galley.is_some() {
-                            ui.horizontal(|ui| {
+                            ui.vertical(|ui| {
                                 if ui
                                     .add(ImageButton::new(
                                         Image::new(eframe::egui::include_image!(
                                             "../../res/images/md-symbols/menu.png"
                                         ))
-                                        .fit_to_original_size(0.5),
-                                    ))
+                                        .fit_to_original_size(0.7),
+                                    ).frame(false))
                                     .on_hover_text("Next timeline view")
                                     .clicked()
                                 {
@@ -95,8 +95,8 @@ impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
                                         Image::new(eframe::egui::include_image!(
                                             "../../res/images/md-symbols/add.png"
                                         ))
-                                        .fit_to_original_size(0.5),
-                                    ))
+                                        .fit_to_original_size(0.7),
+                                    ).frame(false))
                                     .on_hover_text("New automation lane")
                                     .clicked()
                                 {
