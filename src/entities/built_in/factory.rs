@@ -202,6 +202,8 @@ impl BuiltInEntities {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::library::init_sample_libraries;
+
     use super::*;
     use rustc_hash::FxHashSet;
 
@@ -318,8 +320,7 @@ mod tests {
 
     #[test]
     fn entity_passes() {
-        SampleLibrary::set_instance(SampleLibrary::default());
-        KitLibrary::set_instance(KitLibrary::default());
+        init_sample_libraries();
         let factory = BuiltInEntities::register(EntityFactory::default());
         let uid_factory = EntityUidFactory::default();
         for entity_key in factory.keys() {

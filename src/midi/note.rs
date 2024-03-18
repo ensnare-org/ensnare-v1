@@ -180,6 +180,11 @@ impl Display for MidiNote {
 }
 impl From<u8> for MidiNote {
     fn from(value: u8) -> Self {
+        Self::from(value as usize)
+    }
+}
+impl From<usize> for MidiNote {
+    fn from(value: usize) -> Self {
         Self::from_repr(value as usize).unwrap_or_default()
     }
 }

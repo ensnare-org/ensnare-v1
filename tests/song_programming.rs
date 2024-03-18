@@ -143,8 +143,7 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
 #[test]
 fn program_song() {
     Paths::set_instance(Paths::default());
-    SampleLibrary::set_instance(SampleLibrary::default());
-    KitLibrary::set_instance(KitLibrary::default());
+    init_sample_libraries();
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
 

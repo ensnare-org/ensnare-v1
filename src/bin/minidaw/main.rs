@@ -123,8 +123,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     Paths::set_instance(Paths::default());
-    SampleLibrary::set_instance(SampleLibrary::default());
-    KitLibrary::set_instance(KitLibrary::default());
+    init_sample_libraries();
     let factory = MiniDawEntities::register(EntityFactory::default()).finalize();
 
     if let Err(e) = eframe::run_native(

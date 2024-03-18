@@ -89,14 +89,12 @@ impl DrumkitCore {
     pub fn load(&mut self) -> anyhow::Result<()> {
         if let Some(kit) = KitLibrary::global().kit(self.kit_index) {
             let voice_store = VoicePerNoteStore::<SamplerVoice>::new_with_voices(
-                kit.items.iter().enumerate().flat_map(|(index, item)| {
-                    if let Some(path) =
-                        SampleLibrary::global().path(SampleIndex(kit.library_offset + index))
-                    {
+                kit.items.iter().flat_map(|item| {
+                    if let Some(path) = SampleLibrary::global().path(item.index) {
                         let path = Paths::global().build_sample(&Vec::default(), path.as_path());
                         if let Ok(file) = Paths::global().search_and_open(path.as_path()) {
                             if let Ok(samples) = SamplerCore::read_samples_from_file(&file) {
-                                let note = item.key as u8;
+                                let note = item.note as u8;
                                 Ok((
                                     u7::from(note),
                                     SamplerVoice::new_with_samples(
