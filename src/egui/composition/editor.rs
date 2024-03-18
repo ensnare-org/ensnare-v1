@@ -1,6 +1,5 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use super::{CarouselAction, CarouselWidget};
 use crate::{
     egui::{colors::ColorSchemeConverter, fill_remaining_ui_space},
     prelude::*,
@@ -20,60 +19,10 @@ pub struct ComposerWidget<'a> {
 impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         ui.vertical(|ui| {
-            let r = {
-                ui.horizontal(|ui| {
-                    let response = {
-                        let item_response = ui.button("New pattern");
-                        if item_response.clicked() {
-                            let _ = self.composer.add_pattern(
-                                PatternBuilder::default()
-                                    .time_signature(self.composer.time_signature())
-                                    .color_scheme(self.composer.suggest_next_pattern_color_scheme())
-                                    .build()
-                                    .unwrap(),
-                                None,
-                            );
-                        }
-                        item_response
-                    } | {
-                        let item_response = ui.button("Add random");
-                        if item_response.clicked() {
-                            let contents = PatternBuilder::default()
-                                .time_signature(self.composer.time_signature())
-                                .random(&mut self.composer.e.rng)
-                                .color_scheme(self.composer.suggest_next_pattern_color_scheme())
-                                .build()
-                                .unwrap();
-                            let _ = self.composer.add_pattern(contents, None);
-                        }
-                        item_response
-                    };
-                    response
-                })
-                .inner
-            } | {
-                let mut carousel_action = None;
-                let item_response = ui.add(CarouselWidget::widget(
-                    &self.composer.ordered_pattern_uids,
-                    &self.composer.patterns,
-                    &mut self.composer.e.pattern_selection_set,
-                    &mut carousel_action,
-                ));
-                if let Some(action) = carousel_action {
-                    match action {
-                        CarouselAction::DeletePattern(pattern_uid) => {
-                            let _ = self.composer.remove_pattern(pattern_uid);
-                        }
-                    }
-                }
-                item_response
-            } | {
-                let item_response = ui.add(ComposerEditorWidget::widget(self.composer));
-                if item_response.changed() {
-                    self.composer.notify_pattern_change();
-                }
-                item_response
-            };
+            let r = ui.add(ComposerEditorWidget::widget(self.composer));
+            if r.changed() {
+                self.composer.notify_pattern_change();
+            }
             r
         })
         .inner
@@ -96,13 +45,7 @@ pub struct ComposerEditorWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        if let Some(pattern_uid) = self
-            .composer
-            .e
-            .pattern_selection_set
-            .single_selection()
-            .cloned()
-        {
+        if let Some(pattern_uid) = self.composer.e.edited_pattern {
             if let Some(pattern) = self.composer.patterns.get_mut(&pattern_uid) {
                 // inner_margin() should be half of the Frame stroke width to leave room
                 // for it. Thanks vikrinox on the egui Discord.
@@ -234,7 +177,7 @@ impl<'a> eframe::egui::Widget for ComposerEditorWidget<'a> {
                 ui.label("huh?")
             }
         } else {
-            ui.label("Select one to see editor")
+            ui.label("Double-click a track pattern to edit it")
         }
     }
 }

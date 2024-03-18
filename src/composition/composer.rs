@@ -88,6 +88,9 @@ pub struct ComposerEphemerals {
     // The visible portion of the pattern editor.
     pub(crate) editor_bounds_x: Range<MusicalTime>,
     pub(crate) editor_bounds_y: Range<MidiNote>,
+
+    // Which pattern, if any, is being edited right now.
+    pub(crate) edited_pattern: Option<PatternUid>,
 }
 impl Composer {
     pub fn add_pattern(
@@ -351,6 +354,14 @@ impl Composer {
         } else {
             true
         }
+    }
+
+    pub(crate) fn clear_edited_pattern(&mut self) {
+        self.e.edited_pattern = None;
+    }
+
+    pub(crate) fn set_edited_pattern(&mut self, pattern_uid: PatternUid) {
+        self.e.edited_pattern = Some(pattern_uid);
     }
 }
 impl Controls for Composer {

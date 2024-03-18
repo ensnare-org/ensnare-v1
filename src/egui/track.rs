@@ -79,24 +79,30 @@ impl<'a> eframe::egui::Widget for TitleBarWidget<'a> {
                         if self.font_galley.is_some() {
                             ui.vertical(|ui| {
                                 if ui
-                                    .add(ImageButton::new(
-                                        Image::new(eframe::egui::include_image!(
-                                            "../../res/images/md-symbols/menu.png"
-                                        ))
-                                        .fit_to_original_size(0.7),
-                                    ).frame(false))
+                                    .add(
+                                        ImageButton::new(
+                                            Image::new(eframe::egui::include_image!(
+                                                "../../res/images/md-symbols/menu.png"
+                                            ))
+                                            .fit_to_original_size(0.7),
+                                        )
+                                        .frame(false),
+                                    )
                                     .on_hover_text("Next timeline view")
                                     .clicked()
                                 {
                                     *self.action = Some(TitleBarWidgetAction::NextTimelineView);
                                 }
                                 if ui
-                                    .add(ImageButton::new(
-                                        Image::new(eframe::egui::include_image!(
-                                            "../../res/images/md-symbols/add.png"
-                                        ))
-                                        .fit_to_original_size(0.7),
-                                    ).frame(false))
+                                    .add(
+                                        ImageButton::new(
+                                            Image::new(eframe::egui::include_image!(
+                                                "../../res/images/md-symbols/add.png"
+                                            ))
+                                            .fit_to_original_size(0.7),
+                                        )
+                                        .frame(false),
+                                    )
                                     .on_hover_text("New automation lane")
                                     .clicked()
                                 {

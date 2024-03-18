@@ -50,9 +50,13 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
 
             let is_control_down = ui.ctx().input(|i| i.modifiers.command_only());
 
+            let mut is_clicked_area_arranged = false;
+
             // Generate all the pattern note shapes
             let mut arrangement_to_unarrange = None;
             let mut arrangement_to_duplicate = None;
+            let mut pattern_to_edit = None;
+            let mut should_clear_pattern_to_edit = false;
             let arrangement_uids = self
                 .composer
                 .tracks_to_ordered_arrangement_uids
@@ -77,6 +81,12 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
                                                 .e
                                                 .arrangement_selection_set
                                                 .click(arrangement_uid, is_control_down);
+                                            should_clear_pattern_to_edit = true;
+                                            is_clicked_area_arranged = true;
+                                        }
+                                        if response.double_clicked() {
+                                            pattern_to_edit = Some(arrangement.pattern_uid);
+                                            is_clicked_area_arranged = true;
                                         }
                                         if response.dragged() {
                                             response.dnd_set_drag_payload(
@@ -146,6 +156,40 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
                         .arrangement_selection_set
                         .click(&new_uid, false);
                 }
+            }
+
+            if response.clicked() && !is_clicked_area_arranged {
+                should_clear_pattern_to_edit = true;
+                if let Some(position) = interact_position {
+                    if let Ok(pattern_uid) = self.composer.add_pattern(
+                        PatternBuilder::default()
+                            .time_signature(self.composer.time_signature())
+                            .color_scheme(self.composer.suggest_next_pattern_color_scheme())
+                            .build()
+                            .unwrap(),
+                        None,
+                    ) {
+                        let quantized_position =
+                            position.quantized_to_measure(&self.composer.time_signature());
+                        if let Ok(new_uid) = self.composer.arrange_pattern(
+                            self.track_uid,
+                            pattern_uid,
+                            quantized_position,
+                        ) {
+                            self.composer.e.arrangement_selection_set.clear();
+                            self.composer
+                                .e
+                                .arrangement_selection_set
+                                .click(&new_uid, false);
+                        }
+                    }
+                }
+            }
+            if should_clear_pattern_to_edit {
+                self.composer.clear_edited_pattern();
+            }
+            if let Some(pattern_uid) = pattern_to_edit {
+                self.composer.set_edited_pattern(pattern_uid);
             }
 
             // Paint all the shapes
