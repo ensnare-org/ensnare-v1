@@ -18,6 +18,7 @@ use derivative::Derivative;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// A user-visible project title.
 #[derive(Clone, Debug, Derivative, derive_more::Display, PartialEq, Serialize, Deserialize)]
@@ -676,14 +677,18 @@ impl Project {
         track_info.targets = targets;
     }
 
+    /// We have just switched to this track in the UI, so we want to update
+    /// Composer's note labels to match the track's lead instrument. (This is
+    /// flaky and temporary TODO)
     pub(crate) fn refresh_note_labels(&mut self, track_uid: TrackUid) {
         if let Some(entity_uids) = self.orchestrator.entity_repo.uids_for_track.get(&track_uid) {
             if entity_uids
                 .iter()
                 .find(|uid| {
                     if let Some(entity) = self.orchestrator.entity_repo.entity(**uid) {
-                        if let Some((range, labels)) = entity.note_labels() {
-                            self.composer.set_note_labels(range, &labels);
+                        if let Some(label_metadata) = entity.midi_note_label_metadata() {
+                            self.composer
+                                .set_midi_note_label_metadata(&Arc::new(label_metadata));
                             return true;
                         }
                     }
@@ -698,7 +703,7 @@ impl Project {
         }
         // No entities. Maybe it doesn't make sense to allow creating a
         // pattern, but let's go with it for now. TODO
-        self.composer.clear_note_labels();
+        self.composer.clear_midi_note_label_metadata();
     }
 }
 impl Generates<StereoSample> for Project {

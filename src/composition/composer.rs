@@ -4,13 +4,15 @@ use crate::{
     composition::{ArrangementUid, ArrangementUidFactory},
     orchestration::TrackUid,
     prelude::*,
+    traits::MidiNoteLabelMetadata,
     types::ColorScheme,
     util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
-use core::ops::{Range, RangeInclusive};
+use core::ops::Range;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use strum::EnumCount;
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -92,9 +94,7 @@ pub struct ComposerEphemerals {
     // Which pattern, if any, is being edited right now.
     pub edited_pattern: Option<PatternUid>,
 
-    pub note_range_start: MidiNote,
-    pub note_range_end: MidiNote,
-    pub note_labels: Vec<String>,
+    pub midi_note_label_metadata: Option<Arc<MidiNoteLabelMetadata>>,
 }
 impl Composer {
     pub fn add_pattern(
@@ -368,20 +368,15 @@ impl Composer {
         self.e.edited_pattern = Some(pattern_uid);
     }
 
-    pub(crate) fn set_note_labels(
+    pub(crate) fn set_midi_note_label_metadata(
         &mut self,
-        note_range: RangeInclusive<MidiNote>,
-        note_labels: &Vec<String>,
+        midi_note_label_metadata: &Arc<MidiNoteLabelMetadata>,
     ) {
-        self.e.note_range_start = *note_range.start();
-        self.e.note_range_end = *note_range.end();
-        self.e.note_labels = note_labels.clone();
+        self.e.midi_note_label_metadata = Some(Arc::clone(midi_note_label_metadata));
     }
 
-    pub(crate) fn clear_note_labels(&mut self) {
-        self.e.note_range_start = MidiNote::MIN;
-        self.e.note_range_end = MidiNote::MAX;
-        self.e.note_labels = Vec::default();
+    pub(crate) fn clear_midi_note_label_metadata(&mut self) {
+        self.e.midi_note_label_metadata = None;
     }
 }
 impl Controls for Composer {
@@ -448,7 +443,7 @@ impl Serializable for Composer {
     fn after_deser(&mut self) {
         self.distribute_pattern_color_schemes();
         self.replay_arrangements();
-        self.clear_note_labels();
+        self.clear_midi_note_label_metadata();
     }
 }
 impl Configurable for Composer {

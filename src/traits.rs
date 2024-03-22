@@ -295,18 +295,29 @@ pub trait HasSettings {
     fn mark_clean(&mut self);
 }
 
+/// If an instrument responds to only a subset of possible MIDI notes, then it
+/// can describe them here. Drumkits will typically override this method to
+/// provide sample names for each note (Kick 1, Snare 3, etc).
+#[derive(Debug)]
+pub struct MidiNoteLabelMetadata {
+    /// The contiguous range of recognized [MidiNote]s.
+    pub range: core::ops::RangeInclusive<MidiNote>,
+    /// One label for each [MidiNote] in the range.
+    pub labels: Vec<String>,
+}
+
 /// Passes MIDI messages to the caller.
 pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
 
-/// Takes standard MIDI messages. midi_messages_fn allows the implementor to
-/// produce more MIDI messages in response to this message. For example, an
-/// arpeggiator might produce notes in response to a note-on.
-///
-/// Note that this method implies that a MIDI message can produce more MIDI
-/// messages, but not Control events. Devices can choose to accumulate Control
-/// events and send them at the next work() if desired, though doing so will be
-/// a work slice later.
+/// Indicates that an instrument knows about MIDI.
 pub trait HandlesMidi {
+    /// Takes standard MIDI messages and optionally produces more in response.
+    /// For example, an arpeggiator might produce notes in response to a note-on
+    /// message.
+    ///
+    /// This method provides no way for a device to produce [WorkEvent::Control]
+    /// events. If it needs to do this, it can send them at the next
+    /// [Controls::work()].
     #[allow(missing_docs)]
     #[allow(unused_variables)]
     fn handle_midi_message(
@@ -317,18 +328,14 @@ pub trait HandlesMidi {
     ) {
     }
 
-    /// If this instrument responds to only a subset of possible MIDI notes,
-    /// then it can provide them here. The caller will generally be smart about
-    /// caching the results, so it's OK for the generation to be less than
-    /// perfectly efficient.
+    /// Provides [MidiNoteLabelMetadata] to describe the notes an instrument
+    /// supports. The caller promises to be smart about caching the results, so
+    /// it's OK to generate this struct on the fly each time.
     ///
-    /// Returning the default None means that this instrument responds to notes
-    /// 0-127, and they should be labeled according to standard musical notes
-    /// (C, D, E#, etc.).
-    ///
-    /// Drumkits will typically override this method to provide sample names for
-    /// each note.
-    fn note_labels(&self) -> Option<(core::ops::RangeInclusive<MidiNote>, &Vec<String>)> {
+    /// Returning None means that this instrument responds to notes 0-127, and
+    /// that they should be labeled according to standard musical notes (C, D,
+    /// E#, etc.).
+    fn midi_note_label_metadata(&self) -> Option<MidiNoteLabelMetadata> {
         None
     }
 }

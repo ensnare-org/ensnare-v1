@@ -5,13 +5,13 @@ use crate::{
     elements::VoicePerNoteStore,
     midi::prelude::*,
     prelude::*,
+    traits::MidiNoteLabelMetadata,
     util::{
         library::{KitIndex, KitLibrary},
         Paths,
     },
 };
 use anyhow::anyhow;
-use core::ops::RangeInclusive;
 use delegate::delegate;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
@@ -26,12 +26,6 @@ pub struct DrumkitCore {
 
     #[serde(skip)]
     inner_synth: Synthesizer<SamplerVoice>,
-
-    #[serde(skip)]
-    note_range: Option<RangeInclusive<MidiNote>>,
-
-    #[serde(skip)]
-    note_labels: Vec<String>,
 }
 impl core::fmt::Debug for DrumkitCore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -51,13 +45,7 @@ impl Generates<StereoSample> for DrumkitCore {
         self.inner_synth.generate(values);
     }
 }
-impl Serializable for DrumkitCore {
-    fn before_ser(&mut self) {}
-
-    fn after_deser(&mut self) {
-        self.create_note_labels();
-    }
-}
+impl Serializable for DrumkitCore {}
 impl Configurable for DrumkitCore {
     delegate! {
         to self.inner_synth {
@@ -86,9 +74,24 @@ impl HandlesMidi for DrumkitCore {
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 
-    fn note_labels(&self) -> Option<(core::ops::RangeInclusive<MidiNote>, &Vec<String>)> {
-        if let Some(note_range) = self.note_range.as_ref() {
-            Some((note_range.clone(), &self.note_labels))
+    fn midi_note_label_metadata(&self) -> Option<MidiNoteLabelMetadata> {
+        if let Some(kit) = KitLibrary::global().kit(self.kit_index) {
+            let mut note_start = MidiNote::MAX;
+            let mut note_end = MidiNote::MIN;
+            let labels = kit.items.iter().fold(Vec::default(), |mut v, item| {
+                v.push(item.name.clone());
+                if note_start > item.note {
+                    note_start = item.note;
+                }
+                if note_end < item.note {
+                    note_end = item.note;
+                }
+                v
+            });
+            Some(MidiNoteLabelMetadata {
+                range: note_start..=note_end,
+                labels,
+            })
         } else {
             None
         }
@@ -104,10 +107,8 @@ impl DrumkitCore {
             kit_index,
             name: "Unknown".into(),
             inner_synth: Synthesizer::<SamplerVoice>::new_with(Box::new(voice_store)),
-            note_range: None,
-            note_labels: Default::default(),
         };
-        r.create_note_labels();
+        r.create_midi_note_labels();
         r
     }
 
@@ -165,11 +166,11 @@ impl DrumkitCore {
         }
     }
 
-    fn create_note_labels(&mut self) {
+    fn create_midi_note_labels(&mut self) -> Option<MidiNoteLabelMetadata> {
         if let Some(kit) = KitLibrary::global().kit(self.kit_index) {
             let mut note_start = MidiNote::MAX;
             let mut note_end = MidiNote::MIN;
-            self.note_labels = kit.items.iter().fold(Vec::default(), |mut v, item| {
+            let labels = kit.items.iter().fold(Vec::default(), |mut v, item| {
                 v.push(item.name.clone());
                 if note_start < item.note {
                     note_start = item.note;
@@ -179,10 +180,12 @@ impl DrumkitCore {
                 }
                 v
             });
-            self.note_range = Some(note_start..=note_end);
+            Some(MidiNoteLabelMetadata {
+                range: note_start..=note_end,
+                labels,
+            })
         } else {
-            self.note_range = None;
-            self.note_labels = Default::default();
+            None
         }
     }
 }

@@ -3,6 +3,7 @@
 use crate::{
     egui::{colors::ColorSchemeConverter, fill_remaining_ui_space},
     prelude::*,
+    traits::MidiNoteLabelMetadata,
     types::ColorScheme,
 };
 use derivative::Derivative;
@@ -11,6 +12,7 @@ use eframe::{
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, FontId, Rect, Rounding, Shape, Stroke},
 };
+use std::sync::Arc;
 
 pub type NoteLabelerFn = dyn Fn(MidiNote) -> String + 'static + Send + Sync;
 
@@ -87,6 +89,7 @@ pub struct ComposerWidget<'a> {
     note_range: MidiNoteRange,
     time_labeler: TimeLabeler,
     note_labeler: NoteLabeler,
+    midi_note_label_metadata: Option<Arc<MidiNoteLabelMetadata>>,
     color_scheme: ColorScheme,
 }
 impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
@@ -101,7 +104,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
         let (id, full_rect) = ui.allocate_space(ui.available_size());
 
         // Leave a margin for the editor axis labels.
-        const AXIS_SPACE: Vec2 = vec2(20.0, 10.0);
+        const AXIS_SPACE: Vec2 = vec2(40.0, 10.0);
         let rect = full_rect.shrink2(AXIS_SPACE / 2.0).translate(AXIS_SPACE);
 
         // Create interaction response.
@@ -116,7 +119,11 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
         let x_section_data_start = 0;
         let x_section_data_end = section_count;
         let x_section_data_range = x_section_data_start..=x_section_data_end;
-        let y_note_data_range = self.note_range.0.clone();
+        let y_note_data_range = if let Some(ref metadata) = self.midi_note_label_metadata {
+            metadata.range.clone()
+        } else {
+            self.note_range.0.clone()
+        };
 
         // Create the view rect.
         //
@@ -164,6 +171,12 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             };
             unclipped_view_rect.translate(vec2(x_delta, y_delta))
         };
+
+        // Figure out the axis bases and offset the view rect correctly. This is
+        // important for drumkits that don't start at MidiNote::MIN.
+        let x_base = x_section_data_start as f32;
+        let y_base = *y_note_data_range.start() as usize as f32;
+        let view_rect = view_rect.translate(vec2(x_base, y_base));
 
         let to_screen = RectTransform::from_to(
             Rect::from_x_y_ranges(
@@ -276,17 +289,21 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             }
 
             let skip_label = skip_some_labels && !is_hovered_row && (y % 12) != 0;
-
             if !skip_label {
                 // The 0.5 assumes we're incrementing by 1 each time
                 let label = to_screen * pos2(view_rect.left(), y_f32 + 0.5);
                 let note = MidiNote::from_repr(y).unwrap();
+                let label_string = if let Some(ref metadata) = self.midi_note_label_metadata {
+                    metadata.labels[note as usize - *metadata.range.start() as usize].clone()
+                } else {
+                    self.note_labeler.format(note)
+                };
                 ui.fonts(|r| {
                     label_shapes.push(Shape::text(
                         r,
                         label,
                         Align2::RIGHT_CENTER,
-                        self.note_labeler.format(note),
+                        label_string,
                         FontId::proportional(12.0),
                         if is_hovered_row {
                             highlighted_label_color
@@ -373,6 +390,7 @@ impl<'a> ComposerWidget<'a> {
             note_range: Default::default(),
             time_labeler: Default::default(),
             note_labeler: Default::default(),
+            midi_note_label_metadata: Default::default(),
             color_scheme: Default::default(),
         }
     }
@@ -388,6 +406,13 @@ impl<'a> ComposerWidget<'a> {
     /// ticks on the Y axis.
     pub fn note_labeler(mut self, note_labeler: NoteLabeler) -> Self {
         self.note_labeler = note_labeler;
+        self
+    }
+
+    /// Provides a struct that describes the Y axis ([MidiNote]) range and
+    /// labels.
+    pub fn midi_note_label_metadata(mut self, metadata: Arc<MidiNoteLabelMetadata>) -> Self {
+        self.midi_note_label_metadata = Some(metadata);
         self
     }
 

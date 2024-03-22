@@ -128,7 +128,7 @@ pub(crate) fn impl_derive_inner_handles_midi(input: TokenStream) -> TokenStream 
                             message: MidiMessage,
                             midi_messages_fn: &mut MidiMessagesFn,
                         );
-                        fn note_labels(&self) -> Option<(core::ops::RangeInclusive<MidiNote>, &Vec<String>)>;
+                        fn midi_note_label_metadata(&self) -> Option<#crate_name::traits::MidiNoteLabelMetadata>;
                     }
                 }
             }
