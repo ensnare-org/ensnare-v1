@@ -5,6 +5,7 @@ use eframe::epaint::Color32;
 
 pub struct ColorSchemeConverter {}
 impl ColorSchemeConverter {
+    /// (foreground, background)
     pub fn to_color32(color_scheme: ColorScheme) -> (Color32, Color32) {
         match color_scheme {
             // https://www.rapidtables.com/web/color/RGB_Color.html
