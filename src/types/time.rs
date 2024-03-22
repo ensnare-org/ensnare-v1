@@ -270,6 +270,10 @@ impl MusicalTime {
         self.total_beats() % time_signature.top
     }
 
+    pub fn fractional_beats(&self) -> f64 {
+        (self.units % Self::UNITS_IN_BEAT) as f64 / Self::UNITS_IN_BEAT as f64
+    }
+
     #[allow(unused_variables)]
     pub fn set_beats(&mut self, beats: u8) {
         panic!()
@@ -384,6 +388,14 @@ impl MusicalTime {
 
     pub fn quantized_to_measure(&self, time_signature: &TimeSignature) -> MusicalTime {
         self.quantized(MusicalTime::new_with_beats(time_signature.top))
+    }
+
+    pub fn to_visible_string(&self, time_signature: &TimeSignature) -> String {
+        let beat = self.total_beats() + 1;
+        let note_value_denominator = time_signature.bottom;
+        let note_value_quarters =
+            (note_value_denominator as f64 * self.fractional_beats()) as usize + 1;
+        format!("{beat}.{note_value_quarters}").to_string()
     }
 }
 impl Display for MusicalTime {
@@ -1143,5 +1155,15 @@ mod tests {
             (MusicalTime::DURATION_WHOLE * 6).quantized_to_measure(&TimeSignature::COMMON_TIME),
             MusicalTime::FOUR_FOUR_MEASURE * 2
         );
+    }
+
+    #[test]
+    fn fractional_beats() {
+        let m = MusicalTime::new_with_beats(1);
+        assert_eq!(m.fractional_beats(), 0.0);
+        let m = MusicalTime::new_with_beats(1) + MusicalTime::new_with_fractional_beats(0.25);
+        assert_eq!(m.fractional_beats(), 0.25);
+        let m = MusicalTime::new_with_beats(100) + MusicalTime::new_with_fractional_beats(0.25);
+        assert_eq!(m.fractional_beats(), 0.25);
     }
 }
