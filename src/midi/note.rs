@@ -1,12 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionCode};
 use core::{
     fmt::Display,
     ops::{Add, AddAssign, Sub},
 };
-use strum_macros::FromRepr;
-
-use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionCode};
+use strum_macros::{EnumIter, FromRepr};
 
 /// There are two different mappings of piano notes to MIDI numbers. They both
 /// agree that Midi note 0 is a C, but they otherwise differ by an octave. I
@@ -35,7 +34,7 @@ use super::{general_midi::GeneralMidiProgram, GeneralMidiPercussionCode};
 //         index += 1
 // ```
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Default, FromRepr, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, FromRepr, PartialEq, PartialOrd, EnumIter)]
 pub enum MidiNote {
     CSub0 = 0,
     CsSub0 = 1,
@@ -169,7 +168,7 @@ pub enum MidiNote {
 }
 #[allow(missing_docs)]
 impl MidiNote {
-    pub const MIN: MidiNote = Self::C0;
+    pub const MIN: MidiNote = Self::CSub0;
     pub const MAX: MidiNote = Self::G9;
 }
 impl Display for MidiNote {
@@ -196,6 +195,13 @@ impl From<MidiNote> for u8 {
 impl From<MidiNote> for usize {
     fn from(value: MidiNote) -> Self {
         value as usize
+    }
+}
+// This exists because we often need to turn things into f32 for egui's
+// coordinate system
+impl From<MidiNote> for f32 {
+    fn from(value: MidiNote) -> Self {
+        value as u8 as f32
     }
 }
 impl From<GeneralMidiProgram> for MidiNote {
