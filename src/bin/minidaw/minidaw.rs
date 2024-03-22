@@ -80,11 +80,16 @@ impl<'a> TabViewer for MiniDawTabViewer<'a> {
                         );
                         if let Some(pattern_uid) = project.composer.e.edited_pattern {
                             if let Some(pattern) = project.composer.patterns.get_mut(&pattern_uid) {
-                                ui.add(
-                                    ComposerWidget::new(&mut pattern.notes)
-                                        .color_scheme(pattern.color_scheme)
-                                        .note_range(midi_note_range),
-                                );
+                                if ui
+                                    .add(
+                                        ComposerWidget::new(&mut pattern.notes)
+                                            .color_scheme(pattern.color_scheme)
+                                            .note_range(midi_note_range),
+                                    )
+                                    .changed()
+                                {
+                                    project.notify_pattern_change();
+                                }
                             }
                         }
                     }

@@ -105,7 +105,7 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
         let rect = full_rect.shrink2(AXIS_SPACE / 2.0).translate(AXIS_SPACE);
 
         // Create interaction response.
-        let response = ui.interact(rect, id, Sense::click_and_drag());
+        let mut response = ui.interact(rect, id, Sense::click_and_drag());
         let mem: PrototypeComposerWidgetMemory = ui
             .ctx()
             .memory(|m| m.data.get_temp(response.id))
@@ -323,9 +323,11 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
             let section = hover_pos_data.x.floor() as usize;
             if response.clicked() {
                 self.notes.push(Self::create_note(note, section));
+                response.mark_changed();
             } else if response.clicked_by(PointerButton::Secondary) {
                 let note_to_remove = Self::create_note(note, section);
                 self.notes.retain(|n| *n != note_to_remove);
+                response.mark_changed();
             }
         }
         if response.dragged_by(PointerButton::Primary) {
