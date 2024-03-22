@@ -6,7 +6,7 @@
 pub use {
     automation::TargetInstrument,
     chrome::{ControlBar, ControlBarAction, ControlBarWidget, TransportWidget},
-    composition::ComposerWidget,
+    composition::{ComposerWidget, NoteLabeler, TimeLabeler},
     entities::EntityPaletteWidget,
     generators::{EnvelopeWidget, OscillatorWidget},
     glue::DragNormalWidget,

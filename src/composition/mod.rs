@@ -6,7 +6,8 @@
 pub mod prelude {
     pub use super::{
         sequencers::{PatternSequencer, PatternSequencerBuilder},
-        ArrangementUid, Composer, Note, Pattern, PatternBuilder, PatternUid, PatternUidFactory,
+        ArrangementUid, Composer, MidiNoteRange, Note, Pattern, PatternBuilder, PatternUid,
+        PatternUidFactory,
     };
 }
 
@@ -18,9 +19,11 @@ pub use sequencers::{
     MidiSequencer, MidiSequencerBuilder, NoteSequencer, NoteSequencerBuilder, PatternSequencer,
     PatternSequencerBuilder,
 };
+pub use types::MidiNoteRange;
 
 mod arrangement;
 mod composer;
 mod note;
 mod pattern;
 mod sequencers;
+mod types;

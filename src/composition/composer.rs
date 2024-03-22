@@ -8,7 +8,7 @@ use crate::{
     util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
-use core::ops::Range;
+use core::ops::{Range, RangeInclusive};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use strum::EnumCount;
@@ -90,7 +90,11 @@ pub struct ComposerEphemerals {
     pub(crate) editor_bounds_y: Range<MidiNote>,
 
     // Which pattern, if any, is being edited right now.
-    pub(crate) edited_pattern: Option<PatternUid>,
+    pub edited_pattern: Option<PatternUid>,
+
+    pub note_range_start: MidiNote,
+    pub note_range_end: MidiNote,
+    pub note_labels: Vec<String>,
 }
 impl Composer {
     pub fn add_pattern(
@@ -363,6 +367,22 @@ impl Composer {
     pub(crate) fn set_edited_pattern(&mut self, pattern_uid: PatternUid) {
         self.e.edited_pattern = Some(pattern_uid);
     }
+
+    pub(crate) fn set_note_labels(
+        &mut self,
+        note_range: RangeInclusive<MidiNote>,
+        note_labels: &Vec<String>,
+    ) {
+        self.e.note_range_start = *note_range.start();
+        self.e.note_range_end = *note_range.end();
+        self.e.note_labels = note_labels.clone();
+    }
+
+    pub(crate) fn clear_note_labels(&mut self) {
+        self.e.note_range_start = MidiNote::MIN;
+        self.e.note_range_end = MidiNote::MAX;
+        self.e.note_labels = Vec::default();
+    }
 }
 impl Controls for Composer {
     fn time_range(&self) -> Option<TimeRange> {
@@ -428,6 +448,7 @@ impl Serializable for Composer {
     fn after_deser(&mut self) {
         self.distribute_pattern_color_schemes();
         self.replay_arrangements();
+        self.clear_note_labels();
     }
 }
 impl Configurable for Composer {

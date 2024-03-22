@@ -483,13 +483,13 @@ impl TitleBarSettings {
 #[derive(Debug)]
 struct ComposerSettings {
     hide: bool,
-    composer: Composer,
+    notes: Vec<Note>,
 }
 impl Default for ComposerSettings {
     fn default() -> Self {
         Self {
             hide: Default::default(),
-            composer: Default::default(),
+            notes: Default::default(),
         }
     }
 }
@@ -503,7 +503,7 @@ impl ComposerSettings {
 
     fn show(&mut self, ui: &mut eframe::egui::Ui) {
         if !self.hide {
-            ui.add(ComposerWidget::widget(&mut self.composer));
+            ui.add(ComposerWidget::widget(&mut self.notes));
         }
     }
 }

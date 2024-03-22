@@ -75,7 +75,18 @@ impl<'a> TabViewer for MiniDawTabViewer<'a> {
             TabType::Composer => {
                 if let Some(project) = self.project {
                     if let Ok(mut project) = project.write() {
-                        ui.add(ComposerWidget::widget(&mut project.composer));
+                        let midi_note_range = MidiNoteRange(
+                            project.composer.e.note_range_start..=project.composer.e.note_range_end,
+                        );
+                        if let Some(pattern_uid) = project.composer.e.edited_pattern {
+                            if let Some(pattern) = project.composer.patterns.get_mut(&pattern_uid) {
+                                ui.add(
+                                    ComposerWidget::new(&mut pattern.notes)
+                                        .color_scheme(pattern.color_scheme)
+                                        .note_range(midi_note_range),
+                                );
+                            }
+                        }
                     }
                 }
             }

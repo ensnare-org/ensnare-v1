@@ -675,6 +675,31 @@ impl Project {
         track_info.signal_chain = signal_chain;
         track_info.targets = targets;
     }
+
+    pub(crate) fn refresh_note_labels(&mut self, track_uid: TrackUid) {
+        if let Some(entity_uids) = self.orchestrator.entity_repo.uids_for_track.get(&track_uid) {
+            if entity_uids
+                .iter()
+                .find(|uid| {
+                    if let Some(entity) = self.orchestrator.entity_repo.entity(**uid) {
+                        if let Some((range, labels)) = entity.note_labels() {
+                            self.composer.set_note_labels(range, &labels);
+                            return true;
+                        }
+                    }
+                    false
+                })
+                .is_some()
+            {
+                return;
+            }
+            // Nobody responded to note_labels(), so everyone's OK with the
+            // default.
+        }
+        // No entities. Maybe it doesn't make sense to allow creating a
+        // pattern, but let's go with it for now. TODO
+        self.composer.clear_note_labels();
+    }
 }
 impl Generates<StereoSample> for Project {
     delegate! {
@@ -818,7 +843,7 @@ impl Serializable for Project {
             .values_mut()
             .for_each(|midi_router| {
                 let _ = midi_router.before_ser();
-            })
+            });
     }
 
     fn after_deser(&mut self) {

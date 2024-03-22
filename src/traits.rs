@@ -305,7 +305,7 @@ pub type MidiMessagesFn<'a> = dyn FnMut(MidiChannel, MidiMessage) + 'a;
 /// Note that this method implies that a MIDI message can produce more MIDI
 /// messages, but not Control events. Devices can choose to accumulate Control
 /// events and send them at the next work() if desired, though doing so will be
-/// a work slice laterd.
+/// a work slice later.
 pub trait HandlesMidi {
     #[allow(missing_docs)]
     #[allow(unused_variables)]
@@ -315,6 +315,21 @@ pub trait HandlesMidi {
         message: MidiMessage,
         midi_messages_fn: &mut MidiMessagesFn,
     ) {
+    }
+
+    /// If this instrument responds to only a subset of possible MIDI notes,
+    /// then it can provide them here. The caller will generally be smart about
+    /// caching the results, so it's OK for the generation to be less than
+    /// perfectly efficient.
+    ///
+    /// Returning the default None means that this instrument responds to notes
+    /// 0-127, and they should be labeled according to standard musical notes
+    /// (C, D, E#, etc.).
+    ///
+    /// Drumkits will typically override this method to provide sample names for
+    /// each note.
+    fn note_labels(&self) -> Option<(core::ops::RangeInclusive<MidiNote>, &Vec<String>)> {
+        None
     }
 }
 

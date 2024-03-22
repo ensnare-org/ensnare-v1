@@ -12,6 +12,11 @@ use eframe::{
     epaint::{pos2, vec2, Color32, Rect, RectShape, Shape, Stroke},
 };
 
+#[derive(Debug)]
+pub enum ArrangementWidgetAction {
+    RefreshEditorNoteLabels,
+}
+
 /// An egui widget that draws a track arrangement overlaid in the track view.
 #[derive(Debug)]
 pub struct ArrangementWidget<'a> {
@@ -19,6 +24,7 @@ pub struct ArrangementWidget<'a> {
     composer: &'a mut Composer,
     view_range: &'a ViewRange,
     color_scheme: ColorScheme,
+    action: &'a mut Option<ArrangementWidgetAction>,
 }
 impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
@@ -190,6 +196,7 @@ impl<'a> eframe::egui::Widget for ArrangementWidget<'a> {
             }
             if let Some(pattern_uid) = pattern_to_edit {
                 self.composer.set_edited_pattern(pattern_uid);
+                *self.action = Some(ArrangementWidgetAction::RefreshEditorNoteLabels);
             }
 
             // Paint all the shapes
@@ -207,12 +214,14 @@ impl<'a> ArrangementWidget<'a> {
         composer: &'a mut Composer,
         view_range: &'a ViewRange,
         color_scheme: ColorScheme,
+        action: &'a mut Option<ArrangementWidgetAction>,
     ) -> Self {
         Self {
             track_uid,
             composer,
             view_range,
             color_scheme,
+            action,
         }
     }
 
@@ -222,9 +231,10 @@ impl<'a> ArrangementWidget<'a> {
         composer: &'a mut Composer,
         view_range: &'a ViewRange,
         color_scheme: ColorScheme,
+        action: &'a mut Option<ArrangementWidgetAction>,
     ) -> impl eframe::egui::Widget + 'a {
         move |ui: &mut eframe::egui::Ui| {
-            ArrangementWidget::new(track_uid, composer, view_range, color_scheme).ui(ui)
+            ArrangementWidget::new(track_uid, composer, view_range, color_scheme, action).ui(ui)
         }
     }
 

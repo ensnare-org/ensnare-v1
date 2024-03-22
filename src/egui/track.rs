@@ -2,7 +2,7 @@
 
 use super::{
     automation::{SignalPathWidget, SignalPathWidgetAction},
-    composition::ArrangementWidget,
+    composition::{ArrangementWidget, ArrangementWidgetAction},
     cursor::CursorWidget,
     signal_chain::{SignalChainWidget, SignalChainWidgetAction},
     util::fill_remaining_ui_space,
@@ -180,6 +180,7 @@ pub enum TrackWidgetAction {
     MoveArrangement(ArrangementUid, MusicalTime, bool),
     LinkPath(PathUid, Uid, ControlIndex),
     UnlinkPath(PathUid, Uid, ControlIndex),
+    RefreshEditorNoteLabels,
 }
 
 /// An egui component that draws a track.
@@ -330,12 +331,21 @@ impl<'a> Widget for TrackWidget<'a> {
                                     TrackViewMode::Composition => {
                                         ui.add_enabled_ui(true, |ui| {
                                             ui.allocate_ui_at_rect(rect, |ui| {
+                                                let mut action = None;
                                                 ui.add(ArrangementWidget::widget(
                                                     self.track_info.track_uid,
                                                     &mut self.project.composer,
                                                     &self.project.view_state.view_range,
                                                     self.track_info.color_scheme,
+                                                    &mut action,
                                                 ));
+                                                if let Some(action)=action {
+                                                    match action {
+                                                        ArrangementWidgetAction::RefreshEditorNoteLabels => {
+                                                            *self.action = Some(TrackWidgetAction::RefreshEditorNoteLabels);
+                                                        }
+                                                    }
+                                                }
                                             });
                                         });
                                     }

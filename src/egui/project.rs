@@ -133,6 +133,9 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                 self.project.unlink_path(path_uid, uid, param);
                                 self.project.regenerate_signal_chain(track_uid);
                             }
+                            TrackWidgetAction::RefreshEditorNoteLabels => {
+                                self.project.refresh_note_labels(track_uid);
+                            }
                         }
                         if switch_to_composition {
                             // Nice touch: if you drag to track and it's
