@@ -5,12 +5,12 @@
 /// The most commonly used imports.
 pub mod prelude {
     pub use super::{
-        init_sample_libraries, ChannelPair, KitIndex, KitItem, KitLibrary, ModSerial, Paths,
-        SampleIndex, SampleLibrary, SampleSource,
+        init_sample_libraries, BoundedChannelPair, ChannelPair, KitIndex, KitItem, KitLibrary,
+        ModSerial, Paths, SampleIndex, SampleLibrary, SampleSource,
     };
 }
 
-pub use channel_pair::ChannelPair;
+pub use channel_pair::{BoundedChannelPair, ChannelPair};
 pub use rng::Rng;
 pub use selection_set::SelectionSet;
 

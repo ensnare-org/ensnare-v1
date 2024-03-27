@@ -170,6 +170,7 @@ pub(super) struct MiniDaw {
     #[allow(dead_code)]
     midi_sender: Sender<MidiServiceInput>,
     project_sender: Sender<ProjectServiceInput>,
+    app_channel_watcher_channel_pair: BoundedChannelPair<bool>,
 
     // A non-owning ref to the project. (ProjectService is the owner.)
     project: Option<Arc<RwLock<Project>>>,
@@ -213,6 +214,7 @@ impl MiniDaw {
             audio_sender: audio_service.sender().clone(),
             midi_sender: midi_service.input_channels.sender.clone(),
             project_sender: project_service.sender().clone(),
+            app_channel_watcher_channel_pair: Default::default(),
             aggregator: MiniDawEventAggregationService::new_with(
                 audio_service,
                 midi_service,
@@ -274,12 +276,16 @@ impl MiniDaw {
     /// recv() would not block.
     fn spawn_app_channel_watcher(&mut self, ctx: Context) {
         let receiver = self.aggregator.receiver().clone();
+        let ok_to_continue_receiver = self.app_channel_watcher_channel_pair.receiver.clone();
         let _ = std::thread::spawn(move || -> ! {
             let mut sel = Select::new();
             let _ = sel.recv(&receiver);
             loop {
                 let _ = sel.ready();
                 ctx.request_repaint();
+
+                // Wait for update() to tell us it's ready to go again.
+                let _ = ok_to_continue_receiver.recv();
             }
         });
     }
@@ -700,6 +706,10 @@ impl App for MiniDaw {
         if self.exit_requested {
             ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Close);
         }
+
+        // Let the app channel watcher loop know we've updated and might be
+        // ready for a new tickle.
+        let _ = self.app_channel_watcher_channel_pair.sender.try_send(true);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

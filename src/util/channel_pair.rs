@@ -22,3 +22,18 @@ impl<T> Default for ChannelPair<T> {
         Self { sender, receiver }
     }
 }
+
+/// Same idea but only for bounded of bounds 1.
+#[derive(Debug)]
+pub struct BoundedChannelPair<T> {
+    #[allow(missing_docs)]
+    pub sender: Sender<T>,
+    #[allow(missing_docs)]
+    pub receiver: Receiver<T>,
+}
+impl<T> Default for BoundedChannelPair<T> {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
