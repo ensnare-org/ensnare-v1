@@ -1,8 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::dnd_drop_zone_with_inner_response;
 use crate::prelude::*;
-use eframe::egui::{Slider, Widget};
+use eframe::egui::{Frame, Slider, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
@@ -20,34 +19,30 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let response = {
             let mut value = self.dca.gain().0;
-            let (inner_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+            let (response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
                 ui.add(Slider::new(&mut value, Normal::range()).text("Gain"))
             });
             if let Some(source) = payload {
                 *self.action = Some(DcaWidgetAction::Link(*source, Dca::GAIN_INDEX.into()));
             }
             ui.end_row();
-            if let Some(inner_response) = inner_response {
-                if inner_response.changed() {
-                    self.dca.set_gain(Normal::from(value));
-                }
+            if response.inner.changed() {
+                self.dca.set_gain(Normal::from(value));
             }
-            response
+            response.response
         } | {
             let mut value = self.dca.pan().0;
-            let (inner_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+            let (response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
                 ui.add(Slider::new(&mut value, BipolarNormal::range()).text("Pan (L-R)"))
             });
             if let Some(source) = payload {
                 *self.action = Some(DcaWidgetAction::Link(*source, Dca::PAN_INDEX.into()));
             }
             ui.end_row();
-            if let Some(inner_response) = inner_response {
-                if inner_response.changed() {
-                    self.dca.set_pan(BipolarNormal::from(value));
-                }
+            if response.inner.changed() {
+                self.dca.set_pan(BipolarNormal::from(value));
             }
-            response
+            response.response
         };
 
         response

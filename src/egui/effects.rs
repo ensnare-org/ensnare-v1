@@ -1,6 +1,5 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::dnd_drop_zone_with_inner_response;
 use crate::{
     cores::effects::{
         BiQuadFilterAllPassCore, BiQuadFilterBandPassCore, BiQuadFilterBandStopCore,
@@ -8,7 +7,7 @@ use crate::{
     },
     prelude::*,
 };
-use eframe::egui::{Slider, Widget};
+use eframe::egui::{Frame, Slider, Widget};
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
@@ -40,7 +39,7 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandPassWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.filter.cutoff().0;
         let mut bw = self.filter.bandwidth();
-        let (cutoff_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (cutoff_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(
                 Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
                     .text("Cutoff")
@@ -53,11 +52,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandPassWidget<'a> {
                 BiQuadFilterBandPassCore::CUTOFF_INDEX.into(),
             ));
         }
-        let cutoff_response = cutoff_response.unwrap();
-        if cutoff_response.changed() {
+        if cutoff_response.inner.changed() {
             self.filter.set_cutoff(cutoff.into());
         };
-        let (bw_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (bw_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(Slider::new(&mut bw, 0.0..=10.0).text("Bandwidth"))
         });
         if let Some(source) = payload {
@@ -66,11 +64,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandPassWidget<'a> {
                 BiQuadFilterBandPassCore::BANDWIDTH_INDEX.into(),
             ));
         }
-        let bw_response = bw_response.unwrap();
-        if bw_response.changed() {
+        if bw_response.inner.changed() {
             self.filter.set_bandwidth(bw);
         };
-        cutoff_response | bw_response
+        cutoff_response.response | bw_response.response
     }
 }
 pub struct BiQuadFilterBandStopWidget<'a> {
@@ -97,7 +94,7 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandStopWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.filter.cutoff().0;
         let mut bandwidth = self.filter.bandwidth();
-        let (cutoff_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (cutoff_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(
                 Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
                     .text("Cutoff")
@@ -110,11 +107,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandStopWidget<'a> {
                 BiQuadFilterBandStopCore::CUTOFF_INDEX.into(),
             ));
         }
-        let cutoff_response = cutoff_response.unwrap();
-        if cutoff_response.changed() {
+        if cutoff_response.inner.changed() {
             self.filter.set_cutoff(cutoff.into());
         };
-        let (bw_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (bw_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(Slider::new(&mut bandwidth, 0.0..=10.0).text("Bandwidth"))
         });
         if let Some(source) = payload {
@@ -123,11 +119,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterBandStopWidget<'a> {
                 BiQuadFilterBandStopCore::BANDWIDTH_INDEX.into(),
             ));
         }
-        let bw_response = bw_response.unwrap();
-        if bw_response.changed() {
+        if bw_response.inner.changed() {
             self.filter.set_bandwidth(bandwidth);
         };
-        cutoff_response | bw_response
+        cutoff_response.response | bw_response.response
     }
 }
 pub struct BiQuadFilterLowPass24dbWidget<'a> {
@@ -156,7 +151,7 @@ impl<'a> eframe::egui::Widget for BiQuadFilterLowPass24dbWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.filter.cutoff().0;
         let mut pbr = self.filter.passband_ripple();
-        let (cutoff_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (cutoff_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(
                 Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
                     .text("Cutoff")
@@ -169,11 +164,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterLowPass24dbWidget<'a> {
                 BiQuadFilterLowPass24dbCore::CUTOFF_INDEX.into(),
             ));
         }
-        let cutoff_response = cutoff_response.unwrap();
-        if cutoff_response.changed() {
+        if cutoff_response.inner.changed() {
             self.filter.set_cutoff(cutoff.into());
         }
-        let (passband_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (passband_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(Slider::new(&mut pbr, 0.0..=10.0).text("Passband"))
         });
         if let Some(source) = payload {
@@ -182,11 +176,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterLowPass24dbWidget<'a> {
                 BiQuadFilterLowPass24dbCore::PASSBAND_RIPPLE_INDEX.into(),
             ));
         }
-        let passband_response = passband_response.unwrap();
-        if passband_response.changed() {
+        if passband_response.inner.changed() {
             self.filter.set_passband_ripple(pbr);
         }
-        cutoff_response | passband_response
+        cutoff_response.response | passband_response.response
     }
 }
 
@@ -214,7 +207,7 @@ impl<'a> eframe::egui::Widget for BiQuadFilterHighPassWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.filter.cutoff().0;
         let mut q = self.filter.q();
-        let (cutoff_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (cutoff_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(
                 Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
                     .text("Cutoff")
@@ -227,11 +220,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterHighPassWidget<'a> {
                 BiQuadFilterHighPassCore::CUTOFF_INDEX.into(),
             ));
         }
-        let cutoff_response = cutoff_response.unwrap();
-        if cutoff_response.changed() {
+        if cutoff_response.inner.changed() {
             self.filter.set_cutoff(cutoff.into());
         };
-        let (q_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (q_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(Slider::new(&mut q, 0.0..=10.0).text("Q"))
         });
         if let Some(source) = payload {
@@ -240,11 +232,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterHighPassWidget<'a> {
                 BiQuadFilterHighPassCore::Q_INDEX.into(),
             ));
         }
-        let q_response = q_response.unwrap();
-        if q_response.changed() {
+        if q_response.inner.changed() {
             self.filter.set_q(q);
         };
-        cutoff_response | q_response
+        cutoff_response.response | q_response.response
     }
 }
 
@@ -272,7 +263,7 @@ impl<'a> eframe::egui::Widget for BiQuadFilterAllPassWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
         let mut cutoff = self.filter.cutoff().0;
         let mut q = self.filter.q();
-        let (cutoff_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (cutoff_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(
                 Slider::new(&mut cutoff, FrequencyRange::Audible.as_range())
                     .text("Cutoff")
@@ -285,11 +276,10 @@ impl<'a> eframe::egui::Widget for BiQuadFilterAllPassWidget<'a> {
                 BiQuadFilterAllPassCore::CUTOFF_INDEX.into(),
             ));
         }
-        let cutoff_response = cutoff_response.unwrap();
-        if cutoff_response.changed() {
+        if cutoff_response.inner.changed() {
             self.filter.set_cutoff(cutoff.into());
         };
-        let (q_response, response, payload) = dnd_drop_zone_with_inner_response(ui, |ui| {
+        let (q_response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
             ui.add(Slider::new(&mut q, 0.0..=10.0).text("Q"))
         });
         if let Some(source) = payload {
@@ -298,10 +288,9 @@ impl<'a> eframe::egui::Widget for BiQuadFilterAllPassWidget<'a> {
                 BiQuadFilterAllPassCore::Q_INDEX.into(),
             ));
         }
-        let q_response = q_response.unwrap();
-        if q_response.changed() {
+        if q_response.inner.changed() {
             self.filter.set_q(q);
         };
-        cutoff_response | q_response
+        cutoff_response.response | q_response.response
     }
 }

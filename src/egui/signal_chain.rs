@@ -32,7 +32,7 @@ impl<'a> SignalChainWidget<'a> {
 }
 impl<'a> Widget for SignalChainWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let (response, payload) = ui.dnd_drop_zone::<EntityKey>(Frame::default(), |ui| {
+        let (response, payload) = ui.dnd_drop_zone::<EntityKey, _>(Frame::default(), |ui| {
             ui.horizontal_centered(|ui| {
                 self.items.iter().for_each(|item| {
                     let item_response = ui.add(SignalItemWidget::widget(
@@ -59,12 +59,12 @@ impl<'a> Widget for SignalChainWidget<'a> {
                 });
                 fill_remaining_ui_space(ui);
             })
-            .inner
+            .response
         });
         if let Some(payload) = payload {
             *self.action = Some(SignalChainWidgetAction::NewDevice(payload.as_ref().clone()));
         }
-        response
+        response.response
     }
 }
 

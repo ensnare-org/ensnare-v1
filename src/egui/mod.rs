@@ -51,7 +51,7 @@ pub(in crate::egui) use {
     grid::GridWidget,
     indicators::activity_indicator,
     legend::LegendWidget,
-    util::{dnd_drop_zone_with_inner_response, fill_remaining_ui_space},
+    util::fill_remaining_ui_space,
 };
 
 mod audio;
