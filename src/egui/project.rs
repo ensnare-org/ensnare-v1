@@ -64,10 +64,18 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                         .unwrap_or_default();
 
                     let mut action = None;
+                    let new_arrangement_to_select =
+                        if Some(track_uid) == self.project.e.new_arrangement_track_uid {
+                            self.project.e.new_arrangement_track_uid = None;
+                            self.project.e.new_arrangement_arrangement_uid.take()
+                        } else {
+                            None
+                        };
                     let track_info = TrackWidgetInfo {
                         track_uid,
                         title_font_galley: font_galley,
                         color_scheme,
+                        new_arrangement_to_select,
                     };
                     ui.add(TrackWidget::widget(&track_info, self.project, &mut action));
                     if let Some(action) = action {
@@ -133,7 +141,47 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                 self.project.unlink_path(path_uid, uid, param);
                                 self.project.regenerate_signal_chain(track_uid);
                             }
-                            TrackWidgetAction::RefreshEditorNoteLabels => {
+                            TrackWidgetAction::Unarrange(arrangement_uid) => {
+                                self.project.unarrange(track_uid, arrangement_uid);
+                            }
+                            TrackWidgetAction::Duplicate(arrangement_uid) => {
+                                if let Ok(new_uid) = self
+                                    .project
+                                    .duplicate_arrangement(track_uid, arrangement_uid)
+                                {
+                                    self.project.set_new_arrangement_uid(track_uid, new_uid);
+                                }
+                            }
+                            TrackWidgetAction::AddPattern(position) => {
+                                if let Ok(pattern_uid) = self.project.add_pattern(
+                                    PatternBuilder::default()
+                                        .time_signature(self.project.time_signature())
+                                        .color_scheme(
+                                            self.project
+                                                .composer
+                                                .suggest_next_pattern_color_scheme(),
+                                        )
+                                        .build()
+                                        .unwrap(),
+                                    None,
+                                ) {
+                                    let quantized_position = position
+                                        .quantized_to_measure(&self.project.time_signature());
+                                    if let Ok(new_uid) = self.project.arrange_pattern(
+                                        track_uid,
+                                        pattern_uid,
+                                        quantized_position,
+                                    ) {
+                                        self.project.composer.clear_edited_pattern();
+                                        self.project.set_new_arrangement_uid(track_uid, new_uid);
+                                    }
+                                }
+                            }
+                            TrackWidgetAction::ClearEditPattern => {
+                                self.project.composer.clear_edited_pattern();
+                            }
+                            TrackWidgetAction::SetEditPattern(pattern_uid) => {
+                                self.project.composer.set_edited_pattern(pattern_uid);
                                 self.project.refresh_note_labels(track_uid);
                             }
                         }

@@ -66,9 +66,6 @@ pub struct Composer {
 
 #[derive(Debug, Default)]
 pub struct ComposerEphemerals {
-    pub pattern_selection_set: SelectionSet<PatternUid>,
-    pub arrangement_selection_set: SelectionSet<ArrangementUid>,
-
     // This RNG shouldn't be repeatable. Composer should normally generate truly
     // new elements each time.
     pub rng: Rng,

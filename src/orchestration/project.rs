@@ -122,16 +122,25 @@ pub struct ProjectEphemerals {
     pub rng: Rng,
 
     pub track_info: FxHashMap<TrackUid, TrackInfo>,
+
+    /// TODO - probably not ideal represents the result of certain actions that
+    /// end up creating a new arrangement for a certain track, and we want to
+    /// tell the ArrangementWidget that it should select that arrangement.
+    pub(crate) new_arrangement_track_uid: Option<TrackUid>,
+    pub(crate) new_arrangement_arrangement_uid: Option<ArrangementUid>,
 }
 
 /// A musical piece. Also knows how to render the piece to digital audio.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Project {
+    /// The user-visible string that identifies this project.
     #[serde(default)]
     pub title: Option<ProjectTitle>,
+    /// The user-visible strings that identify each track in this project.
     #[serde(default)]
     pub track_titles: FxHashMap<TrackUid, TrackTitle>,
+    /// The [ColorScheme] used to render each track.
     #[serde(default)]
     pub track_color_schemes: FxHashMap<TrackUid, ColorScheme>,
 
@@ -188,6 +197,7 @@ impl Project {
             pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<ArrangementUid>;
             pub fn move_arrangement(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid, new_position: MusicalTime, copy_original: bool) -> Result<ArrangementUid>;
             pub fn unarrange(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid);
+            pub fn duplicate_arrangement(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid) -> Result<ArrangementUid>;
         }
         to self.automator {
             pub fn link(&mut self, source: Uid, target: Uid, param: ControlIndex) -> Result<()>;
@@ -704,6 +714,15 @@ impl Project {
         // No entities. Maybe it doesn't make sense to allow creating a
         // pattern, but let's go with it for now. TODO
         self.composer.clear_midi_note_label_metadata();
+    }
+
+    pub(crate) fn set_new_arrangement_uid(
+        &mut self,
+        track_uid: TrackUid,
+        arrangement_uid: ArrangementUid,
+    ) {
+        self.e.new_arrangement_track_uid = Some(track_uid);
+        self.e.new_arrangement_arrangement_uid = Some(arrangement_uid);
     }
 }
 impl Generates<StereoSample> for Project {

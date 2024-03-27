@@ -161,6 +161,7 @@ pub struct TrackWidgetInfo {
     pub track_uid: TrackUid,
     pub title_font_galley: Option<Arc<Galley>>,
     pub color_scheme: ColorScheme,
+    pub new_arrangement_to_select: Option<ArrangementUid>,
 }
 
 #[derive(Debug, Display)]
@@ -180,7 +181,11 @@ pub enum TrackWidgetAction {
     MoveArrangement(ArrangementUid, MusicalTime, bool),
     LinkPath(PathUid, Uid, ControlIndex),
     UnlinkPath(PathUid, Uid, ControlIndex),
-    RefreshEditorNoteLabels,
+    Unarrange(ArrangementUid),
+    Duplicate(ArrangementUid),
+    AddPattern(MusicalTime),
+    ClearEditPattern,
+    SetEditPattern(PatternUid),
 }
 
 /// An egui component that draws a track.
@@ -337,13 +342,17 @@ impl<'a> Widget for TrackWidget<'a> {
                                                     &mut self.project.composer,
                                                     &self.project.view_state.view_range,
                                                     self.track_info.color_scheme,
+                                                    self.track_info.new_arrangement_to_select,
                                                     &mut action,
                                                 ));
                                                 if let Some(action)=action {
                                                     match action {
-                                                        ArrangementWidgetAction::RefreshEditorNoteLabels => {
-                                                            *self.action = Some(TrackWidgetAction::RefreshEditorNoteLabels);
-                                                        }
+                                                        ArrangementWidgetAction::Unarrange(arrangement_uid) => *self.action = Some(TrackWidgetAction::Unarrange(arrangement_uid))
+                                                        ,
+                                                        ArrangementWidgetAction::Duplicate(arrangement_uid) => *self.action = Some(TrackWidgetAction::Duplicate(arrangement_uid)),
+                                                        ArrangementWidgetAction::AddPattern(position) => *self.action = Some(TrackWidgetAction::AddPattern(position)),
+                                                        ArrangementWidgetAction::ClearEditPattern => *self.action = Some(TrackWidgetAction::ClearEditPattern),
+                                                        ArrangementWidgetAction::SetEditPattern(pattern_uid) => *self.action = Some(TrackWidgetAction::SetEditPattern(pattern_uid)),
                                                     }
                                                 }
                                             });

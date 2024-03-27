@@ -21,7 +21,6 @@ pub enum ProjectServiceInput {
     Midi(MidiChannel, MidiMessage),
     NeedsAudio(usize),
     NextTimelineDisplayer,
-    PatternArrange(TrackUid, PatternUid, MusicalTime),
     ProjectExportToWav(Option<PathBuf>),
     ProjectLinkControl(Uid, Uid, ControlIndex),
     ProjectLoad(PathBuf),
@@ -209,24 +208,6 @@ impl ProjectServiceDaemon {
                                 .set_midi_receiver_channel(uid, Some(MidiChannel::default()));
                         } else {
                             eprintln!("ProjectServiceInput::TrackAddEntity failed");
-                        }
-                    }
-                }
-                ProjectServiceInput::PatternArrange(track_uid, pattern_uid, position) => {
-                    // TEMP for MVP: quantize the heck out of the arrangement position
-                    if let Ok(mut project) = self.project.write() {
-                        let position = position.quantized_to_measure(&project.time_signature());
-                        if let Ok(new_uid) =
-                            project.arrange_pattern(track_uid, pattern_uid, position)
-                        {
-                            // Select the newly arranged pattern so that
-                            // control-D requires no clicking.
-                            project.composer.e.arrangement_selection_set.clear();
-                            project
-                                .composer
-                                .e
-                                .arrangement_selection_set
-                                .click(&new_uid, false);
                         }
                     }
                 }
