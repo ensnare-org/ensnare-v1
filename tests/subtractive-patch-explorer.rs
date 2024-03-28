@@ -21,8 +21,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
 
         let synth =
             SubtractiveSynth::new_with(Uid::default(), SubtractiveSynthCore::load_patch(&path)?);
-        let synth_uid = project.add_entity(track_uid, Box::new(synth), None)?;
-        project.set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))?;
+        let _synth_uid = project.add_entity(track_uid, Box::new(synth), None)?;
 
         let mut rng = Rng::default();
         let pattern = PatternBuilder::default()
@@ -37,7 +36,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
             .unwrap();
         let pattern_uid = project.add_pattern(pattern, None)?;
         let _arrangement_uid =
-            project.arrange_pattern(track_uid, pattern_uid, MusicalTime::START)?;
+            project.arrange_pattern(track_uid, pattern_uid, None, MusicalTime::START)?;
 
         let mut output_path = output_prefix.clone();
         if let Some(filename) = path.file_name() {

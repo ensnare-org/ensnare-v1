@@ -49,9 +49,9 @@ fn aux_bus() {
         )
         .unwrap();
 
-    let synth_uid_1 = {
+    let _synth_uid_1 = {
         assert!(project
-            .arrange_pattern(track_uid_1, synth_pattern_uid_1, MusicalTime::START)
+            .arrange_pattern(track_uid_1, synth_pattern_uid_1, None, MusicalTime::START)
             .is_ok());
 
         // Even though we want the effect to be placed after the instrument in
@@ -77,13 +77,10 @@ fn aux_bus() {
             )
             .unwrap()
     };
-    assert!(project
-        .set_midi_receiver_channel(synth_uid_1, Some(MidiChannel::default()))
-        .is_ok());
 
-    let synth_uid_2 = {
+    let _synth_uid_2 = {
         assert!(project
-            .arrange_pattern(track_uid_2, synth_pattern_uid_2, MusicalTime::START)
+            .arrange_pattern(track_uid_2, synth_pattern_uid_2, None, MusicalTime::START)
             .is_ok());
         assert!(project
             .add_entity(
@@ -104,9 +101,6 @@ fn aux_bus() {
             )
             .unwrap()
     };
-    assert!(project
-        .set_midi_receiver_channel(synth_uid_2, Some(MidiChannel(1)))
-        .is_ok());
 
     let _effect_uid_1 = {
         project

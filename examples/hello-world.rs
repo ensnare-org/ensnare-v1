@@ -44,10 +44,9 @@ fn main() -> anyhow::Result<()> {
     // entity to a track forms a chain that sends MIDI, control, and audio data
     // appropriately.
     let synth = ToyInstrument::default();
-    let synth_uid = project
+    let _synth_uid = project
         .add_entity(track_uid, Box::new(synth), None)
         .unwrap();
-    let _ = project.set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()));
 
     // An effect takes the edge off the synth.
     let effect = ToyEffect::default();

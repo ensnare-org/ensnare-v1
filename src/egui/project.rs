@@ -115,9 +115,12 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                 }
                             }
                             TrackWidgetAction::ArrangePattern(pattern_uid, position) => {
-                                let _ =
-                                    self.project
-                                        .arrange_pattern(track_uid, pattern_uid, position);
+                                let _ = self.project.arrange_pattern(
+                                    track_uid,
+                                    pattern_uid,
+                                    None,
+                                    position,
+                                );
                                 switch_to_composition = true;
                             }
                             TrackWidgetAction::MoveArrangement(
@@ -170,6 +173,7 @@ impl<'a> eframe::egui::Widget for ProjectWidget<'a> {
                                     if let Ok(new_uid) = self.project.arrange_pattern(
                                         track_uid,
                                         pattern_uid,
+                                        None,
                                         quantized_position,
                                     ) {
                                         self.project.composer.clear_edited_pattern();

@@ -1,13 +1,14 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use ensnare::{
-    entities::{Gain, Reverb},
+    entities::{Drumkit, Gain, Reverb},
     prelude::*,
 };
 use ensnare_toys::prelude::*;
 
 #[test]
 fn edit_song() {
+    Paths::set_instance(Paths::default());
     init_sample_libraries();
     let factory =
         ToyEntities::register(BuiltInEntities::register(EntityFactory::default())).finalize();
@@ -16,6 +17,7 @@ fn edit_song() {
 
     // Create two MIDI tracks.
     let rhythm_track_uid = project.create_track(None).unwrap();
+    project.set_track_midi_channel(rhythm_track_uid, MidiChannel::DRUM);
     let lead_track_uid = project.create_track(None).unwrap();
 
     // Prepare the rhythm track first. Create a rhythm pattern, add it to the
@@ -57,24 +59,20 @@ fn edit_song() {
             .unwrap();
     }
 
-    // Pattern is good; add an instrument to the track. (This should be
-    // Drumkit, but there are TODO reasons why it isn't.)
-    let drumkit_uid = project
+    // Pattern is good; add an instrument to the track.
+    let _drumkit_uid = project
         .add_entity(
             rhythm_track_uid,
             factory
-                .new_entity(&EntityKey::from(ToyInstrument::ENTITY_KEY), Uid::default())
+                .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(drumkit_uid, Some(MidiChannel(10)))
-        .is_ok());
 
     // Arrange the drum pattern.
     assert!(project
-        .arrange_pattern(rhythm_track_uid, drum_pattern_uid, MusicalTime::START)
+        .arrange_pattern(rhythm_track_uid, drum_pattern_uid, None, MusicalTime::START)
         .is_ok());
 
     // Rest
@@ -107,13 +105,10 @@ fn edit_song() {
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(sub_synth_uid, Some(MidiChannel::default()))
-        .is_ok());
 
     // Hmmm, we don't like the sound of that synth; let's replace it with another.
     let _ = project.remove_entity(sub_synth_uid);
-    let toy_synth_uid = project
+    let _toy_synth_uid = project
         .add_entity(
             lead_track_uid,
             factory
@@ -122,9 +117,6 @@ fn edit_song() {
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(toy_synth_uid, Some(MidiChannel::default()))
-        .is_ok());
 
     // That's better, but it needs an effect.
     assert!(project
@@ -151,7 +143,7 @@ fn edit_song() {
 
     // Arrange the lead pattern.
     assert!(project
-        .arrange_pattern(lead_track_uid, lead_pattern_uid, MusicalTime::START)
+        .arrange_pattern(lead_track_uid, lead_pattern_uid, None, MusicalTime::START)
         .is_ok());
 
     let output_prefix: std::path::PathBuf = [env!("CARGO_TARGET_TMPDIR"), "simple-song-with-edits"]

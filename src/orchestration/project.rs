@@ -194,7 +194,6 @@ impl Project {
             pub fn pattern_mut(&mut self, pattern_uid: PatternUid) -> Option<&mut Pattern>;
             pub fn notify_pattern_change(&mut self);
             pub fn remove_pattern(&mut self, pattern_uid: PatternUid) -> Result<Pattern>;
-            pub fn arrange_pattern(&mut self, track_uid: TrackUid, pattern_uid: PatternUid, position: MusicalTime) -> Result<ArrangementUid>;
             pub fn move_arrangement(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid, new_position: MusicalTime, copy_original: bool) -> Result<ArrangementUid>;
             pub fn unarrange(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid);
             pub fn duplicate_arrangement(&mut self, track_uid: TrackUid, arrangement_uid: ArrangementUid) -> Result<ArrangementUid>;
@@ -586,7 +585,8 @@ impl Project {
     }
 
     /// Adds an entity to the given track. If the [Uid] is not specified,
-    /// generates a new one. Returns the [Uid] if adding was successful.
+    /// generates a new one. Sets the MIDI channel to the track's preferred
+    /// channel. Returns the [Uid] if adding was successful.
     pub fn add_entity(
         &mut self,
         track_uid: TrackUid,
@@ -595,6 +595,9 @@ impl Project {
     ) -> Result<Uid> {
         let r = self.orchestrator.add_entity(track_uid, entity, uid);
         if let Ok(uid) = r {
+            if let Some(channel) = self.track_midi_channel(track_uid) {
+                self.set_midi_receiver_channel(uid, Some(channel))?;
+            }
             self.regenerate_signal_chain(track_uid);
         }
         r
@@ -723,6 +726,39 @@ impl Project {
     ) {
         self.e.new_arrangement_track_uid = Some(track_uid);
         self.e.new_arrangement_arrangement_uid = Some(arrangement_uid);
+    }
+
+    /// Arranges a pattern on a track.
+    pub fn arrange_pattern(
+        &mut self,
+        track_uid: TrackUid,
+        pattern_uid: PatternUid,
+        midi_channel: Option<MidiChannel>,
+        position: MusicalTime,
+    ) -> Result<ArrangementUid> {
+        let midi_channel = if let Some(midi_channel) = midi_channel {
+            midi_channel
+        } else {
+            self.track_to_midi_router
+                .entry(track_uid)
+                .or_default()
+                .midi_channel()
+        };
+        self.composer
+            .arrange_pattern(track_uid, pattern_uid, midi_channel, position)
+    }
+
+    pub fn track_midi_channel(&self, track_uid: TrackUid) -> Option<MidiChannel> {
+        if let Some(router) = self.track_to_midi_router.get(&track_uid) {
+            Some(router.midi_channel())
+        } else {
+            None
+        }
+    }
+
+    pub fn set_track_midi_channel(&mut self, track_uid: TrackUid, midi_channel: MidiChannel) {
+        let router = self.track_to_midi_router.entry(track_uid).or_default();
+        router.set_midi_channel(midi_channel);
     }
 }
 impl Generates<StereoSample> for Project {
@@ -962,9 +998,6 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert!(project
-            .set_midi_receiver_channel(instrument_uid, Some(MidiChannel::default()))
-            .is_ok());
         let pattern_uid = project
             .add_pattern(
                 PatternBuilder::default()
@@ -978,7 +1011,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        let _ = project.arrange_pattern(track_uid, pattern_uid, MusicalTime::START);
+        let _ = project.arrange_pattern(track_uid, pattern_uid, None, MusicalTime::START);
 
         project.play();
         let mut frames = [StereoSample::SILENCE; 4];
@@ -1084,9 +1117,6 @@ mod tests {
         let instrument_uid = project
             .add_entity(track_uid, Box::new(instrument), None)
             .unwrap();
-        assert!(project
-            .set_midi_receiver_channel(instrument_uid, Some(MidiChannel::default()))
-            .is_ok());
 
         let test_message = MidiMessage::NoteOn {
             key: 7.into(),
@@ -1138,10 +1168,8 @@ mod tests {
             .add_entity(track_b_uid, Box::new(receiver_2), None)
             .unwrap();
 
-        // Hook up everyone to MIDI.
-        let _ = project.set_midi_receiver_channel(sender_uid, Some(MidiChannel::default()));
-        let _ = project.set_midi_receiver_channel(receiver_1_uid, Some(MidiChannel::default()));
-        let _ = project.set_midi_receiver_channel(receiver_2_uid, Some(MidiChannel::default()));
+        // We don't need to hook anyone up to MIDI, because add_entity() now
+        // does that for us.
 
         // Fire everything up.
         project.play();
@@ -1292,7 +1320,7 @@ mod tests {
             .unwrap();
         let track_1_uid = project.new_midi_track().unwrap();
 
-        let _ = project.arrange_pattern(track_1_uid, pattern_uid, MusicalTime::START);
+        let _ = project.arrange_pattern(track_1_uid, pattern_uid, None, MusicalTime::START);
 
         let mut messages = Vec::default();
         let mut samples = [StereoSample::SILENCE; 4];
@@ -1402,5 +1430,30 @@ mod tests {
             TrackViewMode::Composition,
             "If there was already one control view, we shouldn't keep creating new ones"
         );
+    }
+
+    #[test]
+    fn project_knows_midi_channels() {
+        let mut p = Project::default();
+
+        let track_1_uid = p.create_track(None).unwrap();
+        let track_2_uid = p.create_track(None).unwrap();
+
+        assert_eq!(
+            p.track_midi_channel(track_1_uid),
+            Some(MidiChannel::default())
+        );
+        assert_eq!(
+            p.track_midi_channel(track_2_uid),
+            Some(MidiChannel::default())
+        );
+
+        p.set_track_midi_channel(track_2_uid, MidiChannel::DRUM);
+
+        assert_eq!(
+            p.track_midi_channel(track_1_uid),
+            Some(MidiChannel::default())
+        );
+        assert_eq!(p.track_midi_channel(track_2_uid), Some(MidiChannel::DRUM));
     }
 }

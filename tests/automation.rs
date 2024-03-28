@@ -40,7 +40,7 @@ fn demo_automation() {
     // Arrange the lead pattern in the sequencer.
     let track_uid = project.create_track(None).unwrap();
     assert!(project
-        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
+        .arrange_pattern(track_uid, scale_pattern_uid, None, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern.
@@ -53,9 +53,6 @@ fn demo_automation() {
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))
-        .is_ok());
 
     // Add an LFO that will control a synth parameter.
     let lfo_uid = {
@@ -119,7 +116,7 @@ fn demo_signal_path_automation() {
     // Arrange the lead pattern.
     let track_uid = project.create_track(None).unwrap();
     assert!(project
-        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
+        .arrange_pattern(track_uid, scale_pattern_uid, None, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern. Figure how out to identify the
@@ -129,9 +126,6 @@ fn demo_signal_path_automation() {
         .unwrap();
     let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
     let synth_uid = project.add_entity(track_uid, entity, None).unwrap();
-    assert!(project
-        .set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))
-        .is_ok());
 
     // Create a SignalPath that ramps from zero to max over the desired
     // amount of time.

@@ -6,7 +6,7 @@ use crate::{
     prelude::*,
     traits::MidiNoteLabelMetadata,
     types::ColorScheme,
-    util::{Rng, SelectionSet},
+    util::Rng,
 };
 use anyhow::{anyhow, Result};
 use core::ops::Range;
@@ -19,6 +19,7 @@ use strum::EnumCount;
 #[serde(rename_all = "kebab-case")]
 pub struct Arrangement {
     pub pattern_uid: PatternUid,
+    pub midi_channel: MidiChannel,
     pub position: MusicalTime,
     pub duration: MusicalTime,
 }
@@ -146,6 +147,7 @@ impl Composer {
         &mut self,
         track_uid: TrackUid,
         pattern_uid: PatternUid,
+        midi_channel: MidiChannel,
         position: MusicalTime,
     ) -> Result<ArrangementUid> {
         if let Some(pattern) = self.patterns.get(&pattern_uid) {
@@ -162,6 +164,7 @@ impl Composer {
                 arrangement_uid,
                 Arrangement {
                     pattern_uid,
+                    midi_channel,
                     position,
                     duration: pattern.duration(),
                 },
@@ -176,7 +179,7 @@ impl Composer {
                 .push(arrangement_uid);
 
             let sequencer = self.e.tracks_to_sequencers.entry(track_uid).or_default();
-            sequencer.record(MidiChannel::default(), pattern, position)?;
+            sequencer.record(midi_channel, pattern, position)?;
             Ok(arrangement_uid)
         } else {
             Err(anyhow!("Pattern {pattern_uid} not found"))
@@ -193,10 +196,16 @@ impl Composer {
         new_position: MusicalTime,
         copy_original: bool,
     ) -> Result<ArrangementUid> {
-        if let Some(arrangements) = self.tracks_to_ordered_arrangement_uids.get_mut(&track_uid) {
+        if let Some(_arrangement_uids) = self.tracks_to_ordered_arrangement_uids.get_mut(&track_uid)
+        {
             if let Some(arrangement) = self.arrangements.get(&arrangement_uid) {
                 if copy_original {
-                    self.arrange_pattern(track_uid, arrangement.pattern_uid, new_position)
+                    self.arrange_pattern(
+                        track_uid,
+                        arrangement.pattern_uid,
+                        arrangement.midi_channel,
+                        new_position,
+                    )
                 } else {
                     let new_extent = arrangement.extent().translate_to(new_position);
                     if !self.is_arrangement_area_available(
@@ -248,6 +257,7 @@ impl Composer {
             self.arrange_pattern(
                 track_uid,
                 arrangement.pattern_uid,
+                arrangement.midi_channel,
                 arrangement.position + arrangement.duration,
             )
         } else {
@@ -521,7 +531,12 @@ mod tests {
         // subsequent pattern arrangements. We want it to stay in the
         // arrangement because we use it when we're testing pattern deletion.
         let _ = c
-            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::ONE_BEAT * 16)
+            .arrange_pattern(
+                track_1_uid,
+                pattern_1_uid,
+                MidiChannel::default(),
+                MusicalTime::ONE_BEAT * 16,
+            )
             .unwrap();
         assert_eq!(
             c.tracks_to_ordered_arrangement_uids.len(),
@@ -537,12 +552,18 @@ mod tests {
         );
 
         let arrangement_1_uid = c
-            .arrange_pattern(track_1_uid, pattern_1_uid, MusicalTime::DURATION_WHOLE * 1)
+            .arrange_pattern(
+                track_1_uid,
+                pattern_1_uid,
+                MidiChannel::default(),
+                MusicalTime::DURATION_WHOLE * 1,
+            )
             .unwrap();
         let arrangement_2_uid = c
             .arrange_pattern(
                 track_1_uid,
                 pattern_1_uid,
+                MidiChannel::default(),
                 MusicalTime::DURATION_WHOLE * 1 + MusicalTime::ONE_BEAT * 4,
             )
             .unwrap();
@@ -556,12 +577,18 @@ mod tests {
         );
 
         let _ = c
-            .arrange_pattern(track_2_uid, pattern_2_uid, MusicalTime::DURATION_WHOLE * 3)
+            .arrange_pattern(
+                track_2_uid,
+                pattern_2_uid,
+                MidiChannel::default(),
+                MusicalTime::DURATION_WHOLE * 3,
+            )
             .unwrap();
         let arrangement_4_uid = c
             .arrange_pattern(
                 track_2_uid,
                 pattern_1_uid,
+                MidiChannel::default(),
                 MusicalTime::DURATION_WHOLE * 3 + MusicalTime::ONE_BEAT * 4,
             )
             .unwrap();
@@ -666,11 +693,16 @@ mod tests {
         let puid2 = c.add_pattern(p2, None).unwrap();
 
         let a1 = c
-            .arrange_pattern(track_uid, puid1, MusicalTime::START)
+            .arrange_pattern(track_uid, puid1, MidiChannel::default(), MusicalTime::START)
             .unwrap();
         assert_eq!(c.duration(), p1_duration, "After adding one pattern at start, composer's duration should equal pattern's duration");
         let a2 = c
-            .arrange_pattern(track_uid, puid2, MusicalTime::START + p1_duration)
+            .arrange_pattern(
+                track_uid,
+                puid2,
+                MidiChannel::default(),
+                MusicalTime::START + p1_duration,
+            )
             .unwrap();
         assert_eq!(c.duration(), p1_duration + p2_duration, "After adding two consecutive normal-sized patterns, composer's duration should equal their durations' sum");
 
@@ -702,9 +734,11 @@ mod tests {
         let track_uid = TrackUid(1);
 
         let a1 = c
-            .arrange_pattern(track_uid, puid1, MusicalTime::START)
+            .arrange_pattern(track_uid, puid1, MidiChannel::default(), MusicalTime::START)
             .unwrap();
-        let a2 = c.arrange_pattern(track_uid, puid2, p1_duration).unwrap();
+        let a2 = c
+            .arrange_pattern(track_uid, puid2, MidiChannel::default(), p1_duration)
+            .unwrap();
         assert_eq!(
             c.duration(),
             p1_duration + p2_duration,
@@ -714,20 +748,25 @@ mod tests {
             .arrange_pattern(
                 track_uid,
                 puid3,
+                MidiChannel::default(),
                 p1_duration + p2_duration - MusicalTime::ONE_UNIT
             )
             .is_err(), "Composer should disallow arrangement of pattern whose start is within another arranged pattern.");
 
         c.unarrange(track_uid, a1);
         assert!(
-            c.arrange_pattern(track_uid, puid3, MusicalTime::START + MusicalTime::ONE_UNIT)
+            c.arrange_pattern(track_uid, puid3, MidiChannel::default(), MusicalTime::START + MusicalTime::ONE_UNIT)
                 .is_err(),
             "Composer should disallow arrangement of pattern whose extent crosses a later pattern's start."
         );
 
         c.unarrange(track_uid, a2);
-        let a3_result =
-            c.arrange_pattern(track_uid, puid3, MusicalTime::START + MusicalTime::ONE_UNIT);
+        let a3_result = c.arrange_pattern(
+            track_uid,
+            puid3,
+            MidiChannel::default(),
+            MusicalTime::START + MusicalTime::ONE_UNIT,
+        );
         assert!(a3_result.is_ok(), "Composer should allow arrangement of pattern in area formerly occupied by since-unarranged patterns.");
     }
 

@@ -6,15 +6,25 @@ use core::fmt::Debug;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
+/// Handles the virtual connections between MIDI senders and receivers.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct MidiRouter {
+    /// For each channel, lists the entities that are listening on that channel.
     pub midi_receivers: FxHashMap<MidiChannel, Vec<Uid>>,
 
+    /// This router's preferred MIDI channel. This lets tracks have a MIDI
+    /// channel.
+    #[serde(default)]
+    midi_channel: MidiChannel,
+
+    /// Maps each entity to a [MidiChannel].
     #[serde(skip)]
     pub uid_to_channel: FxHashMap<Uid, MidiChannel>,
 }
 impl MidiRouter {
+    /// Causes an entity to listen on the given MIDI channel, or clears all the
+    /// channels it's listening to.
     pub fn set_midi_receiver_channel(
         &mut self,
         entity_uid: Uid,
@@ -35,6 +45,8 @@ impl MidiRouter {
         Ok(())
     }
 
+    /// Sends the given message to all the entities that are listening on the
+    /// given channel.
     pub fn route(
         &self,
         entity_repo: &mut EntityRepository,
@@ -67,7 +79,8 @@ impl MidiRouter {
         }
     }
 
-    /// Sends CC 123 to every instrument, which is supposed to shut all notes off.
+    /// Sends CC 123 to every instrument, which is supposed to shut all notes
+    /// off.
     pub fn all_notes_off(&mut self, entity_repo: &mut EntityRepository) {
         for channel in MidiChannel::MIN_VALUE..=MidiChannel::MAX_VALUE {
             let _ = self.route(
@@ -79,6 +92,16 @@ impl MidiRouter {
                 },
             );
         }
+    }
+
+    /// Returns the preferred MIDI channel for this router.
+    pub fn midi_channel(&self) -> MidiChannel {
+        self.midi_channel
+    }
+
+    /// Sets the preferred MIDI channel for this router.
+    pub fn set_midi_channel(&mut self, midi_channel: MidiChannel) {
+        self.midi_channel = midi_channel;
     }
 }
 impl Serializable for MidiRouter {

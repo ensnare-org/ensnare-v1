@@ -9,6 +9,7 @@ use ensnare_toys::prelude::*;
 fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
     let track_uid = project.create_track(None).unwrap();
+    project.set_track_midi_channel(track_uid, MidiChannel::DRUM);
     project.set_track_output(track_uid, Normal::from(0.5));
 
     // Rest
@@ -47,10 +48,10 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
         .unwrap();
 
     // Arrange the drum pattern in the MIDI track.
-    let _ = project.arrange_pattern(track_uid, drum_pattern_uid, MusicalTime::START);
+    let _ = project.arrange_pattern(track_uid, drum_pattern_uid, None, MusicalTime::START);
 
     // Add the drumkit instrument to the track.
-    let drumkit_uid = project
+    let _drumkit_uid = project
         .add_entity(
             track_uid,
             factory
@@ -59,9 +60,6 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(drumkit_uid, Some(MidiChannel(10)))
-        .is_ok());
 
     // Add an effect to the track's effect chain.
     let filter_uid = project
@@ -106,11 +104,11 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
 
     // Arrange the lead pattern.
     assert!(project
-        .arrange_pattern(track_uid, scale_pattern_uid, MusicalTime::START)
+        .arrange_pattern(track_uid, scale_pattern_uid, None, MusicalTime::START)
         .is_ok());
 
     // Add a synth to play the pattern.
-    let synth_uid = project
+    let _synth_uid = project
         .add_entity(
             track_uid,
             factory
@@ -119,9 +117,6 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
             None,
         )
         .unwrap();
-    assert!(project
-        .set_midi_receiver_channel(synth_uid, Some(MidiChannel::default()))
-        .is_ok());
 
     // Make the synth sound grittier.
     let reverb_uid = project
