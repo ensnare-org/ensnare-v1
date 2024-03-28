@@ -47,7 +47,8 @@ impl Tempo {
         self.0 / 60.0
     }
 
-    pub fn range() -> core::ops::RangeInclusive<ParameterType> {
+    /// MIN..=MAX
+    pub const fn range() -> core::ops::RangeInclusive<ParameterType> {
         Self::MIN_VALUE..=Self::MAX_VALUE
     }
 }
