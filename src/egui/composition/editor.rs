@@ -118,7 +118,6 @@ impl<'a> eframe::egui::Widget for ComposerWidget<'a> {
         let section_count = self.time_signature.bottom * 4;
         let x_section_data_start = 0;
         let x_section_data_end = section_count;
-        let x_section_data_range = x_section_data_start..=x_section_data_end;
         let y_note_data_range = if let Some(ref metadata) = self.midi_note_label_metadata {
             metadata.range.clone()
         } else {

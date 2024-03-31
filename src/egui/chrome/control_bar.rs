@@ -6,7 +6,6 @@ use eframe::{
     egui::{Image, ImageButton, Layout, Widget},
     epaint::vec2,
 };
-use std::path::PathBuf;
 use strum_macros::Display;
 
 #[derive(Debug, Default)]

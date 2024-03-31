@@ -17,6 +17,7 @@ pub(crate) enum MenuBarAction {
     TrackDuplicate,
     TrackDelete,
     TrackRemoveSelectedPatterns,
+    #[allow(dead_code)]
     TrackAddThing(EntityKey),
     ComingSoon,
 }

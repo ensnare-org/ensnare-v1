@@ -140,6 +140,7 @@ pub trait Ticks: Configurable + Send + core::fmt::Debug {
     /// state is correct for the first frame after entity construction, so
     /// tick() must be careful not to update state on the first frame, because
     /// that would cause the state to represent the second frame, not the first.
+    #[allow(unused_variables)]
     fn tick(&mut self, tick_count: usize) {}
 }
 
@@ -519,6 +520,7 @@ pub trait Displays {
         ui.label("Coming soon!")
     }
 
+    #[allow(unused_variables)]
     fn set_action(&mut self, action: DisplaysAction) {}
     /// Also resets the action to None
     fn take_action(&mut self) -> Option<DisplaysAction> {

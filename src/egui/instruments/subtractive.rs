@@ -4,8 +4,7 @@ use crate::{
     cores::instruments::{SubtractiveSynthCore, SUBTRACTIVE_PATCH_DIR},
     egui::{
         generators::LfoWidget, util::EnumComboBoxWidget, BiQuadFilterLowPass24dbWidget,
-        BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction, EnvelopeWidget, LfoControllerWidget,
-        OscillatorWidget,
+        BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget,
     },
     prelude::*,
 };
