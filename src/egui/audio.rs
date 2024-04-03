@@ -28,25 +28,15 @@ impl<'a> WaveformWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for WaveformWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut r = ComboBox::new(ui.next_auto_id(), "Waveform")
+        let r = ComboBox::new(ui.next_auto_id(), "Waveform")
             .selected_text(self.inner.to_string())
             .show_ui(ui, |ui| {
-                let mut bool_response = false;
-                for w in Waveform::iter() {
-                    let s: &'static str = w.into();
-                    if ui.selectable_value(self.inner, w, s).changed() {
-                        bool_response = true;
-                    }
-                }
-                bool_response
+                Waveform::iter()
+                    .map(|w| ui.selectable_value(self.inner, w, w.to_string()))
+                    .reduce(|acc, r| acc | r)
+                    .unwrap()
             });
-        if let Some(inner) = r.inner {
-            if inner {
-                r.response.mark_changed();
-            }
-        }
-
-        let mut response = r.response;
+        let mut response = r.inner.unwrap_or(r.response);
 
         if let Waveform::PulseWidth(pulse_width) = self.inner {
             let mut normal = pulse_width.clone();
