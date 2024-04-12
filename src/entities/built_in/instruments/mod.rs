@@ -365,6 +365,12 @@ mod egui {
                     SubtractiveSynthWidgetAction::Link(uid, index) => {
                         self.set_action(DisplaysAction::Link(uid, index));
                     }
+                    SubtractiveSynthWidgetAction::LoadFromJson(name, json) => {
+                        // TODO - this is just a hack. It's doing real work on
+                        // the UI thread, and it doesn't handle failure well.
+                        self.inner = SubtractiveSynthCore::load_patch_from_json(&json).unwrap();
+                        self.inner.preset_name = Some(name);
+                    }
                 }
             }
             response

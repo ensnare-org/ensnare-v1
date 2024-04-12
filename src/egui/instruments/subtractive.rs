@@ -15,6 +15,8 @@ use strum_macros::Display;
 #[derive(Debug, Display)]
 pub enum SubtractiveSynthWidgetAction {
     Link(ControlLinkSource, ControlIndex),
+    /// Patch name, patch contents as JSON
+    LoadFromJson(String, String),
 }
 
 #[derive(Debug)]
@@ -40,11 +42,9 @@ impl<'a> SubtractiveSynthWidget<'a> {
 }
 impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let mut response = ComboBox::from_label("Preset")
+        let response = ComboBox::from_label("Preset")
             .selected_text(self.inner.preset_name().unwrap_or(&"None".to_string()))
             .show_ui(ui, |ui| {
-                let mut bool_response = false;
-
                 ui.style_mut().wrap = Some(false);
                 ui.set_min_width(60.0);
                 let mut current_value = self
@@ -52,36 +52,32 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
                     .preset_name()
                     .cloned()
                     .unwrap_or("None".to_string());
-                for patch in SUBTRACTIVE_PATCH_DIR.files() {
-                    let visible = patch
-                        .path()
-                        .to_str()
-                        .unwrap_or_default()
-                        .replace(".json", "")
-                        .to_case(Case::Title);
-                    if ui
-                        .selectable_value(&mut current_value, visible.clone(), visible.clone())
-                        .changed()
-                    {
-                        bool_response = true;
-
-                        // TODO - this is just a hack. It's doing real work on
-                        // the UI thread, and it doesn't handle failure well.
-                        *self.inner = SubtractiveSynthCore::load_patch_from_json(
-                            patch.contents_utf8().unwrap(),
-                        )
-                        .unwrap();
-                        self.inner.preset_name = Some(visible);
-                    }
-                }
-                bool_response
+                SUBTRACTIVE_PATCH_DIR
+                    .files()
+                    .map(|patch| {
+                        let visible = patch
+                            .path()
+                            .to_str()
+                            .unwrap_or_default()
+                            .replace(".json", "")
+                            .to_case(Case::Title);
+                        let r = ui.selectable_value(
+                            &mut current_value,
+                            visible.clone(),
+                            visible.clone(),
+                        );
+                        if r.changed() {
+                            *self.action = Some(SubtractiveSynthWidgetAction::LoadFromJson(
+                                visible,
+                                patch.contents_utf8().unwrap().to_string(),
+                            ));
+                        }
+                        r
+                    })
+                    .reduce(|acc, r| acc | r)
+                    .unwrap()
             });
-        if let Some(bool_response) = response.inner {
-            if bool_response {
-                response.response.mark_changed();
-            }
-        }
-        let mut response = response.response;
+        let mut response = response.inner.unwrap_or(response.response);
 
         response |= CollapsingHeader::new("Oscillator 1")
             .default_open(true)
