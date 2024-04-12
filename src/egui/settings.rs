@@ -87,7 +87,6 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                     }
                 })
                 .response;
-            //            ui.end_row();
 
             let mut cb = ComboBox::from_label("MIDI out").width(320.0);
             let (mut selected_index, _selected_text) =
@@ -111,7 +110,7 @@ impl<'a> eframe::egui::Widget for MidiSettingsWidget<'a> {
                     }
                 })
                 .response;
-            //    ui.end_row();
+
             in_response | out_response
         } | {
             let mut should = self.settings.should_route_externally();
