@@ -547,12 +547,3 @@ pub trait Displays {
 }
 #[cfg(not(feature = "egui"))]
 pub trait Displays {}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::Ticks;
-
-    pub trait DebugTicks: Ticks {
-        fn debug_tick_until(&mut self, tick_number: usize);
-    }
-}
