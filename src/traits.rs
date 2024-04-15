@@ -28,7 +28,7 @@ use strum_macros::Display;
 
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
-/// oscillators, which produce a [crate::BipolarNormal] signal.
+/// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
 pub trait Generates<V: Default>: Send + core::fmt::Debug + Ticks {
     /// The value for the current frame. Advance the frame by calling
@@ -124,7 +124,7 @@ pub trait Configurable {
 }
 
 /// A way for an [Entity] to do work corresponding to one or more frames.
-#[deprecated]
+#[deprecated = "TODO: batch"]
 pub trait Ticks: Configurable + Send + core::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.
@@ -202,7 +202,7 @@ pub trait TransformsAudio: core::fmt::Debug {
 /// Describes the public interface of an envelope generator, which provides a
 /// normalized amplitude (0.0..=1.0) that changes over time according to its
 /// internal parameters, external triggers, and the progression of time.
-pub trait GeneratesEnvelope: Generates<Normal> + Send + core::fmt::Debug + Ticks {
+pub trait GeneratesEnvelope: Generates<Normal> + Send + core::fmt::Debug {
     /// Triggers the envelope's active stage.
     fn trigger_attack(&mut self);
 
@@ -450,13 +450,23 @@ pub trait Sequences: Controls + core::fmt::Debug {
     fn clear(&mut self);
 }
 
+/// Something that [CanPrototype] can make another of its kind, but it's a
+/// little smarter than [Clone]. Not every one of its fields should be cloned --
+/// for example, a cache -- and this trait's methods know which is which.
+///
+/// TODO: this trait overlaps with Serde's functionality. Most fields that are
+/// #[serde(skip)] would also be excluded here. Is there a way to hook into
+/// Serde and derive the make_another() functionality from it?
 pub trait CanPrototype: core::fmt::Debug + Default {
+    /// Treats self as a prototype and makes another.
     fn make_another(&self) -> Self {
         let mut r = Self::default();
         r.update_from_prototype(self);
         r
     }
 
+    /// Given another of this kind, updates its fields using self as a
+    /// prototype.
     fn update_from_prototype(&mut self, prototype: &Self) -> &Self;
 }
 
@@ -481,6 +491,7 @@ pub trait Entity:
 {
 }
 
+/// A formerly tighter bound on the [Entity] trait. TODO: remove if we can.
 #[typetag::serde(tag = "type")]
 pub trait EntityBounds: Entity {}
 
@@ -501,6 +512,7 @@ pub trait HasMetadata {
     fn key(&self) -> &'static str;
 }
 
+/// The actions that might result from [Displays::ui()].
 #[cfg(feature = "egui")]
 #[derive(Debug, Display)]
 pub enum DisplaysAction {
@@ -520,6 +532,7 @@ pub trait Displays {
         ui.label("Coming soon!")
     }
 
+    /// Sets the [DisplaysAction] that resulted from this layout.
     #[allow(unused_variables)]
     fn set_action(&mut self, action: DisplaysAction) {}
     /// Also resets the action to None
