@@ -155,12 +155,6 @@ impl Generates<BipolarNormal> for Oscillator {
     fn value(&self) -> BipolarNormal {
         self.e.signal
     }
-
-    fn generate(&mut self, values: &mut [BipolarNormal]) {
-        for v in values {
-            *v = self.get_next_value();
-        }
-    }
 }
 impl Configurable for Oscillator {
     delegate! {
@@ -487,15 +481,6 @@ impl GeneratesEnvelope for Envelope {
 impl Generates<Normal> for Envelope {
     fn value(&self) -> Normal {
         Normal::new(self.e.corrected_amplitude)
-    }
-
-    fn generate(&mut self, values: &mut [Normal]) {
-        // TODO: this is probably no more efficient than calling amplitude()
-        // individually, but for now we're just getting the interface right.
-        // Later we'll take advantage of it.
-        for v in values {
-            *v = self.get_next_value();
-        }
     }
 }
 impl Configurable for Envelope {
@@ -1021,10 +1006,9 @@ mod tests {
         // Below Nyquist limit
         assert_lt!(FREQUENCY, FrequencyHz((SAMPLE_RATE.0 / 2) as f64));
 
-        for _ in 0..SAMPLE_RATE.0 {
-            let f = oscillator.get_next_value().0;
-            assert_eq!(f, f.signum());
-        }
+        let mut buffer = [BipolarNormal::default(); SAMPLE_RATE.0];
+        oscillator.generate(&mut buffer);
+        buffer.iter().for_each(|s| assert_eq!(s.0, s.0.signum()));
     }
 
     #[test]
@@ -1044,8 +1028,10 @@ mod tests {
         let mut n_neg = 0;
         let mut last_sample = 1.0;
         let mut transitions = 0;
-        for _ in 0..SAMPLE_RATE.0 {
-            let f = oscillator.get_next_value().0;
+        let mut buffer = [BipolarNormal::default(); SAMPLE_RATE.0];
+        oscillator.generate(&mut buffer);
+        for f in buffer.iter() {
+            let f = f.0;
             if f == 1.0 {
                 n_pos += 1;
             } else if f == -1.0 {
@@ -1077,37 +1063,28 @@ mod tests {
             .unwrap();
         oscillator.update_sample_rate(SAMPLE_RATE);
 
+        // Divided by four because we're setting a frequency of 2 Hz, so a full
+        // second of samples should contain two cycles, and we're looking at the
+        // transition points of the square wave, which should be happening at
+        // T0, T0.5, T1.0, etc.
+        let interesting_point_1 = SAMPLE_RATE.0 / 4;
+        let interesting_point_2 = interesting_point_1 + SAMPLE_RATE.0 / 4;
+        let mut buffer = [BipolarNormal::default(); SAMPLE_RATE.0];
+        oscillator.generate(&mut buffer);
         assert_eq!(
-            oscillator.get_next_value().0,
-            1.0,
+            buffer[0].0, 1.0,
             "the first sample of a square wave should be 1.0"
         );
 
-        // Halfway between the first and second cycle, the wave should
-        // transition from 1.0 to -1.0.
-        //
-        // We're fast-forwarding two different ways in this test. The first is
-        // by just ticking the clock the desired number of times, so we're not
-        // really fast-forwarding; we're just playing normally and ignoring the
-        // results. The second is by testing that the oscillator responds
-        // reasonably to clock.set_samples(). I haven't decided whether entities
-        // need to pay close attention to clock.set_samples() other than not
-        // exploding, so I might end up deleting that part of the test.
-        oscillator.tick(SAMPLE_RATE.0 / 4 - 2);
-        assert_eq!(oscillator.value().0, 1.0);
-        assert_eq!(oscillator.get_next_value().0, 1.0);
-        assert_eq!(oscillator.get_next_value().0, -1.0);
-        assert_eq!(oscillator.get_next_value().0, -1.0);
+        // Halfway through the first cycle, the wave should transition from 1.0
+        // to -1.0.
+        assert_eq!(buffer[interesting_point_1 - 1].0, 1.0);
+        assert_eq!(buffer[interesting_point_1].0, -1.0);
 
         // Then should transition back to 1.0 at the first sample of the second
         // cycle.
-        //
-        // As noted above, we're using clock.set_samples() here.
-        oscillator.debug_tick_until(SAMPLE_RATE.0 / 2 - 2);
-        assert_eq!(oscillator.value().0, -1.0);
-        assert_eq!(oscillator.get_next_value().0, -1.0);
-        assert_eq!(oscillator.get_next_value().0, 1.0);
-        assert_eq!(oscillator.get_next_value().0, 1.0);
+        assert_eq!(buffer[interesting_point_2 - 1].0, -1.0);
+        assert_eq!(buffer[interesting_point_2].0, 1.0);
     }
 
     #[test]
@@ -1123,8 +1100,11 @@ mod tests {
         let mut n_pos = 0;
         let mut n_neg = 0;
         let mut n_zero = 0;
-        for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            let f = oscillator.get_next_value().0;
+        let mut buffer = [BipolarNormal::default(); SampleRate::DEFAULT_SAMPLE_RATE];
+        oscillator.generate(&mut buffer);
+
+        for f in buffer.iter() {
+            let f = f.0;
             if f < -0.0000001 {
                 n_neg += 1;
             } else if f > 0.0000001 {
@@ -1138,15 +1118,17 @@ mod tests {
         assert_eq!(n_pos + n_neg + n_zero, SampleRate::DEFAULT_SAMPLE_RATE);
     }
 
-    // For now, only Oscillator implements source_signal(). We'll probably make
-    // it a trait later.
     pub fn render_signal_as_audio_source(
         source: &mut Oscillator,
         run_length_in_seconds: usize,
     ) -> Vec<Sample> {
         let mut samples = Vec::default();
-        for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE * run_length_in_seconds {
-            samples.push(Sample::from(source.get_next_value().0));
+        for _ in 0..run_length_in_seconds {
+            let mut buffer = [BipolarNormal::default(); SampleRate::DEFAULT_SAMPLE_RATE];
+            source.generate(&mut buffer);
+            for s in buffer {
+                samples.push(Sample::from(s));
+            }
         }
         samples
     }
@@ -1447,14 +1429,16 @@ mod tests {
         F: FnMut(Normal, &Transport),
     {
         let mut amplitude: Normal = Normal::new(0.0);
+        let mut buffer = [Normal::default(); 1];
         loop {
-            let f = envelope.get_next_value();
+            envelope.generate(&mut buffer);
+
             transport.advance(1);
             let should_continue = transport.current_time() < time_marker;
             if !should_continue {
                 break;
             }
-            amplitude = f;
+            amplitude = buffer[0];
             test(amplitude, transport);
         }
         amplitude
@@ -1680,11 +1664,13 @@ mod tests {
         transport.update_sample_rate(SampleRate::DEFAULT);
         envelope.update_sample_rate(SampleRate::DEFAULT);
 
-        envelope.tick(1);
+        let mut buffer = [Normal::default(); 1];
+
+        envelope.generate(&mut buffer);
         transport.advance(1);
 
         assert_eq!(
-            envelope.value(),
+            buffer[0],
             Normal::minimum(),
             "Amplitude should start at zero"
         );
@@ -1692,19 +1678,19 @@ mod tests {
         // See https://floating-point-gui.de/errors/comparison/ for standard
         // warning about comparing floats and looking for epsilons.
         envelope.trigger_attack();
-        envelope.tick(1);
+        envelope.generate(&mut buffer);
         let mut time_marker = transport.current_time();
         transport.advance(1);
         assert!(
-            approx_eq!(f64, envelope.value().0, Normal::maximum().0, ulps = 8),
+            approx_eq!(f64, buffer[0].0, Normal::maximum().0, ulps = 8),
             "Amplitude should reach peak upon trigger, but instead of {} we got {}",
             Normal::maximum().0,
-            envelope.value().0,
+            buffer[0].0,
         );
-        envelope.tick(1);
+        envelope.generate(&mut buffer);
         transport.advance(1);
         assert_lt!(
-            envelope.value(),
+            buffer[0],
             Normal::maximum(),
             "Zero-attack amplitude should begin decreasing immediately after peak"
         );
@@ -1728,16 +1714,16 @@ mod tests {
 
         // Release the trigger.
         envelope.trigger_release();
-        let _amplitude = envelope.tick(1);
+        envelope.generate(&mut buffer);
         transport.advance(1);
 
         // And hit it again.
         envelope.trigger_attack();
-        let f = envelope.get_next_value();
+        envelope.generate(&mut buffer);
         let mut time_marker = transport.current_time();
         transport.advance(1);
         assert!(
-            approx_eq!(f64, f.0, Normal::maximum().0, ulps = 8),
+            approx_eq!(f64, buffer[0].0, Normal::maximum().0, ulps = 8),
             "Amplitude should reach peak upon second trigger"
         );
 
@@ -1747,7 +1733,8 @@ mod tests {
         // Check that we keep decreasing amplitude to zero, not to sustain.
         time_marker +=
             MusicalTime::new_with_fractional_beats(Envelope::from_normal_to_seconds(release).0);
-        let mut last_amplitude = envelope.value().0;
+        envelope.generate(&mut buffer);
+        let mut last_amplitude = buffer[0].0;
         let _amplitude = run_until(
             &mut envelope,
             &mut transport,
@@ -1952,11 +1939,24 @@ mod tests {
             .build()
             .unwrap();
         e.update_sample_rate(SampleRate::from(44100));
-        assert_eq!(e.value().0, 0.0);
-        assert_eq!(e.get_next_value().0, 0.0);
+
+        let mut buffer = [Normal::default(); 1];
+
+        e.generate(&mut buffer);
+        assert_eq!(
+            buffer[0],
+            Normal::minimum(),
+            "Envelope should be zero before initial attack"
+        );
 
         e.trigger_attack();
-        assert_eq!(e.get_next_value(), Normal::maximum());
+
+        e.generate(&mut buffer);
+        assert_eq!(
+            buffer[0],
+            Normal::maximum(),
+            "A zero-attack Envelope should reach full amplitude on first sample after attack"
+        );
     }
 
     impl SteppedEnvelopeStep {

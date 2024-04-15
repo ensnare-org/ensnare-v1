@@ -9,7 +9,7 @@
   then make time range a late-binding scalar.
   <https://github.com/sowbug/groove/issues/130>
 - For any given physical parameter, make sure it's correctly represented as
-  linear or logarithmic. <https://github.com/sowbug/groove/issues/44> 
+  linear or logarithmic. <https://github.com/sowbug/groove/issues/44>
 
 # Ideas
 
@@ -653,6 +653,7 @@ What's an element, what's an entity, what's entity infrastructure?
   the user typically won't have the option to mix and match them like Entities.
 
 Core crate ingredients:
+
 - All elements.
   - **core**
 - All entity infrastructure.
@@ -665,15 +666,17 @@ Core crate ingredients:
   - **entity-egui**
   
 Entities crate ingredients:
+
 - All "batteries included" entities.
   - **entities**
   - All their egui widgets.
   - **entities-egui**
 
 Still separate crates:
-  - **toys**
-  - **services**
-  - **proc-macros**
+
+- **toys**
+- **services**
+- **proc-macros**
 
 # 2024-03-05: signal generators
 
@@ -706,3 +709,17 @@ wonder whether it'd be better to develop a custom method that returns
 InnerResponse<T>. I suppose we'd lose the ability to `ui.add()` the Widget (in
 fact it wouldn't be a `Widget` anymore), but if they're returning custom
 actions, they weren't useful in the truly generic `Widget` sense anyway.
+
+# 2024-04-15: deprecation of Ticks
+
+Before the Ticks trait was deprecated and removed, I had assertions on the value
+of things like Envelope in various places like right after initialization but
+before calling tick(). Once I replaced Ticks with batch-only generation and lost
+the ability to query the value, I no longer had a way to ascertain the value for
+those kinds of assertions. This bugged me until I took a long walk and realized
+that the assertions didn't make sense in the first place. Digital audio
+(including digital signals) is fundamentally about taking discrete samples of a
+continuous signal. The values "between" those samples don't exist. Asserting an
+Envelope's value before the first sample pierces a veil of abstraction. It might
+be useful during debugging, but we shouldn't shape the trait's methods to allow
+it.

@@ -37,12 +37,6 @@ impl Generates<StereoSample> for ToyInstrumentCore {
     fn value(&self) -> StereoSample {
         self.e.sample
     }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        for value in values {
-            *value = self.get_next_value();
-        }
-    }
 }
 impl Configurable for ToyInstrumentCore {
     fn sample_rate(&self) -> SampleRate {

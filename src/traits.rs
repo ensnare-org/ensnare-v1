@@ -40,11 +40,11 @@ pub trait Generates<V: Default>: Send + core::fmt::Debug + Ticks {
     /// The batch version of value(). To deliver each value, this method will
     /// typically call tick() internally. If you don't want this, then call
     /// value() on your own.
-    fn generate(&mut self, values: &mut [V]) {}
-
-    fn get_next_value(&mut self) -> V {
-        self.tick(1);
-        self.value()
+    fn generate(&mut self, values: &mut [V]) {
+        for value in values {
+            self.tick(1);
+            *value = self.value();
+        }
     }
 }
 

@@ -75,12 +75,6 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
     fn value(&self) -> StereoSample {
         self.sample
     }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        for value in values {
-            *value = self.get_next_value();
-        }
-    }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoiceStore<V> {
     fn sample_rate(&self) -> SampleRate {
@@ -189,12 +183,6 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
     fn value(&self) -> StereoSample {
         self.sample
     }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        for v in values {
-            *v = self.get_next_value();
-        }
-    }
 }
 impl<V: IsStereoSampleVoice> Configurable for StealingVoiceStore<V> {
     fn sample_rate(&self) -> SampleRate {
@@ -289,13 +277,6 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
     fn value(&self) -> StereoSample {
         self.sample
-    }
-
-    #[allow(unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        for value in values {
-            *value = self.get_next_value();
-        }
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoicePerNoteStore<V> {
@@ -394,12 +375,6 @@ pub(crate) mod tests {
     impl Generates<StereoSample> for TestVoice {
         fn value(&self) -> StereoSample {
             self.sample
-        }
-
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            for value in values {
-                *value = self.get_next_value();
-            }
         }
     }
     impl Configurable for TestVoice {
