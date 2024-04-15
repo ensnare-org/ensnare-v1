@@ -75,9 +75,12 @@ impl<'a> eframe::egui::Widget for SubtractiveSynthWidget<'a> {
                         r
                     })
                     .reduce(|acc, r| acc | r)
-                    .unwrap()
             });
-        let mut response = response.inner.unwrap_or(response.response);
+        let mut response = if let Some(Some(r)) = response.inner {
+            r
+        } else {
+            response.response
+        };
 
         response |= CollapsingHeader::new("Oscillator 1")
             .default_open(true)
