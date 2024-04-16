@@ -97,7 +97,8 @@ impl Generates<StereoSample> for FmVoice {
             }
         }
         self.sample = if self.is_playing() {
-            self.dca.transform_audio_to_stereo(Sample::from(r))
+            self.dca
+                .transform_audio_to_stereo_non_batch(Sample::from(r))
         } else {
             StereoSample::SILENCE
         };

@@ -34,18 +34,15 @@ pub struct ToyInstrumentCore {
     e: ToyInstrumentEphemerals,
 }
 impl Generates<StereoSample> for ToyInstrumentCore {
-    fn value(&self) -> StereoSample {
-        self.e.sample
-    }
-
-    fn temp_work(&mut self, tick_count: usize) {
-        self.oscillator.temp_work(tick_count);
-        self.e.sample = if self.e.is_playing {
-            self.dca
-                .transform_audio_to_stereo(Sample::from(self.oscillator.value()))
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        let mut mono = Vec::with_capacity(values.len());
+        mono.resize(mono.capacity(), Default::default());
+        self.oscillator.generate(&mut mono);
+        if self.e.is_playing {
+            self.dca.transform_audio_to_stereo_batch(mono, values);
         } else {
-            StereoSample::SILENCE
-        };
+            values.fill(StereoSample::SILENCE);
+        }
     }
 }
 impl Configurable for ToyInstrumentCore {
@@ -99,4 +96,25 @@ impl ToyInstrumentCore {
     }
 
     pub fn notify_change_dca(&mut self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toy_instrument_works() {
+        let mut instrument = ToyInstrumentCore::default();
+        let mut buffer = [StereoSample::default(); 1];
+
+        instrument.generate(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::SILENCE);
+
+        instrument.handle_midi_message(
+            MidiChannel::default(),MidiMessage::
+            MidiMessage::NoteOn { key: 60, vel: 127 },
+            &mut |_, _| {},
+        );
+        assert_eq!(buffer[0], StereoSample::SILENCE);
+    }
 }

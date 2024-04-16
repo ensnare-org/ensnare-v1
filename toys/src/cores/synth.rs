@@ -37,21 +37,38 @@ impl PlaysNotes for ToyVoice {
 }
 impl Generates<StereoSample> for ToyVoice {
     fn value(&self) -> StereoSample {
-        self.value
+        panic!()
     }
 
-    #[allow(unused_variables)]
     fn generate(&mut self, values: &mut [StereoSample]) {
-        todo!()
+        let mut osc_values = Vec::with_capacity(values.len());
+        osc_values.resize(values.len(), BipolarNormal::default());
+        self.oscillator.generate(&mut osc_values);
+        let mut env_values = Vec::with_capacity(values.len());
+        env_values.resize(values.len(), Normal::default());
+        self.envelope.generate(&mut env_values);
+
+        let mut mono_values = Vec::with_capacity(values.len());
+        mono_values.resize(values.len(), Sample::default());
+
+        mono_values
+            .iter_mut()
+            .zip(osc_values.iter())
+            .zip(env_values.iter())
+            .for_each(|((dst, osc), env)| {
+                *dst = (*osc * *env).into();
+            });
+        self.dca
+            .transform_audio_to_stereo_batch(&mut mono_values, values);
     }
 
-    fn temp_work(&mut self, tick_count: usize) {
-        self.oscillator.temp_work(tick_count);
-        self.envelope.temp_work(tick_count);
-        self.value = self
-            .dca
-            .transform_audio_to_stereo((self.oscillator.value() * self.envelope.value()).into());
-    }
+    // fn temp_work(&mut self, tick_count: usize) {
+    //     self.oscillator.temp_work(tick_count);
+    //     self.envelope.temp_work(tick_count);
+    //     self.value = self.dca.transform_audio_to_stereo_non_batch(
+    //         (self.oscillator.value() * self.envelope.value()).into(),
+    //     );
+    // }
 }
 impl Configurable for ToyVoice {
     fn sample_rate(&self) -> SampleRate {

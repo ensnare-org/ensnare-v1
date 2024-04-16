@@ -182,7 +182,7 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
                     });
 
                 // Final
-                self.dca.transform_audio_to_stereo(Sample(
+                self.dca.transform_audio_to_stereo_non_batch(Sample(
                     filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
                 ))
             } else {

@@ -69,7 +69,6 @@ mod grid;
 mod indicators;
 mod instruments;
 mod legend;
-mod midi;
 mod misc;
 mod modulators;
 mod placeholders;

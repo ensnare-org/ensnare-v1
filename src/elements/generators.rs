@@ -156,8 +156,8 @@ impl Generates<BipolarNormal> for Oscillator {
         self.e.signal
     }
 
-    fn temp_work(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
+    fn generate(&mut self, values: &mut [BipolarNormal]) {
+        for value in values {
             if self.e.reset_pending {
                 self.e.ticks = 0; // TODO: this might not be the right thing to do
 
@@ -169,7 +169,7 @@ impl Generates<BipolarNormal> for Oscillator {
             }
             let cycle_position = self.calculate_cycle_position();
             let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
-            self.e.signal = BipolarNormal::from(amplitude_for_position);
+            *value = BipolarNormal::from(amplitude_for_position);
             self.e.reset_pending = false;
         }
     }

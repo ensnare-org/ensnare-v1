@@ -31,19 +31,13 @@ use strum_macros::Display;
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
 pub trait Generates<V: Default>: Send + core::fmt::Debug + Configurable {
-    /// The value for the current frame. Advance the frame by calling
-    /// [temp_work()].
-    fn value(&self) -> V {
-        V::default()
-    }
-
     /// The batch version of value(). To deliver each value, this method will
     /// typically call temp_work() internally. If you don't want this, then call
     /// value() on your own.
     fn generate(&mut self, values: &mut [V]) {
         for value in values {
             self.temp_work(1);
-            *value = self.value();
+           // *value = self.value();
         }
     }
 
