@@ -28,7 +28,6 @@ pub struct ToyController {
     inner: ToyControllerCore,
 }
 impl Generates<StereoSample> for ToyController {}
-impl Ticks for ToyController {}
 impl TransformsAudio for ToyController {}
 impl Displays for ToyController {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {

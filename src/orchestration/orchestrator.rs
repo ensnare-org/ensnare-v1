@@ -217,7 +217,6 @@ impl Generates<StereoSample> for Orchestrator {
             });
     }
 }
-impl Ticks for Orchestrator {}
 impl Configurable for Orchestrator {
     fn sample_rate(&self) -> SampleRate {
         self.entity_repo.sample_rate()

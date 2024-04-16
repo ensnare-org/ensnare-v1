@@ -44,11 +44,10 @@ impl Generates<StereoSample> for ToyVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
         todo!()
     }
-}
-impl Ticks for ToyVoice {
-    fn tick(&mut self, tick_count: usize) {
-        self.oscillator.tick(tick_count);
-        self.envelope.tick(tick_count);
+
+    fn temp_work(&mut self, tick_count: usize) {
+        self.oscillator.temp_work(tick_count);
+        self.envelope.temp_work(tick_count);
         self.value = self
             .dca
             .transform_audio_to_stereo((self.oscillator.value() * self.envelope.value()).into());
@@ -111,13 +110,6 @@ impl HandlesMidi for ToySynthCore {
                 message: MidiMessage,
                 midi_messages_fn: &mut MidiMessagesFn,
             );
-        }
-    }
-}
-impl Ticks for ToySynthCore {
-    delegate! {
-        to self.inner {
-            fn tick(&mut self, tick_count: usize);
         }
     }
 }

@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
     Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(Controls, GeneratesStereoSample, Serializable, Ticks, TransformsAudio)]
+#[entity(Controls, GeneratesStereoSample, Serializable, TransformsAudio)]
 pub struct Arpeggiator {
     uid: Uid,
     inner: ArpeggiatorCore,
@@ -50,7 +50,7 @@ impl Arpeggiator {
     Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, TransformsAudio)]
 pub struct LfoController {
     uid: Uid,
     inner: LfoControllerCore,
@@ -75,7 +75,7 @@ impl LfoController {
     Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(GeneratesStereoSample, Ticks)]
+#[entity(GeneratesStereoSample)]
 pub struct SignalPassthroughController {
     uid: Uid,
     inner: SignalPassthroughControllerCore,
@@ -122,7 +122,7 @@ impl SignalPassthroughController {
     Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, TransformsAudio)]
 pub struct Timer {
     uid: Uid,
     inner: TimerCore,
@@ -149,7 +149,7 @@ impl Timer {
     Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
-#[entity(GeneratesStereoSample, Ticks, TransformsAudio)]
+#[entity(GeneratesStereoSample, TransformsAudio)]
 pub struct Trigger {
     uid: Uid,
     inner: TriggerCore,

@@ -76,31 +76,20 @@ impl Generates<StereoSample> for FmVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
         todo!()
     }
-}
-impl Serializable for FmVoice {}
-impl Configurable for FmVoice {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.sample_rate = sample_rate;
-        self.carrier_envelope.update_sample_rate(sample_rate);
-        self.modulator_envelope.update_sample_rate(sample_rate);
-        self.carrier.update_sample_rate(sample_rate);
-        self.modulator.update_sample_rate(sample_rate);
-    }
-}
-impl Ticks for FmVoice {
-    fn tick(&mut self, tick_count: usize) {
+
+    fn temp_work(&mut self, count: usize) {
         let mut r = BipolarNormal::from(0.0);
-        for _ in 0..tick_count {
+        for _ in 0..count {
             if self.is_playing() {
                 let modulator_magnitude =
                     self.modulator.value() * self.modulator_envelope.value() * self.depth;
                 self.carrier
                     .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
                 r = self.carrier.value() * self.carrier_envelope.value();
-                self.carrier_envelope.tick(tick_count);
-                self.modulator_envelope.tick(tick_count);
-                self.carrier.tick(tick_count);
-                self.modulator.tick(tick_count);
+                self.carrier_envelope.temp_work(count);
+                self.modulator_envelope.temp_work(count);
+                self.carrier.temp_work(count);
+                self.modulator.temp_work(count);
                 if !self.is_playing() && self.steal_is_underway {
                     self.steal_is_underway = false;
                     self.note_on(self.note_on_key, self.note_on_velocity);
@@ -112,6 +101,16 @@ impl Ticks for FmVoice {
         } else {
             StereoSample::SILENCE
         };
+    }
+}
+impl Serializable for FmVoice {}
+impl Configurable for FmVoice {
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.sample_rate = sample_rate;
+        self.carrier_envelope.update_sample_rate(sample_rate);
+        self.modulator_envelope.update_sample_rate(sample_rate);
+        self.carrier.update_sample_rate(sample_rate);
+        self.modulator.update_sample_rate(sample_rate);
     }
 }
 impl FmVoice {
@@ -248,6 +247,10 @@ impl Generates<StereoSample> for FmSynthCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner.generate(values);
     }
+
+    fn temp_work(&mut self, count: usize) {
+        self.inner.temp_work(count)
+    }
 }
 impl Serializable for FmSynthCore {
     fn before_ser(&mut self) {}
@@ -274,13 +277,6 @@ impl Configurable for FmSynthCore {
             fn update_tempo(&mut self, tempo: Tempo);
             fn time_signature(&self) -> TimeSignature;
             fn update_time_signature(&mut self, time_signature: TimeSignature);
-        }
-    }
-}
-impl Ticks for FmSynthCore {
-    delegate! {
-        to self.inner {
-            fn tick(&mut self, tick_count: usize);
         }
     }
 }

@@ -21,7 +21,6 @@ pub struct TestAudioSourceCore {
     #[builder(setter(skip))]
     c: Configurables,
 }
-impl Ticks for TestAudioSourceCore {}
 impl Generates<StereoSample> for TestAudioSourceCore {
     fn value(&self) -> StereoSample {
         StereoSample::from(self.level)
@@ -30,6 +29,8 @@ impl Generates<StereoSample> for TestAudioSourceCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(self.value());
     }
+
+    fn temp_work(&mut self, tick_count: usize) {}
 }
 impl Configurable for TestAudioSourceCore {
     delegate! {

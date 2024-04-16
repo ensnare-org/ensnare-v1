@@ -120,7 +120,7 @@ pub struct OscillatorEphemerals {
     #[derivative(Default(value = "0xe1e9f0a7"))]
     noise_x2: u32,
 
-    /// The internal clock. Advances once per tick().
+    /// The internal clock. Advances once per sample.
     ///
     ticks: usize,
 
@@ -138,7 +138,7 @@ pub struct OscillatorEphemerals {
     delta_updated: bool,
 
     // Whether this oscillator's owner should sync other oscillators to this
-    // one. Calculated during tick().
+    // one. Calculated during generate().
     should_sync: bool,
 
     // If this is a synced oscillator, then whether we should reset our waveform
@@ -154,6 +154,24 @@ pub struct OscillatorEphemerals {
 impl Generates<BipolarNormal> for Oscillator {
     fn value(&self) -> BipolarNormal {
         self.e.signal
+    }
+
+    fn temp_work(&mut self, tick_count: usize) {
+        for _ in 0..tick_count {
+            if self.e.reset_pending {
+                self.e.ticks = 0; // TODO: this might not be the right thing to do
+
+                self.update_delta();
+                self.e.cycle_position =
+                    KahanSum::new_with_value((self.e.delta * self.e.ticks as f64).fract());
+            } else {
+                self.e.ticks += 1;
+            }
+            let cycle_position = self.calculate_cycle_position();
+            let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
+            self.e.signal = BipolarNormal::from(amplitude_for_position);
+            self.e.reset_pending = false;
+        }
     }
 }
 impl Configurable for Oscillator {
@@ -174,25 +192,6 @@ impl Configurable for Oscillator {
 
     fn reset(&mut self) {
         self.e.reset_pending = true;
-    }
-}
-impl Ticks for Oscillator {
-    fn tick(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
-            if self.e.reset_pending {
-                self.e.ticks = 0; // TODO: this might not be the right thing to do
-
-                self.update_delta();
-                self.e.cycle_position =
-                    KahanSum::new_with_value((self.e.delta * self.e.ticks as f64).fract());
-            } else {
-                self.e.ticks += 1;
-            }
-            let cycle_position = self.calculate_cycle_position();
-            let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
-            self.e.signal = BipolarNormal::from(amplitude_for_position);
-            self.e.reset_pending = false;
-        }
     }
 }
 impl Oscillator {
@@ -297,8 +296,8 @@ impl Oscillator {
         };
 
         self.e.should_sync = if self.e.reset_pending {
-            // If we're in the first post-reset tick(), then we want other
-            // oscillators to sync.
+            // If we're in the first post-reset sample generation, then we want
+            // other oscillators to sync.
             true
         } else if next_cycle_position_unrounded > 0.999999999999 {
             // This special case is to deal with an FP precision issue that was
@@ -482,19 +481,8 @@ impl Generates<Normal> for Envelope {
     fn value(&self) -> Normal {
         Normal::new(self.e.corrected_amplitude)
     }
-}
-impl Configurable for Envelope {
-    fn sample_rate(&self) -> SampleRate {
-        self.e.sample_rate
-    }
 
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.e.sample_rate = sample_rate;
-        self.e.handled_first_tick = false;
-    }
-}
-impl Ticks for Envelope {
-    fn tick(&mut self, tick_count: usize) {
+    fn temp_work(&mut self, tick_count: usize) {
         // TODO: same comment as above about not yet taking advantage of
         // batching
         for _ in 0..tick_count {
@@ -521,6 +509,16 @@ impl Ticks for Envelope {
                 _ => linear_amplitude,
             };
         }
+    }
+}
+impl Configurable for Envelope {
+    fn sample_rate(&self) -> SampleRate {
+        self.e.sample_rate
+    }
+
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.e.sample_rate = sample_rate;
+        self.e.handled_first_tick = false;
     }
 }
 impl Envelope {
@@ -782,13 +780,9 @@ impl Envelope {
 
     /// The current value of the envelope generator. Note that this value is
     /// often not the one you want if you really care about getting the
-    /// amplitude at specific interesting time points in the envelope's
-    /// lifecycle. If you call it before the current time slice's tick(), then
-    /// you get the value before any pending events (which is probably bad), and
-    /// if you call it after the tick(), then you get the value for the *next*
-    /// time slice (which is probably bad). It's better to use the value
-    /// returned by tick(), which is in between pending events but after
-    /// updating for the time slice.
+    /// amplitude at real sample points in the envelope's lifecycle. Its value
+    /// is not specified for points other than samples. TODO: remove this if we
+    /// can.
     #[allow(dead_code)]
     fn debug_amplitude(&self) -> Normal {
         Normal::new(self.e.uncorrected_amplitude.sum())
@@ -927,18 +921,6 @@ mod tests {
     use std::{env::current_dir, fs, path::PathBuf};
 
     const SAMPLE_BUFFER_SIZE: usize = 64;
-
-    pub trait DebugTicks: Ticks {
-        fn debug_tick_until(&mut self, tick_number: usize);
-    }
-
-    impl DebugTicks for Oscillator {
-        fn debug_tick_until(&mut self, tick_number: usize) {
-            if self.e.ticks < tick_number {
-                self.tick(tick_number - self.e.ticks);
-            }
-        }
-    }
 
     impl SteppedEnvelope {
         #[allow(dead_code)]
@@ -1312,13 +1294,13 @@ mod tests {
 
     #[test]
     fn oscillator_cycle_restarts_on_time() {
+        const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
         let mut oscillator = OscillatorBuilder::default()
             .waveform(Waveform::Sine)
+            .frequency(FREQUENCY)
             .build()
             .unwrap();
 
-        const FREQUENCY: FrequencyHz = FrequencyHz(2.0);
-        oscillator.set_frequency(FREQUENCY);
         oscillator.update_sample_rate(SampleRate::DEFAULT);
 
         const TICKS_IN_CYCLE: usize = SampleRate::DEFAULT_SAMPLE_RATE / 2; // That 2 is FREQUENCY
@@ -1333,6 +1315,7 @@ mod tests {
         // Now run through and see that we're flagging cycle start at the right
         // time. Note the = in the for loop range; we're expecting a flag at the
         // zeroth sample of each cycle.
+        let mut buffer = [BipolarNormal::default(); 1];
         for tick in 0..=TICKS_IN_CYCLE {
             let expected = match tick {
                 0 => true,              // zeroth sample of first cycle
@@ -1340,7 +1323,7 @@ mod tests {
                 _ => false,
             };
 
-            oscillator.tick(1);
+            oscillator.generate(&mut buffer);
             assert_eq!(
                 oscillator.should_sync(),
                 expected,
@@ -1348,9 +1331,7 @@ mod tests {
             );
         }
 
-        // Let's try again after rewinding the clock. It should recognize
-        // something happened and restart the cycle.
-        oscillator.tick(1);
+        oscillator.generate(&mut buffer);
         assert!(
             !oscillator.should_sync(),
             "Oscillator shouldn't sync midway through cycle."
@@ -1364,12 +1345,12 @@ mod tests {
         // shift, so it's OK to have the wrong timbre for a tiny fraction of a
         // second.
         oscillator.update_sample_rate(SampleRate::DEFAULT);
-        oscillator.tick(1);
+        oscillator.generate(&mut buffer);
         assert!(
             oscillator.should_sync(),
             "After reset, oscillator should sync."
         );
-        oscillator.tick(1);
+        oscillator.generate(&mut buffer);
         assert!(
             !oscillator.should_sync(),
             "Oscillator shouldn't sync twice when syncing after reset."
@@ -1380,7 +1361,7 @@ mod tests {
         oscillator.update_sample_rate(SampleRate::DEFAULT);
         let mut cycles = 0;
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            oscillator.tick(1);
+            oscillator.generate(&mut buffer);
             if oscillator.should_sync() {
                 cycles += 1;
             }
@@ -1409,12 +1390,12 @@ mod tests {
 
         assert!(e.is_idle(), "Envelope should be idle on creation.");
 
-        e.tick(1);
+        let mut buffer = [Normal::default(); 1];
+        e.generate(&mut buffer);
         transport.advance(1);
         assert!(e.is_idle(), "Untriggered envelope should remain idle.");
         assert_eq!(
-            e.value().0,
-            0.0,
+            buffer[0].0, 0.0,
             "Untriggered envelope should remain amplitude zero."
         );
     }
@@ -1452,7 +1433,9 @@ mod tests {
         e.update_sample_rate(SampleRate::DEFAULT);
 
         e.trigger_attack();
-        e.tick(1);
+
+        let mut buffer = [Normal::default(); 1];
+        e.generate(&mut buffer);
         transport.advance(1);
         assert!(
             !e.is_idle(),
@@ -1464,12 +1447,11 @@ mod tests {
         // a bit of time before they are apparent. I'm not sure whether this is
         // a good thing; it objectively makes attack laggy (in this case 16
         // samples late!).
-        for _ in 0..17 {
-            e.tick(1);
-            transport.advance(1);
-        }
+        let mut buffer = [Normal::default(); 16 + 1];
+        e.generate(&mut buffer);
+        transport.advance(buffer.len());
         assert_gt!(
-            e.value().0,
+            buffer.last().unwrap().0,
             0.0,
             "Envelope amplitude should increase immediately upon trigger"
         );
@@ -1511,7 +1493,8 @@ mod tests {
         );
         let mut last_amplitude = envelope.value();
 
-        envelope.tick(1);
+        let mut buffer = [Normal::default(); 1];
+        envelope.generate(&mut buffer);
 
         let amplitude = run_until(
             &mut envelope,
@@ -1579,7 +1562,8 @@ mod tests {
             .unwrap();
 
         envelope.trigger_attack();
-        envelope.tick(1);
+        let mut buffer = [Normal::default(); 1];
+        envelope.generate(&mut buffer);
         let mut time_marker = transport.current_time()
             + MusicalTime::new_with_fractional_beats(
                 Envelope::from_normal_to_seconds(attack).0 + expected_decay_time(decay, SUSTAIN).0,

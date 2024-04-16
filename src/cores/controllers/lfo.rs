@@ -72,7 +72,7 @@ impl Controls for LfoControllerCore {
                 0
             };
             self.e.last_frame += tick_count;
-            self.oscillator.tick(tick_count);
+            self.oscillator.temp_work(tick_count);
         }
         control_events_fn(WorkEvent::Control(self.oscillator.value().into()));
     }

@@ -13,23 +13,18 @@ mod synth;
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use ensnare::{
-        traits::{Generates, Ticks},
-        util::Rng,
-    };
+    use ensnare::{traits::Generates, types::StereoSample, util::Rng};
 
     // TODO: restore tests that test basic trait behavior, then figure out how
-    // to run everyone implementing those traits through that behavior. For now,
-    // this one just tests that a generic instrument doesn't panic when accessed
-    // for non-consecutive time slices.
+    // to run everyone implementing those traits through that behavior.
     #[test]
-    fn sources_audio_random_access() {
+    fn generates_audio() {
         let mut instrument = instruments::ToyInstrumentCore::default();
         let mut rng = Rng::default();
 
+        let mut buffer = [StereoSample::default(); 7];
         for _ in 0..100 {
-            instrument.tick(rng.rand_range(1..10) as usize);
-            let _ = instrument.value();
+            instrument.generate(&mut buffer);
         }
     }
 }

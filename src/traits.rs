@@ -12,7 +12,7 @@ pub mod prelude {
         Controllable, Controls, ControlsAsProxy, DisplaysAction, EntityBounds, Generates,
         GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
         IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
-        Ticks, TransformsAudio, WorkEvent,
+        TransformsAudio, WorkEvent,
     };
 }
 
@@ -30,22 +30,25 @@ use strum_macros::Display;
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
-pub trait Generates<V: Default>: Send + core::fmt::Debug + Ticks {
+pub trait Generates<V: Default>: Send + core::fmt::Debug + Configurable {
     /// The value for the current frame. Advance the frame by calling
-    /// [Ticks::tick()].
+    /// [temp_work()].
     fn value(&self) -> V {
         V::default()
     }
 
     /// The batch version of value(). To deliver each value, this method will
-    /// typically call tick() internally. If you don't want this, then call
+    /// typically call temp_work() internally. If you don't want this, then call
     /// value() on your own.
     fn generate(&mut self, values: &mut [V]) {
         for value in values {
-            self.tick(1);
+            self.temp_work(1);
             *value = self.value();
         }
     }
+
+    /// Temp: migrate from Ticks
+    fn temp_work(&mut self, tick_count: usize) {}
 }
 
 /// A convenience struct for the fields implied by [Configurable]. Note that
@@ -125,7 +128,7 @@ pub trait Configurable {
 
 /// A way for an [Entity] to do work corresponding to one or more frames.
 #[deprecated = "TODO: batch"]
-pub trait Ticks: Configurable + Send + core::fmt::Debug {
+pub trait XXTicks: Configurable + Send + core::fmt::Debug {
     /// The entity should perform work for the current frame or frames. Under
     /// normal circumstances, successive tick()s represent successive frames.
     /// Exceptions include, for example, restarting a performance, which would

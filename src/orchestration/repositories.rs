@@ -297,11 +297,11 @@ impl Configurable for EntityRepository {
         self.entities.values_mut().for_each(|e| e.reset());
     }
 }
-impl Ticks for EntityRepository {
-    fn tick(&mut self, tick_count: usize) {
-        self.entities.values_mut().for_each(|e| e.tick(tick_count));
-    }
-}
+// impl Ticks for EntityRepository {
+//     fn tick(&mut self, tick_count: usize) {
+//         self.entities.values_mut().for_each(|e| e.tick(tick_count));
+//     }
+// }
 impl Serializable for EntityRepository {
     fn before_ser(&mut self) {
         self.entities.values_mut().for_each(|e| e.before_ser());

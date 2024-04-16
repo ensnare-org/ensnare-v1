@@ -15,7 +15,6 @@ use std::sync::{Arc, Mutex};
     HandlesMidi,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 
@@ -59,7 +58,6 @@ impl Generates<StereoSample> for TestInstrument {
     Displays,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 #[serde(rename_all = "kebab-case")]

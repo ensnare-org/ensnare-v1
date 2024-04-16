@@ -96,21 +96,7 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
     fn generate(&mut self, _samples: &mut [StereoSample]) {
         todo!()
     }
-}
-impl Serializable for SubtractiveSynthVoice {}
-impl Configurable for SubtractiveSynthVoice {
-    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.ticks = 0;
-        self.lfo.update_sample_rate(sample_rate);
-        self.amp_envelope.update_sample_rate(sample_rate);
-        self.filter_envelope.update_sample_rate(sample_rate);
-        self.filter.update_sample_rate(sample_rate);
-        self.oscillator_1.update_sample_rate(sample_rate);
-        self.oscillator_2.update_sample_rate(sample_rate);
-    }
-}
-impl Ticks for SubtractiveSynthVoice {
-    fn tick(&mut self, tick_count: usize) {
+    fn temp_work(&mut self, tick_count: usize) {
         for _ in 0..tick_count {
             self.ticks += 1;
             // It's important for the envelope tick() methods to be called after
@@ -134,10 +120,10 @@ impl Ticks for SubtractiveSynthVoice {
                 // entities stay in sync, but skipping any real work that would
                 // cost time.
                 if !matches!(self.lfo_routing, LfoRouting::None) {
-                    self.lfo.tick(1);
+                    self.lfo.temp_work(1);
                 }
-                self.oscillator_1.tick(1);
-                self.oscillator_2.tick(1);
+                self.oscillator_1.temp_work(1);
+                self.oscillator_2.temp_work(1);
 
                 // LFO
                 let lfo = self.lfo.value();
@@ -205,6 +191,18 @@ impl Ticks for SubtractiveSynthVoice {
         }
     }
 }
+impl Serializable for SubtractiveSynthVoice {}
+impl Configurable for SubtractiveSynthVoice {
+    fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+        self.ticks = 0;
+        self.lfo.update_sample_rate(sample_rate);
+        self.amp_envelope.update_sample_rate(sample_rate);
+        self.filter_envelope.update_sample_rate(sample_rate);
+        self.filter.update_sample_rate(sample_rate);
+        self.oscillator_1.update_sample_rate(sample_rate);
+        self.oscillator_2.update_sample_rate(sample_rate);
+    }
+}
 impl SubtractiveSynthVoice {
     pub fn new_with(
         oscillator_1: &Oscillator,
@@ -245,8 +243,8 @@ impl SubtractiveSynthVoice {
 
     fn tick_envelopes(&mut self) -> (Normal, Normal) {
         if self.is_playing() {
-            self.amp_envelope.tick(1);
-            self.filter_envelope.tick(1);
+            self.amp_envelope.temp_work(1);
+            self.filter_envelope.temp_work(1);
             if self.is_playing() {
                 return (self.amp_envelope.value(), self.filter_envelope.value());
             }
@@ -442,9 +440,11 @@ impl Generates<StereoSample> for SubtractiveSynthCore {
     fn value(&self) -> StereoSample {
         self.inner.value()
     }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner.generate(values);
+    }
+    fn temp_work(&mut self, tick_count: usize) {
+        self.inner.temp_work(tick_count)
     }
 }
 impl Serializable for SubtractiveSynthCore {
@@ -465,11 +465,6 @@ impl Configurable for SubtractiveSynthCore {
             fn time_signature(&self) -> TimeSignature;
             fn update_time_signature(&mut self, time_signature: TimeSignature);
         }
-    }
-}
-impl Ticks for SubtractiveSynthCore {
-    fn tick(&mut self, tick_count: usize) {
-        self.inner.tick(tick_count);
     }
 }
 impl HandlesMidi for SubtractiveSynthCore {
@@ -624,11 +619,11 @@ mod tests {
                 voice.tick_envelopes();
             }
 
-            voice.tick(1);
+            voice.temp_work(1);
             let sample = voice.value();
             let _ = writer.write_sample((sample.0 .0 * AMPLITUDE) as i16);
             let _ = writer.write_sample((sample.1 .0 * AMPLITUDE) as i16);
-            clock.tick(1);
+            clock.temp_work(1);
         }
     }
 }

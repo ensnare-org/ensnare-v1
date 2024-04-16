@@ -522,11 +522,6 @@ impl HandlesMidi for Calculator {
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
-impl Ticks for Calculator {
-    fn tick(&mut self, tick_count: usize) {
-        self.e.inner_synth.tick(tick_count);
-    }
-}
 impl Controls for Calculator {
     fn update_time_range(&mut self, range: &TimeRange) {
         self.e.range = range.clone();
@@ -598,6 +593,10 @@ impl Generates<StereoSample> for Calculator {
 
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.e.inner_synth.generate(values);
+    }
+
+    fn temp_work(&mut self, tick_count: usize) {
+        self.e.inner_synth.temp_work(tick_count);
     }
 }
 impl Calculator {

@@ -177,12 +177,6 @@ mod tests {
             todo!()
         }
     }
-    impl Ticks for TestHandlesMidi {
-        #[allow(unused_variables)]
-        fn tick(&mut self, tick_count: usize) {
-            todo!()
-        }
-    }
 
     #[test]
     fn midi_router_routes_to_correct_channels() {

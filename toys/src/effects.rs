@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls)]
 pub struct ToyEffect {
     uid: Uid,
     inner: ToyEffectCore,

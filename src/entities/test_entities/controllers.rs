@@ -19,7 +19,6 @@ use serde::{Deserialize, Serialize};
     HandlesMidi,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 pub struct TestController {
@@ -44,7 +43,7 @@ impl TestController {
     Serialize,
     Deserialize,
 )]
-#[entity(Displays, GeneratesStereoSample, SkipInner, Ticks, TransformsAudio)]
+#[entity(Displays, GeneratesStereoSample, SkipInner, TransformsAudio)]
 pub struct TestControllerAlwaysSendsMidiMessage {
     uid: Uid,
     #[serde(skip)]

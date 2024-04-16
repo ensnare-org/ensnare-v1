@@ -53,6 +53,13 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
             }
         }
     }
+
+    fn temp_work(&mut self, tick_count: usize) {
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.temp_work(tick_count);
+        }
+        self.ticks_since_last_midi_input += tick_count;
+    }
 }
 impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
     delegate! {
@@ -82,14 +89,6 @@ impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
         if let Some(vs) = self.voice_store.as_mut() {
             vs.update_time_signature(time_signature);
         }
-    }
-}
-impl<V: IsStereoSampleVoice> Ticks for Synthesizer<V> {
-    fn tick(&mut self, tick_count: usize) {
-        if let Some(vs) = self.voice_store.as_mut() {
-            vs.tick(tick_count);
-        }
-        self.ticks_since_last_midi_input += tick_count;
     }
 }
 #[allow(missing_docs)]
@@ -234,6 +233,10 @@ mod tests {
         fn generate(&mut self, values: &mut [StereoSample]) {
             self.inner_synth.generate(values)
         }
+
+        fn temp_work(&mut self, tick_count: usize) {
+            self.inner_synth.temp_work(tick_count);
+        }
     }
     impl Configurable for TestSynthesizer {
         fn sample_rate(&self) -> SampleRate {
@@ -242,11 +245,6 @@ mod tests {
 
         fn update_sample_rate(&mut self, sample_rate: SampleRate) {
             self.inner_synth.update_sample_rate(sample_rate);
-        }
-    }
-    impl Ticks for TestSynthesizer {
-        fn tick(&mut self, tick_count: usize) {
-            self.inner_synth.tick(tick_count);
         }
     }
     impl Default for TestSynthesizer {

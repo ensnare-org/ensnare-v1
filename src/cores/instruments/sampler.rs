@@ -69,10 +69,9 @@ impl Generates<StereoSample> for SamplerVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
         todo!()
     }
-}
-impl Ticks for SamplerVoice {
-    fn tick(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
+
+    fn temp_work(&mut self, count: usize) {
+        for _ in 0..count {
             if self.is_playing {
                 if !self.was_reset {
                     self.sample_pointer += self.sample_pointer_delta;
@@ -166,10 +165,9 @@ impl Generates<StereoSample> for SamplerCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.e.inner.generate(values);
     }
-}
-impl Ticks for SamplerCore {
-    fn tick(&mut self, tick_count: usize) {
-        self.e.inner.tick(tick_count)
+
+    fn temp_work(&mut self, count: usize) {
+        self.e.inner.temp_work(count)
     }
 }
 impl Serializable for SamplerCore {}
@@ -506,7 +504,7 @@ mod tests {
         voice.note_on(1.into(), 127.into());
 
         // Skip a few frames in case attack is slow
-        voice.tick(5);
+        voice.temp_work(5);
         assert!(
             voice.value() != StereoSample::SILENCE,
             "once triggered, SamplerVoice should make a sound"
