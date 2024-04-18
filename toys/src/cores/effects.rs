@@ -62,5 +62,10 @@ impl Configurable for ToyEffectCore {
         self.time_signature = time_signature;
     }
 }
+impl Generates<StereoSample> for ToyEffectCore {
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        todo!()
+    }
+}
 impl Serializable for ToyEffectCore {}
 impl HandlesMidi for ToyEffectCore {}

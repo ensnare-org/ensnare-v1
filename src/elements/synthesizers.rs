@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::InternalBuffer};
 use delegate::delegate;
 use serde::{Deserialize, Serialize};
 
@@ -34,31 +34,51 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
 
     #[serde(skip)]
     c: Configurables,
+
+    // Placeholder for case where there isn't a voice store
+    #[serde(skip)]
+    phantom_g: InternalBuffer<StereoSample>,
+}
+impl<V: IsStereoSampleVoice> BuffersInternally<StereoSample> for Synthesizer<V> {
+    fn buffer_size(&self) -> usize {
+        if let Some(vs) = self.voice_store.as_ref() {
+            vs.buffer_size()
+        } else {
+            0
+        }
+    }
+    fn set_buffer_size(&mut self, size: usize) {
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.set_buffer_size(size);
+        }
+    }
+    fn buffer(&self) -> &[StereoSample] {
+        if let Some(vs) = self.voice_store.as_ref() {
+            vs.buffer()
+        } else {
+            self.phantom_g.buffer()
+        }
+    }
+    fn buffer_mut(&mut self) -> &mut [StereoSample] {
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.buffer_mut()
+        } else {
+            self.phantom_g.buffer_mut()
+        }
+    }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
-    fn value(&self) -> StereoSample {
-        if let Some(vs) = &self.voice_store {
-            vs.value()
-        } else {
-            StereoSample::default()
-        }
-    }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self) {
         if let Some(vs) = self.voice_store.as_mut() {
-            vs.generate(values);
-        } else {
-            for v in values {
-                *v = StereoSample::default()
-            }
-        }
-    }
+            vs.generate();
 
-    fn temp_work(&mut self, tick_count: usize) {
-        if let Some(vs) = self.voice_store.as_mut() {
-            vs.temp_work(tick_count);
+            // TODO: before Ticks deprecation, the caller specified the buffer
+            // size, from which we could derive the number of frames. Now we
+            // need the voice store to know it. I think that only degenerate
+            // cases are missing the voice store, but in case of weird bugs,
+            // this change might be related.
+            self.ticks_since_last_midi_input += vs.buffer_size();
         }
-        self.ticks_since_last_midi_input += tick_count;
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
@@ -102,6 +122,7 @@ impl<V: IsStereoSampleVoice> Synthesizer<V> {
             gain: Default::default(),
             pan: Default::default(),
             ticks_since_last_midi_input: Default::default(),
+            phantom_g: Default::default(),
         }
     }
 
@@ -117,7 +138,7 @@ impl<V: IsStereoSampleVoice> Synthesizer<V> {
         if let Some(vs) = self.voice_store.as_mut() {
             vs.voices_mut()
         } else {
-            eprintln!("TODO: this is horribly lame");
+            // TODO: ick, wasteful allocation
             Box::new(std::iter::empty())
         }
     }
@@ -226,16 +247,14 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for TestSynthesizer {
-        fn value(&self) -> StereoSample {
-            self.inner_synth.value()
-        }
-
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            self.inner_synth.generate(values)
-        }
-
-        fn temp_work(&mut self, tick_count: usize) {
-            self.inner_synth.temp_work(tick_count);
+        delegate! {
+            to self.inner_synth {
+                fn generates_buffer_size(&self) -> usize;
+                fn set_generates_buffer_size(&mut self, size: usize);
+                fn generates_buffer(&self) -> &[StereoSample];
+                fn generates_buffer_mut(&mut self) -> &mut [StereoSample];
+                fn generate(&mut self);
+            }
         }
     }
     impl Configurable for TestSynthesizer {
@@ -269,9 +288,10 @@ mod tests {
         );
 
         // Get a few samples because the oscillator correctly starts at zero.
-        let mut samples = [StereoSample::default(); 5];
-        s.generate(&mut samples);
-        assert!(samples
+        s.set_generates_buffer_size(5);
+        s.generate();
+        assert!(s
+            .generates_buffer()
             .iter()
             .any(|s| { s != &StereoSample::from(StereoSample::SILENCE) }));
     }

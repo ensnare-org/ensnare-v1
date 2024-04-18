@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::InternalBuffer};
 use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
@@ -20,17 +20,26 @@ pub struct TestAudioSourceCore {
     #[serde(skip)]
     #[builder(setter(skip))]
     c: Configurables,
+
+    #[serde(skip)]
+    #[builder(setter(skip))]
+    ib: InternalBuffer<StereoSample>,
+}
+impl BuffersInternally<StereoSample> for TestAudioSourceCore {
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
 }
 impl Generates<StereoSample> for TestAudioSourceCore {
-    fn value(&self) -> StereoSample {
-        StereoSample::from(self.level)
+    fn generate(&mut self) {
+        let value = StereoSample::from(self.level);
+        self.ib.buffer_mut().fill(value);
     }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(self.value());
-    }
-
-    fn temp_work(&mut self, tick_count: usize) {}
 }
 impl Configurable for TestAudioSourceCore {
     delegate! {

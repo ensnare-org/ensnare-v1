@@ -2,12 +2,14 @@
 
 use crate::{
     prelude::*,
+    traits::InternalBuffer,
     util::{
         library::{SampleLibrary, SampleSource},
         Paths,
     },
 };
 use anyhow::{anyhow, Result};
+use delegate::delegate;
 use ensnare_proc_macros::Control;
 use hound::WavReader;
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,8 @@ pub struct SamplerVoice {
     is_playing: bool,
     sample_pointer: ParameterType,
     sample_pointer_delta: ParameterType,
+
+    g: InternalBuffer<StereoSample>,
 }
 impl IsVoice<StereoSample> for SamplerVoice {}
 impl IsStereoSampleVoice for SamplerVoice {}
@@ -53,39 +57,38 @@ impl PlaysNotes for SamplerVoice {
         self.sample_pointer = 0.0;
     }
 }
+impl BuffersInternally<StereoSample> for SamplerVoice {
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
+}
 impl Generates<StereoSample> for SamplerVoice {
-    fn value(&self) -> StereoSample {
-        if self.is_playing {
+    fn generate(&mut self) {
+        for value in self.g.buffer_mut() {
+            *value = StereoSample::SILENCE;
+            if !self.was_reset {
+                self.sample_pointer += self.sample_pointer_delta;
+            } else {
+                self.was_reset = false;
+            }
             if let Some(samples) = self.samples.as_ref() {
-                if samples.len() != 0 {
-                    return samples[self.sample_pointer as usize];
+                debug_assert_ne!(samples.len(), 0);
+                while self.sample_pointer as usize >= samples.len() {
+                    self.is_playing = false;
+                    self.sample_pointer -= samples.len() as f64;
                 }
             }
-        }
-        StereoSample::SILENCE
-    }
-
-    #[allow(unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        todo!()
-    }
-
-    fn temp_work(&mut self, count: usize) {
-        for _ in 0..count {
             if self.is_playing {
-                if !self.was_reset {
-                    self.sample_pointer += self.sample_pointer_delta;
-                }
                 if let Some(samples) = self.samples.as_ref() {
-                    debug_assert_ne!(samples.len(), 0);
-                    while self.sample_pointer as usize >= samples.len() {
-                        self.is_playing = false;
-                        self.sample_pointer -= samples.len() as f64;
+                    if samples.len() != 0 {
+                        *value = samples[self.sample_pointer as usize];
                     }
                 }
-            }
-            if self.was_reset {
-                self.was_reset = false;
             }
         }
     }
@@ -116,6 +119,7 @@ impl SamplerVoice {
             is_playing: Default::default(),
             sample_pointer: Default::default(),
             sample_pointer_delta: Default::default(),
+            g: Default::default(),
         }
     }
 
@@ -156,18 +160,21 @@ impl HandlesMidi for SamplerCore {
             .handle_midi_message(channel, message, midi_messages_fn)
     }
 }
+impl BuffersInternally<StereoSample> for SamplerCore {
+    delegate! {
+        to self.e.inner {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
+}
 impl Generates<StereoSample> for SamplerCore {
-    fn value(&self) -> StereoSample {
-        self.e.inner.value()
-    }
-
-    #[allow(dead_code, unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.e.inner.generate(values);
-    }
-
-    fn temp_work(&mut self, count: usize) {
-        self.e.inner.temp_work(count)
+    delegate! {
+        to self.e.inner {
+            fn generate(&mut self);
+        }
     }
 }
 impl Serializable for SamplerCore {}

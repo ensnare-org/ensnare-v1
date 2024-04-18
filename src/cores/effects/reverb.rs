@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use super::delay::{AllPassDelayLine, Delays, RecirculatingDelayLine};
-use crate::prelude::*;
+use crate::{prelude::*, traits::InternalBuffer};
 use delegate::delegate;
 use derivative::Derivative;
 use derive_builder::Builder;
@@ -32,6 +32,7 @@ pub struct ReverbCore {
 pub struct ReverbCoreEphemerals {
     channels: [ReverbChannel; 2],
     c: Configurables,
+    g: InternalBuffer<StereoSample>,
 }
 impl ReverbCoreBuilder {
     /// The overridden Builder build() method.
@@ -75,6 +76,16 @@ impl Configurable for ReverbCore {
 impl TransformsAudio for ReverbCore {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         self.e.channels[channel].transform_channel(channel, input_sample)
+    }
+}
+impl Generates<StereoSample> for ReverbCore {
+    delegate! {
+        to self.e.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
     }
 }
 impl ReverbCore {

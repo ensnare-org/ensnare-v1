@@ -147,12 +147,21 @@ pub(crate) fn impl_derive_inner_instrument(input: TokenStream) -> TokenStream {
 
         let quote = quote! {
             #[automatically_derived]
+            impl #generics #crate_name::traits::BuffersInternally<StereoSample> for #struct_name #ty_generics {
+                delegate::delegate! {
+                    to self.inner {
+                        fn generates_buffer_size(&self) -> usize;
+                        fn set_generates_buffer_size(&mut self, size: usize);
+                        fn generates_buffer(&self) -> &[StereoSample];
+                        fn generates_buffer_mut(&mut self) -> &mut [StereoSample];
+                    }
+                }
+            }
+            #[automatically_derived]
             impl #generics #crate_name::traits::Generates<StereoSample> for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
-                        fn value(&self) -> StereoSample;
-                        fn generate(&mut self, values: &mut [StereoSample]);
-                        fn temp_work(&mut self, tick_count: usize);
+                        fn generate(&mut self);
                     }
                 }
             }

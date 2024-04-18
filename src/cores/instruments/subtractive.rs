@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::effects::BiQuadFilterLowPass24dbCore, prelude::*};
+use crate::{cores::effects::BiQuadFilterLowPass24dbCore, prelude::*, traits::InternalBuffer};
 use anyhow::anyhow;
 use core::fmt::Debug;
 use delegate::delegate;
@@ -60,8 +60,7 @@ pub struct SubtractiveSynthVoice {
     note_on_velocity: u7,
     steal_is_underway: bool,
 
-    sample: StereoSample,
-    ticks: usize,
+    g: InternalBuffer<StereoSample>,
 }
 impl IsStereoSampleVoice for SubtractiveSynthVoice {}
 impl IsVoice<StereoSample> for SubtractiveSynthVoice {}
@@ -89,16 +88,40 @@ impl PlaysNotes for SubtractiveSynthVoice {
         self.filter_envelope.trigger_release();
     }
 }
+impl BuffersInternally<StereoSample> for SubtractiveSynthVoice {
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
+
+    fn set_buffer_size(&mut self, size: usize) {
+        self.g.set_buffer_size(size);
+        self.amp_envelope.set_buffer_size(size);
+        self.filter_envelope.set_buffer_size(size);
+        self.lfo.set_buffer_size(size);
+        self.filter.set_buffer_size(size);
+
+        self.oscillator_1.set_buffer_size(1);
+        self.oscillator_2.set_buffer_size(1);
+    }
+}
 impl Generates<StereoSample> for SubtractiveSynthVoice {
-    fn value(&self) -> StereoSample {
-        self.sample
-    }
-    fn generate(&mut self, _samples: &mut [StereoSample]) {
-        todo!()
-    }
-    fn temp_work(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
-            self.ticks += 1;
+    fn generate(&mut self) {
+        debug_assert!(
+            self.g.buffer_size() != 0,
+            "Forgot to set generates_buffer_size on SubtractiveSynthVoice"
+        );
+
+        if !matches!(self.lfo_routing, LfoRouting::None) {
+            self.lfo.generate();
+        }
+        self.amp_envelope.generate();
+        self.filter_envelope.generate();
+
+        for (index, v) in self.g.buffer_mut().iter_mut().enumerate() {
             // It's important for the envelope tick() methods to be called after
             // their handle_note_* methods are called, but before we check whether
             // amp_envelope.is_idle(), because the tick() methods are what determine
@@ -106,11 +129,11 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
             //
             // TODO: this seems like an implementation detail that maybe should be
             // hidden from the caller.
-            let (amp_env_amplitude, filter_env_amplitude) = self.tick_envelopes();
+            // let (amp_env_amplitude, filter_env_amplitude) = self.tick_envelopes();
 
             // TODO: various parts of this loop can be precalculated.
 
-            self.sample = if self.is_playing() {
+            if self.is_playing() {
                 // TODO: ideally, these entities would get a tick() on every
                 // voice tick(), but they are surprisingly expensive. So we will
                 // skip calling them unless we're going to look at their output.
@@ -119,14 +142,9 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
                 // like an empty_tick() method to the Ticks trait that lets
                 // entities stay in sync, but skipping any real work that would
                 // cost time.
-                if !matches!(self.lfo_routing, LfoRouting::None) {
-                    self.lfo.temp_work(1);
-                }
-                self.oscillator_1.temp_work(1);
-                self.oscillator_2.temp_work(1);
 
                 // LFO
-                let lfo = self.lfo.value();
+                let lfo = self.lfo.generates_buffer()[index];
                 if matches!(self.lfo_routing, LfoRouting::Pitch) {
                     let lfo_for_pitch = lfo * self.lfo_depth;
                     self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
@@ -145,8 +163,11 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
                     if self.oscillator_2_sync && self.oscillator_1.should_sync() {
                         self.oscillator_2.sync();
                     }
-                    self.oscillator_1.value() * self.oscillator_mix
-                        + self.oscillator_2.value() * (Normal::maximum() - self.oscillator_mix)
+                    self.oscillator_1.generate();
+                    self.oscillator_2.generate();
+                    self.oscillator_1.generates_buffer()[0] * self.oscillator_mix
+                        + self.oscillator_2.generates_buffer()[0]
+                            * (Normal::maximum() - self.oscillator_mix)
                 };
 
                 // Filters
@@ -182,19 +203,16 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
                     });
 
                 // Final
-                self.dca.transform_audio_to_stereo_non_batch(Sample(
+                *v = self.dca.transform_audio_to_stereo_non_batch(Sample(
                     filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
-                ))
-            } else {
-                StereoSample::SILENCE
-            };
+                ));
+            }
         }
     }
 }
 impl Serializable for SubtractiveSynthVoice {}
 impl Configurable for SubtractiveSynthVoice {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.ticks = 0;
         self.lfo.update_sample_rate(sample_rate);
         self.amp_envelope.update_sample_rate(sample_rate);
         self.filter_envelope.update_sample_rate(sample_rate);
@@ -236,26 +254,25 @@ impl SubtractiveSynthVoice {
             note_on_key: Default::default(),
             note_on_velocity: Default::default(),
             steal_is_underway: Default::default(),
-            sample: Default::default(),
-            ticks: Default::default(),
+            g: Default::default(),
         }
     }
 
-    fn tick_envelopes(&mut self) -> (Normal, Normal) {
-        if self.is_playing() {
-            self.amp_envelope.temp_work(1);
-            self.filter_envelope.temp_work(1);
-            if self.is_playing() {
-                return (self.amp_envelope.value(), self.filter_envelope.value());
-            }
+    // fn tick_envelopes(&mut self) -> (Normal, Normal) {
+    //     if self.is_playing() {
+    //         self.amp_envelope.temp_work(1);
+    //         self.filter_envelope.temp_work(1);
+    //         if self.is_playing() {
+    //             return (self.amp_envelope.value(), self.filter_envelope.value());
+    //         }
 
-            if self.steal_is_underway {
-                self.steal_is_underway = false;
-                self.note_on(self.note_on_key, self.note_on_velocity);
-            }
-        }
-        (Normal::zero(), Normal::zero())
-    }
+    //         if self.steal_is_underway {
+    //             self.steal_is_underway = false;
+    //             self.note_on(self.note_on_key, self.note_on_velocity);
+    //         }
+    //     }
+    //     (Normal::zero(), Normal::zero())
+    // }
 
     fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
         // It's safe to set the frequency on a fixed-frequency oscillator; the
@@ -437,14 +454,14 @@ impl SubtractiveSynthCore {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {
-    fn value(&self) -> StereoSample {
-        self.inner.value()
-    }
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate(values);
-    }
-    fn temp_work(&mut self, tick_count: usize) {
-        self.inner.temp_work(tick_count)
+    delegate! {
+        to self.inner {
+            fn generates_buffer_size(&self) -> usize;
+            fn set_generates_buffer_size(&mut self, size: usize);
+            fn generates_buffer(&self) -> &[StereoSample];
+            fn generates_buffer_mut(&mut self) -> &mut [StereoSample];
+            fn generate(&mut self);
+        }
     }
 }
 impl Serializable for SubtractiveSynthCore {

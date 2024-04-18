@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{cores::instruments::TestAudioSourceCore, prelude::*};
+use crate::{cores::instruments::TestAudioSourceCore, prelude::*, traits::InternalBuffer};
+use delegate::delegate;
 use ensnare_proc_macros::{Control, InnerControllable, InnerInstrument, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -21,6 +22,9 @@ use std::sync::{Arc, Mutex};
 pub struct TestInstrument {
     pub uid: Uid,
     pub sample_rate: SampleRate,
+
+    #[serde(skip)]
+    g: InternalBuffer<StereoSample>,
 }
 impl TestInstrument {
     pub fn new_with(uid: Uid) -> Self {
@@ -40,12 +44,20 @@ impl Configurable for TestInstrument {
     }
 }
 impl Generates<StereoSample> for TestInstrument {
-    fn value(&self) -> StereoSample {
-        StereoSample::default()
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
     }
 
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(StereoSample::default())
+    fn generate(&mut self) {
+        // TODO: revisit whether we need to keep filling. At this moment I don't
+        // know whether the buffer can be written to by anyone else, so we're
+        // playing it safe by assuming it has changed since the last fill.
+        self.generates_buffer_mut().fill(StereoSample::default())
     }
 }
 
@@ -63,16 +75,25 @@ impl Generates<StereoSample> for TestInstrument {
 #[serde(rename_all = "kebab-case")]
 pub struct TestInstrumentCountsMidiMessages {
     uid: Uid,
+
     #[serde(skip)]
     pub received_midi_message_count: Arc<Mutex<usize>>,
+
+    #[serde(skip)]
+    g: InternalBuffer<StereoSample>,
 }
 impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
-    fn value(&self) -> StereoSample {
-        StereoSample::default()
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
     }
 
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(StereoSample::default())
+    fn generate(&mut self) {
+        self.g.buffer_mut().fill(StereoSample::default())
     }
 }
 impl HandlesMidi for TestInstrumentCountsMidiMessages {

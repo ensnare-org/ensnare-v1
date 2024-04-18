@@ -8,11 +8,11 @@ pub mod prelude {
     #[cfg(feature = "egui")]
     pub use super::Displays;
     pub use super::{
-        CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
-        Controllable, Controls, ControlsAsProxy, DisplaysAction, EntityBounds, Generates,
-        GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
-        IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
-        TransformsAudio, WorkEvent,
+        BuffersInternally, CanPrototype, Configurable, Configurables, ControlEventsFn,
+        ControlProxyEventsFn, Controllable, Controls, ControlsAsProxy, DisplaysAction,
+        EntityBounds, Generates, GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata,
+        HasSettings, IsStereoSampleVoice, IsVoice, MidiMessagesFn, PlaysNotes, Sequences,
+        SequencesMidi, Serializable, StoresVoices, TransformsAudio, WorkEvent,
     };
 }
 
@@ -26,23 +26,57 @@ pub use crate::automation::{
 use crate::prelude::*;
 use strum_macros::Display;
 
+/// A convenience struct for implementors of [BuffersInternally]. Hint: use
+/// delegate! {}
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct InternalBuffer<V: Default + Clone> {
+    vec: Vec<V>,
+}
+impl<V: Default + Clone> InternalBuffer<V> {
+    pub fn buffer_size(&self) -> usize {
+        self.vec.capacity()
+    }
+
+    pub fn set_buffer_size(&mut self, size: usize) {
+        if size != self.buffer_size() {
+            self.vec = Vec::with_capacity(size);
+            self.vec.resize(size, V::default());
+        }
+    }
+
+    pub fn buffer(&self) -> &[V] {
+        &self.vec
+    }
+
+    pub fn buffer_mut(&mut self) -> &mut [V] {
+        &mut self.vec
+    }
+}
+
+/// Maintains an internal buffer of samples (or, more generally, of type `<V>`).
+pub trait BuffersInternally<V: Default>: Send + core::fmt::Debug + Configurable {
+    /// Returns the size of the internal buffer used to store generated values.
+    fn buffer_size(&self) -> usize;
+
+    /// Sets the size of the internal buffer used to store generated values.
+    fn set_buffer_size(&mut self, size: usize);
+
+    /// Returns a reference to the internal buffer.
+    fn buffer(&self) -> &[V];
+
+    /// Returns a mutable reference to the internal buffer.
+    fn buffer_mut(&mut self) -> &mut [V];
+}
+
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
-pub trait Generates<V: Default>: Send + core::fmt::Debug + Configurable {
-    /// The batch version of value(). To deliver each value, this method will
-    /// typically call temp_work() internally. If you don't want this, then call
-    /// value() on your own.
-    fn generate(&mut self, values: &mut [V]) {
-        for value in values {
-            self.temp_work(1);
-           // *value = self.value();
-        }
-    }
-
-    /// Temp: migrate from Ticks
-    fn temp_work(&mut self, tick_count: usize) {}
+pub trait Generates<V: Default>:
+    Send + core::fmt::Debug + Configurable + BuffersInternally<V>
+{
+    /// Fills the internal buffer with new value(s).
+    fn generate(&mut self) {}
 }
 
 /// A convenience struct for the fields implied by [Configurable]. Note that
@@ -479,6 +513,7 @@ pub trait Entity:
     + Controllable
     + Displays
     + Generates<StereoSample>
+    + BuffersInternally<StereoSample>
     + HandlesMidi
     + Serializable
     + TransformsAudio

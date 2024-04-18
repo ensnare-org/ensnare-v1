@@ -111,10 +111,10 @@ mod tests {
         assert_eq!(buffer[0], StereoSample::SILENCE);
 
         instrument.handle_midi_message(
-            MidiChannel::default(),MidiMessage::
-            MidiMessage::NoteOn { key: 60, vel: 127 },
+            MidiChannel::default(),
+            MidiUtils::new_note_on(60, 127),
             &mut |_, _| {},
         );
-        assert_eq!(buffer[0], StereoSample::SILENCE);
+        assert_ne!(buffer[0], StereoSample::SILENCE);
     }
 }

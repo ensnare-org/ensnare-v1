@@ -344,7 +344,8 @@ impl Project {
         if !is_finished_at_start && self.e.is_finished {
             self.stop();
         }
-        self.generate(frames);
+        self.generate();
+        frames.copy_from_slice(self.generates_buffer());
     }
 
     fn update_is_finished(&mut self) {
@@ -764,7 +765,10 @@ impl Project {
 impl Generates<StereoSample> for Project {
     delegate! {
         to self.orchestrator {
-            fn generate(&mut self, values: &mut [StereoSample]);
+            fn generates_buffer_size(&self) -> usize;
+            fn set_generates_buffer_size(&mut self, size: usize);
+            fn generates_buffer(&self) -> &[StereoSample];
+            fn generate(&mut self);
         }
     }
 }

@@ -54,6 +54,7 @@ impl Controls for LfoControllerCore {
             .0
             .start
             .as_frames(Tempo::from(120), self.oscillator.sample_rate());
+        // TODO: fix hack Tempo
 
         if frames != self.e.last_frame {
             let tick_count = if frames >= self.e.last_frame {
@@ -72,9 +73,14 @@ impl Controls for LfoControllerCore {
                 0
             };
             self.e.last_frame += tick_count;
-            self.oscillator.temp_work(tick_count);
+            self.oscillator.set_generates_buffer_size(tick_count);
+            self.oscillator.generate();
         }
-        control_events_fn(WorkEvent::Control(self.oscillator.value().into()));
+        let oscillator_buffer = self.oscillator.generates_buffer();
+        if oscillator_buffer.len() != 0 {
+            let value = oscillator_buffer[oscillator_buffer.len()];
+            control_events_fn(WorkEvent::Control(value.into()));
+        }
     }
 
     fn is_finished(&self) -> bool {

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::InternalBuffer};
 use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
@@ -36,6 +36,8 @@ pub struct FmVoice {
     steal_is_underway: bool,
 
     sample_rate: SampleRate,
+
+    g: InternalBuffer<StereoSample>,
 }
 impl IsStereoSampleVoice for FmVoice {}
 impl IsVoice<StereoSample> for FmVoice {}
@@ -67,42 +69,47 @@ impl PlaysNotes for FmVoice {
         self.modulator_envelope.trigger_release();
     }
 }
-impl Generates<StereoSample> for FmVoice {
-    fn value(&self) -> StereoSample {
-        self.sample
-    }
-
-    #[allow(unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        todo!()
-    }
-
-    fn temp_work(&mut self, count: usize) {
-        let mut r = BipolarNormal::from(0.0);
-        for _ in 0..count {
-            if self.is_playing() {
-                let modulator_magnitude =
-                    self.modulator.value() * self.modulator_envelope.value() * self.depth;
-                self.carrier
-                    .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
-                r = self.carrier.value() * self.carrier_envelope.value();
-                self.carrier_envelope.temp_work(count);
-                self.modulator_envelope.temp_work(count);
-                self.carrier.temp_work(count);
-                self.modulator.temp_work(count);
-                if !self.is_playing() && self.steal_is_underway {
-                    self.steal_is_underway = false;
-                    self.note_on(self.note_on_key, self.note_on_velocity);
-                }
-            }
+impl BuffersInternally<StereoSample> for FmVoice {
+    delegate! {
+        to self.g {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
         }
-        self.sample = if self.is_playing() {
-            self.dca
-                .transform_audio_to_stereo_non_batch(Sample::from(r))
-        } else {
-            StereoSample::SILENCE
-        };
     }
+}
+impl Generates<StereoSample> for FmVoice {
+    fn generate(&mut self) {
+        self.modulator.generate();
+        self.modulator_envelope.generate();
+
+        self.carrier.generate();
+        self.carrier_envelope.generate();
+    }
+
+    // ######################################################
+    // TODO: this is totally wrong -- it broke during the temp_work migration
+    // (possibly earlier)
+    // ######################################################
+    //
+    // fn temp_work(&mut self, count: usize) { let mut r =
+    //     BipolarNormal::from(0.0); for _ in 0..count { if self.is_playing() {
+    //     let modulator_magnitude = self.modulator.value() *
+    //         self.modulator_envelope.value() * self.depth; self.carrier
+    //             .set_linear_frequency_modulation(modulator_magnitude.0 *
+    //                 self.beta); r = self.carrier.value() *
+    //             self.carrier_envelope.value();
+    //                 self.carrier_envelope.temp_work(count);
+    //             self.modulator_envelope.temp_work(count);
+    //             self.carrier.temp_work(count);
+    //             self.modulator.temp_work(count); if !self.is_playing() &&
+    //             self.steal_is_underway { self.steal_is_underway = false;
+    //             self.note_on(self.note_on_key, self.note_on_velocity); } } }
+    //             self.sample = if self.is_playing() { self.dca
+    //                 .transform_audio_to_stereo_non_batch(Sample::from(r)) }
+    //                 else { StereoSample::SILENCE };
+    // }
 }
 impl Serializable for FmVoice {}
 impl Configurable for FmVoice {
@@ -240,17 +247,21 @@ impl FmSynthCoreBuilder {
         }
     }
 }
+impl BuffersInternally<StereoSample> for FmSynthCore {
+    delegate! {
+        to self.inner {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
+}
 impl Generates<StereoSample> for FmSynthCore {
-    fn value(&self) -> StereoSample {
-        self.inner.value()
-    }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate(values);
-    }
-
-    fn temp_work(&mut self, count: usize) {
-        self.inner.temp_work(count)
+    delegate! {
+        to self.inner {
+            fn generate(&mut self);
+        }
     }
 }
 impl Serializable for FmSynthCore {

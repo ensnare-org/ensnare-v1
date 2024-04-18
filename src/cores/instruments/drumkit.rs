@@ -35,18 +35,21 @@ impl core::fmt::Debug for DrumkitCore {
             .finish()
     }
 }
-
+impl BuffersInternally<StereoSample> for DrumkitCore {
+    delegate! {
+        to self.inner_synth {
+            fn buffer_size(&self) -> usize;
+            fn set_buffer_size(&mut self, size: usize);
+            fn buffer(&self) -> &[StereoSample];
+            fn buffer_mut(&mut self) -> &mut [StereoSample];
+        }
+    }
+}
 impl Generates<StereoSample> for DrumkitCore {
-    fn value(&self) -> StereoSample {
-        self.inner_synth.value()
-    }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate(values);
-    }
-
-    fn temp_work(&mut self, count: usize) {
-        self.inner_synth.temp_work(count)
+    delegate! {
+        to self.inner_synth {
+            fn generate(&mut self);
+        }
     }
 }
 impl Serializable for DrumkitCore {}

@@ -36,10 +36,6 @@ impl PlaysNotes for ToyVoice {
     }
 }
 impl Generates<StereoSample> for ToyVoice {
-    fn value(&self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         let mut osc_values = Vec::with_capacity(values.len());
         osc_values.resize(values.len(), BipolarNormal::default());
