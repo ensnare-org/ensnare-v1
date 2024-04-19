@@ -10,9 +10,9 @@ pub mod prelude {
     pub use super::{
         CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
         Controllable, Controls, ControlsAsProxy, DisplaysAction, EntityBounds, Generates,
-        GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
-        IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
-        TransformsAudio, WorkEvent,
+        GeneratesEnvelope, GenerationBuffer, HandlesMidi, HasExtent, HasMetadata, HasSettings,
+        IsStereoSampleVoice, IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi,
+        Serializable, StoresVoices, TransformsAudio, WorkEvent,
     };
 }
 
@@ -25,6 +25,37 @@ pub use crate::automation::{
 
 use crate::prelude::*;
 use strum_macros::Display;
+
+/// A convenience struct for consumers of [Generates]. This buffer ensures that
+/// capacity and len, in Vec terms, are always the same. We call it "size."
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct GenerationBuffer<V: Default + Clone> {
+    vec: Vec<V>,
+}
+impl<V: Default + Clone> GenerationBuffer<V> {
+    /// Returns the current size of the buffer.
+    pub fn buffer_size(&self) -> usize {
+        self.vec.capacity()
+    }
+
+    /// Sets the buffer size. Does nothing if the buffer is already this size.
+    pub fn set_buffer_size(&mut self, size: usize) {
+        if size != self.buffer_size() {
+            self.vec = Vec::with_capacity(size);
+            self.vec.resize(size, V::default());
+        }
+    }
+
+    /// Returns a reference to the buffer.
+    pub fn buffer(&self) -> &[V] {
+        &self.vec
+    }
+
+    /// Returns a mutable reference to the buffer.
+    pub fn buffer_mut(&mut self) -> &mut [V] {
+        &mut self.vec
+    }
+}
 
 /// Something that [Generates] creates the given type `<V>` as its work product
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
@@ -144,7 +175,6 @@ pub enum WorkEvent {
 /// A [TransformsAudio] takes input audio, which is typically produced by
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
 /// do.
-#[allow(unused_variables)]
 pub trait TransformsAudio: core::fmt::Debug {
     /// Transforms a single sample of audio.
     fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
@@ -158,14 +188,19 @@ pub trait TransformsAudio: core::fmt::Debug {
     }
 
     /// channel: 0 is left, 1 is right. Use the value as an index into arrays.
+    #[allow(unused_variables)]
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
+        // Default implementation is passthrough
         input_sample
     }
 
     /// Transforms a buffer of audio.
     fn transform_batch(&mut self, samples: &mut [StereoSample]) {
         for sample in samples {
-            *sample = self.transform_audio(*sample);
+            *sample = StereoSample(
+                self.transform_channel(0, sample.0),
+                self.transform_channel(1, sample.1),
+            )
         }
     }
 }
@@ -390,6 +425,7 @@ pub trait HasExtent {
         e.0.end - e.0.start
     }
 }
+
 /// Records and replays the given musical unit. This is another convenience
 /// trait that helps rationalize sequencer interfaces while the concept of a
 /// sequencer itself is under development. TODO: delete this trait when

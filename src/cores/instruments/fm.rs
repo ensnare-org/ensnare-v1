@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::GenerationBuffer};
 use delegate::delegate;
 use derive_builder::Builder;
 use ensnare_proc_macros::Control;
@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
 pub struct FmVoice {
-    sample: StereoSample,
     carrier: Oscillator,
     carrier_envelope: Envelope,
     modulator: Oscillator,
@@ -36,6 +35,13 @@ pub struct FmVoice {
     steal_is_underway: bool,
 
     sample_rate: SampleRate,
+
+    modulator_buffer: GenerationBuffer<BipolarNormal>,
+    modulator_envelope_buffer: GenerationBuffer<Normal>,
+    modulator_magnitude_buffer: GenerationBuffer<BipolarNormal>,
+    carrier_buffer: GenerationBuffer<BipolarNormal>,
+    carrier_envelope_buffer: GenerationBuffer<Normal>,
+    mono_buffer: GenerationBuffer<Sample>,
 }
 impl IsStereoSampleVoice for FmVoice {}
 impl IsVoice<StereoSample> for FmVoice {}
@@ -69,23 +75,70 @@ impl PlaysNotes for FmVoice {
 }
 impl Generates<StereoSample> for FmVoice {
     fn generate_next(&mut self) -> StereoSample {
-        let mut r = BipolarNormal::from(0.0);
+        panic!()
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
         if self.is_playing() {
-            let modulator_magnitude = self.modulator.generate_next()
-                * self.modulator_envelope.generate_next()
-                * self.depth;
-            self.carrier
-                .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
-            r = self.carrier.generate_next() * self.carrier_envelope.generate_next();
+            self.modulator_buffer.set_buffer_size(values.len());
+            self.modulator_envelope_buffer.set_buffer_size(values.len());
+            self.modulator_magnitude_buffer
+                .set_buffer_size(values.len());
+
+            self.carrier_buffer.set_buffer_size(values.len());
+            self.carrier_envelope_buffer.set_buffer_size(values.len());
+
+            self.mono_buffer.set_buffer_size(values.len());
+
+            self.modulator.generate(self.modulator_buffer.buffer_mut());
+            self.modulator_envelope
+                .generate(self.modulator_envelope_buffer.buffer_mut());
+            self.modulator_magnitude_buffer
+                .buffer_mut()
+                .iter_mut()
+                .zip(
+                    self.modulator_buffer
+                        .buffer()
+                        .iter()
+                        .zip(self.modulator_envelope_buffer.buffer().iter()),
+                )
+                .for_each(|(dst, (modulator, mod_env))| {
+                    *dst = *modulator * *mod_env * self.depth;
+                });
+            let mut one_buffer = [BipolarNormal::default(); 1];
+            self.carrier_buffer
+                .buffer_mut()
+                .iter_mut()
+                .zip(self.modulator_magnitude_buffer.buffer().iter())
+                .for_each(|(dst, magnitude)| {
+                    self.carrier
+                        .set_linear_frequency_modulation(magnitude.0 * self.beta);
+                    self.carrier.generate(&mut one_buffer);
+                    *dst = one_buffer[0];
+                });
+            // self.carrier.generate(self.carrier_buffer.buffer_mut()); // TODO: magnitude
+            self.carrier_envelope
+                .generate(self.carrier_envelope_buffer.buffer_mut());
+            self.mono_buffer
+                .buffer_mut()
+                .iter_mut()
+                .zip(
+                    self.carrier_buffer
+                        .buffer()
+                        .iter()
+                        .zip(self.carrier_envelope_buffer.buffer().iter()),
+                )
+                .for_each(|(dst, (carrier, car_envelope))| {
+                    *dst = (*carrier * *car_envelope).into()
+                });
+            self.dca
+                .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
             if !self.is_playing() && self.steal_is_underway {
                 self.steal_is_underway = false;
                 self.note_on(self.note_on_key, self.note_on_velocity);
             }
-        }
-        if self.is_playing() {
-            self.dca.transform_audio_to_stereo(Sample::from(r))
         } else {
-            StereoSample::SILENCE
+            values.fill(StereoSample::default());
         }
     }
 }

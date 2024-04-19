@@ -422,7 +422,7 @@ mod tests {
         }
 
         fn generate_next(&mut self) -> StereoSample {
-            StereoSample::default()
+            panic!()
         }
     }
 

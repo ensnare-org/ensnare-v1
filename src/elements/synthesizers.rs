@@ -37,12 +37,16 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
     fn generate_next(&mut self) -> StereoSample {
-        self.ticks_since_last_midi_input += 1;
+        panic!()
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
         if let Some(vs) = self.voice_store.as_mut() {
-            vs.generate_next()
+            vs.generate(values);
         } else {
-            StereoSample::default()
+            values.fill(StereoSample::default());
         }
+        self.ticks_since_last_midi_input += values.len();
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
@@ -211,7 +215,11 @@ mod tests {
     }
     impl Generates<StereoSample> for TestSynthesizer {
         fn generate_next(&mut self) -> StereoSample {
-            self.inner_synth.generate_next()
+            panic!()
+        }
+
+        fn generate(&mut self, values: &mut [StereoSample]) {
+            self.inner_synth.generate(values);
         }
     }
     impl Configurable for TestSynthesizer {
@@ -239,15 +247,15 @@ mod tests {
     fn mainline_test_synthesizer() {
         let mut s = TestSynthesizer::default();
         s.handle_midi_message(
-            MidiChannel(12),
+            MidiChannel::default(),
             MidiUtils::new_note_on(100, 99),
             &mut |_, _| {},
         );
 
         // Get a few samples because the oscillator correctly starts at zero.
-        let mut samples = [StereoSample::default(); 5];
-        s.generate(&mut samples);
-        assert!(samples
+        let mut buffer = [StereoSample::default(); 5];
+        s.generate(&mut buffer);
+        assert!(buffer
             .iter()
             .any(|s| { s != &StereoSample::from(StereoSample::SILENCE) }));
     }

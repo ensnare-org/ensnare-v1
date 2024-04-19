@@ -169,7 +169,11 @@ mod tests {
     }
     impl Generates<StereoSample> for TestHandlesMidi {
         fn generate_next(&mut self) -> StereoSample {
-            <StereoSample>::default()
+            panic!()
+        }
+
+        fn generate(&mut self, values: &mut [StereoSample]) {
+            values.fill(StereoSample::default())
         }
     }
 

@@ -587,8 +587,8 @@ impl Configurable for Calculator {
     }
 }
 impl Generates<StereoSample> for Calculator {
-    fn generate_next(&mut self) -> StereoSample {
-        self.e.inner_synth.generate_next()
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.e.inner_synth.generate(values)
     }
 }
 impl Calculator {

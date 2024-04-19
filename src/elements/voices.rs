@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
+use crate::{prelude::*, traits::GenerationBuffer};
 use anyhow::{anyhow, Result};
 use derive_more::{Add, Display, From, Into};
 use rustc_hash::FxHashMap;
@@ -33,6 +33,7 @@ pub struct VoiceStore<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
     voices: Vec<Box<V>>,
     notes_playing: Vec<u7>,
+    voice_buffer: GenerationBuffer<StereoSample>,
 }
 impl<V: IsStereoSampleVoice> StoresVoices for VoiceStore<V> {
     type Voice = V;
@@ -71,15 +72,24 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
-    // TODO: this is not at all taking advantage of batching.
     fn generate_next(&mut self) -> StereoSample {
-        let value = self.voices.iter_mut().map(|v| v.generate_next()).sum();
+        panic!()
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.voice_buffer.set_buffer_size(values.len());
+        self.voices.iter_mut().for_each(|v| {
+            v.generate(self.voice_buffer.buffer_mut());
+            values
+                .iter_mut()
+                .zip(self.voice_buffer.buffer().iter())
+                .for_each(|(d, s)| *d += *s);
+        });
         self.voices.iter().enumerate().for_each(|(index, voice)| {
             if !voice.is_playing() {
                 self.notes_playing[index] = u7::from(0);
             }
         });
-        value
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoiceStore<V> {
@@ -100,6 +110,7 @@ impl<V: IsStereoSampleVoice> VoiceStore<V> {
             sample_rate: Default::default(),
             voices: Default::default(),
             notes_playing: Default::default(),
+            voice_buffer: Default::default(),
         }
     }
     fn add_voice(&mut self, voice: Box<V>) {
@@ -126,6 +137,7 @@ pub struct StealingVoiceStore<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
     voices: Vec<Box<V>>,
     notes_playing: Vec<u7>,
+    voice_buffer: GenerationBuffer<StereoSample>,
 }
 impl<V: IsStereoSampleVoice> StoresVoices for StealingVoiceStore<V> {
     type Voice = V;
@@ -171,16 +183,24 @@ impl<V: IsStereoSampleVoice> StoresVoices for StealingVoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
-    // TODO: this is not at all taking advantage of batching. When
-    // batch_sample() calls it, it's lame.
     fn generate_next(&mut self) -> StereoSample {
-        let value = self.voices.iter_mut().map(|v| v.generate_next()).sum();
+        panic!()
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.voice_buffer.set_buffer_size(values.len());
+        self.voices.iter_mut().for_each(|v| {
+            v.generate(self.voice_buffer.buffer_mut());
+            values
+                .iter_mut()
+                .zip(self.voice_buffer.buffer().iter())
+                .for_each(|(d, s)| *d += *s);
+        });
         self.voices.iter().enumerate().for_each(|(index, voice)| {
             if !voice.is_playing() {
                 self.notes_playing[index] = u7::from(0);
             }
         });
-        value
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for StealingVoiceStore<V> {
@@ -201,6 +221,7 @@ impl<V: IsStereoSampleVoice> StealingVoiceStore<V> {
             sample_rate: Default::default(),
             voices: Default::default(),
             notes_playing: Default::default(),
+            voice_buffer: Default::default(),
         }
     }
 
@@ -230,6 +251,7 @@ impl<V: IsStereoSampleVoice> StealingVoiceStore<V> {
 pub struct VoicePerNoteStore<V: IsStereoSampleVoice> {
     sample_rate: SampleRate,
     voices: FxHashMap<u7, Box<V>>,
+    voice_buffer: GenerationBuffer<StereoSample>,
 }
 impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
     type Voice = V;
@@ -260,7 +282,18 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
     fn generate_next(&mut self) -> StereoSample {
-        self.voices.values_mut().map(|v| v.generate_next()).sum()
+        panic!()
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.voice_buffer.set_buffer_size(values.len());
+        self.voices.values_mut().for_each(|v| {
+            v.generate(self.voice_buffer.buffer_mut());
+            values
+                .iter_mut()
+                .zip(self.voice_buffer.buffer().iter())
+                .for_each(|(d, s)| *d += *s);
+        });
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoicePerNoteStore<V> {
@@ -286,6 +319,7 @@ impl<V: IsStereoSampleVoice> VoicePerNoteStore<V> {
         Self {
             sample_rate: Default::default(),
             voices: Default::default(),
+            voice_buffer: Default::default(),
         }
     }
 
@@ -316,11 +350,12 @@ pub(crate) mod tests {
         oscillator: Oscillator,
         envelope: Envelope,
 
-        sample: StereoSample,
-
         note_on_key: u7,
         note_on_velocity: u7,
         steal_is_underway: bool,
+
+        osc_buffer: GenerationBuffer<BipolarNormal>,
+        env_buffer: GenerationBuffer<Normal>,
     }
     impl IsStereoSampleVoice for TestVoice {}
     impl IsVoice<StereoSample> for TestVoice {}
@@ -351,16 +386,30 @@ pub(crate) mod tests {
     }
     impl Generates<StereoSample> for TestVoice {
         fn generate_next(&mut self) -> StereoSample {
+            panic!()
+        }
+
+        fn generate(&mut self, values: &mut [StereoSample]) {
             if self.is_playing() {
-                let osc_val = self.oscillator.generate_next();
-                let env_val = self.envelope.generate_next();
+                self.osc_buffer.set_buffer_size(values.len());
+                self.oscillator.generate(self.osc_buffer.buffer_mut());
+                self.env_buffer.set_buffer_size(values.len());
+                self.envelope.generate(self.env_buffer.buffer_mut());
                 if !self.is_playing() && self.steal_is_underway {
                     self.steal_is_underway = false;
                     self.note_on(self.note_on_key, self.note_on_velocity);
                 }
-                (osc_val * env_val).into()
+                values
+                    .iter_mut()
+                    .zip(
+                        self.osc_buffer
+                            .buffer()
+                            .iter()
+                            .zip(self.env_buffer.buffer().iter()),
+                    )
+                    .for_each(|(dst, (osc, env))| *dst = (*osc * *env).into());
             } else {
-                StereoSample::SILENCE
+                values.fill(StereoSample::SILENCE);
             }
         }
     }
@@ -387,10 +436,11 @@ pub(crate) mod tests {
                     .release(Normal::minimum())
                     .build()
                     .unwrap(),
-                sample: Default::default(),
                 note_on_key: Default::default(),
                 note_on_velocity: Default::default(),
                 steal_is_underway: Default::default(),
+                osc_buffer: Default::default(),
+                env_buffer: Default::default(),
             }
         }
         fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
@@ -413,16 +463,18 @@ pub(crate) mod tests {
         assert_gt!(!voice_store.voice_count(), 0);
         assert_eq!(voice_store.active_voice_count(), 0);
 
+        let mut buffer = [StereoSample::default(); 1];
+
         // Request and start the maximum number of voices.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
             assert!(!voice.is_playing());
             voice.note_on(u7::from(60), u7::from(127));
-            voice.generate_next(); // We must tick() to register the trigger.
+            voice.generate(&mut buffer); // We must tick() to register the trigger.
             assert!(voice.is_playing());
         }
         if let Ok(voice) = voice_store.get_voice(&u7::from(61)) {
             voice.note_on(u7::from(61), u7::from(127));
-            voice.generate_next();
+            voice.generate(&mut buffer);
         }
 
         // Request a voice for a new note that would exceed the count. Should
@@ -436,7 +488,7 @@ pub(crate) mod tests {
 
             // All TestVoice envelope times are instantaneous, so we know the
             // release completes after asking for the next sample.
-            voice.generate_next();
+            voice.generate(&mut buffer);
             assert!(!voice.is_playing());
         }
     }
@@ -448,17 +500,19 @@ pub(crate) mod tests {
         assert_gt!(voice_store.voice_count(), 0);
         assert_eq!(voice_store.active_voice_count(), 0);
 
+        let mut buffer = [StereoSample::default(); 1];
+
         // Request and start the full number of voices.
         if let Ok(voice) = voice_store.get_voice(&u7::from(60)) {
             assert!(!voice.is_playing());
             voice.note_on(u7::from(60), u7::from(127));
-            voice.generate_next(); // We must tick() to register the trigger.
+            voice.generate(&mut buffer); // We must tick() to register the trigger.
             assert!(voice.is_playing());
         }
         if let Ok(voice) = voice_store.get_voice(&u7::from(61)) {
             assert!(!voice.is_playing());
             voice.note_on(u7::from(61), u7::from(127));
-            voice.generate_next();
+            voice.generate(&mut buffer);
             assert!(voice.is_playing());
         }
 
@@ -470,7 +524,7 @@ pub(crate) mod tests {
             // This is testing the shutdown state, rather than the voice store,
             // but I'm feeling lazy today.
             voice.note_on(u7::from(62), u7::from(127));
-            voice.generate_next();
+            voice.generate(&mut buffer);
             assert!(voice.debug_is_shutting_down());
         } else {
             assert!(false, "StealingVoiceStore didn't return a voice");
@@ -500,7 +554,8 @@ pub(crate) mod tests {
             );
         }
 
-        let _ = voice_store.generate_next();
+        let mut buffer = [StereoSample::default(); 1];
+        let _ = voice_store.generate(&mut buffer);
         assert_eq!(voice_store.active_voice_count(), 2, "voices with pending attacks() should have been handled, and they should now be is_playing()");
 
         // Now ask for both voices again. Each should be playing and each should
@@ -527,7 +582,7 @@ pub(crate) mod tests {
                 "we should have gotten back the same voice for the requested note"
             );
         }
-        let _ = voice_store.generate_next();
+        let _ = voice_store.generate(&mut buffer);
 
         // Finally, mark a note done and then ask for a new one. We should get
         // assigned the one we just gave up.
@@ -551,7 +606,7 @@ pub(crate) mod tests {
             );
             voice.note_off(u7::from(127));
         }
-        let _ = voice_store.generate_next();
+        let _ = voice_store.generate(&mut buffer);
         if let Ok(voice) = voice_store.get_voice(&u7::from(62)) {
             // This is a bit too cute. We assume that we're getting back the
             // voice that serviced note #60 because (1) we set up the voice

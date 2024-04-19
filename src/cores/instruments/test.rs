@@ -27,7 +27,7 @@ impl Generates<StereoSample> for TestAudioSourceCore {
     }
 
     fn generate_next(&mut self) -> StereoSample {
-        StereoSample::from(self.level)
+        panic!()
     }
 }
 impl Configurable for TestAudioSourceCore {

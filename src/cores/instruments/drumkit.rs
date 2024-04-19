@@ -42,7 +42,7 @@ impl Generates<StereoSample> for DrumkitCore {
     }
 
     fn generate_next(&mut self) -> StereoSample {
-        self.inner_synth.generate_next()
+        panic!()
     }
 }
 impl Serializable for DrumkitCore {}

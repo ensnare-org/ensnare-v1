@@ -45,7 +45,7 @@ impl Generates<StereoSample> for TestInstrument {
     }
 
     fn generate_next(&mut self) -> StereoSample {
-        StereoSample::default()
+        panic!()
     }
 }
 
@@ -72,7 +72,7 @@ impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
     }
 
     fn generate_next(&mut self) -> StereoSample {
-        StereoSample::default()
+        panic!()
     }
 }
 impl HandlesMidi for TestInstrumentCountsMidiMessages {

@@ -56,15 +56,12 @@ mod tests {
             .ceiling(0.5.into())
             .build()
             .unwrap();
-        assert_eq!(
-            gain.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::LOUD)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::from(0.5)
-        );
+        let mut buffer = [StereoSample::default(); 1];
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::LOUD)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(gain.transform_audio(buffer[0]), StereoSample::from(0.5));
     }
 }

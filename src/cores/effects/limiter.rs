@@ -69,100 +69,72 @@ mod tests {
 
     #[test]
     fn limiter_mainline() {
+        let mut buffer = [StereoSample::default(); 1];
+
         // audio sources are at or past boundaries
-        assert_gt!(
-            TestAudioSourceCoreBuilder::default()
-                .level(TestAudioSourceCore::TOO_LOUD)
-                .build()
-                .unwrap()
-                .generate_next(),
-            StereoSample::MAX
-        );
-        assert_eq!(
-            TestAudioSourceCoreBuilder::default()
-                .level(TestAudioSourceCore::LOUD)
-                .build()
-                .unwrap()
-                .generate_next(),
-            StereoSample::MAX
-        );
-        assert_eq!(
-            TestAudioSourceCoreBuilder::default()
-                .level(TestAudioSourceCore::SILENT)
-                .build()
-                .unwrap()
-                .generate_next(),
-            StereoSample::SILENCE
-        );
-        assert_eq!(
-            TestAudioSourceCoreBuilder::default()
-                .level(TestAudioSourceCore::QUIET)
-                .build()
-                .unwrap()
-                .generate_next(),
-            StereoSample::MIN
-        );
-        assert_lt!(
-            TestAudioSourceCoreBuilder::default()
-                .level(TestAudioSourceCore::TOO_QUIET)
-                .build()
-                .unwrap()
-                .generate_next(),
-            StereoSample::MIN
-        );
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::TOO_LOUD)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_gt!(buffer[0], StereoSample::MAX);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::LOUD)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MAX);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::SILENT)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::SILENCE);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::QUIET)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MIN);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::TOO_QUIET)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_lt!(buffer[0], StereoSample::MIN);
 
         // Limiter clamps high and low, and doesn't change values inside the range.
         let mut limiter = LimiterCore::default();
-        assert_eq!(
-            limiter.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::TOO_LOUD)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::MAX
-        );
-        assert_eq!(
-            limiter.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::LOUD)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::MAX
-        );
-        assert_eq!(
-            limiter.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::SILENT)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::SILENCE
-        );
-        assert_eq!(
-            limiter.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::QUIET)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::MIN
-        );
-        assert_eq!(
-            limiter.transform_audio(
-                TestAudioSourceCoreBuilder::default()
-                    .level(TestAudioSourceCore::TOO_QUIET)
-                    .build()
-                    .unwrap()
-                    .generate_next()
-            ),
-            StereoSample::MIN
-        );
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::TOO_LOUD)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MAX);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::LOUD)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MAX);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::SILENT)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::SILENCE);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::QUIET)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MIN);
+        TestAudioSourceCoreBuilder::default()
+            .level(TestAudioSourceCore::TOO_QUIET)
+            .build()
+            .unwrap()
+            .generate(&mut buffer);
+        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MIN);
     }
 
     #[test]

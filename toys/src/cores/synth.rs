@@ -3,7 +3,7 @@
 use delegate::delegate;
 use ensnare::{
     prelude::*,
-    traits::{CanPrototype, GeneratesEnvelope},
+    traits::{CanPrototype, GeneratesEnvelope, GenerationBuffer},
 };
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,9 @@ pub struct ToyVoice {
     pub oscillator: Oscillator,
     pub envelope: Envelope,
     pub dca: Dca,
+    oscillator_buffer: GenerationBuffer<BipolarNormal>,
+    envelope_buffer: GenerationBuffer<Normal>,
+    mono_buffer: GenerationBuffer<Sample>,
 }
 impl IsStereoSampleVoice for ToyVoice {}
 impl IsVoice<StereoSample> for ToyVoice {}
@@ -36,9 +39,28 @@ impl PlaysNotes for ToyVoice {
 }
 impl Generates<StereoSample> for ToyVoice {
     fn generate_next(&mut self) -> StereoSample {
-        self.dca.transform_audio_to_stereo(
-            (self.oscillator.generate_next() * self.envelope.generate_next()).into(),
-        )
+        panic!();
+    }
+
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.oscillator_buffer.set_buffer_size(values.len());
+        self.envelope_buffer.set_buffer_size(values.len());
+        self.mono_buffer.set_buffer_size(values.len());
+        self.oscillator
+            .generate(self.oscillator_buffer.buffer_mut());
+        self.envelope.generate(self.envelope_buffer.buffer_mut());
+        self.mono_buffer
+            .buffer_mut()
+            .iter_mut()
+            .zip(
+                self.oscillator_buffer
+                    .buffer()
+                    .iter()
+                    .zip(self.envelope_buffer.buffer().iter()),
+            )
+            .for_each(|(dst, (osc, env))| *dst = (*osc * *env).into());
+        self.dca
+            .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
     }
 }
 impl Configurable for ToyVoice {
@@ -57,6 +79,9 @@ impl ToyVoice {
             oscillator: oscillator.make_another(),
             envelope: envelope.make_another(),
             dca: dca.make_another(),
+            oscillator_buffer: Default::default(),
+            envelope_buffer: Default::default(),
+            mono_buffer: Default::default(),
         }
     }
 }
@@ -164,6 +189,7 @@ impl ToySynthCore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cores::tests::{check_instrument, GeneratesStereoSampleAndHandlesMidi};
     use ensnare::elements::OscillatorBuilder;
 
     #[test]
@@ -203,5 +229,17 @@ mod tests {
                 "all voices update gain after setting master"
             );
         });
+    }
+
+    impl GeneratesStereoSampleAndHandlesMidi for ToySynthCore {}
+
+    #[test]
+    fn toy_synth_works() {
+        let mut instrument = ToySynthCore::new_with(
+            OscillatorBuilder::default().build().unwrap(),
+            EnvelopeBuilder::safe_default().build().unwrap(),
+            Dca::default(),
+        );
+        check_instrument(&mut instrument);
     }
 }

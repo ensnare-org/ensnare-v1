@@ -28,6 +28,7 @@ pub struct LfoControllerCoreEphemerals {
     is_performing: bool,
     time_range: TimeRange,
     last_frame: usize,
+    pub osc_buffer: GenerationBuffer<BipolarNormal>,
 }
 impl Serializable for LfoControllerCore {}
 impl Configurable for LfoControllerCore {
@@ -74,7 +75,11 @@ impl Controls for LfoControllerCore {
             };
             self.e.last_frame += tick_count;
 
-            (0..tick_count).for_each(|_| last_value = self.oscillator.generate_next());
+            self.e.osc_buffer.set_buffer_size(tick_count);
+            self.oscillator.generate(self.e.osc_buffer.buffer_mut());
+            if tick_count != 0 {
+                last_value = *self.e.osc_buffer.buffer().last().unwrap();
+            }
         }
         control_events_fn(WorkEvent::Control(last_value.into()));
     }
