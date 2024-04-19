@@ -119,9 +119,6 @@ pub trait Configurable {
     fn reset(&mut self) {}
 }
 
-#[allow(missing_docs)]
-pub trait MessageBounds: core::fmt::Debug + Send {}
-
 /// Implementers of [Controls] produce these events. Only the system receives
 /// them; rather than forwarding them directly, the system converts them into
 /// something else that might then get forwarded to recipients.
@@ -143,7 +140,6 @@ pub enum WorkEvent {
     /// should change.
     Control(ControlValue),
 }
-impl MessageBounds for WorkEvent {}
 
 /// A [TransformsAudio] takes input audio, which is typically produced by
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
