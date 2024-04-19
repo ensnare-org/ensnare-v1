@@ -13,7 +13,6 @@ pub struct ToyVoice {
     pub oscillator: Oscillator,
     pub envelope: Envelope,
     pub dca: Dca,
-    value: StereoSample,
 }
 impl IsStereoSampleVoice for ToyVoice {}
 impl IsVoice<StereoSample> for ToyVoice {}
@@ -36,22 +35,10 @@ impl PlaysNotes for ToyVoice {
     }
 }
 impl Generates<StereoSample> for ToyVoice {
-    fn value(&self) -> StereoSample {
-        self.value
-    }
-
-    #[allow(unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        todo!()
-    }
-}
-impl Ticks for ToyVoice {
-    fn tick(&mut self, tick_count: usize) {
-        self.oscillator.tick(tick_count);
-        self.envelope.tick(tick_count);
-        self.value = self
-            .dca
-            .transform_audio_to_stereo((self.oscillator.value() * self.envelope.value()).into());
+    fn generate_next(&mut self) -> StereoSample {
+        self.dca.transform_audio_to_stereo(
+            (self.oscillator.generate_next() * self.envelope.generate_next()).into(),
+        )
     }
 }
 impl Configurable for ToyVoice {
@@ -70,7 +57,6 @@ impl ToyVoice {
             oscillator: oscillator.make_another(),
             envelope: envelope.make_another(),
             dca: dca.make_another(),
-            value: Default::default(),
         }
     }
 }
@@ -97,8 +83,8 @@ impl Serializable for ToySynthCore {}
 impl Generates<StereoSample> for ToySynthCore {
     delegate! {
         to self.inner {
-            fn value(&self) -> StereoSample;
             fn generate(&mut self, values: &mut [StereoSample]);
+            fn generate_next(&mut self) -> StereoSample;
         }
     }
 }
@@ -111,13 +97,6 @@ impl HandlesMidi for ToySynthCore {
                 message: MidiMessage,
                 midi_messages_fn: &mut MidiMessagesFn,
             );
-        }
-    }
-}
-impl Ticks for ToySynthCore {
-    delegate! {
-        to self.inner {
-            fn tick(&mut self, tick_count: usize);
         }
     }
 }

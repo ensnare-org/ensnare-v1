@@ -62,7 +62,7 @@ mod tests {
                     .level(TestAudioSourceCore::LOUD)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::from(0.5)
         );

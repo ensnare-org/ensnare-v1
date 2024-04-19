@@ -68,13 +68,25 @@ impl PlaysNotes for FmVoice {
     }
 }
 impl Generates<StereoSample> for FmVoice {
-    fn value(&self) -> StereoSample {
-        self.sample
-    }
-
-    #[allow(unused_variables)]
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        todo!()
+    fn generate_next(&mut self) -> StereoSample {
+        let mut r = BipolarNormal::from(0.0);
+        if self.is_playing() {
+            let modulator_magnitude = self.modulator.generate_next()
+                * self.modulator_envelope.generate_next()
+                * self.depth;
+            self.carrier
+                .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
+            r = self.carrier.generate_next() * self.carrier_envelope.generate_next();
+            if !self.is_playing() && self.steal_is_underway {
+                self.steal_is_underway = false;
+                self.note_on(self.note_on_key, self.note_on_velocity);
+            }
+        }
+        if self.is_playing() {
+            self.dca.transform_audio_to_stereo(Sample::from(r))
+        } else {
+            StereoSample::SILENCE
+        }
     }
 }
 impl Serializable for FmVoice {}
@@ -85,33 +97,6 @@ impl Configurable for FmVoice {
         self.modulator_envelope.update_sample_rate(sample_rate);
         self.carrier.update_sample_rate(sample_rate);
         self.modulator.update_sample_rate(sample_rate);
-    }
-}
-impl Ticks for FmVoice {
-    fn tick(&mut self, tick_count: usize) {
-        let mut r = BipolarNormal::from(0.0);
-        for _ in 0..tick_count {
-            if self.is_playing() {
-                let modulator_magnitude =
-                    self.modulator.value() * self.modulator_envelope.value() * self.depth;
-                self.carrier
-                    .set_linear_frequency_modulation(modulator_magnitude.0 * self.beta);
-                r = self.carrier.value() * self.carrier_envelope.value();
-                self.carrier_envelope.tick(tick_count);
-                self.modulator_envelope.tick(tick_count);
-                self.carrier.tick(tick_count);
-                self.modulator.tick(tick_count);
-                if !self.is_playing() && self.steal_is_underway {
-                    self.steal_is_underway = false;
-                    self.note_on(self.note_on_key, self.note_on_velocity);
-                }
-            }
-        }
-        self.sample = if self.is_playing() {
-            self.dca.transform_audio_to_stereo(Sample::from(r))
-        } else {
-            StereoSample::SILENCE
-        };
     }
 }
 impl FmVoice {
@@ -241,12 +226,12 @@ impl FmSynthCoreBuilder {
     }
 }
 impl Generates<StereoSample> for FmSynthCore {
-    fn value(&self) -> StereoSample {
-        self.inner.value()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner.generate(values);
+    }
+
+    fn generate_next(&mut self) -> StereoSample {
+        self.inner.generate_next()
     }
 }
 impl Serializable for FmSynthCore {
@@ -274,13 +259,6 @@ impl Configurable for FmSynthCore {
             fn update_tempo(&mut self, tempo: Tempo);
             fn time_signature(&self) -> TimeSignature;
             fn update_time_signature(&mut self, time_signature: TimeSignature);
-        }
-    }
-}
-impl Ticks for FmSynthCore {
-    delegate! {
-        to self.inner {
-            fn tick(&mut self, tick_count: usize);
         }
     }
 }

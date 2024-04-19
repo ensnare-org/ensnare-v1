@@ -21,14 +21,13 @@ pub struct TestAudioSourceCore {
     #[builder(setter(skip))]
     c: Configurables,
 }
-impl Ticks for TestAudioSourceCore {}
 impl Generates<StereoSample> for TestAudioSourceCore {
-    fn value(&self) -> StereoSample {
-        StereoSample::from(self.level)
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        values.fill(StereoSample::from(self.level));
     }
 
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(self.value());
+    fn generate_next(&mut self) -> StereoSample {
+        StereoSample::from(self.level)
     }
 }
 impl Configurable for TestAudioSourceCore {

@@ -154,7 +154,6 @@ mod tests {
         HandlesMidi,
         Serializable,
         SkipInner,
-        Ticks,
         TransformsAudio
     )]
     pub struct TestControllable {

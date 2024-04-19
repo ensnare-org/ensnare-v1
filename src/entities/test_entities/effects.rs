@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
     HandlesMidi,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 #[serde(rename_all = "kebab-case")]
@@ -46,8 +45,7 @@ impl TestEffect {
     GeneratesStereoSample,
     HandlesMidi,
     Serializable,
-    SkipInner,
-    Ticks
+    SkipInner
 )]
 #[serde(rename_all = "kebab-case")]
 pub struct TestEffectNegatesInput {

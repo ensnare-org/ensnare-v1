@@ -61,7 +61,6 @@ pub struct SubtractiveSynthVoice {
     steal_is_underway: bool,
 
     sample: StereoSample,
-    ticks: usize,
 }
 impl IsStereoSampleVoice for SubtractiveSynthVoice {}
 impl IsVoice<StereoSample> for SubtractiveSynthVoice {}
@@ -90,119 +89,106 @@ impl PlaysNotes for SubtractiveSynthVoice {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthVoice {
-    fn value(&self) -> StereoSample {
-        self.sample
-    }
-    fn generate(&mut self, _samples: &mut [StereoSample]) {
-        todo!()
+    fn generate_next(&mut self) -> StereoSample {
+        // It's important for the envelope tick() methods to be called after
+        // their handle_note_* methods are called, but before we check whether
+        // amp_envelope.is_idle(), because the tick() methods are what determine
+        // the current idle state.
+        //
+        // TODO: this seems like an implementation detail that maybe should be
+        // hidden from the caller.
+        let (amp_env_amplitude, filter_env_amplitude) = self.tick_envelopes();
+
+        // TODO: various parts of this loop can be precalculated.
+
+        if self.is_playing() {
+            // TODO: ideally, these entities would get a tick() on every
+            // voice tick(), but they are surprisingly expensive. So we will
+            // skip calling them unless we're going to look at their output.
+            // This means that they won't get a time slice as often as the
+            // voice will. If this becomes a problem, we can add something
+            // like an empty_tick() method to the Ticks trait that lets
+            // entities stay in sync, but skipping any real work that would
+            // cost time.
+
+            // LFO
+            let lfo = if matches!(self.lfo_routing, LfoRouting::None) {
+                BipolarNormal::default()
+            } else {
+                self.lfo.generate_next()
+            };
+            if matches!(self.lfo_routing, LfoRouting::Pitch) {
+                let lfo_for_pitch = lfo * self.lfo_depth;
+                self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
+                self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+            } else if matches!(self.lfo_routing, LfoRouting::Pitch2) {
+                let lfo_for_pitch = lfo * self.lfo_depth;
+                self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+            } else if matches!(self.lfo_routing, LfoRouting::PulseWidth2) {
+                let lfo_for_pitch = lfo * self.lfo_depth;
+                self.oscillator_2
+                    .set_waveform(Waveform::PulseWidth(lfo_for_pitch.into()));
+            }
+
+            // Oscillators
+            let osc_sum = {
+                if self.oscillator_2_sync && self.oscillator_1.should_sync() {
+                    self.oscillator_2.sync();
+                }
+                self.oscillator_1.generate_next() * self.oscillator_mix
+                    + self.oscillator_2.generate_next() * (Normal::maximum() - self.oscillator_mix)
+            };
+
+            // Filters
+            //
+            // https://aempass.blogspot.com/2014/09/analog-and-welshs-synthesizer-cookbook.html
+            if self.filter_cutoff_end != Normal::zero() {
+                let new_cutoff_percentage = self.filter_cutoff_start
+                    + (1.0 - self.filter_cutoff_start)
+                        * self.filter_cutoff_end
+                        * filter_env_amplitude;
+                self.filter.set_cutoff(new_cutoff_percentage.into());
+            } else if matches!(self.lfo_routing, LfoRouting::FilterCutoff) {
+                let lfo_for_cutoff = lfo * self.lfo_depth;
+                self.filter
+                    .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
+            } else if matches!(self.lfo_routing, LfoRouting::FilterResonance) {
+                // TODO - it's unlikely this is correct. I copied/pasted
+                // while converting old patches and for the first time
+                // encountered a resonance setting.
+                let lfo_for_resonance = lfo * self.lfo_depth;
+                self.filter.set_passband_ripple(
+                    (self.filter_cutoff_start * (lfo_for_resonance.0 + 1.0)).into(),
+                );
+            }
+            let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
+
+            // LFO amplitude modulation
+            let lfo_for_amplitude =
+                Normal::from(if matches!(self.lfo_routing, LfoRouting::Amplitude) {
+                    lfo * self.lfo_depth
+                } else {
+                    BipolarNormal::zero()
+                });
+
+            // Final
+            self.dca.transform_audio_to_stereo(Sample(
+                filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
+            ))
+        } else {
+            StereoSample::SILENCE
+        }
     }
 }
 impl Serializable for SubtractiveSynthVoice {}
 impl Configurable for SubtractiveSynthVoice {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
-        self.ticks = 0;
         self.lfo.update_sample_rate(sample_rate);
         self.amp_envelope.update_sample_rate(sample_rate);
         self.filter_envelope.update_sample_rate(sample_rate);
         self.filter.update_sample_rate(sample_rate);
         self.oscillator_1.update_sample_rate(sample_rate);
         self.oscillator_2.update_sample_rate(sample_rate);
-    }
-}
-impl Ticks for SubtractiveSynthVoice {
-    fn tick(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
-            self.ticks += 1;
-            // It's important for the envelope tick() methods to be called after
-            // their handle_note_* methods are called, but before we check whether
-            // amp_envelope.is_idle(), because the tick() methods are what determine
-            // the current idle state.
-            //
-            // TODO: this seems like an implementation detail that maybe should be
-            // hidden from the caller.
-            let (amp_env_amplitude, filter_env_amplitude) = self.tick_envelopes();
-
-            // TODO: various parts of this loop can be precalculated.
-
-            self.sample = if self.is_playing() {
-                // TODO: ideally, these entities would get a tick() on every
-                // voice tick(), but they are surprisingly expensive. So we will
-                // skip calling them unless we're going to look at their output.
-                // This means that they won't get a time slice as often as the
-                // voice will. If this becomes a problem, we can add something
-                // like an empty_tick() method to the Ticks trait that lets
-                // entities stay in sync, but skipping any real work that would
-                // cost time.
-                if !matches!(self.lfo_routing, LfoRouting::None) {
-                    self.lfo.tick(1);
-                }
-                self.oscillator_1.tick(1);
-                self.oscillator_2.tick(1);
-
-                // LFO
-                let lfo = self.lfo.value();
-                if matches!(self.lfo_routing, LfoRouting::Pitch) {
-                    let lfo_for_pitch = lfo * self.lfo_depth;
-                    self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
-                    self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
-                } else if matches!(self.lfo_routing, LfoRouting::Pitch2) {
-                    let lfo_for_pitch = lfo * self.lfo_depth;
-                    self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
-                } else if matches!(self.lfo_routing, LfoRouting::PulseWidth2) {
-                    let lfo_for_pitch = lfo * self.lfo_depth;
-                    self.oscillator_2
-                        .set_waveform(Waveform::PulseWidth(lfo_for_pitch.into()));
-                }
-
-                // Oscillators
-                let osc_sum = {
-                    if self.oscillator_2_sync && self.oscillator_1.should_sync() {
-                        self.oscillator_2.sync();
-                    }
-                    self.oscillator_1.value() * self.oscillator_mix
-                        + self.oscillator_2.value() * (Normal::maximum() - self.oscillator_mix)
-                };
-
-                // Filters
-                //
-                // https://aempass.blogspot.com/2014/09/analog-and-welshs-synthesizer-cookbook.html
-                if self.filter_cutoff_end != Normal::zero() {
-                    let new_cutoff_percentage = self.filter_cutoff_start
-                        + (1.0 - self.filter_cutoff_start)
-                            * self.filter_cutoff_end
-                            * filter_env_amplitude;
-                    self.filter.set_cutoff(new_cutoff_percentage.into());
-                } else if matches!(self.lfo_routing, LfoRouting::FilterCutoff) {
-                    let lfo_for_cutoff = lfo * self.lfo_depth;
-                    self.filter
-                        .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
-                } else if matches!(self.lfo_routing, LfoRouting::FilterResonance) {
-                    // TODO - it's unlikely this is correct. I copied/pasted
-                    // while converting old patches and for the first time
-                    // encountered a resonance setting.
-                    let lfo_for_resonance = lfo * self.lfo_depth;
-                    self.filter.set_passband_ripple(
-                        (self.filter_cutoff_start * (lfo_for_resonance.0 + 1.0)).into(),
-                    );
-                }
-                let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
-
-                // LFO amplitude modulation
-                let lfo_for_amplitude =
-                    Normal::from(if matches!(self.lfo_routing, LfoRouting::Amplitude) {
-                        lfo * self.lfo_depth
-                    } else {
-                        BipolarNormal::zero()
-                    });
-
-                // Final
-                self.dca.transform_audio_to_stereo(Sample(
-                    filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
-                ))
-            } else {
-                StereoSample::SILENCE
-            };
-        }
     }
 }
 impl SubtractiveSynthVoice {
@@ -239,22 +225,23 @@ impl SubtractiveSynthVoice {
             note_on_velocity: Default::default(),
             steal_is_underway: Default::default(),
             sample: Default::default(),
-            ticks: Default::default(),
         }
     }
 
     fn tick_envelopes(&mut self) -> (Normal, Normal) {
         if self.is_playing() {
-            self.amp_envelope.tick(1);
-            self.filter_envelope.tick(1);
+            let (amp, filter) = (
+                self.amp_envelope.generate_next(),
+                self.filter_envelope.generate_next(),
+            );
             if self.is_playing() {
-                return (self.amp_envelope.value(), self.filter_envelope.value());
+                return (amp, filter);
             }
+        }
 
-            if self.steal_is_underway {
-                self.steal_is_underway = false;
-                self.note_on(self.note_on_key, self.note_on_velocity);
-            }
+        if self.steal_is_underway {
+            self.steal_is_underway = false;
+            self.note_on(self.note_on_key, self.note_on_velocity);
         }
         (Normal::zero(), Normal::zero())
     }
@@ -439,12 +426,8 @@ impl SubtractiveSynthCore {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {
-    fn value(&self) -> StereoSample {
-        self.inner.value()
-    }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate(values);
+    fn generate_next(&mut self) -> StereoSample {
+        self.inner.generate_next()
     }
 }
 impl Serializable for SubtractiveSynthCore {
@@ -465,11 +448,6 @@ impl Configurable for SubtractiveSynthCore {
             fn time_signature(&self) -> TimeSignature;
             fn update_time_signature(&mut self, time_signature: TimeSignature);
         }
-    }
-}
-impl Ticks for SubtractiveSynthCore {
-    fn tick(&mut self, tick_count: usize) {
-        self.inner.tick(tick_count);
     }
 }
 impl HandlesMidi for SubtractiveSynthCore {

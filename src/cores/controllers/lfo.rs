@@ -55,6 +55,7 @@ impl Controls for LfoControllerCore {
             .start
             .as_frames(Tempo::from(120), self.oscillator.sample_rate());
 
+        let mut last_value = BipolarNormal::default();
         if frames != self.e.last_frame {
             let tick_count = if frames >= self.e.last_frame {
                 // normal case; oscillator should advance the calculated number
@@ -72,9 +73,10 @@ impl Controls for LfoControllerCore {
                 0
             };
             self.e.last_frame += tick_count;
-            self.oscillator.tick(tick_count);
+
+            (0..tick_count).for_each(|_| last_value = self.oscillator.generate_next());
         }
-        control_events_fn(WorkEvent::Control(self.oscillator.value().into()));
+        control_events_fn(WorkEvent::Control(last_value.into()));
     }
 
     fn is_finished(&self) -> bool {

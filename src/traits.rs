@@ -12,7 +12,7 @@ pub mod prelude {
         Controllable, Controls, ControlsAsProxy, DisplaysAction, EntityBounds, Generates,
         GeneratesEnvelope, HandlesMidi, HasExtent, HasMetadata, HasSettings, IsStereoSampleVoice,
         IsVoice, MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
-        Ticks, TransformsAudio, WorkEvent,
+        TransformsAudio, WorkEvent,
     };
 }
 
@@ -30,21 +30,17 @@ use strum_macros::Display;
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
-pub trait Generates<V: Default>: Send + core::fmt::Debug + Ticks {
-    /// The value for the current frame. Advance the frame by calling
-    /// [Ticks::tick()].
-    fn value(&self) -> V {
-        V::default()
-    }
-
-    /// The batch version of value(). To deliver each value, this method will
-    /// typically call tick() internally. If you don't want this, then call
-    /// value() on your own.
+pub trait Generates<V: Default>: Send + core::fmt::Debug + Configurable {
+    /// Returns a batch of values.
     fn generate(&mut self, values: &mut [V]) {
         for value in values {
-            self.tick(1);
-            *value = self.value();
+            *value = self.generate_next();
         }
+    }
+
+    /// Generates the next value. This is temporary to get rid of Ticks.
+    fn generate_next(&mut self) -> V {
+        V::default()
     }
 }
 
@@ -121,27 +117,6 @@ pub trait Configurable {
     /// Sent to indicate that it's time to reset internal state. Oscillators
     /// should reset phase, etc.
     fn reset(&mut self) {}
-}
-
-/// A way for an [Entity] to do work corresponding to one or more frames.
-#[deprecated = "TODO: batch"]
-pub trait Ticks: Configurable + Send + core::fmt::Debug {
-    /// The entity should perform work for the current frame or frames. Under
-    /// normal circumstances, successive tick()s represent successive frames.
-    /// Exceptions include, for example, restarting a performance, which would
-    /// reset the global clock, which the entity learns about via reset().
-    ///
-    /// Entities are responsible for tracking their own notion of time, which
-    /// they should update during tick().
-    ///
-    /// tick() guarantees that any state for the current frame is valid *after*
-    /// tick() has been called for the current frame. This means that Ticks
-    /// implementers must treat the first frame as special. Normally, entity
-    /// state is correct for the first frame after entity construction, so
-    /// tick() must be careful not to update state on the first frame, because
-    /// that would cause the state to represent the second frame, not the first.
-    #[allow(unused_variables)]
-    fn tick(&mut self, tick_count: usize) {}
 }
 
 #[allow(missing_docs)]

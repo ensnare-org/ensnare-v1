@@ -152,8 +152,20 @@ pub struct OscillatorEphemerals {
     c: Configurables,
 }
 impl Generates<BipolarNormal> for Oscillator {
-    fn value(&self) -> BipolarNormal {
-        self.e.signal
+    fn generate_next(&mut self) -> BipolarNormal {
+        if self.e.reset_pending {
+            self.e.ticks = 0; // TODO: this might not be the right thing to do
+
+            self.update_delta();
+            self.e.cycle_position =
+                KahanSum::new_with_value((self.e.delta * self.e.ticks as f64).fract());
+        } else {
+            self.e.ticks += 1;
+        }
+        let cycle_position = self.calculate_cycle_position();
+        let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
+        self.e.reset_pending = false;
+        BipolarNormal::from(amplitude_for_position)
     }
 }
 impl Configurable for Oscillator {
@@ -174,25 +186,6 @@ impl Configurable for Oscillator {
 
     fn reset(&mut self) {
         self.e.reset_pending = true;
-    }
-}
-impl Ticks for Oscillator {
-    fn tick(&mut self, tick_count: usize) {
-        for _ in 0..tick_count {
-            if self.e.reset_pending {
-                self.e.ticks = 0; // TODO: this might not be the right thing to do
-
-                self.update_delta();
-                self.e.cycle_position =
-                    KahanSum::new_with_value((self.e.delta * self.e.ticks as f64).fract());
-            } else {
-                self.e.ticks += 1;
-            }
-            let cycle_position = self.calculate_cycle_position();
-            let amplitude_for_position = self.amplitude_for_position(self.waveform, cycle_position);
-            self.e.signal = BipolarNormal::from(amplitude_for_position);
-            self.e.reset_pending = false;
-        }
     }
 }
 impl Oscillator {
@@ -479,7 +472,29 @@ impl GeneratesEnvelope for Envelope {
     }
 }
 impl Generates<Normal> for Envelope {
-    fn value(&self) -> Normal {
+    fn generate_next(&mut self) -> Normal {
+        let pre_update_amplitude = self.e.uncorrected_amplitude.sum();
+        if !self.e.handled_first_tick {
+            self.e.handled_first_tick = true;
+        } else {
+            self.e.ticks += 1;
+            self.update_amplitude();
+        }
+        self.e.time = Seconds(self.e.ticks as f64 / self.e.sample_rate.0 as f64);
+
+        self.handle_state();
+
+        let linear_amplitude = if self.e.amplitude_was_set {
+            self.e.amplitude_was_set = false;
+            pre_update_amplitude
+        } else {
+            self.e.uncorrected_amplitude.sum()
+        };
+        self.e.corrected_amplitude = match self.e.state {
+            State::Attack => self.transform_linear_to_convex(linear_amplitude),
+            State::Decay | State::Release => self.transform_linear_to_concave(linear_amplitude),
+            _ => linear_amplitude,
+        };
         Normal::new(self.e.corrected_amplitude)
     }
 }
@@ -491,36 +506,6 @@ impl Configurable for Envelope {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.e.sample_rate = sample_rate;
         self.e.handled_first_tick = false;
-    }
-}
-impl Ticks for Envelope {
-    fn tick(&mut self, tick_count: usize) {
-        // TODO: same comment as above about not yet taking advantage of
-        // batching
-        for _ in 0..tick_count {
-            let pre_update_amplitude = self.e.uncorrected_amplitude.sum();
-            if !self.e.handled_first_tick {
-                self.e.handled_first_tick = true;
-            } else {
-                self.e.ticks += 1;
-                self.update_amplitude();
-            }
-            self.e.time = Seconds(self.e.ticks as f64 / self.e.sample_rate.0 as f64);
-
-            self.handle_state();
-
-            let linear_amplitude = if self.e.amplitude_was_set {
-                self.e.amplitude_was_set = false;
-                pre_update_amplitude
-            } else {
-                self.e.uncorrected_amplitude.sum()
-            };
-            self.e.corrected_amplitude = match self.e.state {
-                State::Attack => self.transform_linear_to_convex(linear_amplitude),
-                State::Decay | State::Release => self.transform_linear_to_concave(linear_amplitude),
-                _ => linear_amplitude,
-            };
-        }
     }
 }
 impl Envelope {
@@ -928,18 +913,6 @@ mod tests {
 
     const SAMPLE_BUFFER_SIZE: usize = 64;
 
-    pub trait DebugTicks: Ticks {
-        fn debug_tick_until(&mut self, tick_number: usize);
-    }
-
-    impl DebugTicks for Oscillator {
-        fn debug_tick_until(&mut self, tick_number: usize) {
-            if self.e.ticks < tick_number {
-                self.tick(tick_number - self.e.ticks);
-            }
-        }
-    }
-
     impl SteppedEnvelope {
         #[allow(dead_code)]
         #[allow(unused_variables)]
@@ -1340,7 +1313,7 @@ mod tests {
                 _ => false,
             };
 
-            oscillator.tick(1);
+            let _ = oscillator.generate_next();
             assert_eq!(
                 oscillator.should_sync(),
                 expected,
@@ -1350,7 +1323,7 @@ mod tests {
 
         // Let's try again after rewinding the clock. It should recognize
         // something happened and restart the cycle.
-        oscillator.tick(1);
+        let _ = oscillator.generate_next();
         assert!(
             !oscillator.should_sync(),
             "Oscillator shouldn't sync midway through cycle."
@@ -1364,12 +1337,12 @@ mod tests {
         // shift, so it's OK to have the wrong timbre for a tiny fraction of a
         // second.
         oscillator.update_sample_rate(SampleRate::DEFAULT);
-        oscillator.tick(1);
+        let _ = oscillator.generate_next();
         assert!(
             oscillator.should_sync(),
             "After reset, oscillator should sync."
         );
-        oscillator.tick(1);
+        let _ = oscillator.generate_next();
         assert!(
             !oscillator.should_sync(),
             "Oscillator shouldn't sync twice when syncing after reset."
@@ -1380,7 +1353,7 @@ mod tests {
         oscillator.update_sample_rate(SampleRate::DEFAULT);
         let mut cycles = 0;
         for _ in 0..SampleRate::DEFAULT_SAMPLE_RATE {
-            oscillator.tick(1);
+            let _ = oscillator.generate_next();
             if oscillator.should_sync() {
                 cycles += 1;
             }
@@ -1409,12 +1382,11 @@ mod tests {
 
         assert!(e.is_idle(), "Envelope should be idle on creation.");
 
-        e.tick(1);
+        let value = e.generate_next();
         transport.advance(1);
         assert!(e.is_idle(), "Untriggered envelope should remain idle.");
         assert_eq!(
-            e.value().0,
-            0.0,
+            value.0, 0.0,
             "Untriggered envelope should remain amplitude zero."
         );
     }
@@ -1452,7 +1424,7 @@ mod tests {
         e.update_sample_rate(SampleRate::DEFAULT);
 
         e.trigger_attack();
-        e.tick(1);
+        let _ = e.generate_next();
         transport.advance(1);
         assert!(
             !e.is_idle(),
@@ -1464,12 +1436,13 @@ mod tests {
         // a bit of time before they are apparent. I'm not sure whether this is
         // a good thing; it objectively makes attack laggy (in this case 16
         // samples late!).
+        let mut value = Default::default();
         for _ in 0..17 {
-            e.tick(1);
+            value = e.generate_next();
             transport.advance(1);
         }
         assert_gt!(
-            e.value().0,
+            value.0,
             0.0,
             "Envelope amplitude should increase immediately upon trigger"
         );
@@ -1509,9 +1482,7 @@ mod tests {
             "Expected SimpleEnvelopeState::Attack after trigger, but got {:?} instead",
             envelope.debug_state()
         );
-        let mut last_amplitude = envelope.value();
-
-        envelope.tick(1);
+        let mut last_amplitude = envelope.generate_next();
 
         let amplitude = run_until(
             &mut envelope,
@@ -1579,7 +1550,7 @@ mod tests {
             .unwrap();
 
         envelope.trigger_attack();
-        envelope.tick(1);
+        let _ = envelope.generate_next();
         let mut time_marker = transport.current_time()
             + MusicalTime::new_with_fractional_beats(
                 Envelope::from_normal_to_seconds(attack).0 + expected_decay_time(decay, SUSTAIN).0,
@@ -1791,13 +1762,13 @@ mod tests {
         envelope.trigger_attack();
         let mut time_marker = transport.current_time()
             + MusicalTime::new_with_fractional_beats(expected_decay_time(decay, sustain).0);
-        let amplitude = run_until(
+        let value = run_until(
             &mut envelope,
             &mut transport,
             time_marker,
             |_amplitude, _clock| {},
-        )
-        .0;
+        );
+        let amplitude = value.0;
         assert!(approx_eq!(f64, amplitude, sustain.0, epsilon=0.0001),
             "Expected to see sustain level {} instead of {} at time {} (which is {:.1}% of decay time {}, based on full 1.0..=0.0 amplitude range)",
             sustain.0,
@@ -1809,7 +1780,7 @@ mod tests {
 
         // Release after note-off should also be shorter than the release value.
         envelope.trigger_release();
-        let expected_release_time = expected_release_time(release, envelope.value().into());
+        let expected_release_time = expected_release_time(release, value);
         time_marker +=
             MusicalTime::new_with_fractional_beats(expected_release_time.0 - 0.000000000000001); // I AM SICK OF FP PRECISION ERRORS
         let amplitude = run_until(

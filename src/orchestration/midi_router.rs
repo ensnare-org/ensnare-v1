@@ -168,19 +168,8 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for TestHandlesMidi {
-        fn value(&self) -> StereoSample {
-            todo!()
-        }
-
-        #[allow(unused_variables)]
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            todo!()
-        }
-    }
-    impl Ticks for TestHandlesMidi {
-        #[allow(unused_variables)]
-        fn tick(&mut self, tick_count: usize) {
-            todo!()
+        fn generate_next(&mut self) -> StereoSample {
+            <StereoSample>::default()
         }
     }
 

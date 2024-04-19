@@ -37,12 +37,12 @@ impl core::fmt::Debug for DrumkitCore {
 }
 
 impl Generates<StereoSample> for DrumkitCore {
-    fn value(&self) -> StereoSample {
-        self.inner_synth.value()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner_synth.generate(values);
+    }
+
+    fn generate_next(&mut self) -> StereoSample {
+        self.inner_synth.generate_next()
     }
 }
 impl Serializable for DrumkitCore {}
@@ -56,11 +56,6 @@ impl Configurable for DrumkitCore {
             fn time_signature(&self) -> TimeSignature;
             fn update_time_signature(&mut self, time_signature: TimeSignature);
         }
-    }
-}
-impl Ticks for DrumkitCore {
-    fn tick(&mut self, tick_count: usize) {
-        self.inner_synth.tick(tick_count);
     }
 }
 impl HandlesMidi for DrumkitCore {

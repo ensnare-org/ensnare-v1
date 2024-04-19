@@ -13,7 +13,6 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
 pub struct ToyInstrumentEphemerals {
-    sample: StereoSample,
     pub is_playing: bool,
     pub received_midi_message_count: Arc<Mutex<usize>>,
     pub debug_messages: Vec<MidiMessage>,
@@ -34,8 +33,13 @@ pub struct ToyInstrumentCore {
     e: ToyInstrumentEphemerals,
 }
 impl Generates<StereoSample> for ToyInstrumentCore {
-    fn value(&self) -> StereoSample {
-        self.e.sample
+    fn generate_next(&mut self) -> StereoSample {
+        if self.e.is_playing {
+            self.dca
+                .transform_audio_to_stereo(Sample::from(self.oscillator.generate_next()))
+        } else {
+            StereoSample::SILENCE
+        }
     }
 }
 impl Configurable for ToyInstrumentCore {
@@ -45,17 +49,6 @@ impl Configurable for ToyInstrumentCore {
 
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.oscillator.update_sample_rate(sample_rate);
-    }
-}
-impl Ticks for ToyInstrumentCore {
-    fn tick(&mut self, tick_count: usize) {
-        self.oscillator.tick(tick_count);
-        self.e.sample = if self.e.is_playing {
-            self.dca
-                .transform_audio_to_stereo(Sample::from(self.oscillator.value()))
-        } else {
-            StereoSample::SILENCE
-        };
     }
 }
 impl HandlesMidi for ToyInstrumentCore {

@@ -218,15 +218,6 @@ impl<E: EntityBounds + ?Sized> EntityStore<E> {
         self.entities.contains_key(uid)
     }
 }
-impl<E: EntityBounds + ?Sized> Ticks for EntityStore<E> {
-    fn tick(&mut self, tick_count: usize) {
-        self.iter_mut().for_each(|t| {
-            // if let Some(t) = t.as_instrument_mut() {
-            t.tick(tick_count)
-            // }
-        });
-    }
-}
 impl<E: EntityBounds + ?Sized> Configurable for EntityStore<E> {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
@@ -409,7 +400,6 @@ mod tests {
         HandlesMidi,
         Serializable,
         SkipInner,
-        Ticks,
         TransformsAudio
     )]
     #[serde(rename_all = "kebab-case")]
@@ -427,12 +417,12 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for ExampleEntity {
-        fn value(&self) -> StereoSample {
-            StereoSample::default()
-        }
-
         fn generate(&mut self, values: &mut [StereoSample]) {
             values.fill(StereoSample::default())
+        }
+
+        fn generate_next(&mut self) -> StereoSample {
+            StereoSample::default()
         }
     }
 

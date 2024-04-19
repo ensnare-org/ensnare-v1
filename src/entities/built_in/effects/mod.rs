@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 pub struct Bitcrusher {
     uid: Uid,
     inner: BitcrusherCore,
@@ -49,7 +49,7 @@ impl Bitcrusher {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Chorus {
     uid: Uid,
@@ -73,7 +73,7 @@ impl Chorus {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Compressor {
     uid: Uid,
@@ -97,7 +97,7 @@ impl Compressor {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Delay {
     uid: Uid,
@@ -121,7 +121,7 @@ impl Delay {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Gain {
     uid: Uid,
@@ -145,7 +145,7 @@ impl Gain {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Limiter {
     uid: Uid,
@@ -169,7 +169,7 @@ impl Limiter {
     Serialize,
     Deserialize,
 )]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner, Ticks)]
+#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
 pub struct Reverb {
     uid: Uid,

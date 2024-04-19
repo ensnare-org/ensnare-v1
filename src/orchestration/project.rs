@@ -768,7 +768,6 @@ impl Generates<StereoSample> for Project {
         }
     }
 }
-impl Ticks for Project {}
 impl Configurable for Project {
     fn update_sample_rate(&mut self, sample_rate: SampleRate) {
         self.transport.update_sample_rate(sample_rate);
@@ -943,7 +942,6 @@ mod tests {
         HandlesMidi,
         Serializable,
         SkipInner,
-        Ticks,
         TransformsAudio
     )]
     pub struct TestControllerSendsOneEvent {

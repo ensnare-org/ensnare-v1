@@ -15,7 +15,6 @@ use std::sync::{Arc, Mutex};
     HandlesMidi,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 
@@ -41,12 +40,12 @@ impl Configurable for TestInstrument {
     }
 }
 impl Generates<StereoSample> for TestInstrument {
-    fn value(&self) -> StereoSample {
-        StereoSample::default()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(StereoSample::default())
+    }
+
+    fn generate_next(&mut self) -> StereoSample {
+        StereoSample::default()
     }
 }
 
@@ -59,7 +58,6 @@ impl Generates<StereoSample> for TestInstrument {
     Displays,
     Serializable,
     SkipInner,
-    Ticks,
     TransformsAudio
 )]
 #[serde(rename_all = "kebab-case")]
@@ -69,12 +67,12 @@ pub struct TestInstrumentCountsMidiMessages {
     pub received_midi_message_count: Arc<Mutex<usize>>,
 }
 impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
-    fn value(&self) -> StereoSample {
-        StereoSample::default()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(StereoSample::default())
+    }
+
+    fn generate_next(&mut self) -> StereoSample {
+        StereoSample::default()
     }
 }
 impl HandlesMidi for TestInstrumentCountsMidiMessages {

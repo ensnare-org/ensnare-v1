@@ -75,7 +75,7 @@ mod tests {
                 .level(TestAudioSourceCore::TOO_LOUD)
                 .build()
                 .unwrap()
-                .value(),
+                .generate_next(),
             StereoSample::MAX
         );
         assert_eq!(
@@ -83,7 +83,7 @@ mod tests {
                 .level(TestAudioSourceCore::LOUD)
                 .build()
                 .unwrap()
-                .value(),
+                .generate_next(),
             StereoSample::MAX
         );
         assert_eq!(
@@ -91,7 +91,7 @@ mod tests {
                 .level(TestAudioSourceCore::SILENT)
                 .build()
                 .unwrap()
-                .value(),
+                .generate_next(),
             StereoSample::SILENCE
         );
         assert_eq!(
@@ -99,7 +99,7 @@ mod tests {
                 .level(TestAudioSourceCore::QUIET)
                 .build()
                 .unwrap()
-                .value(),
+                .generate_next(),
             StereoSample::MIN
         );
         assert_lt!(
@@ -107,7 +107,7 @@ mod tests {
                 .level(TestAudioSourceCore::TOO_QUIET)
                 .build()
                 .unwrap()
-                .value(),
+                .generate_next(),
             StereoSample::MIN
         );
 
@@ -119,7 +119,7 @@ mod tests {
                     .level(TestAudioSourceCore::TOO_LOUD)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::MAX
         );
@@ -129,7 +129,7 @@ mod tests {
                     .level(TestAudioSourceCore::LOUD)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::MAX
         );
@@ -139,7 +139,7 @@ mod tests {
                     .level(TestAudioSourceCore::SILENT)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::SILENCE
         );
@@ -149,7 +149,7 @@ mod tests {
                     .level(TestAudioSourceCore::QUIET)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::MIN
         );
@@ -159,7 +159,7 @@ mod tests {
                     .level(TestAudioSourceCore::TOO_QUIET)
                     .build()
                     .unwrap()
-                    .value()
+                    .generate_next()
             ),
             StereoSample::MIN
         );

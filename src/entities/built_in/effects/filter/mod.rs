@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls, SkipInner)]
 pub struct BiQuadFilterBandPass {
     uid: Uid,
     inner: BiQuadFilterBandPassCore,
@@ -61,7 +61,7 @@ impl BiQuadFilterBandPass {
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls, SkipInner)]
 pub struct BiQuadFilterBandStop {
     uid: Uid,
     inner: BiQuadFilterBandStopCore,
@@ -97,7 +97,7 @@ impl BiQuadFilterBandStop {
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls, SkipInner)]
 pub struct BiQuadFilterLowPass24db {
     uid: Uid,
     inner: BiQuadFilterLowPass24dbCore,
@@ -133,7 +133,7 @@ impl BiQuadFilterLowPass24db {
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls, SkipInner)]
 pub struct BiQuadFilterHighPass {
     uid: Uid,
     inner: BiQuadFilterHighPassCore,
@@ -169,7 +169,7 @@ impl BiQuadFilterHighPass {
     Serialize,
     Deserialize,
 )]
-#[entity(HandlesMidi, GeneratesStereoSample, Ticks, Controls, SkipInner)]
+#[entity(HandlesMidi, GeneratesStereoSample, Controls, SkipInner)]
 pub struct BiQuadFilterAllPass {
     uid: Uid,
     inner: BiQuadFilterAllPassCore,

@@ -36,21 +36,12 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
     c: Configurables,
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
-    fn value(&self) -> StereoSample {
-        if let Some(vs) = &self.voice_store {
-            vs.value()
+    fn generate_next(&mut self) -> StereoSample {
+        self.ticks_since_last_midi_input += 1;
+        if let Some(vs) = self.voice_store.as_mut() {
+            vs.generate_next()
         } else {
             StereoSample::default()
-        }
-    }
-
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        if let Some(vs) = self.voice_store.as_mut() {
-            vs.generate(values);
-        } else {
-            for v in values {
-                *v = StereoSample::default()
-            }
         }
     }
 }
@@ -82,14 +73,6 @@ impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
         if let Some(vs) = self.voice_store.as_mut() {
             vs.update_time_signature(time_signature);
         }
-    }
-}
-impl<V: IsStereoSampleVoice> Ticks for Synthesizer<V> {
-    fn tick(&mut self, tick_count: usize) {
-        if let Some(vs) = self.voice_store.as_mut() {
-            vs.tick(tick_count);
-        }
-        self.ticks_since_last_midi_input += tick_count;
     }
 }
 #[allow(missing_docs)]
@@ -227,12 +210,8 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for TestSynthesizer {
-        fn value(&self) -> StereoSample {
-            self.inner_synth.value()
-        }
-
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            self.inner_synth.generate(values)
+        fn generate_next(&mut self) -> StereoSample {
+            self.inner_synth.generate_next()
         }
     }
     impl Configurable for TestSynthesizer {
@@ -242,11 +221,6 @@ mod tests {
 
         fn update_sample_rate(&mut self, sample_rate: SampleRate) {
             self.inner_synth.update_sample_rate(sample_rate);
-        }
-    }
-    impl Ticks for TestSynthesizer {
-        fn tick(&mut self, tick_count: usize) {
-            self.inner_synth.tick(tick_count);
         }
     }
     impl Default for TestSynthesizer {

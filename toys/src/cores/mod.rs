@@ -13,10 +13,7 @@ mod synth;
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use ensnare::{
-        traits::{Generates, Ticks},
-        util::Rng,
-    };
+    use ensnare::{traits::Generates, util::Rng};
 
     // TODO: restore tests that test basic trait behavior, then figure out how
     // to run everyone implementing those traits through that behavior. For now,
@@ -28,8 +25,7 @@ pub mod tests {
         let mut rng = Rng::default();
 
         for _ in 0..100 {
-            instrument.tick(rng.rand_range(1..10) as usize);
-            let _ = instrument.value();
+            instrument.generate_next();
         }
     }
 }

@@ -26,7 +26,6 @@ enum Attributes {
     GeneratesStereoSample,
     HandlesMidi,
     Serializable,
-    Ticks,
     TransformsAudio,
     SkipInner,
 }
@@ -68,9 +67,6 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
                 }
                 Attributes::Serializable => {
                     v.push(quote! {#crate_name::traits::Serializable});
-                }
-                Attributes::Ticks => {
-                    v.push(quote! {#crate_name::traits::Ticks});
                 }
                 Attributes::TransformsAudio => {
                     v.push(quote! {#crate_name::traits::TransformsAudio});
