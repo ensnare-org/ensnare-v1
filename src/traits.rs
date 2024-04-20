@@ -61,17 +61,10 @@ impl<V: Default + Clone> GenerationBuffer<V> {
 /// over time. Examples are envelopes, which produce a [Normal] signal, and
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
-pub trait Generates<V: Default>: Send + core::fmt::Debug + Configurable {
+pub trait Generates<V: Default + Clone>: Send + core::fmt::Debug + Configurable {
     /// Returns a batch of values.
     fn generate(&mut self, values: &mut [V]) {
-        for value in values {
-            *value = self.generate_next();
-        }
-    }
-
-    /// Generates the next value. This is temporary to get rid of Ticks.
-    fn generate_next(&mut self) -> V {
-        V::default()
+        values.fill(V::default());
     }
 }
 
@@ -286,7 +279,7 @@ pub trait Serializable {
 
 /// A synthesizer is composed of Voices. Ideally, a synth will know how to
 /// construct Voices, and then handle all the MIDI events properly for them.
-pub trait IsVoice<V: Default>: Generates<V> + PlaysNotes + Send + Sync {}
+pub trait IsVoice<V: Default + Clone>: Generates<V> + PlaysNotes + Send + Sync {}
 /// Same as IsVoice, but stereo.
 pub trait IsStereoSampleVoice: IsVoice<StereoSample> {}
 

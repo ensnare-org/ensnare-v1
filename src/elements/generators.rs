@@ -152,10 +152,6 @@ pub struct OscillatorEphemerals {
     c: Configurables,
 }
 impl Generates<BipolarNormal> for Oscillator {
-    fn generate_next(&mut self) -> BipolarNormal {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [BipolarNormal]) {
         for value in values {
             *value = {
@@ -481,10 +477,6 @@ impl GeneratesEnvelope for Envelope {
     }
 }
 impl Generates<Normal> for Envelope {
-    fn generate_next(&mut self) -> Normal {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [Normal]) {
         for value in values {
             *value = {

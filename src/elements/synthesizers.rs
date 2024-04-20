@@ -36,10 +36,6 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
     c: Configurables,
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         if let Some(vs) = self.voice_store.as_mut() {
             vs.generate(values);
@@ -214,10 +210,6 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for TestSynthesizer {
-        fn generate_next(&mut self) -> StereoSample {
-            panic!()
-        }
-
         fn generate(&mut self, values: &mut [StereoSample]) {
             self.inner_synth.generate(values);
         }

@@ -43,10 +43,6 @@ impl Generates<StereoSample> for TestInstrument {
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(StereoSample::default())
     }
-
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
 }
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
@@ -69,10 +65,6 @@ pub struct TestInstrumentCountsMidiMessages {
 impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(StereoSample::default())
-    }
-
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
     }
 }
 impl HandlesMidi for TestInstrumentCountsMidiMessages {

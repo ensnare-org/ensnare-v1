@@ -167,15 +167,7 @@ mod tests {
             }
         }
     }
-    impl Generates<StereoSample> for TestHandlesMidi {
-        fn generate_next(&mut self) -> StereoSample {
-            panic!()
-        }
-
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            values.fill(StereoSample::default())
-        }
-    }
+    impl Generates<StereoSample> for TestHandlesMidi {}
 
     #[test]
     fn midi_router_routes_to_correct_channels() {

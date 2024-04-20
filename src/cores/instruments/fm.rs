@@ -74,10 +74,6 @@ impl PlaysNotes for FmVoice {
     }
 }
 impl Generates<StereoSample> for FmVoice {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         if self.is_playing() {
             self.modulator_buffer.set_buffer_size(values.len());
@@ -281,10 +277,6 @@ impl FmSynthCoreBuilder {
 impl Generates<StereoSample> for FmSynthCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner.generate(values);
-    }
-
-    fn generate_next(&mut self) -> StereoSample {
-        self.inner.generate_next()
     }
 }
 impl Serializable for FmSynthCore {

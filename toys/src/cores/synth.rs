@@ -38,10 +38,6 @@ impl PlaysNotes for ToyVoice {
     }
 }
 impl Generates<StereoSample> for ToyVoice {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!();
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.oscillator_buffer.set_buffer_size(values.len());
         self.envelope_buffer.set_buffer_size(values.len());
@@ -109,7 +105,6 @@ impl Generates<StereoSample> for ToySynthCore {
     delegate! {
         to self.inner {
             fn generate(&mut self, values: &mut [StereoSample]);
-            fn generate_next(&mut self) -> StereoSample;
         }
     }
 }

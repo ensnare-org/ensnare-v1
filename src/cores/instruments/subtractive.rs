@@ -61,6 +61,11 @@ pub struct SubtractiveSynthVoice {
     steal_is_underway: bool,
 
     sample: StereoSample,
+
+    amp_envelope_buffer: GenerationBuffer<Normal>,
+    filter_envelope_buffer: GenerationBuffer<Normal>,
+    lfo_buffer: GenerationBuffer<BipolarNormal>,
+    mono_buffer: GenerationBuffer<Sample>,
 }
 impl IsStereoSampleVoice for SubtractiveSynthVoice {}
 impl IsVoice<StereoSample> for SubtractiveSynthVoice {}
@@ -89,95 +94,105 @@ impl PlaysNotes for SubtractiveSynthVoice {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthVoice {
-    fn generate_next(&mut self) -> StereoSample {
-        // It's important for the envelope tick() methods to be called after
-        // their handle_note_* methods are called, but before we check whether
-        // amp_envelope.is_idle(), because the tick() methods are what determine
-        // the current idle state.
-        //
-        // TODO: this seems like an implementation detail that maybe should be
-        // hidden from the caller.
-        let (amp_env_amplitude, filter_env_amplitude) = self.tick_envelopes();
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.amp_envelope_buffer.set_buffer_size(values.len());
+        self.filter_envelope_buffer.set_buffer_size(values.len());
+        self.lfo_buffer.set_buffer_size(values.len());
+        self.mono_buffer.set_buffer_size(values.len());
+        let is_playing = self.is_playing();
 
-        // TODO: various parts of this loop can be precalculated.
-
-        if self.is_playing() {
-            // TODO: ideally, these entities would get a tick() on every
-            // voice tick(), but they are surprisingly expensive. So we will
-            // skip calling them unless we're going to look at their output.
-            // This means that they won't get a time slice as often as the
-            // voice will. If this becomes a problem, we can add something
-            // like an empty_tick() method to the Ticks trait that lets
-            // entities stay in sync, but skipping any real work that would
-            // cost time.
-
-            // LFO
-            let lfo = if matches!(self.lfo_routing, LfoRouting::None) {
-                BipolarNormal::default()
+        if is_playing {
+            self.amp_envelope
+                .generate(self.amp_envelope_buffer.buffer_mut());
+            self.filter_envelope
+                .generate(self.filter_envelope_buffer.buffer_mut());
+            if matches!(self.lfo_routing, LfoRouting::None) {
+                self.lfo_buffer.buffer_mut().fill(Default::default());
             } else {
-                self.lfo.generate_next()
+                self.lfo.generate(self.lfo_buffer.buffer_mut());
             };
-            if matches!(self.lfo_routing, LfoRouting::Pitch) {
-                let lfo_for_pitch = lfo * self.lfo_depth;
-                self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
-                self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
-            } else if matches!(self.lfo_routing, LfoRouting::Pitch2) {
-                let lfo_for_pitch = lfo * self.lfo_depth;
-                self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
-            } else if matches!(self.lfo_routing, LfoRouting::PulseWidth2) {
-                let lfo_for_pitch = lfo * self.lfo_depth;
-                self.oscillator_2
-                    .set_waveform(Waveform::PulseWidth(lfo_for_pitch.into()));
-            }
+        }
+        if self.steal_is_underway {
+            self.steal_is_underway = false;
+            self.note_on(self.note_on_key, self.note_on_velocity);
+        }
 
-            // Oscillators
-            let osc_sum = {
+        for (i, v) in self.mono_buffer.buffer_mut().iter_mut().enumerate() {
+            *v = if is_playing {
+                let mut osc_1_buffer = [BipolarNormal::default(); 1];
+                let mut osc_2_buffer = [BipolarNormal::default(); 1];
+                let lfo = self.lfo_buffer.buffer()[i];
+                let amp_env_amplitude = self.amp_envelope_buffer.buffer()[i];
+                let filter_env_amplitude = self.filter_envelope_buffer.buffer()[i];
+
+                // LFO
+                if matches!(self.lfo_routing, LfoRouting::Pitch) {
+                    let lfo_for_pitch = lfo * self.lfo_depth;
+                    self.oscillator_1.set_frequency_modulation(lfo_for_pitch);
+                    self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+                } else if matches!(self.lfo_routing, LfoRouting::Pitch2) {
+                    let lfo_for_pitch = lfo * self.lfo_depth;
+                    self.oscillator_2.set_frequency_modulation(lfo_for_pitch);
+                } else if matches!(self.lfo_routing, LfoRouting::PulseWidth2) {
+                    let lfo_for_pitch = lfo * self.lfo_depth;
+                    self.oscillator_2
+                        .set_waveform(Waveform::PulseWidth(lfo_for_pitch.into()));
+                }
+
+                // Oscillators
                 if self.oscillator_2_sync && self.oscillator_1.should_sync() {
                     self.oscillator_2.sync();
                 }
-                self.oscillator_1.generate_next() * self.oscillator_mix
-                    + self.oscillator_2.generate_next() * (Normal::maximum() - self.oscillator_mix)
+                self.oscillator_1.generate(&mut osc_1_buffer);
+                self.oscillator_2.generate(&mut osc_2_buffer);
+
+                let osc_sum = {
+                    osc_1_buffer[0] * self.oscillator_mix
+                        + osc_2_buffer[0] * (Normal::maximum() - self.oscillator_mix)
+                };
+
+                // Filters
+                //
+                // https://aempass.blogspot.com/2014/09/analog-and-welshs-synthesizer-cookbook.html
+                if self.filter_cutoff_end != Normal::zero() {
+                    let new_cutoff_percentage = self.filter_cutoff_start
+                        + (1.0 - self.filter_cutoff_start)
+                            * self.filter_cutoff_end
+                            * filter_env_amplitude;
+                    self.filter.set_cutoff(new_cutoff_percentage.into());
+                } else if matches!(self.lfo_routing, LfoRouting::FilterCutoff) {
+                    let lfo_for_cutoff = lfo * self.lfo_depth;
+                    self.filter
+                        .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
+                } else if matches!(self.lfo_routing, LfoRouting::FilterResonance) {
+                    // TODO - it's unlikely this is correct. I copied/pasted
+                    // while converting old patches and for the first time
+                    // encountered a resonance setting.
+                    let lfo_for_resonance = lfo * self.lfo_depth;
+                    self.filter.set_passband_ripple(
+                        (self.filter_cutoff_start * (lfo_for_resonance.0 + 1.0)).into(),
+                    );
+                }
+                let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
+
+                // LFO amplitude modulation
+                let lfo_for_amplitude =
+                    Normal::from(if matches!(self.lfo_routing, LfoRouting::Amplitude) {
+                        lfo * self.lfo_depth
+                    } else {
+                        BipolarNormal::zero()
+                    });
+
+                // Final
+                Sample(filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0)
+            } else {
+                Sample::SILENCE
             };
-
-            // Filters
-            //
-            // https://aempass.blogspot.com/2014/09/analog-and-welshs-synthesizer-cookbook.html
-            if self.filter_cutoff_end != Normal::zero() {
-                let new_cutoff_percentage = self.filter_cutoff_start
-                    + (1.0 - self.filter_cutoff_start)
-                        * self.filter_cutoff_end
-                        * filter_env_amplitude;
-                self.filter.set_cutoff(new_cutoff_percentage.into());
-            } else if matches!(self.lfo_routing, LfoRouting::FilterCutoff) {
-                let lfo_for_cutoff = lfo * self.lfo_depth;
-                self.filter
-                    .set_cutoff((self.filter_cutoff_start * (lfo_for_cutoff.0 + 1.0)).into());
-            } else if matches!(self.lfo_routing, LfoRouting::FilterResonance) {
-                // TODO - it's unlikely this is correct. I copied/pasted
-                // while converting old patches and for the first time
-                // encountered a resonance setting.
-                let lfo_for_resonance = lfo * self.lfo_depth;
-                self.filter.set_passband_ripple(
-                    (self.filter_cutoff_start * (lfo_for_resonance.0 + 1.0)).into(),
-                );
-            }
-            let filtered_mix = self.filter.transform_channel(0, Sample::from(osc_sum)).0;
-
-            // LFO amplitude modulation
-            let lfo_for_amplitude =
-                Normal::from(if matches!(self.lfo_routing, LfoRouting::Amplitude) {
-                    lfo * self.lfo_depth
-                } else {
-                    BipolarNormal::zero()
-                });
-
-            // Final
-            self.dca.transform_to_stereo(Sample(
-                filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0,
-            ))
-        } else {
-            StereoSample::SILENCE
         }
+
+        // Make stereo from mono
+        self.dca
+            .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
     }
 }
 impl Serializable for SubtractiveSynthVoice {}
@@ -221,29 +236,8 @@ impl SubtractiveSynthVoice {
             filter_cutoff_start,
             filter_cutoff_end,
             filter_envelope: filter_envelope.make_another(),
-            note_on_key: Default::default(),
-            note_on_velocity: Default::default(),
-            steal_is_underway: Default::default(),
-            sample: Default::default(),
+            ..Default::default()
         }
-    }
-
-    fn tick_envelopes(&mut self) -> (Normal, Normal) {
-        if self.is_playing() {
-            let (amp, filter) = (
-                self.amp_envelope.generate_next(),
-                self.filter_envelope.generate_next(),
-            );
-            if self.is_playing() {
-                return (amp, filter);
-            }
-        }
-
-        if self.steal_is_underway {
-            self.steal_is_underway = false;
-            self.note_on(self.note_on_key, self.note_on_velocity);
-        }
-        (Normal::zero(), Normal::zero())
     }
 
     fn set_frequency_hz(&mut self, frequency_hz: FrequencyHz) {
@@ -426,8 +420,8 @@ impl SubtractiveSynthCore {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {
-    fn generate_next(&mut self) -> StereoSample {
-        self.inner.generate_next()
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        self.inner.generate(values);
     }
 }
 impl Serializable for SubtractiveSynthCore {

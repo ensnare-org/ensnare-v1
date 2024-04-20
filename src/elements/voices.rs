@@ -72,10 +72,6 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.voice_buffer.set_buffer_size(values.len());
         self.voices.iter_mut().for_each(|v| {
@@ -183,10 +179,6 @@ impl<V: IsStereoSampleVoice> StoresVoices for StealingVoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.voice_buffer.set_buffer_size(values.len());
         self.voices.iter_mut().for_each(|v| {
@@ -281,10 +273,6 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.voice_buffer.set_buffer_size(values.len());
         self.voices.values_mut().for_each(|v| {
@@ -385,10 +373,6 @@ pub(crate) mod tests {
         }
     }
     impl Generates<StereoSample> for TestVoice {
-        fn generate_next(&mut self) -> StereoSample {
-            panic!()
-        }
-
         fn generate(&mut self, values: &mut [StereoSample]) {
             if self.is_playing() {
                 self.osc_buffer.set_buffer_size(values.len());

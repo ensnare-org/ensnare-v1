@@ -416,15 +416,7 @@ mod tests {
             self.inner.update_sample_rate(sample_rate);
         }
     }
-    impl Generates<StereoSample> for ExampleEntity {
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            values.fill(StereoSample::default())
-        }
-
-        fn generate_next(&mut self) -> StereoSample {
-            panic!()
-        }
-    }
+    impl Generates<StereoSample> for ExampleEntity {}
 
     #[test]
     fn store_is_responsible_for_sample_rate() {

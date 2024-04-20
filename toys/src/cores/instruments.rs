@@ -30,10 +30,6 @@ pub struct ToyInstrumentCore {
     e: ToyInstrumentEphemerals,
 }
 impl Generates<StereoSample> for ToyInstrumentCore {
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
-
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.set_buffer_sizes(values.len());
         if self.e.is_playing {

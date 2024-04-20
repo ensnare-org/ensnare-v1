@@ -40,10 +40,6 @@ impl Generates<StereoSample> for DrumkitCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.inner_synth.generate(values);
     }
-
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
 }
 impl Serializable for DrumkitCore {}
 impl Configurable for DrumkitCore {

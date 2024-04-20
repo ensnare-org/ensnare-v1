@@ -54,40 +54,40 @@ impl PlaysNotes for SamplerVoice {
     }
 }
 impl Generates<StereoSample> for SamplerVoice {
-    fn generate_next(&mut self) -> StereoSample {
-        let value = {
-            if self.is_playing {
-                if let Some(samples) = self.samples.as_ref() {
-                    if samples.len() != 0 {
-                        samples[self.sample_pointer as usize]
+    fn generate(&mut self, values: &mut [StereoSample]) {
+        for value in values {
+            *value = {
+                if self.is_playing {
+                    if let Some(samples) = self.samples.as_ref() {
+                        if samples.len() != 0 {
+                            samples[self.sample_pointer as usize]
+                        } else {
+                            StereoSample::SILENCE
+                        }
                     } else {
                         StereoSample::SILENCE
                     }
                 } else {
                     StereoSample::SILENCE
                 }
-            } else {
-                StereoSample::SILENCE
-            }
-        };
+            };
 
-        if self.is_playing {
-            if !self.was_reset {
-                self.sample_pointer += self.sample_pointer_delta;
-            }
-            if let Some(samples) = self.samples.as_ref() {
-                debug_assert_ne!(samples.len(), 0);
-                while self.sample_pointer as usize >= samples.len() {
-                    self.is_playing = false;
-                    self.sample_pointer -= samples.len() as f64;
+            if self.is_playing {
+                if !self.was_reset {
+                    self.sample_pointer += self.sample_pointer_delta;
+                }
+                if let Some(samples) = self.samples.as_ref() {
+                    debug_assert_ne!(samples.len(), 0);
+                    while self.sample_pointer as usize >= samples.len() {
+                        self.is_playing = false;
+                        self.sample_pointer -= samples.len() as f64;
+                    }
                 }
             }
+            if self.was_reset {
+                self.was_reset = false;
+            }
         }
-        if self.was_reset {
-            self.was_reset = false;
-        }
-
-        value
     }
 }
 impl Serializable for SamplerVoice {}
@@ -159,10 +159,6 @@ impl HandlesMidi for SamplerCore {
 impl Generates<StereoSample> for SamplerCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         self.e.inner.generate(values);
-    }
-
-    fn generate_next(&mut self) -> StereoSample {
-        self.e.inner.generate_next()
     }
 }
 impl Serializable for SamplerCore {}
@@ -499,10 +495,9 @@ mod tests {
         voice.note_on(1.into(), 127.into());
 
         // Skip a few frames in case attack is slow
-        let mut value = Default::default();
-        for _ in 0..5 {
-            value = voice.generate_next();
-        }
+        let mut buffer = [StereoSample::default(); 5];
+        voice.generate(&mut buffer);
+        let value = *buffer.last().unwrap();
         assert!(
             value != StereoSample::SILENCE,
             "once triggered, SamplerVoice should make a sound"

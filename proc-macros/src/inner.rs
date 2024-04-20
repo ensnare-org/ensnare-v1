@@ -151,7 +151,6 @@ pub(crate) fn impl_derive_inner_instrument(input: TokenStream) -> TokenStream {
                 delegate::delegate! {
                     to self.inner {
                         fn generate(&mut self, values: &mut [StereoSample]);
-                        fn generate_next(&mut self) -> StereoSample;
                     }
                 }
             }

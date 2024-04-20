@@ -25,10 +25,6 @@ impl Generates<StereoSample> for TestAudioSourceCore {
     fn generate(&mut self, values: &mut [StereoSample]) {
         values.fill(StereoSample::from(self.level));
     }
-
-    fn generate_next(&mut self) -> StereoSample {
-        panic!()
-    }
 }
 impl Configurable for TestAudioSourceCore {
     delegate! {
