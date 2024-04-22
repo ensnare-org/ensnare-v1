@@ -76,15 +76,14 @@ impl PlaysNotes for FmVoice {
 impl Generates<StereoSample> for FmVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
         if self.is_playing() {
-            self.modulator_buffer.set_buffer_size(values.len());
-            self.modulator_envelope_buffer.set_buffer_size(values.len());
-            self.modulator_magnitude_buffer
-                .set_buffer_size(values.len());
+            self.modulator_buffer.resize(values.len());
+            self.modulator_envelope_buffer.resize(values.len());
+            self.modulator_magnitude_buffer.resize(values.len());
 
-            self.carrier_buffer.set_buffer_size(values.len());
-            self.carrier_envelope_buffer.set_buffer_size(values.len());
+            self.carrier_buffer.resize(values.len());
+            self.carrier_envelope_buffer.resize(values.len());
 
-            self.mono_buffer.set_buffer_size(values.len());
+            self.mono_buffer.resize(values.len());
 
             self.modulator.generate(self.modulator_buffer.buffer_mut());
             self.modulator_envelope

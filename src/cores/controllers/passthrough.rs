@@ -120,22 +120,23 @@ impl Controls for SignalPassthroughControllerCore {
 }
 impl HandlesMidi for SignalPassthroughControllerCore {}
 impl TransformsAudio for SignalPassthroughControllerCore {
-    fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
-        let sample: Sample = input_sample.into();
-        let control_value = match self.passthrough_type {
-            SignalPassthroughType::Compressed => {
-                let as_bipolar_normal: BipolarNormal = sample.into();
-                as_bipolar_normal.into()
+    fn transform(&mut self, samples: &mut [StereoSample]) {
+        for sample in samples {
+            let mono_sample: Sample = (*sample).into();
+            let control_value = match self.passthrough_type {
+                SignalPassthroughType::Compressed => {
+                    let as_bipolar_normal: BipolarNormal = mono_sample.into();
+                    as_bipolar_normal.into()
+                }
+                SignalPassthroughType::Amplitude => ControlValue(mono_sample.0.abs()),
+                SignalPassthroughType::AmplitudeInverted => ControlValue(1.0 - mono_sample.0.abs()),
+            };
+            if self.e.control_value != control_value {
+                self.e.has_value_been_issued = false;
+                self.e.control_value = control_value;
             }
-            SignalPassthroughType::Amplitude => ControlValue(sample.0.abs()),
-            SignalPassthroughType::AmplitudeInverted => ControlValue(1.0 - sample.0.abs()),
-        };
-        if self.e.control_value != control_value {
-            self.e.has_value_been_issued = false;
-            self.e.control_value = control_value;
-        }
-        input_sample
-    }
 
-    // We've overridden transform_audio(), so nobody should be calling transform_channel()
+            // We don't alter the input. We just look at it.
+        }
+    }
 }

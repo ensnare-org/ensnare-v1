@@ -73,7 +73,7 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoiceStore<V> {
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.voice_buffer.set_buffer_size(values.len());
+        self.voice_buffer.resize(values.len());
         self.voices.iter_mut().for_each(|v| {
             v.generate(self.voice_buffer.buffer_mut());
             values
@@ -180,7 +180,7 @@ impl<V: IsStereoSampleVoice> StoresVoices for StealingVoiceStore<V> {
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.voice_buffer.set_buffer_size(values.len());
+        self.voice_buffer.resize(values.len());
         self.voices.iter_mut().for_each(|v| {
             v.generate(self.voice_buffer.buffer_mut());
             values
@@ -274,7 +274,7 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.voice_buffer.set_buffer_size(values.len());
+        self.voice_buffer.resize(values.len());
         self.voices.values_mut().for_each(|v| {
             v.generate(self.voice_buffer.buffer_mut());
             values
@@ -375,9 +375,9 @@ pub(crate) mod tests {
     impl Generates<StereoSample> for TestVoice {
         fn generate(&mut self, values: &mut [StereoSample]) {
             if self.is_playing() {
-                self.osc_buffer.set_buffer_size(values.len());
+                self.osc_buffer.resize(values.len());
                 self.oscillator.generate(self.osc_buffer.buffer_mut());
-                self.env_buffer.set_buffer_size(values.len());
+                self.env_buffer.resize(values.len());
                 self.envelope.generate(self.env_buffer.buffer_mut());
                 if !self.is_playing() && self.steal_is_underway {
                     self.steal_is_underway = false;

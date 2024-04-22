@@ -75,7 +75,7 @@ impl Controls for LfoControllerCore {
             };
             self.e.last_frame += tick_count;
 
-            self.e.osc_buffer.set_buffer_size(tick_count);
+            self.e.osc_buffer.resize(tick_count);
             self.oscillator.generate(self.e.osc_buffer.buffer_mut());
             if tick_count != 0 {
                 last_value = *self.e.osc_buffer.buffer().last().unwrap();

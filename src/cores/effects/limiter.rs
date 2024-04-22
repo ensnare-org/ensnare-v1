@@ -7,14 +7,18 @@ use derive_builder::Builder;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
+/// Clamps an audio signal to the configured min/max.
 #[derive(Debug, Builder, Derivative, Control, Serialize, Deserialize)]
 #[derivative(Default)]
 #[builder(default)]
 #[serde(rename_all = "kebab-case")]
 pub struct LimiterCore {
+    /// The minimum value the limiter will allow.
     #[control]
     #[derivative(Default(value = "Normal::minimum()"))]
     minimum: Normal,
+
+    /// The maximum value the limiter will allow.
     #[control]
     #[derivative(Default(value = "Normal::maximum()"))]
     maximum: Normal,
@@ -43,18 +47,22 @@ impl TransformsAudio for LimiterCore {
     }
 }
 impl LimiterCore {
+    /// The maximum value the limiter will allow.
     pub fn maximum(&self) -> Normal {
         self.maximum
     }
 
+    #[allow(missing_docs)]
     pub fn set_maximum(&mut self, max: Normal) {
         self.maximum = max;
     }
 
+    /// The minimum value the limiter will allow.
     pub fn minimum(&self) -> Normal {
         self.minimum
     }
 
+    #[allow(missing_docs)]
     pub fn set_minimum(&mut self, min: Normal) {
         self.minimum = min;
     }
@@ -110,31 +118,36 @@ mod tests {
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MAX);
+        limiter.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MAX);
         TestAudioSourceCoreBuilder::default()
             .level(TestAudioSourceCore::LOUD)
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MAX);
+        limiter.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MAX);
         TestAudioSourceCoreBuilder::default()
             .level(TestAudioSourceCore::SILENT)
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::SILENCE);
+        limiter.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::SILENCE);
         TestAudioSourceCoreBuilder::default()
             .level(TestAudioSourceCore::QUIET)
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MIN);
+        limiter.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MIN);
         TestAudioSourceCoreBuilder::default()
             .level(TestAudioSourceCore::TOO_QUIET)
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(limiter.transform_audio(buffer[0]), StereoSample::MIN);
+        limiter.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::MIN);
     }
 
     #[test]

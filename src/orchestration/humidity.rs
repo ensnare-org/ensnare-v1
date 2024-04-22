@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub struct Humidifier {
     uid_to_humidity: FxHashMap<Uid, Normal>,
+
+    #[serde(skip)]
+    transformation_buffer: GenerationBuffer<StereoSample>,
 }
 impl Humidifier {
     pub fn get_humidity(&self, uid: &Uid) -> Normal {
@@ -26,12 +29,26 @@ impl Humidifier {
         effect: &mut Box<dyn EntityBounds>,
         samples: &mut [StereoSample],
     ) {
-        for sample in samples {
-            *sample = self.transform_audio(humidity, *sample, effect.transform_audio(*sample));
+        self.transformation_buffer.resize(samples.len());
+        self.transformation_buffer
+            .buffer_mut()
+            .copy_from_slice(samples);
+        effect.transform(samples);
+
+        for (pre, post) in self
+            .transformation_buffer
+            .buffer()
+            .iter()
+            .zip(samples.iter_mut())
+        {
+            *post = StereoSample(
+                self.transform_channel(humidity, 0, pre.0, post.0),
+                self.transform_channel(humidity, 1, pre.1, post.1),
+            )
         }
     }
 
-    pub fn transform_audio(
+    pub fn transxxxform_audio(
         &mut self,
         humidity: Normal,
         pre_effect: StereoSample,
@@ -44,7 +61,7 @@ impl Humidifier {
     }
 
     pub(super) fn transform_channel(
-        &mut self,
+        &self,
         humidity: Normal,
         _: usize,
         pre_effect: Sample,

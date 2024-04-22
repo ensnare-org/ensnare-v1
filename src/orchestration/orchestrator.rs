@@ -194,7 +194,7 @@ impl Generates<StereoSample> for Orchestrator {
                     if let Some(entity_uids) = self.entity_repo.uids_for_track.get(track_uid) {
                         entity_uids.iter().for_each(|uid| {
                             if let Some(entity) = self.entity_repo.entities.get_mut(uid) {
-                                entity.transform_batch(track_buffer);
+                                entity.transform(track_buffer);
                             }
                         });
                     }

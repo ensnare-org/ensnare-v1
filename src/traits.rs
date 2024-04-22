@@ -39,7 +39,7 @@ impl<V: Default + Clone> GenerationBuffer<V> {
     }
 
     /// Sets the buffer size. Does nothing if the buffer is already this size.
-    pub fn set_buffer_size(&mut self, size: usize) {
+    pub fn resize(&mut self, size: usize) {
         if size != self.buffer_size() {
             self.vec = Vec::with_capacity(size);
             self.vec.resize(size, V::default());
@@ -169,15 +169,14 @@ pub enum WorkEvent {
 /// [SourcesAudio], does something to it, and then outputs it. It's what effects
 /// do.
 pub trait TransformsAudio: core::fmt::Debug {
-    /// Transforms a single sample of audio.
-    fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample {
-        // Beware: converting from mono to stereo isn't just doing the work
-        // twice! You'll also have to double whatever state you maintain from
-        // tick to tick that has to do with a single channel's audio data.
-        StereoSample(
-            self.transform_channel(0, input_sample.0),
-            self.transform_channel(1, input_sample.1),
-        )
+    /// Transforms a buffer of audio.
+    fn transform(&mut self, samples: &mut [StereoSample]) {
+        for sample in samples {
+            *sample = StereoSample(
+                self.transform_channel(0, sample.0),
+                self.transform_channel(1, sample.1),
+            )
+        }
     }
 
     /// channel: 0 is left, 1 is right. Use the value as an index into arrays.
@@ -185,16 +184,6 @@ pub trait TransformsAudio: core::fmt::Debug {
     fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample {
         // Default implementation is passthrough
         input_sample
-    }
-
-    /// Transforms a buffer of audio.
-    fn transform_batch(&mut self, samples: &mut [StereoSample]) {
-        for sample in samples {
-            *sample = StereoSample(
-                self.transform_channel(0, sample.0),
-                self.transform_channel(1, sample.1),
-            )
-        }
     }
 }
 

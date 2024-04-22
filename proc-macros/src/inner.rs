@@ -195,9 +195,8 @@ pub(crate) fn impl_inner_transforms_audio_derive(input: TokenStream) -> TokenStr
             impl #generics #crate_name::traits::TransformsAudio for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
-                        fn transform_audio(&mut self, input_sample: StereoSample) -> StereoSample;
+                        fn transform(&mut self, samples: &mut [StereoSample]);
                         fn transform_channel(&mut self, channel: usize, input_sample: Sample) -> Sample;
-                        fn transform_batch(&mut self, samples: &mut [StereoSample]);
                     }
                 }
             }

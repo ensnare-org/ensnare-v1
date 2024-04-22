@@ -95,10 +95,10 @@ impl PlaysNotes for SubtractiveSynthVoice {
 }
 impl Generates<StereoSample> for SubtractiveSynthVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.amp_envelope_buffer.set_buffer_size(values.len());
-        self.filter_envelope_buffer.set_buffer_size(values.len());
-        self.lfo_buffer.set_buffer_size(values.len());
-        self.mono_buffer.set_buffer_size(values.len());
+        self.amp_envelope_buffer.resize(values.len());
+        self.filter_envelope_buffer.resize(values.len());
+        self.lfo_buffer.resize(values.len());
+        self.mono_buffer.resize(values.len());
         let is_playing = self.is_playing();
 
         if is_playing {

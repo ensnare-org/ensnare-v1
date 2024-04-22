@@ -62,6 +62,7 @@ mod tests {
             .build()
             .unwrap()
             .generate(&mut buffer);
-        assert_eq!(gain.transform_audio(buffer[0]), StereoSample::from(0.5));
+        gain.transform(&mut buffer);
+        assert_eq!(buffer[0], StereoSample::from(0.5));
     }
 }

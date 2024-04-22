@@ -39,9 +39,9 @@ impl PlaysNotes for ToyVoice {
 }
 impl Generates<StereoSample> for ToyVoice {
     fn generate(&mut self, values: &mut [StereoSample]) {
-        self.oscillator_buffer.set_buffer_size(values.len());
-        self.envelope_buffer.set_buffer_size(values.len());
-        self.mono_buffer.set_buffer_size(values.len());
+        self.oscillator_buffer.resize(values.len());
+        self.envelope_buffer.resize(values.len());
+        self.mono_buffer.resize(values.len());
         self.oscillator
             .generate(self.oscillator_buffer.buffer_mut());
         self.envelope.generate(self.envelope_buffer.buffer_mut());
