@@ -54,20 +54,27 @@ impl AudioSettings {
         }
     }
 
+    /// Returns the currently selected audio sample rate, in Hertz (samples per
+    /// second).
     pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
 
+    /// Returns the currently selected number of audio channels. In most cases,
+    /// this will be two (left channel and right channel).
     pub fn channel_count(&self) -> u16 {
         self.channel_count
     }
 }
 
+/// AudioService inputs that tell it what to do.
 #[derive(Debug)]
 pub enum AudioServiceInput {
+    /// Exit the service
     Quit, // TODO
 }
 
+/// AudioService events that inform the caller what's going on.
 #[derive(Debug)]
 pub enum AudioServiceEvent {
     /// Sample rate, channel count, queue for pushing audio samples.
@@ -89,6 +96,9 @@ pub struct AudioService {
     config: Arc<Mutex<Option<AudioSettings>>>,
 }
 impl AudioService {
+    /// Creates a new [AudioService] and starts it. Because the service starts
+    /// in play mode, it will immediately ask for samples to feed to the audio
+    /// interface.
     pub fn new() -> Self {
         let event_channels: ChannelPair<AudioServiceEvent> = Default::default();
         match AudioStream::create_default_stream(
