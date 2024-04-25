@@ -983,7 +983,7 @@ mod tests {
     fn project_makes_sounds() {
         let mut project = Project::default();
         let track_uid = project.create_track(None).unwrap();
-        let instrument_uid = project
+        let _instrument_uid = project
             .add_entity(
                 track_uid,
                 Box::new(TestAudioSource::new_with(
