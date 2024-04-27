@@ -35,13 +35,12 @@ pub struct GenerationBuffer<V: Default + Clone> {
 impl<V: Default + Clone> GenerationBuffer<V> {
     /// Returns the current size of the buffer.
     pub fn buffer_size(&self) -> usize {
-        self.vec.capacity()
+        self.vec.len()
     }
 
     /// Sets the buffer size. Does nothing if the buffer is already this size.
     pub fn resize(&mut self, size: usize) {
         if size != self.buffer_size() {
-            self.vec = Vec::with_capacity(size);
             self.vec.resize(size, V::default());
         }
     }
