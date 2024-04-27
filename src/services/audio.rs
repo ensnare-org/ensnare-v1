@@ -95,6 +95,11 @@ pub struct AudioService {
     audio_stream: AudioStream,
     config: Arc<Mutex<Option<AudioSettings>>>,
 }
+impl Default for AudioService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl AudioService {
     /// Creates a new [AudioService] and starts it. Because the service starts
     /// in play mode, it will immediately ask for samples to feed to the audio
