@@ -129,7 +129,7 @@ pub enum MidiServiceInput {
 /// [MidiServiceEvent] messages tell the app what happens with the service.
 #[derive(Debug)]
 pub enum MidiServiceEvent {
-    /// A MIDI message arrived from the interface.
+    /// A MIDI message arrived from the interface from an external device.
     Midi(MidiChannel, MidiMessage),
 
     /// A MIDI message was just sent to the interface.

@@ -23,7 +23,15 @@ impl std::fmt::Display for MidiPortDescriptor {
     }
 }
 
-/// The client sends requests to the MIDI interface through [MidiInterfaceServiceInput] messages.
+/// The client sends requests to the MIDI interface through
+/// [MidiInterfaceServiceInput] messages.
+/// 
+/// "input" and "output" are from the perspective of the MIDI interface. For
+/// example, suppose MIDI keyboard K is connected to MIDI interface I, which is
+/// connected to PC P, and MIDI synthesizer S is connected to I's output. When
+/// the user presses a key on K, it goes *in* to I's *input* and then to P. When
+/// P generates a MIDI message, it sends it *out* via I through I's *output* to
+/// S.
 #[derive(Clone, Debug)]
 pub enum MidiInterfaceServiceInput {
     /// Requests a rescan of the MIDI input/output ports.
@@ -31,12 +39,14 @@ pub enum MidiInterfaceServiceInput {
 
     /// The user has picked a MIDI input. Switch to it.
     ///
-    /// Inputs are sent by the PC to the interface.
+    /// A MIDI input leaves the MIDI device and enters the MIDI interface's
+    /// input port.
     SelectMidiInput(MidiPortDescriptor),
 
     /// The user has picked a MIDI output. Switch to it.
     ///
-    /// Outputs are sent by the interfaace to the PC.
+    /// A MIDI output leaves the MIDI interface's output port and enters the
+    /// MIDI device.
     SelectMidiOutput(MidiPortDescriptor),
 
     /// The application wants to send a MIDI message to external hardware.
@@ -76,7 +86,12 @@ pub enum MidiInterfaceServiceEvent {
     /// A MIDI message has arrived from external hardware.
     Midi(MidiChannel, MidiMessage),
 
-    /// A MIDI message was just dispatched to external hardware.
+    /// A MIDI message was just dispatched to external hardware. This message
+    /// exists to let the UI flash an activity indicator; that's why it doesn't
+    /// contain the actual message.
+    /// 
+    /// TODO: is this necessary? The message came from the PC, so why do we need
+    /// the interface to tell us what we already know?
     MidiOut,
 
     /// The MIDI engine has successfully processed
