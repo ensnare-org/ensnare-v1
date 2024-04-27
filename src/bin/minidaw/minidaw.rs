@@ -312,12 +312,6 @@ impl MiniDaw {
                             self.control_bar.tickle_midi_in();
                         }
                         MidiServiceEvent::MidiOut => self.control_bar.tickle_midi_out(),
-                        MidiServiceEvent::SelectInput(_) => {
-                            // TODO: save selection in prefs
-                        }
-                        MidiServiceEvent::SelectOutput(_) => {
-                            // TODO: save selection in prefs
-                        }
                         MidiServiceEvent::InputPortsRefreshed(ports) => {
                             // TODO: remap any saved preferences to ports that we've found
                             self.settings.handle_midi_input_port_refresh(&ports);

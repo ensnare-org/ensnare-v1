@@ -135,16 +135,6 @@ pub enum MidiServiceEvent {
     /// A MIDI message was just sent to the interface.
     MidiOut,
 
-    /// The user has picked a MIDI input. Switch to it.
-    ///
-    /// Inputs are sent by the PC to the interface.
-    SelectInput(MidiPortDescriptor),
-
-    /// The user has picked a MIDI output. Switch to it.
-    ///
-    /// Outputs are sent by the interfaace to the PC.
-    SelectOutput(MidiPortDescriptor),
-
     /// Available input ports have been refreshed.
     InputPortsRefreshed(Vec<MidiPortDescriptor>),
 
@@ -268,10 +258,6 @@ impl MidiService {
             .midi_interface_service
             .sender()
             .send(MidiInterfaceServiceInput::SelectMidiInput(port.clone()));
-        let _ = self
-            .event_channels
-            .sender
-            .send(MidiServiceEvent::SelectInput(port.clone()));
     }
 
     /// Handles a change in selected MIDI output.
@@ -280,10 +266,6 @@ impl MidiService {
             .midi_interface_service
             .sender()
             .send(MidiInterfaceServiceInput::SelectMidiOutput(port.clone()));
-        let _ = self
-            .event_channels
-            .sender
-            .send(MidiServiceEvent::SelectOutput(port.clone()));
     }
 
     /// The receive side of the [MidiPanelEvent] channel
