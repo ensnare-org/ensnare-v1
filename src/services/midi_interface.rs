@@ -25,7 +25,7 @@ impl std::fmt::Display for MidiPortDescriptor {
 
 /// The client sends requests to the MIDI interface through
 /// [MidiInterfaceServiceInput] messages.
-/// 
+///
 /// "input" and "output" are from the perspective of the MIDI interface. For
 /// example, suppose MIDI keyboard K is connected to MIDI interface I, which is
 /// connected to PC P, and MIDI synthesizer S is connected to I's output. When
@@ -89,7 +89,7 @@ pub enum MidiInterfaceServiceEvent {
     /// A MIDI message was just dispatched to external hardware. This message
     /// exists to let the UI flash an activity indicator; that's why it doesn't
     /// contain the actual message.
-    /// 
+    ///
     /// TODO: is this necessary? The message came from the PC, so why do we need
     /// the interface to tell us what we already know?
     MidiOut,
