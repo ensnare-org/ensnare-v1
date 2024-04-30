@@ -95,7 +95,7 @@ pub struct ToySynthCore {
     pub envelope: Envelope,
 
     #[control]
-    dca: Dca,
+    pub dca: Dca,
 
     #[serde(skip)]
     pub inner: Synthesizer<ToyVoice>,

@@ -68,26 +68,15 @@ pub struct ToySynth {
     uid: Uid,
     inner: ToySynthCore,
 }
-impl ToySynth {
-    fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(OscillatorWidget::widget(&mut self.inner.oscillator));
-        if response.changed() {
-            // make sure everyone knows
-        }
-        response
-    }
-
-    fn ui_envelope(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let response = ui.add(EnvelopeWidget::widget(&mut self.inner.envelope));
-        if response.changed() {
-            // make sure everyone knows
-        }
-        response
-    }
-    pub fn new_with(uid: Uid, oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
+impl Default for ToySynth {
+    fn default() -> Self {
         Self {
-            uid,
-            inner: ToySynthCore::new_with(oscillator, envelope, dca),
+            uid: Default::default(),
+            inner: ToySynthCore::new_with(
+                Oscillator::default(),
+                Envelope::default(),
+                Dca::default(),
+            ),
         }
     }
 }
@@ -96,8 +85,42 @@ impl Displays for ToySynth {
         ui.vertical(|ui| {
             let oscillator_response = self.ui_oscillator(ui);
             let envelope_response = self.ui_envelope(ui);
-            oscillator_response | envelope_response
+            let dca_response = self.ui_dca(ui);
+            oscillator_response | envelope_response | dca_response
         })
         .inner
+    }
+}
+impl ToySynth {
+    fn ui_oscillator(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let response = ui.add(OscillatorWidget::widget(&mut self.inner.oscillator));
+        if response.changed() {
+            self.inner.notify_change_oscillator();
+        }
+        response
+    }
+
+    fn ui_envelope(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let response = ui.add(EnvelopeWidget::widget(&mut self.inner.envelope));
+        if response.changed() {
+            self.inner.notify_change_envelope();
+        }
+        response
+    }
+
+    fn ui_dca(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
+        let mut action = None;
+        let response = ui.add(DcaWidget::widget(&mut self.inner.dca, &mut action));
+        if response.changed() {
+            self.inner.notify_change_dca();
+        }
+        response
+    }
+
+    pub fn new_with(uid: Uid, oscillator: Oscillator, envelope: Envelope, dca: Dca) -> Self {
+        Self {
+            uid,
+            inner: ToySynthCore::new_with(oscillator, envelope, dca),
+        }
     }
 }

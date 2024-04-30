@@ -4,6 +4,7 @@ use crate::prelude::*;
 use eframe::egui::{Frame, Slider, Widget};
 use strum_macros::Display;
 
+#[allow(missing_docs)]
 #[derive(Debug, Display)]
 pub enum DcaWidgetAction {
     Link(ControlLinkSource, ControlIndex),
@@ -29,7 +30,7 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
             if response.inner.changed() {
                 self.dca.set_gain(Normal::from(value));
             }
-            response.response
+            response.inner
         } | {
             let mut value = self.dca.pan().0;
             let (response, payload) = ui.dnd_drop_zone(Frame::default(), |ui| {
@@ -42,7 +43,7 @@ impl<'a> eframe::egui::Widget for DcaWidget<'a> {
             if response.inner.changed() {
                 self.dca.set_pan(BipolarNormal::from(value));
             }
-            response.response
+            response.inner
         };
 
         response
