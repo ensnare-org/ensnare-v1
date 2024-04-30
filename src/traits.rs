@@ -29,10 +29,10 @@ use strum_macros::Display;
 /// A convenience struct for consumers of [Generates]. This buffer ensures that
 /// capacity and len, in Vec terms, are always the same. We call it "size."
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct GenerationBuffer<V: Default + Clone> {
+pub struct GenerationBuffer<V: Default + Clone + std::ops::AddAssign> {
     vec: Vec<V>,
 }
-impl<V: Default + Clone + Copy + core::ops::AddAssign<V>> GenerationBuffer<V> {
+impl<V: Default + Clone + Copy + std::ops::AddAssign> GenerationBuffer<V> {
     /// Returns the current size of the buffer.
     pub fn buffer_size(&self) -> usize {
         self.vec.len()
@@ -57,11 +57,12 @@ impl<V: Default + Clone + Copy + core::ops::AddAssign<V>> GenerationBuffer<V> {
 
     /// Sets the buffer's contents to the default value. Does not change its size.
     pub fn clear(&mut self) {
-        self.buffer_mut().fill(V::default());
+        self.vec.fill(V::default());
     }
 
     /// Merges (adds) a slice of the same size/type to this one.
     pub fn merge(&mut self, other: &[V]) {
+        assert_eq!(self.buffer_size(), other.len());
         for (src, dst) in other.iter().zip(self.buffer_mut().iter_mut()) {
             *dst += *src;
         }
