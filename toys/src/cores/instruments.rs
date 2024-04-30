@@ -92,6 +92,7 @@ impl ToyInstrumentCore {
     // If this instrument is being used in an integration test, then
     // received_midi_message_count provides insight into whether messages are
     // arriving.
+    #[allow(dead_code)]
     pub fn received_midi_message_count_mutex(&self) -> &Arc<Mutex<usize>> {
         &self.e.received_midi_message_count
     }
