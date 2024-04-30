@@ -32,7 +32,7 @@ use strum_macros::Display;
 pub struct GenerationBuffer<V: Default + Clone> {
     vec: Vec<V>,
 }
-impl<V: Default + Clone> GenerationBuffer<V> {
+impl<V: Default + Clone + Copy + core::ops::AddAssign<V>> GenerationBuffer<V> {
     /// Returns the current size of the buffer.
     pub fn buffer_size(&self) -> usize {
         self.vec.len()
@@ -53,6 +53,18 @@ impl<V: Default + Clone> GenerationBuffer<V> {
     /// Returns a mutable reference to the buffer.
     pub fn buffer_mut(&mut self) -> &mut [V] {
         &mut self.vec
+    }
+
+    /// Sets the buffer's contents to the default value. Does not change its size.
+    pub fn clear(&mut self) {
+        self.buffer_mut().fill(V::default());
+    }
+
+    /// Merges (adds) a slice of the same size/type to this one.
+    pub fn merge(&mut self, other: &[V]) {
+        for (src, dst) in other.iter().zip(self.buffer_mut().iter_mut()) {
+            *dst += *src;
+        }
     }
 }
 

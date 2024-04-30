@@ -4,7 +4,7 @@ use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    ops::{Add, Mul, MulAssign, RangeInclusive, Sub},
+    ops::{Add, AddAssign, Mul, MulAssign, RangeInclusive, Sub},
 };
 
 // TODO: I tried implementing this using the sort-of new generic const
@@ -204,6 +204,11 @@ impl Sub<Normal> for f64 {
         self - rhs.0
     }
 }
+impl AddAssign<Self> for Normal {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
 
 /// A BipolarNormal is a [RangedF64] whose range is [-1.0, 1.0].
 pub type BipolarNormal = RangedF64<-1, 1>;
@@ -234,6 +239,11 @@ impl Mul<Normal> for BipolarNormal {
 
     fn mul(self, rhs: Normal) -> Self::Output {
         Self(self.0 * rhs.0)
+    }
+}
+impl AddAssign<Self> for BipolarNormal {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
     }
 }
 impl From<BipolarNormal> for StereoSample {
