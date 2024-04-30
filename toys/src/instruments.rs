@@ -34,11 +34,14 @@ pub struct ToyInstrument {
 }
 impl Displays for ToyInstrument {
     fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        ui.add(OscillatorWidget::widget(&mut self.inner.oscillator))
-            | ui.add(DcaWidget::widget(
-                &mut self.inner.dca,
-                &mut self.dca_widget_action,
-            ))
+        ui.vertical(|ui| {
+            ui.add(OscillatorWidget::widget(&mut self.inner.oscillator))
+                | ui.add(DcaWidget::widget(
+                    &mut self.inner.dca,
+                    &mut self.dca_widget_action,
+                ))
+        })
+        .inner
     }
 }
 impl ToyInstrument {
