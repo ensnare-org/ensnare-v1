@@ -77,7 +77,7 @@ impl Default for ToySynth {
             uid: Default::default(),
             inner: ToySynthCore::new_with(
                 Oscillator::default(),
-                Envelope::default(),
+                EnvelopeBuilder::safe_default().build().unwrap(),
                 Dca::default(),
             ),
         }
