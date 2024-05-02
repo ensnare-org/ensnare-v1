@@ -51,6 +51,11 @@ pub type ControlEventsFn<'a> = dyn FnMut(WorkEvent) + 'a;
 pub trait Controls: Send {
     /// Returns the current [MusicalTime] range, or [None] if not performing or
     /// not applicable.
+    ///
+    /// TODO: should this return Option<&TimeRange> instead? Since there is a
+    /// Range<> involved, it's not Copy, so it feels like we're doing extra work
+    /// (though there are no mallocs, so maybe it ends up looking ugly but
+    /// acting the same).
     fn time_range(&self) -> Option<TimeRange> {
         None
     }
