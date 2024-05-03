@@ -22,8 +22,9 @@ pub struct TestAudioSourceCore {
     c: Configurables,
 }
 impl Generates<StereoSample> for TestAudioSourceCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
         values.fill(StereoSample::from(self.level));
+        self.level != 0.0
     }
 }
 impl Configurable for TestAudioSourceCore {

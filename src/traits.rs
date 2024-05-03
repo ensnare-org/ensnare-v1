@@ -74,9 +74,12 @@ impl<V: Default + Clone + Copy + std::ops::AddAssign> GenerationBuffer<V> {
 /// oscillators, which produce a [BipolarNormal] signal.
 #[allow(unused_variables)]
 pub trait Generates<V: Default + Clone>: Send + core::fmt::Debug + Configurable {
-    /// Returns a batch of values.
-    fn generate(&mut self, values: &mut [V]) {
+    /// Fills a batch of values with new signal. Returns true if the signal was
+    /// non-default; for example, in the case of a [StereoSample] signal,
+    /// returns true if any part of the generated signal was non-silent.
+    fn generate(&mut self, values: &mut [V]) -> bool {
         values.fill(V::default());
+        false
     }
 }
 

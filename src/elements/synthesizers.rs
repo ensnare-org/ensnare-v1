@@ -36,13 +36,15 @@ pub struct Synthesizer<V: IsStereoSampleVoice> {
     c: Configurables,
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for Synthesizer<V> {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         if let Some(vs) = self.voice_store.as_mut() {
-            vs.generate(values);
+            generated_signal |= vs.generate(values);
         } else {
             values.fill(StereoSample::default());
         }
         self.ticks_since_last_midi_input += values.len();
+        generated_signal
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for Synthesizer<V> {
@@ -210,8 +212,8 @@ mod tests {
         }
     }
     impl Generates<StereoSample> for TestSynthesizer {
-        fn generate(&mut self, values: &mut [StereoSample]) {
-            self.inner_synth.generate(values);
+        fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+            self.inner_synth.generate(values)
         }
     }
     impl Configurable for TestSynthesizer {

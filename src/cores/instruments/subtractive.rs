@@ -94,7 +94,8 @@ impl PlaysNotes for SubtractiveSynthVoice {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthVoice {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         self.amp_envelope_buffer.resize(values.len());
         self.filter_envelope_buffer.resize(values.len());
         self.lfo_buffer.resize(values.len());
@@ -184,7 +185,9 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
                     });
 
                 // Final
-                Sample(filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0)
+                let sample = Sample(filtered_mix * amp_env_amplitude.0 * lfo_for_amplitude.0);
+                generated_signal |= sample != Sample::default();
+                sample
             } else {
                 Sample::SILENCE
             };
@@ -193,6 +196,8 @@ impl Generates<StereoSample> for SubtractiveSynthVoice {
         // Make stereo from mono
         self.dca
             .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
+
+        generated_signal
     }
 }
 impl Serializable for SubtractiveSynthVoice {}
@@ -420,8 +425,8 @@ impl SubtractiveSynthCore {
     }
 }
 impl Generates<StereoSample> for SubtractiveSynthCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate(values);
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        self.inner.generate(values)
     }
 }
 impl Serializable for SubtractiveSynthCore {

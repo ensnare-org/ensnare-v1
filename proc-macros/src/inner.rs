@@ -150,7 +150,7 @@ pub(crate) fn impl_derive_inner_instrument(input: TokenStream) -> TokenStream {
             impl #generics #crate_name::traits::Generates<StereoSample> for #struct_name #ty_generics {
                 delegate::delegate! {
                     to self.inner {
-                        fn generate(&mut self, values: &mut [StereoSample]);
+                        fn generate(&mut self, values: &mut [StereoSample]) -> bool;
                     }
                 }
             }

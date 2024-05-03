@@ -39,11 +39,7 @@ impl Configurable for TestInstrument {
         self.sample_rate = sample_rate;
     }
 }
-impl Generates<StereoSample> for TestInstrument {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(StereoSample::default())
-    }
-}
+impl Generates<StereoSample> for TestInstrument {}
 
 /// An [IsEntity](ensnare::traits::IsEntity) that counts how many
 /// MIDI messages it has received.
@@ -62,11 +58,7 @@ pub struct TestInstrumentCountsMidiMessages {
     #[serde(skip)]
     pub received_midi_message_count: Arc<Mutex<usize>>,
 }
-impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        values.fill(StereoSample::default())
-    }
-}
+impl Generates<StereoSample> for TestInstrumentCountsMidiMessages {}
 impl HandlesMidi for TestInstrumentCountsMidiMessages {
     fn handle_midi_message(
         &mut self,

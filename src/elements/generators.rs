@@ -152,7 +152,7 @@ pub struct OscillatorEphemerals {
     c: Configurables,
 }
 impl Generates<BipolarNormal> for Oscillator {
-    fn generate(&mut self, values: &mut [BipolarNormal]) {
+    fn generate(&mut self, values: &mut [BipolarNormal]) -> bool {
         for value in values {
             *value = {
                 if self.e.reset_pending {
@@ -171,6 +171,7 @@ impl Generates<BipolarNormal> for Oscillator {
                 BipolarNormal::from(amplitude_for_position)
             };
         }
+        !matches!(self.waveform, Waveform::None)
     }
 }
 impl Configurable for Oscillator {
@@ -477,7 +478,8 @@ impl GeneratesEnvelope for Envelope {
     }
 }
 impl Generates<Normal> for Envelope {
-    fn generate(&mut self, values: &mut [Normal]) {
+    fn generate(&mut self, values: &mut [Normal]) -> bool {
+        let mut generated_signal = false;
         for value in values {
             *value = {
                 let pre_update_amplitude = self.e.uncorrected_amplitude.sum();
@@ -504,9 +506,11 @@ impl Generates<Normal> for Envelope {
                     }
                     _ => linear_amplitude,
                 };
+                generated_signal |= self.e.corrected_amplitude != 0.0;
                 Normal::new(self.e.corrected_amplitude)
             };
         }
+        generated_signal
     }
 }
 impl Configurable for Envelope {

@@ -587,7 +587,7 @@ impl Configurable for Calculator {
     }
 }
 impl Generates<StereoSample> for Calculator {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
         self.e.inner_synth.generate(values)
     }
 }

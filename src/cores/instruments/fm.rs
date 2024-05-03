@@ -74,8 +74,9 @@ impl PlaysNotes for FmVoice {
     }
 }
 impl Generates<StereoSample> for FmVoice {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
         if self.is_playing() {
+            let mut generated_signal = false;
             self.modulator_buffer.resize(values.len());
             self.modulator_envelope_buffer.resize(values.len());
             self.modulator_magnitude_buffer.resize(values.len());
@@ -124,7 +125,9 @@ impl Generates<StereoSample> for FmVoice {
                         .zip(self.carrier_envelope_buffer.buffer().iter()),
                 )
                 .for_each(|(dst, (carrier, car_envelope))| {
-                    *dst = (*carrier * *car_envelope).into()
+                    let sample: Sample = (*carrier * *car_envelope).into();
+                    generated_signal |= sample != Sample::default();
+                    *dst = sample
                 });
             self.dca
                 .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
@@ -132,8 +135,10 @@ impl Generates<StereoSample> for FmVoice {
                 self.steal_is_underway = false;
                 self.note_on(self.note_on_key, self.note_on_velocity);
             }
+            generated_signal
         } else {
             values.fill(StereoSample::default());
+            false
         }
     }
 }
@@ -274,8 +279,8 @@ impl FmSynthCoreBuilder {
     }
 }
 impl Generates<StereoSample> for FmSynthCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner.generate(values);
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        self.inner.generate(values)
     }
 }
 impl Serializable for FmSynthCore {

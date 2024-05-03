@@ -37,8 +37,8 @@ impl core::fmt::Debug for DrumkitCore {
 }
 
 impl Generates<StereoSample> for DrumkitCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.inner_synth.generate(values);
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        self.inner_synth.generate(values)
     }
 }
 impl Serializable for DrumkitCore {}

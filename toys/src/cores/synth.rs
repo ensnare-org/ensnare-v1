@@ -38,7 +38,8 @@ impl PlaysNotes for ToyVoice {
     }
 }
 impl Generates<StereoSample> for ToyVoice {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         self.oscillator_buffer.resize(values.len());
         self.envelope_buffer.resize(values.len());
         self.mono_buffer.resize(values.len());
@@ -54,9 +55,14 @@ impl Generates<StereoSample> for ToyVoice {
                     .iter()
                     .zip(self.envelope_buffer.buffer().iter()),
             )
-            .for_each(|(dst, (osc, env))| *dst = (*osc * *env).into());
+            .for_each(|(dst, (osc, env))| {
+                let sample: Sample = (*osc * *env).into();
+                generated_signal |= sample != Sample::default();
+                *dst = sample;
+            });
         self.dca
             .transform_batch_to_stereo(self.mono_buffer.buffer(), values);
+        generated_signal
     }
 }
 impl Configurable for ToyVoice {
@@ -104,7 +110,7 @@ impl Serializable for ToySynthCore {}
 impl Generates<StereoSample> for ToySynthCore {
     delegate! {
         to self.inner {
-            fn generate(&mut self, values: &mut [StereoSample]);
+            fn generate(&mut self, values: &mut [StereoSample])->bool;
         }
     }
 }

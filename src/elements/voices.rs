@@ -72,10 +72,11 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         self.voice_buffer.resize(values.len());
         self.voices.iter_mut().for_each(|v| {
-            v.generate(self.voice_buffer.buffer_mut());
+            generated_signal |= v.generate(self.voice_buffer.buffer_mut());
             values
                 .iter_mut()
                 .zip(self.voice_buffer.buffer().iter())
@@ -86,6 +87,7 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoiceStore<V> {
                 self.notes_playing[index] = u7::from(0);
             }
         });
+        generated_signal
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoiceStore<V> {
@@ -179,10 +181,11 @@ impl<V: IsStereoSampleVoice> StoresVoices for StealingVoiceStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         self.voice_buffer.resize(values.len());
         self.voices.iter_mut().for_each(|v| {
-            v.generate(self.voice_buffer.buffer_mut());
+            generated_signal |= v.generate(self.voice_buffer.buffer_mut());
             values
                 .iter_mut()
                 .zip(self.voice_buffer.buffer().iter())
@@ -193,6 +196,7 @@ impl<V: IsStereoSampleVoice> Generates<StereoSample> for StealingVoiceStore<V> {
                 self.notes_playing[index] = u7::from(0);
             }
         });
+        generated_signal
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for StealingVoiceStore<V> {
@@ -273,15 +277,17 @@ impl<V: IsStereoSampleVoice> StoresVoices for VoicePerNoteStore<V> {
     }
 }
 impl<V: IsStereoSampleVoice> Generates<StereoSample> for VoicePerNoteStore<V> {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
         self.voice_buffer.resize(values.len());
         self.voices.values_mut().for_each(|v| {
-            v.generate(self.voice_buffer.buffer_mut());
+            generated_signal |= v.generate(self.voice_buffer.buffer_mut());
             values
                 .iter_mut()
                 .zip(self.voice_buffer.buffer().iter())
                 .for_each(|(d, s)| *d += *s);
         });
+        generated_signal
     }
 }
 impl<V: IsStereoSampleVoice> Configurable for VoicePerNoteStore<V> {
@@ -373,7 +379,8 @@ pub(crate) mod tests {
         }
     }
     impl Generates<StereoSample> for TestVoice {
-        fn generate(&mut self, values: &mut [StereoSample]) {
+        fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+            let mut generated_signal = false;
             if self.is_playing() {
                 self.osc_buffer.resize(values.len());
                 self.oscillator.generate(self.osc_buffer.buffer_mut());
@@ -391,10 +398,15 @@ pub(crate) mod tests {
                             .iter()
                             .zip(self.env_buffer.buffer().iter()),
                     )
-                    .for_each(|(dst, (osc, env))| *dst = (*osc * *env).into());
+                    .for_each(|(dst, (osc, env))| {
+                        let sample: StereoSample = (*osc * *env).into();
+                        generated_signal |= sample != StereoSample::default();
+                        *dst = sample;
+                    });
             } else {
                 values.fill(StereoSample::SILENCE);
             }
+            generated_signal
         }
     }
     impl Configurable for TestVoice {

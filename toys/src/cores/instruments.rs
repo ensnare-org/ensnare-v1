@@ -30,7 +30,7 @@ pub struct ToyInstrumentCore {
     e: ToyInstrumentEphemerals,
 }
 impl Generates<StereoSample> for ToyInstrumentCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
         self.set_buffer_sizes(values.len());
         if self.e.is_playing {
             self.oscillator.generate(&mut self.e.oscillator_buffer);
@@ -41,8 +41,10 @@ impl Generates<StereoSample> for ToyInstrumentCore {
                 .for_each(|(s, d)| *d = (*s).into());
             self.dca
                 .transform_batch_to_stereo(&self.e.mono_buffer, values);
+            true
         } else {
             values.fill(StereoSample::SILENCE);
+            false
         }
     }
 }

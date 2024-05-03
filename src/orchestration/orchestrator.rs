@@ -128,7 +128,7 @@ impl ControlsAsProxy for Orchestrator {
     }
 }
 impl Generates<StereoSample> for Orchestrator {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
         let buffer_len = values.len();
         let solo_track_uid = self.solo_track();
 
@@ -201,6 +201,8 @@ impl Generates<StereoSample> for Orchestrator {
                 }
             });
 
+        let mut generated_some_signal = false;
+
         // Mix all the tracks into the final buffer.
         track_buffers
             .iter()
@@ -211,10 +213,13 @@ impl Generates<StereoSample> for Orchestrator {
                 if should_mix {
                     let output = self.track_output(*track_uid);
                     for (dst, src) in values.iter_mut().zip(buffer) {
-                        *dst += *src * output;
+                        let stereo_sample = *src * output;
+                        generated_some_signal |= stereo_sample != StereoSample::default();
+                        *dst += stereo_sample;
                     }
                 }
             });
+        generated_some_signal
     }
 }
 impl Configurable for Orchestrator {

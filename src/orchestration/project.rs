@@ -764,7 +764,7 @@ impl Project {
 impl Generates<StereoSample> for Project {
     delegate! {
         to self.orchestrator {
-            fn generate(&mut self, values: &mut [StereoSample]);
+            fn generate(&mut self, values: &mut [StereoSample]) -> bool;
         }
     }
 }

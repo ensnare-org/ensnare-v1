@@ -54,12 +54,15 @@ impl PlaysNotes for SamplerVoice {
     }
 }
 impl Generates<StereoSample> for SamplerVoice {
-    fn generate(&mut self, values: &mut [StereoSample]) {
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        let mut generated_signal = false;
+
         for value in values {
             *value = {
                 if self.is_playing {
                     if let Some(samples) = self.samples.as_ref() {
                         if samples.len() != 0 {
+                            generated_signal = true;
                             samples[self.sample_pointer as usize]
                         } else {
                             StereoSample::SILENCE
@@ -88,6 +91,7 @@ impl Generates<StereoSample> for SamplerVoice {
                 self.was_reset = false;
             }
         }
+        generated_signal
     }
 }
 impl Serializable for SamplerVoice {}
@@ -157,8 +161,8 @@ impl HandlesMidi for SamplerCore {
     }
 }
 impl Generates<StereoSample> for SamplerCore {
-    fn generate(&mut self, values: &mut [StereoSample]) {
-        self.e.inner.generate(values);
+    fn generate(&mut self, values: &mut [StereoSample]) -> bool {
+        self.e.inner.generate(values)
     }
 }
 impl Serializable for SamplerCore {}
