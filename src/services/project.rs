@@ -55,8 +55,8 @@ pub enum ProjectServiceEvent {
 /// A wrapper around a [Project] that provides a channel-based interface to it.
 #[derive(Debug)]
 pub struct ProjectService {
-    inputs: ChannelPair<ProjectServiceInput>,
-    events: ChannelPair<ProjectServiceEvent>,
+    inputs: CrossbeamChannel<ProjectServiceInput>,
+    events: CrossbeamChannel<ProjectServiceEvent>,
 
     factory: Arc<EntityFactory<dyn EntityBounds>>,
     audio_sender: Sender<AudioServiceInput>,

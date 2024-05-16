@@ -272,8 +272,8 @@ impl WrappedStream {
 /// interface.
 #[derive(Debug)]
 pub struct AudioService {
-    inputs: ChannelPair<AudioServiceInput>,
-    events: ChannelPair<AudioServiceEvent>,
+    inputs: CrossbeamChannel<AudioServiceInput>,
+    events: CrossbeamChannel<AudioServiceEvent>,
 
     /// The cpal audio stream.
     #[allow(dead_code)]
@@ -307,7 +307,7 @@ impl AudioService {
 
     #[allow(missing_docs)]
     pub fn new() -> Self {
-        let event_channels: ChannelPair<AudioServiceEvent> = Default::default();
+        let event_channels: CrossbeamChannel<AudioServiceEvent> = Default::default();
         match WrappedStream::new_with(Self::REASONABLE_BUFFER_SIZE, &event_channels.sender) {
             Ok(stream) => {
                 let audio_service = Self {

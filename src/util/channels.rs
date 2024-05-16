@@ -10,13 +10,13 @@ use crossbeam_channel::{Receiver, Sender};
 /// stateless functions, we have to create both sender and receiver at once in a
 /// single field.
 #[derive(Debug)]
-pub struct ChannelPair<T> {
+pub struct CrossbeamChannel<T> {
     #[allow(missing_docs)]
     pub sender: Sender<T>,
     #[allow(missing_docs)]
     pub receiver: Receiver<T>,
 }
-impl<T> Default for ChannelPair<T> {
+impl<T> Default for CrossbeamChannel<T> {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         Self { sender, receiver }
@@ -25,13 +25,13 @@ impl<T> Default for ChannelPair<T> {
 
 /// Same idea but only for bounded of bounds 1.
 #[derive(Debug)]
-pub struct BoundedChannelPair<T> {
+pub struct BoundedCrossbeamChannel<T> {
     #[allow(missing_docs)]
     pub sender: Sender<T>,
     #[allow(missing_docs)]
     pub receiver: Receiver<T>,
 }
-impl<T> Default for BoundedChannelPair<T> {
+impl<T> Default for BoundedCrossbeamChannel<T> {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }

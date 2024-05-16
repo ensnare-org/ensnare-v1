@@ -146,8 +146,8 @@ pub enum MidiServiceEvent {
 #[derive(Debug)]
 pub struct MidiService {
     // TEMP pub until MidiInterfaceService is refactored into this struct
-    pub inputs: ChannelPair<MidiServiceInput>,
-    events: ChannelPair<MidiServiceEvent>,
+    pub inputs: CrossbeamChannel<MidiServiceInput>,
+    events: CrossbeamChannel<MidiServiceEvent>,
 
     midi_interface_service: MidiInterfaceService,
 

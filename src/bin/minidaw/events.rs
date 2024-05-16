@@ -9,7 +9,7 @@ use ensnare::{
         MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
         ProvidesService,
     },
-    util::ChannelPair,
+    util::CrossbeamChannel,
 };
 use thiserror::Error;
 
@@ -42,8 +42,8 @@ pub(super) enum MiniDawEvent {
 
 #[derive(Debug)]
 pub(super) struct MiniDawEventAggregationService {
-    input_channels: ChannelPair<MiniDawInput>,
-    event_channels: ChannelPair<MiniDawEvent>,
+    inputs: CrossbeamChannel<MiniDawInput>,
+    events: CrossbeamChannel<MiniDawEvent>,
 
     // The aggregated services. Avoid speaking directly to them; use the
     // channels instead.
@@ -61,8 +61,8 @@ impl MiniDawEventAggregationService {
         settings_receiver: &Receiver<SettingsEvent>,
     ) -> Self {
         let r = Self {
-            input_channels: Default::default(),
-            event_channels: Default::default(),
+            inputs: Default::default(),
+            events: Default::default(),
             audio_service,
             midi_service,
             project_service,
@@ -77,10 +77,10 @@ impl MiniDawEventAggregationService {
     /// channel.
     fn spawn_thread(&self) {
         // Sends aggregated events for the app to handle.
-        let app_sender = self.event_channels.sender.clone();
+        let app_sender = self.events.sender.clone();
 
         // Takes commands from the app.
-        let app_receiver = self.input_channels.receiver.clone();
+        let app_receiver = self.inputs.receiver.clone();
 
         // Each of these pairs communicates with a service.
         let audio_sender = self.audio_service.sender().clone();
@@ -197,10 +197,10 @@ impl MiniDawEventAggregationService {
     }
 
     pub fn sender(&self) -> &Sender<MiniDawInput> {
-        &self.input_channels.sender
+        &self.inputs.sender
     }
 
     pub fn receiver(&self) -> &Receiver<MiniDawEvent> {
-        &self.event_channels.receiver
+        &self.events.receiver
     }
 }

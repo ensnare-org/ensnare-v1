@@ -10,7 +10,7 @@ use ensnare::{
     midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
     services::{AudioSettings, MidiSettings},
     traits::{Displays, HasSettings},
-    util::ChannelPair,
+    util::CrossbeamChannel,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -37,7 +37,7 @@ pub(crate) struct Settings {
 }
 #[derive(Debug, Default)]
 pub(crate) struct SettingsEphemerals {
-    event_channel: ChannelPair<SettingsEvent>,
+    events: CrossbeamChannel<SettingsEvent>,
     midi_sender: Option<Sender<MidiInterfaceServiceInput>>,
 
     // Cached options for fast menu drawing.
@@ -112,7 +112,7 @@ impl Settings {
     }
 
     pub(crate) fn receiver(&self) -> &Receiver<SettingsEvent> {
-        &self.e.event_channel.receiver
+        &self.e.events.receiver
     }
 
     // We require the parameter to be provided, even though we could look it up
@@ -122,7 +122,7 @@ impl Settings {
     fn notify_should_route_externally(&self, should: bool) {
         let _ = self
             .e
-            .event_channel
+            .events
             .sender
             .send(SettingsEvent::ShouldRouteExternally(should));
     }
