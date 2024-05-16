@@ -9,10 +9,11 @@ use crate::{
     egui::TargetInstrument,
     orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
-    types::{AudioQueue, ColorScheme, VisualizationQueue},
+    types::{ColorScheme, VisualizationQueue},
     util::{Rng, SelectionSet},
 };
 use anyhow::{anyhow, Result};
+use crossbeam_channel::Sender;
 use delegate::delegate;
 use derivative::Derivative;
 use rustc_hash::FxHashMap;
@@ -106,8 +107,6 @@ pub struct ProjectEphemerals {
     /// If present, then this is the path that was used to load this project
     /// from disk.
     pub load_path: Option<PathBuf>,
-
-    pub audio_queue: Option<AudioQueue>,
 
     /// A non-owned VecDeque that acts as a ring buffer of the most recent
     /// generated audio frames.
@@ -382,9 +381,12 @@ impl Project {
         Ok(())
     }
 
+    /// Generates the requested number of audio frames and sends them to the
+    /// audio service.
     pub fn fill_audio_queue(
         &mut self,
         count: usize,
+        sender: &Sender<AudioServiceInput>,
         mut midi_events_fn: Option<&mut MidiMessagesFn>,
     ) {
         if count == 0 {
@@ -403,16 +405,7 @@ impl Project {
             let buffer_slice = &mut buffer[0..to_generate];
             buffer_slice.fill(StereoSample::SILENCE);
             self.generate_frames(buffer_slice, midi_events_fn.as_deref_mut());
-            if let Some(audio_queue) = self.e.audio_queue.as_ref() {
-                buffer_slice.iter().for_each(|s| {
-                    if let Some(_old_element) = audio_queue.force_push(*s) {
-                        eprintln!("overrun! requested {count} frames");
-
-                        // There is no point in continuing.
-                        return;
-                    }
-                });
-            }
+            let _ = sender.try_send(AudioServiceInput::Frames(Arc::new(buffer_slice.to_vec())));
             if let Some(queue) = self.e.visualization_queue.as_ref() {
                 if let Ok(mut queue) = queue.0.write() {
                     buffer_slice.iter().for_each(|s| {

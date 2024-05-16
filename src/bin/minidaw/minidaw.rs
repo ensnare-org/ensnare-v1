@@ -206,13 +206,13 @@ impl MiniDaw {
         let audio_service = AudioService::new();
         let midi_service = MidiService::new_with(&settings.midi_settings);
         settings.set_midi_sender(midi_service.sender());
-        let project_service = ProjectService::new_with(&factory);
+        let project_service = ProjectService::new_with(&factory, audio_service.sender());
         let control_bar = ControlBar::default();
         let (dock, detail_node_index) = Self::create_tree();
 
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
-            midi_sender: midi_service.input_channels.sender.clone(),
+            midi_sender: midi_service.inputs.sender.clone(),
             project_sender: project_service.sender().clone(),
             app_channel_watcher_channel_pair: Default::default(),
             aggregator: MiniDawEventAggregationService::new_with(
@@ -323,11 +323,11 @@ impl MiniDaw {
                     }
                 }
                 MiniDawEvent::AudioServiceEvent(event) => match event {
-                    AudioServiceEvent::Reset(_sample_rate, _channel_count, _queue) => {
+                    AudioServiceEvent::Reset(_sample_rate, _channel_count) => {
                         // Already forwarded by aggregator to project.
                         self.update_orchestrator_audio_interface_config();
                     }
-                    AudioServiceEvent::NeedsAudio(_count) => {
+                    AudioServiceEvent::FramesNeeded(_count) => {
                         // Forward was already handled by aggregator.
                     }
                     AudioServiceEvent::Underrun => {

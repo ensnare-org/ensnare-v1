@@ -16,7 +16,7 @@ pub use colors::ColorScheme;
 pub use numbers::{
     FrequencyHz, FrequencyRange, ParameterType, Ratio, Sample, SampleType, SignalType, StereoSample,
 };
-pub use queues::{AudioQueue, VisualizationQueue};
+pub use queues::VisualizationQueue;
 pub use ranges::{BipolarNormal, Normal};
 pub use time::{MusicalTime, SampleRate, Seconds, Tempo, TimeRange, TimeSignature, ViewRange};
 pub use uid::{IsUid, Uid, UidFactory};

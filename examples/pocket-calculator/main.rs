@@ -8,7 +8,7 @@
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
-use ensnare::{prelude::*, types::AudioQueue};
+use ensnare::prelude::*;
 use std::sync::{Arc, Mutex};
 
 mod calculator;
@@ -16,7 +16,6 @@ mod calculator;
 struct CalculatorApp {
     calculator: Arc<Mutex<Calculator>>,
     audio_service: AudioService,
-    audio_queue: Option<AudioQueue>,
 }
 impl CalculatorApp {
     const APP_NAME: &'static str = "Pocket Calculator";
@@ -25,7 +24,6 @@ impl CalculatorApp {
         Self {
             calculator: Arc::new(Mutex::new(Calculator::default())),
             audio_service: AudioService::new(),
-            audio_queue: None,
         }
     }
 }
@@ -34,14 +32,13 @@ impl eframe::App for CalculatorApp {
         while let Ok(event) = self.audio_service.receiver().try_recv() {
             {
                 match event {
-                    AudioServiceEvent::Reset(sample_rate, _channel_count, audio_queue) => {
+                    AudioServiceEvent::Reset(sample_rate, _channel_count) => {
                         self.calculator
                             .lock()
                             .unwrap()
                             .update_sample_rate(sample_rate);
-                        self.audio_queue = Some(audio_queue);
                     }
-                    AudioServiceEvent::NeedsAudio(count) => {
+                    AudioServiceEvent::FramesNeeded(count) => {
                         let mut buffer = [StereoSample::SILENCE; 64];
 
                         for _ in 0..(count / buffer.len()) + 1 {
@@ -62,11 +59,10 @@ impl eframe::App for CalculatorApp {
                                 calculator.update_time_range(&range);
                                 calculator.work(&mut |_| {});
                                 calculator.generate(&mut buffer);
-                                if let Some(queue) = self.audio_queue.as_ref() {
-                                    buffer.iter().for_each(|s| {
-                                        let _ = queue.force_push(*s);
-                                    });
-                                }
+                                let _ = self
+                                    .audio_service
+                                    .sender()
+                                    .send(AudioServiceInput::Frames(Arc::new(buffer.to_vec())));
                             }
                         }
                     }

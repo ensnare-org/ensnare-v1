@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, types::AudioQueue};
+use crate::{prelude::*, services::audio2::AudioQueue};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,
@@ -14,58 +14,6 @@ use std::{
     fmt::Debug,
     sync::{Arc, Mutex},
 };
-
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "SampleRate", rename_all = "kebab-case")]
-struct SampleRateDef(usize);
-
-/// Contains persistent audio settings.
-#[derive(Debug, Derivative, Serialize, Deserialize)]
-#[derivative(Default)]
-#[serde(rename_all = "kebab-case")]
-pub struct AudioSettings {
-    #[serde(with = "SampleRateDef")]
-    sample_rate: SampleRate,
-    #[derivative(Default(value = "2"))]
-    channel_count: u16,
-
-    #[serde(skip)]
-    has_been_saved: bool,
-}
-impl HasSettings for AudioSettings {
-    fn has_been_saved(&self) -> bool {
-        self.has_been_saved
-    }
-
-    fn needs_save(&mut self) {
-        self.has_been_saved = false;
-    }
-
-    fn mark_clean(&mut self) {
-        self.has_been_saved = true;
-    }
-}
-impl AudioSettings {
-    pub(crate) fn new_with(sample_rate: SampleRate, channel_count: u16) -> Self {
-        Self {
-            sample_rate,
-            channel_count,
-            has_been_saved: Default::default(),
-        }
-    }
-
-    /// Returns the currently selected audio sample rate, in Hertz (samples per
-    /// second).
-    pub fn sample_rate(&self) -> SampleRate {
-        self.sample_rate
-    }
-
-    /// Returns the currently selected number of audio channels. In most cases,
-    /// this will be two (left channel and right channel).
-    pub fn channel_count(&self) -> u16 {
-        self.channel_count
-    }
-}
 
 /// AudioService inputs that tell it what to do.
 #[derive(Debug)]

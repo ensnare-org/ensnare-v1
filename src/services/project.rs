@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
-use crate::types::{AudioQueue, VisualizationQueue};
+use crate::{prelude::*, types::VisualizationQueue};
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 #[cfg(feature = "egui")]
@@ -15,11 +14,11 @@ use std::{
 
 #[derive(Debug)]
 pub enum ProjectServiceInput {
-    AudioQueue(AudioQueue),
+    AudioReset(SampleRate, u8),
+    FramesNeeded(usize),
     #[cfg(feature = "egui")]
     KeyEvent(Key, bool, Option<Key>),
     Midi(MidiChannel, MidiMessage),
-    NeedsAudio(usize),
     NextTimelineDisplayer,
     ProjectExportToWav(Option<PathBuf>),
     ProjectLinkControl(Uid, Uid, ControlIndex),
@@ -56,17 +55,32 @@ pub enum ProjectServiceEvent {
 /// A wrapper around a [Project] that provides a channel-based interface to it.
 #[derive(Debug)]
 pub struct ProjectService {
-    input_channels: ChannelPair<ProjectServiceInput>,
-    event_channels: ChannelPair<ProjectServiceEvent>,
+    inputs: ChannelPair<ProjectServiceInput>,
+    events: ChannelPair<ProjectServiceEvent>,
 
     factory: Arc<EntityFactory<dyn EntityBounds>>,
+    audio_sender: Sender<AudioServiceInput>,
+}
+impl ProvidesService<ProjectServiceInput, ProjectServiceEvent> for ProjectService {
+    fn sender(&self) -> &Sender<ProjectServiceInput> {
+        &self.inputs.sender
+    }
+
+    fn receiver(&self) -> &Receiver<ProjectServiceEvent> {
+        &self.events.receiver
+    }
 }
 impl ProjectService {
-    pub fn new_with(factory: &Arc<EntityFactory<dyn EntityBounds>>) -> Self {
+    #[allow(missing_docs)]
+    pub fn new_with(
+        factory: &Arc<EntityFactory<dyn EntityBounds>>,
+        audio_sender: &Sender<AudioServiceInput>,
+    ) -> Self {
         let r = Self {
-            input_channels: Default::default(),
-            event_channels: Default::default(),
+            inputs: Default::default(),
+            events: Default::default(),
             factory: Arc::clone(factory),
+            audio_sender: audio_sender.clone(),
         };
         r.spawn_thread();
         let _ = r.sender().send(ProjectServiceInput::ServiceInit);
@@ -74,23 +88,15 @@ impl ProjectService {
     }
 
     fn spawn_thread(&self) {
-        let receiver = self.input_channels.receiver.clone();
-        let sender = self.event_channels.sender.clone();
+        let receiver = self.inputs.receiver.clone();
+        let sender = self.events.sender.clone();
         let factory = Arc::clone(&self.factory);
+        let audio_sender = self.audio_sender.clone();
         std::thread::spawn(move || {
-            let mut daemon = ProjectServiceDaemon::new_with(receiver, sender, factory);
+            let mut daemon =
+                ProjectServiceDaemon::new_with(receiver, sender, factory, &audio_sender);
             daemon.execute();
         });
-    }
-
-    /// The receive side of the [ProjectServiceEvent] channel.
-    pub fn receiver(&self) -> &Receiver<ProjectServiceEvent> {
-        &self.event_channels.receiver
-    }
-
-    /// The sender side of the [ProjectServiceInput] channel.
-    pub fn sender(&self) -> &Sender<ProjectServiceInput> {
-        &self.input_channels.sender
     }
 }
 
@@ -104,7 +110,7 @@ struct ProjectServiceDaemon {
     #[cfg(feature = "egui")]
     key_handler: KeyHandler,
 
-    audio_queue: Option<AudioQueue>,
+    audio_sender: Sender<AudioServiceInput>,
     visualization_queue: Option<VisualizationQueue>,
 }
 impl ProjectServiceDaemon {
@@ -112,6 +118,7 @@ impl ProjectServiceDaemon {
         receiver: Receiver<ProjectServiceInput>,
         sender: Sender<ProjectServiceEvent>,
         factory: Arc<EntityFactory<dyn EntityBounds>>,
+        audio_sender: &Sender<AudioServiceInput>,
     ) -> Self {
         Self {
             receiver,
@@ -120,7 +127,7 @@ impl ProjectServiceDaemon {
             project: Arc::new(RwLock::new(Project::new_project())),
             #[cfg(feature = "egui")]
             key_handler: Default::default(),
-            audio_queue: Default::default(),
+            audio_sender: audio_sender.clone(),
             visualization_queue: Default::default(),
         }
     }
@@ -132,9 +139,6 @@ impl ProjectServiceDaemon {
     }
 
     fn set_up_new_project(&self, new_project: &mut Project) {
-        if let Some(queue) = self.audio_queue.as_ref() {
-            new_project.e.audio_queue = Some(Arc::clone(queue));
-        }
         if let Some(queue) = self.visualization_queue.as_ref() {
             new_project.e.visualization_queue = Some(queue.clone());
         }
@@ -236,27 +240,9 @@ impl ProjectServiceDaemon {
                             .for_each(|track_uid| project.advance_track_view_mode(*track_uid));
                     }
                 }
-                ProjectServiceInput::AudioQueue(queue) => {
-                    self.audio_queue = Some(Arc::clone(&queue));
-                    self.project.write().unwrap().e.audio_queue = Some(queue);
-                }
                 ProjectServiceInput::VisualizationQueue(queue) => {
                     self.visualization_queue = Some(queue.clone());
                     self.project.write().unwrap().e.visualization_queue = Some(queue)
-                }
-                ProjectServiceInput::NeedsAudio(count) => {
-                    self.project.write().unwrap().fill_audio_queue(
-                        count,
-                        Some(&mut |c, m| {
-                            // If we had a channel sender to the MIDI service,
-                            // then we could send directly there from here. But
-                            // that would introduce a dependency between
-                            // ProjectService and MidiService, and I'd rather
-                            // stay with a simple hub/spoke event architecture
-                            // until it proves to be a performance issue.
-                            let _ = self.sender.send(ProjectServiceEvent::Midi(c, m));
-                        }),
-                    );
                 }
                 ProjectServiceInput::Midi(channel, message) => self
                     .project
@@ -280,6 +266,24 @@ impl ProjectServiceDaemon {
                 ProjectServiceInput::ProjectExportToWav(path) => {
                     let path = path.unwrap_or(PathBuf::from("exported-project.wav"));
                     let _ = self.project.write().unwrap().export_to_wav(path);
+                }
+                ProjectServiceInput::FramesNeeded(count) => {
+                    self.project.write().unwrap().fill_audio_queue(
+                        count,
+                        &self.audio_sender,
+                        Some(&mut |c, m| {
+                            // If we had a channel sender to the MIDI service,
+                            // then we could send directly there from here. But
+                            // that would introduce a dependency between
+                            // ProjectService and MidiService, and I'd rather
+                            // stay with a simple hub/spoke event architecture
+                            // until it proves to be a performance issue.
+                            let _ = self.sender.send(ProjectServiceEvent::Midi(c, m));
+                        }),
+                    );
+                }
+                ProjectServiceInput::AudioReset(sample_rate, channel_count) => {
+                    todo!()
                 }
             }
         }

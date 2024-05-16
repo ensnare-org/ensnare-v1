@@ -7,10 +7,10 @@ use ensnare::{
     services::{
         AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
         MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
+        ProvidesService,
     },
     util::ChannelPair,
 };
-use std::sync::Arc;
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -88,7 +88,7 @@ impl MiniDawEventAggregationService {
 
         // Note that this one is temporarily different! MidiInterfaceService and
         // MidiService are separate but shouldn't be. It's confusing!
-        let midi_sender = self.midi_service.input_channels.sender.clone();
+        let midi_sender = self.midi_service.inputs.sender.clone();
         let midi_interface_sender = self.midi_service.interface_sender().clone();
 
         let midi_receiver = self.midi_service.receiver().clone();
@@ -124,13 +124,15 @@ impl MiniDawEventAggregationService {
                     index if index == audio_index => {
                         if let Ok(event) = operation.recv(&audio_receiver) {
                             match event {
-                                AudioServiceEvent::NeedsAudio(count) => {
-                                    let _ =
-                                        project_sender.send(ProjectServiceInput::NeedsAudio(count));
-                                }
-                                AudioServiceEvent::Reset(_, _, ref queue) => {
+                                AudioServiceEvent::FramesNeeded(count) => {
                                     let _ = project_sender
-                                        .send(ProjectServiceInput::AudioQueue(Arc::clone(queue)));
+                                        .send(ProjectServiceInput::FramesNeeded(count));
+                                }
+                                AudioServiceEvent::Reset(sample_rate, channel_count) => {
+                                    let _ = project_sender.send(ProjectServiceInput::AudioReset(
+                                        sample_rate,
+                                        channel_count,
+                                    ));
                                 }
                                 AudioServiceEvent::Underrun => {}
                             }

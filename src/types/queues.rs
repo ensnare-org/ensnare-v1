@@ -2,14 +2,10 @@
 
 use crate::prelude::*;
 use bounded_vec_deque::BoundedVecDeque;
-use crossbeam::queue::ArrayQueue;
 use std::{
     collections::VecDeque,
     sync::{Arc, RwLock},
 };
-
-/// A ring buffer of stereo samples that the audio stream consumes.
-pub type AudioQueue = Arc<ArrayQueue<StereoSample>>;
 
 /// A ring buffer of mono samples used to visualize the generated audio stream.
 #[derive(Debug)]

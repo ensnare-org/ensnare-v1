@@ -146,28 +146,37 @@ pub enum MidiServiceEvent {
 #[derive(Debug)]
 pub struct MidiService {
     // TEMP pub until MidiInterfaceService is refactored into this struct
-    pub input_channels: ChannelPair<MidiServiceInput>,
-    event_channels: ChannelPair<MidiServiceEvent>,
+    pub inputs: ChannelPair<MidiServiceInput>,
+    events: ChannelPair<MidiServiceEvent>,
 
     midi_interface_service: MidiInterfaceService,
 
-    inputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
-    outputs: Arc<Mutex<Vec<MidiPortDescriptor>>>,
+    input_port_descriptors: Arc<Mutex<Vec<MidiPortDescriptor>>>,
+    output_port_descriptors: Arc<Mutex<Vec<MidiPortDescriptor>>>,
 
     settings: Arc<RwLock<MidiSettings>>,
+}
+impl ProvidesService<MidiServiceInput, MidiServiceEvent> for MidiService {
+    fn sender(&self) -> &Sender<MidiServiceInput> {
+        &self.inputs.sender
+    }
+
+    fn receiver(&self) -> &Receiver<MidiServiceEvent> {
+        &self.events.receiver
+    }
 }
 impl MidiService {
     /// Creates a new [MidiService].
     pub fn new_with(settings: &Arc<RwLock<MidiSettings>>) -> Self {
         let midi_interface_service = MidiInterfaceService::default();
         let mut r = Self {
-            input_channels: Default::default(),
-            event_channels: Default::default(),
+            inputs: Default::default(),
+            events: Default::default(),
 
             midi_interface_service,
 
-            inputs: Default::default(),
-            outputs: Default::default(),
+            input_port_descriptors: Default::default(),
+            output_port_descriptors: Default::default(),
 
             settings: Arc::clone(settings),
         };
@@ -194,10 +203,10 @@ impl MidiService {
     // Sits in a loop, watching the receiving side of the event channel and
     // handling whatever comes through.
     fn spawn_thread(&self) {
-        let inputs = Arc::clone(&self.inputs);
-        let outputs = Arc::clone(&self.outputs);
+        let inputs = Arc::clone(&self.input_port_descriptors);
+        let outputs = Arc::clone(&self.output_port_descriptors);
         let settings = Arc::clone(&self.settings);
-        let app_sender = self.event_channels.sender.clone();
+        let app_sender = self.events.sender.clone();
         let receiver = self.midi_interface_service.receiver().clone();
         std::thread::spawn(move || {
             while let Ok(event) = receiver.recv() {
@@ -244,12 +253,12 @@ impl MidiService {
 
     /// Returns a reference to the cached list of inputs.
     pub fn inputs(&self) -> &Mutex<Vec<MidiPortDescriptor>> {
-        self.inputs.as_ref()
+        self.input_port_descriptors.as_ref()
     }
 
     /// Returns a reference to the cached list of outputs.
     pub fn outputs(&self) -> &Mutex<Vec<MidiPortDescriptor>> {
-        self.outputs.as_ref()
+        self.output_port_descriptors.as_ref()
     }
 
     /// Handles a change in selected MIDI input.
@@ -268,11 +277,6 @@ impl MidiService {
             .send(MidiInterfaceServiceInput::SelectMidiOutput(port.clone()));
     }
 
-    /// The receive side of the [MidiPanelEvent] channel
-    pub fn receiver(&self) -> &Receiver<MidiServiceEvent> {
-        &self.event_channels.receiver
-    }
-
     /// Cleans up the MIDI service for quitting.
     pub fn exit(&self) {
         // TODO: Create the MidiPanelInput channel, add it to the receiver loop, etc.
@@ -286,7 +290,7 @@ impl MidiService {
 
     /// Allows sending to the [MidiPanelEvent] channel.
     pub fn app_sender(&self) -> &Sender<MidiServiceEvent> {
-        &self.event_channels.sender
+        &self.events.sender
     }
 
     /// When settings are loaded, we have to look at them and update the actual
