@@ -10,11 +10,7 @@ pub mod prelude {
         ProjectServiceInput, ProvidesService,
     };
 }
-// pub use audio::{
-//     AudioService as OldAudioService, AudioServiceEvent as OldAudioServiceEvent,
-//     AudioServiceInput as OldAudioServiceInput,
-// };
-pub use audio2::{AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings};
+pub use audio::{AudioService, AudioServiceEvent, AudioServiceInput, AudioSettings};
 pub use midi::{MidiService, MidiServiceEvent, MidiServiceInput, MidiSettings};
 pub use midi_interface::{
     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
@@ -22,8 +18,7 @@ pub use midi_interface::{
 pub use project::{ProjectService, ProjectServiceEvent, ProjectServiceInput};
 pub use traits::ProvidesService;
 
-// mod audio;
-mod audio2;
+mod audio;
 mod midi;
 mod midi_interface;
 mod project;

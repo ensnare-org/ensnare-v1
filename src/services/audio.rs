@@ -1,199 +1,121 @@
-// Copyright (c) 2023 Mike Tsao. All rights reserved.
+// Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, services::audio2::AudioQueue};
+use super::traits::ProvidesService;
+use crate::prelude::*;
+use core::fmt::Debug;
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
+    traits::{DeviceTrait, HostTrait},
     BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,
     SupportedStreamConfig,
 };
 use crossbeam::queue::ArrayQueue;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Sender;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
-/// AudioService inputs that tell it what to do.
+/// A ring buffer of stereo samples that the audio stream consumes.
+pub(super) type AudioQueue = Arc<ArrayQueue<StereoSample>>;
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "SampleRate", rename_all = "kebab-case")]
+struct SampleRateDef(usize);
+
+/// Contains persistent audio settings.
+#[derive(Debug, Derivative, Serialize, Deserialize)]
+#[derivative(Default)]
+#[serde(rename_all = "kebab-case")]
+pub struct AudioSettings {
+    #[serde(with = "SampleRateDef")]
+    sample_rate: SampleRate,
+    #[derivative(Default(value = "2"))]
+    channel_count: u16,
+
+    #[serde(skip)]
+    has_been_saved: bool,
+}
+impl HasSettings for AudioSettings {
+    fn has_been_saved(&self) -> bool {
+        self.has_been_saved
+    }
+
+    fn needs_save(&mut self) {
+        self.has_been_saved = false;
+    }
+
+    fn mark_clean(&mut self) {
+        self.has_been_saved = true;
+    }
+}
+impl AudioSettings {
+    /// Returns the currently selected audio sample rate, in Hertz (samples per
+    /// second).
+    pub fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
+    }
+
+    /// Returns the currently selected number of audio channels. In most cases,
+    /// this will be two (left channel and right channel).
+    pub fn channel_count(&self) -> u16 {
+        self.channel_count
+    }
+}
+
+/// An [AudioServiceInput] tells [AudioService] what to do.
 #[derive(Debug)]
 pub enum AudioServiceInput {
     /// Exit the service
-    Quit, // TODO
+    Quit,
+    /// These audio frames should be made available to the audio interface. They
+    /// will be added to [AudioService]'s internal ring buffer and consumed as
+    /// needed.
+    Frames(Arc<Vec<StereoSample>>),
 }
 
-/// AudioService events that inform the caller what's going on.
+/// [AudioServiceEvent]s inform clients what's going on.
 #[derive(Debug)]
 pub enum AudioServiceEvent {
-    /// Sample rate, channel count, queue for pushing audio samples.
-    Reset(SampleRate, u16, AudioQueue),
-    /// The interface requests this many frames of audio ASAP. Provide them by
-    /// pushing them into the AudioQueue.
-    NeedsAudio(usize),
-    /// Sent when the audio interface asked for more frames than we had in the
-    /// audio queue.
+    /// The service has initialized or reinitialized. Provides the new sample
+    /// rate and channel count.
+    Reset(SampleRate, u8),
+    /// The audio interface needs audio frames ASAP. Provide the specified
+    /// number with [AudioServiceInput::Frames].
+    FramesNeeded(usize),
+    /// Sent when the audio interface asked for more frames than we had
+    /// available in the ring buffer.
     Underrun,
 }
 
-/// Manages the audio interface.
-#[derive(Debug)]
-pub struct AudioService {
-    input_channels: ChannelPair<AudioServiceInput>,
-    event_channels: ChannelPair<AudioServiceEvent>,
-    audio_stream: AudioStream,
-    config: Arc<Mutex<Option<AudioSettings>>>,
-}
-impl Default for AudioService {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl AudioService {
-    /// Creates a new [AudioService] and starts it. Because the service starts
-    /// in play mode, it will immediately ask for samples to feed to the audio
-    /// interface.
-    pub fn new() -> Self {
-        let event_channels: ChannelPair<AudioServiceEvent> = Default::default();
-        match AudioStream::create_default_stream(
-            AudioStream::REASONABLE_BUFFER_SIZE,
-            &event_channels.sender,
-        ) {
-            Ok(audio_stream) => {
-                let r = Self {
-                    input_channels: Default::default(),
-                    event_channels,
-                    audio_stream,
-                    config: Default::default(),
-                };
-                r.spawn_thread();
-
-                // TODO: not sure this is the best place for this.
-                r.audio_stream.play();
-
-                r
-            }
-            Err(e) => panic!("AudioService: {e:?}"),
-        }
-    }
-
-    fn spawn_thread(&self) {
-        let receiver = self.input_channels.receiver.clone();
-        let config = Arc::clone(&self.config);
-
-        if let Ok(mut config) = config.lock() {
-            *config = Some(AudioSettings::new_with(
-                self.audio_stream.sample_rate(),
-                self.audio_stream.channel_count(),
-            ));
-        }
-        let _ = self.event_channels.sender.send(AudioServiceEvent::Reset(
-            self.audio_stream.sample_rate(),
-            self.audio_stream.channel_count(),
-            Arc::clone(&self.audio_stream.queue),
-        ));
-
-        std::thread::spawn(move || {
-            while let Ok(input) = receiver.recv() {
-                match input {
-                    AudioServiceInput::Quit => {
-                        eprintln!("AudioServiceInput::Quit");
-                        break;
-                    }
-                }
-            }
-            eprintln!("AudioService exit");
-        });
-    }
-
-    /// The receiver side of the event channel
-    pub fn receiver(&self) -> &Receiver<AudioServiceEvent> {
-        &self.event_channels.receiver
-    }
-
-    /// The sender side of the input channel
-    pub fn sender(&self) -> &Sender<AudioServiceInput> {
-        &self.input_channels.sender
-    }
-}
-
-/// Encapsulates the connection to the audio interface.
-pub struct AudioStream {
-    // cpal config describing the current audio stream.
-    config: SupportedStreamConfig,
-
-    // The cpal audio stream.
+/// Wrapper for cpal structs that implements core::fmt::Debug.
+struct WrappedStream {
     #[allow(dead_code)]
-    stream: Stream,
+    // reason = "We need to keep a reference to the service or else it'll be dropped"
+    cpal_stream: Stream,
 
-    // The queue of samples that the stream consumes.
     queue: AudioQueue,
 }
-impl Debug for AudioStream {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AudioStream")
+impl Debug for WrappedStream {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("WrappedStream")
             .field("config", &"(skipped)")
-            .field("stream", &"(skipped)")
+            .field("cpal_stream", &"(skipped)")
             .field("queue", &self.queue)
             .finish()
     }
 }
-impl AudioStream {
-    /// This constant is provided to prevent decision paralysis when picking a
-    /// `buffer_size` argument. At a typical sample rate of 44.1kHz, a value of
-    /// 2048 would mean that samples at the end of a full buffer wouldn't reach
-    /// the audio interface for 46.44 milliseconds, which is arguably not
-    /// reasonable because audio latency is perceptible at as few as 10
-    /// milliseconds. However, on my Ubuntu 20.04 machine, the audio interface
-    /// asks for around 2,600 samples (1,300 stereo samples) at once, which
-    /// means that 2,048 leaves a cushion of less than a single callback of
-    /// samples.
-    pub const REASONABLE_BUFFER_SIZE: usize = 4 * 1024;
-
-    pub fn create_default_stream(
+impl WrappedStream {
+    pub fn new_with(
         buffer_size: usize,
         sender: &Sender<AudioServiceEvent>,
     ) -> anyhow::Result<Self> {
         let (_host, device, config) = Self::host_device_setup()?;
         let queue = Arc::new(ArrayQueue::new(buffer_size));
-        let stream = Self::stream_setup_for(&device, &config, &Arc::clone(&queue), &sender)?;
-        let r = Self {
-            config,
-            stream,
+
+        let stream = Self::stream_setup_for(&device, &config, &queue, &sender)?;
+        Ok(Self {
+            cpal_stream: stream,
             queue,
-        };
-        Ok(r)
-    }
-
-    /// Returns the sample rate of the current audio stream.
-    pub fn sample_rate(&self) -> SampleRate {
-        let config: &cpal::StreamConfig = &self.config.clone().into();
-        SampleRate::new(config.sample_rate.0 as usize)
-    }
-
-    /// Returns the channel count of the current audio stream.
-    pub fn channel_count(&self) -> u16 {
-        let config: &cpal::StreamConfig = &self.config.clone().into();
-        config.channels
-    }
-
-    /// Tells the audio stream to resume playing audio (and consuming samples
-    /// from the queue).
-    pub fn play(&self) {
-        let _ = self.stream.play();
-    }
-
-    /// Tells the audio stream to stop playing audio (which means it will also
-    /// stop consuming samples from the queue).
-    #[allow(dead_code)]
-    pub fn pause(&self) {
-        let _ = self.stream.pause();
-    }
-
-    /// Gives the audio stream a chance to clean up before the thread exits.
-    #[allow(dead_code)]
-    pub fn quit(&self) {
-        todo!()
-        //        let _ = self.sender.send(AudioStreamServiceEvent::Quit);
+        })
     }
 
     /// Returns the default host, device, and stream config (all of which are
@@ -206,18 +128,19 @@ impl AudioStream {
             .default_output_device()
             .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
         let config = device.default_output_config()?;
+
         let config = SupportedStreamConfig::new(
             config.channels(),
             config.sample_rate(),
-            config.buffer_size().clone(),
+            *config.buffer_size(),
             config.sample_format(),
         );
         Ok((host, device, config))
     }
 
     /// Creates and returns a Stream for the given device and config. The Stream
-    /// will consume the supplied ArrayQueue<f32>. This function is actually a
-    /// wrapper around the generic stream_make<T>().
+    /// will consume the data in the supplied AudioQueue. This function is
+    /// actually a wrapper around the generic stream_make<T>().
     fn stream_setup_for(
         device: &cpal::Device,
         config: &SupportedStreamConfig,
@@ -229,7 +152,9 @@ impl AudioStream {
         let mut config: StreamConfig = config.into();
 
         // TODO: this is a short-term hack to confirm that good latency with
-        // Alsa is possible. It is!
+        // Alsa is possible. (It is!) We do it here, rather than in
+        // host_device_setup(), because it's troublesome to create a
+        // [SupportedBufferSize] on the fly.
         config.buffer_size = BufferSize::Fixed(512);
 
         match sample_format {
@@ -280,8 +205,8 @@ impl AudioStream {
         let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
         let queue = Arc::clone(queue);
-        let channel_count = config.channels as usize;
         let sender = sender.clone();
+        let channel_count = config.channels as usize;
         let stream = device.build_output_stream(
             config,
             move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
@@ -293,7 +218,7 @@ impl AudioStream {
         Ok(stream)
     }
 
-    /// cpal callback that supplies samples from the [AudioQueue], converting
+    /// cpal callback that supplies samples from the AudioQueue, converting
     /// them if needed to the stream's expected data type.
     fn on_window<T>(
         output: &mut [T],
@@ -319,7 +244,7 @@ impl AudioStream {
             // We're keeping up. Replace exactly what we're about to consume.
             need_len
         }
-        .min(Self::REASONABLE_BUFFER_SIZE);
+        .min(AudioService::REASONABLE_BUFFER_SIZE);
 
         for frame in output.chunks_exact_mut(channel_count) {
             if let Some(sample) = queue.pop() {
@@ -339,6 +264,83 @@ impl AudioStream {
         let request_len = (queue.capacity() - queue.len()).min(request_len);
 
         // Request the frames.
-        let _ = sender.send(AudioServiceEvent::NeedsAudio(request_len));
+        let _ = sender.send(AudioServiceEvent::FramesNeeded(request_len));
+    }
+}
+
+/// [AudioService] provides channel-based communication with the cpal audio
+/// interface.
+#[derive(Debug)]
+pub struct AudioService {
+    inputs: ChannelPair<AudioServiceInput>,
+    events: ChannelPair<AudioServiceEvent>,
+
+    /// The cpal audio stream.
+    #[allow(dead_code)]
+    stream: WrappedStream,
+}
+impl Default for AudioService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ProvidesService<AudioServiceInput, AudioServiceEvent> for AudioService {
+    fn receiver(&self) -> &crossbeam_channel::Receiver<AudioServiceEvent> {
+        &self.events.receiver
+    }
+
+    fn sender(&self) -> &Sender<AudioServiceInput> {
+        &self.inputs.sender
+    }
+}
+impl AudioService {
+    /// This constant is provided to prevent decision paralysis when picking a
+    /// `buffer_size` argument. At a typical sample rate of 44.1kHz, a value of
+    /// 2048 would mean that samples at the end of a full buffer wouldn't reach
+    /// the audio interface for 46.44 milliseconds, which is arguably not
+    /// reasonable because audio latency is perceptible at as few as 10
+    /// milliseconds. However, on my Ubuntu 20.04 machine, the audio interface
+    /// asks for around 2,600 samples (1,300 stereo samples) at once, which
+    /// means that 2,048 leaves a cushion of less than a single callback of
+    /// samples.
+    pub const REASONABLE_BUFFER_SIZE: usize = 4 * 1024;
+
+    #[allow(missing_docs)]
+    pub fn new() -> Self {
+        let event_channels: ChannelPair<AudioServiceEvent> = Default::default();
+        match WrappedStream::new_with(Self::REASONABLE_BUFFER_SIZE, &event_channels.sender) {
+            Ok(stream) => {
+                let audio_service = Self {
+                    inputs: Default::default(),
+                    events: event_channels,
+                    stream,
+                };
+                audio_service.start_thread();
+                audio_service
+            }
+            Err(e) => panic!("While creating AudioService: {e:?}"),
+        }
+    }
+
+    fn start_thread(&self) {
+        let receiver = self.inputs.receiver.clone();
+        let queue = Arc::clone(&self.stream.queue);
+        std::thread::spawn(move || {
+            while let Ok(input) = receiver.recv() {
+                match input {
+                    AudioServiceInput::Quit => {
+                        println!("AudioServiceInput2::Quit");
+                        break;
+                    }
+                    AudioServiceInput::Frames(frames) => {
+                        for frame in frames.iter() {
+                            if queue.force_push(*frame).is_some() {
+                                eprintln!("Caution: audio buffer overrun");
+                            };
+                        }
+                    }
+                }
+            }
+        });
     }
 }
