@@ -283,7 +283,10 @@ impl ProjectServiceDaemon {
                     );
                 }
                 ProjectServiceInput::AudioReset(sample_rate, channel_count) => {
-                    todo!()
+                    self.project
+                        .write()
+                        .unwrap()
+                        .update_sample_rate(sample_rate);
                 }
             }
         }
