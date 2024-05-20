@@ -1,5 +1,8 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+//! [AudioService] provides channel-based communication with the cpal audio
+//! interface.
+
 use super::traits::ProvidesService;
 use crate::{
     traits::HasSettings,
@@ -8,12 +11,12 @@ use crate::{
 };
 use core::fmt::Debug;
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
+    traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, FromSample, Sample as CpalSample, SizedSample, Stream, StreamConfig,
     SupportedStreamConfig,
 };
 use crossbeam::queue::ArrayQueue;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use delegate::delegate;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
@@ -88,12 +91,25 @@ impl AudioSettings {
 /// An [AudioServiceInput] tells [AudioService] what to do.
 #[derive(Debug)]
 pub enum AudioServiceInput {
-    /// Exit the service
+    /// Asks the service to exit.
     Quit,
-    /// These audio frames should be made available to the audio interface. They
-    /// will be added to [AudioService]'s internal ring buffer and consumed as
-    /// needed.
+    /// Provides audio frames for the audio interface. They will be added to
+    /// [AudioService]'s internal ring buffer and consumed as needed.
     Frames(Arc<Vec<StereoSample>>),
+    /// Starts the underlying audio interface. A new [AudioService] plays
+    /// automatically upon creation.
+    Play,
+    /// Pauses the underlying audio interface.
+    Pause,
+    /// Sets the audio interface's sample rate. If the audio interface doesn't
+    /// support this rate, then the set operation fails, and the prior rate
+    /// remains.
+    SetSampleRate(SampleRate),
+    /// Changes the period size, which is the basis for the internal audio
+    /// buffer size. As an example, a 44.1KHz sample rate and a 512-frame period
+    /// means that the audio will have at least an 11.6-millisecond delay (512 /
+    /// 44100 = .0116).
+    SetPeriodSize(usize),
 }
 
 /// [AudioServiceEvent]s inform clients what's going on.
@@ -110,14 +126,13 @@ pub enum AudioServiceEvent {
     Underrun,
 }
 
-/// Wrapper for cpal structs that implements [core::fmt::Debug].
+/// Wrapper for cpal structs. [WrappedStream] exists for two reasons: first, to
+/// implement [core::fmt::Debug] for the structs that don't, and second, because
+/// the stream needs to live in its own thread, so we manage that here.
 struct WrappedStream {
-    #[allow(dead_code)]
-    // reason = "We need to keep a reference to the service or else it'll be dropped"
-    cpal_stream: Stream,
-
     /// The size, in frames, of a single group of frames in the audio buffer.
     /// https://www.alsa-project.org/wiki/FramesPeriods
+    #[allow(dead_code)]
     period_size: usize,
 
     queue: AudioQueue,
@@ -138,6 +153,7 @@ impl WrappedStream {
     pub fn new_with(
         period_size: usize,
         sender: &Sender<AudioServiceEvent>,
+        receiver: &Receiver<AudioServiceInput>,
     ) -> anyhow::Result<Self> {
         let (_host, device, config) = Self::host_device_setup()?;
 
@@ -154,9 +170,54 @@ impl WrappedStream {
         let buffer_size = period_size * 3;
         let queue = AudioQueue::new(buffer_size);
 
-        let cpal_stream = Self::stream_setup_for(&device, &config, period_size, &queue, &sender)?;
+        // Stream creation needs to live in its own thread because it isn't
+        // `Send`. See https://github.com/RustAudio/cpal/issues/818 for more
+        // discussion.
+        let receiver = receiver.clone();
+        let config_clone = config.clone();
+        let queue_clone = queue.clone();
+        let sender = sender.clone();
+        std::thread::spawn(move || {
+            let queue_clone_2 = queue_clone.clone();
+            match Self::stream_setup_for(
+                &device,
+                config_clone.clone(),
+                period_size,
+                queue_clone.clone(),
+                sender,
+            ) {
+                Ok(cpal_stream) => {
+                    while let Ok(input) = receiver.recv() {
+                        match input {
+                            AudioServiceInput::Frames(frames) => {
+                                for frame in frames.iter() {
+                                    if queue_clone_2.force_push(*frame).is_some() {
+                                        eprintln!("Caution: audio buffer overrun");
+                                    };
+                                }
+                            }
+                            AudioServiceInput::Play => {
+                                let _ = cpal_stream.play();
+                            }
+                            AudioServiceInput::Pause => {
+                                let _ = cpal_stream.pause();
+                            }
+                            AudioServiceInput::Quit => {
+                                break;
+                            }
+                            AudioServiceInput::SetSampleRate(_new_sample_rate) => {
+                                todo!();
+                            }
+                            AudioServiceInput::SetPeriodSize(_new_period_size) => {
+                                todo!();
+                            }
+                        }
+                    }
+                }
+                Err(e) => eprintln!("Failed while setting up audio stream: {e:?}"),
+            }
+        });
         Ok(Self {
-            cpal_stream,
             period_size,
             queue,
             sample_rate: SampleRate(config.sample_rate().0 as usize),
@@ -189,12 +250,11 @@ impl WrappedStream {
     /// actually a wrapper around the generic [stream_make<T>()].
     fn stream_setup_for(
         device: &cpal::Device,
-        config: &SupportedStreamConfig,
+        config: SupportedStreamConfig,
         period_size: usize,
-        queue: &AudioQueue,
-        sender: &Sender<AudioServiceEvent>,
+        queue: AudioQueue,
+        sender: Sender<AudioServiceEvent>,
     ) -> anyhow::Result<Stream, anyhow::Error> {
-        let config = config.clone();
         let sample_format = config.sample_format();
         let mut config: StreamConfig = config.into();
 
@@ -204,36 +264,36 @@ impl WrappedStream {
 
         match sample_format {
             cpal::SampleFormat::I8 => {
-                Self::stream_make::<i8>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<i8>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::I16 => {
-                Self::stream_make::<i16>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<i16>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::I32 => {
-                Self::stream_make::<i32>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<i32>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::I64 => {
-                Self::stream_make::<i64>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<i64>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::U8 => {
-                Self::stream_make::<u8>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<u8>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::U16 => {
-                Self::stream_make::<u16>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<u16>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::U32 => {
-                Self::stream_make::<u32>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<u32>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::U64 => {
-                Self::stream_make::<u64>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<u64>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::F32 => {
-                Self::stream_make::<f32>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<f32>(&config, device, period_size, queue, sender)
             }
             cpal::SampleFormat::F64 => {
-                Self::stream_make::<f64>(&config.into(), device, period_size, queue, sender)
+                Self::stream_make::<f64>(&config, device, period_size, queue, sender)
             }
-            _ => todo!(),
+            _ => panic!("Unexpected sample format {sample_format:?}"),
         }
     }
 
@@ -242,16 +302,14 @@ impl WrappedStream {
         config: &cpal::StreamConfig,
         device: &cpal::Device,
         period_size: usize,
-        queue: &AudioQueue,
-        sender: &Sender<AudioServiceEvent>,
+        queue: AudioQueue,
+        sender: Sender<AudioServiceEvent>,
     ) -> Result<Stream, anyhow::Error>
     where
         T: SizedSample + FromSample<SampleType>,
     {
         let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-        let queue = queue.clone();
-        let sender = sender.clone();
         let channel_count = config.channels as usize;
         let stream = device.build_output_stream(
             config,
@@ -336,7 +394,7 @@ pub struct AudioService {
 }
 impl Default for AudioService {
     fn default() -> Self {
-        Self::new_with(Self::SUGGESTED_PERIOD_SIZE)
+        Self::new_with(None)
     }
 }
 impl ProvidesService<AudioServiceInput, AudioServiceEvent> for AudioService {
@@ -349,23 +407,27 @@ impl ProvidesService<AudioServiceInput, AudioServiceEvent> for AudioService {
     }
 }
 impl AudioService {
-    /// This value is on the upper edge of perceptible latency for 44.1KHz (512
-    /// / 44100 = 11.6 milliseconds).
-    pub const SUGGESTED_PERIOD_SIZE: usize = 512;
+    /// A reasonable period size. This value is on the upper edge of perceptible
+    /// latency for 44.1KHz (512 / 44100 = 11.6 milliseconds).
+    const SUGGESTED_PERIOD_SIZE: usize = 512;
 
     /// Creates a new [AudioService] with an internal buffer whose size is based
-    /// on the given number of audio frames. The buffer is actually 2x that size
-    /// to allow slack to fill the buffer while the hardware interface is
-    /// draining it.
+    /// on the given period size, or a reasonable default if none is provided. A
+    /// "period" is a chunk of the audio buffer that the audio interface reads
+    /// at once. The buffer is actually an integer multiple of that size to give
+    /// the software some slack time to fill the buffer while the hardware audio
+    /// interface is draining it.
     ///
     /// Read https://news.ycombinator.com/item?id=9388558 for food for thought.
     #[allow(missing_docs)]
-    pub fn new_with(period_size: usize) -> Self {
+    pub fn new_with(period_size: Option<usize>) -> Self {
+        let inputs: CrossbeamChannel<AudioServiceInput> = Default::default();
         let events: CrossbeamChannel<AudioServiceEvent> = Default::default();
-        match WrappedStream::new_with(period_size, &events.sender) {
+        let period_size = period_size.unwrap_or(Self::SUGGESTED_PERIOD_SIZE);
+        match WrappedStream::new_with(period_size, &events.sender, &inputs.receiver) {
             Ok(stream) => {
                 let audio_service = Self {
-                    inputs: Default::default(),
+                    inputs,
                     events,
                     stream,
                 };
@@ -374,32 +436,9 @@ impl AudioService {
                     audio_service.stream.channel_count(),
                 ));
 
-                audio_service.start_thread();
                 audio_service
             }
             Err(e) => panic!("While creating AudioService: {e:?}"),
         }
-    }
-
-    fn start_thread(&self) {
-        let receiver = self.inputs.receiver.clone();
-        let queue = self.stream.queue.clone();
-        std::thread::spawn(move || {
-            while let Ok(input) = receiver.recv() {
-                match input {
-                    AudioServiceInput::Quit => {
-                        println!("AudioServiceInput::Quit");
-                        break;
-                    }
-                    AudioServiceInput::Frames(frames) => {
-                        for frame in frames.iter() {
-                            if queue.force_push(*frame).is_some() {
-                                eprintln!("Caution: audio buffer overrun");
-                            };
-                        }
-                    }
-                }
-            }
-        });
     }
 }

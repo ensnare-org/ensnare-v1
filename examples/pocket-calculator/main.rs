@@ -23,7 +23,7 @@ impl CalculatorApp {
     fn new(_cc: &CreationContext) -> Self {
         Self {
             calculator: Arc::new(Mutex::new(Calculator::default())),
-            audio_service: AudioService::new_with(AudioService::SUGGESTED_PERIOD_SIZE),
+            audio_service: AudioService::new_with(None),
         }
     }
 }

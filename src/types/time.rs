@@ -691,6 +691,16 @@ impl Mul<Seconds> for SampleRate {
         Self((self.0 as f64 * rhs.0) as usize)
     }
 }
+impl From<cpal::SampleRate> for SampleRate {
+    fn from(value: cpal::SampleRate) -> Self {
+        Self(value.0 as usize)
+    }
+}
+impl Into<cpal::SampleRate> for SampleRate {
+    fn into(self) -> cpal::SampleRate {
+        cpal::SampleRate(self.0 as u32)
+    }
+}
 
 #[cfg(test)]
 mod tests {
