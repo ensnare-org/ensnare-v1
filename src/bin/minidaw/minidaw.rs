@@ -203,7 +203,7 @@ impl MiniDaw {
         let factory = Arc::new(factory);
 
         let mut settings = Settings::load().unwrap_or_default();
-        let audio_service = AudioService::new();
+        let audio_service = AudioService::new_with(AudioService::SUGGESTED_PERIOD_SIZE);
         let midi_service = MidiService::new_with(&settings.midi_settings);
         settings.set_midi_sender(midi_service.sender());
         let project_service = ProjectService::new_with(&factory, audio_service.sender());

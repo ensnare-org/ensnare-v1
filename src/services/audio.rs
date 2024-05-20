@@ -1,7 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use super::traits::ProvidesService;
-use crate::prelude::*;
+use crate::{
+    traits::HasSettings,
+    types::{SampleRate, SampleType, StereoSample},
+    util::CrossbeamChannel,
+};
 use core::fmt::Debug;
 use cpal::{
     traits::{DeviceTrait, HostTrait},
@@ -10,12 +14,32 @@ use cpal::{
 };
 use crossbeam::queue::ArrayQueue;
 use crossbeam_channel::Sender;
+use delegate::delegate;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// A ring buffer of stereo samples that the audio stream consumes.
-pub(super) type AudioQueue = Arc<ArrayQueue<StereoSample>>;
+struct AudioQueue(Arc<ArrayQueue<StereoSample>>);
+impl AudioQueue {
+    fn new(buffer_size: usize) -> Self {
+        Self(Arc::new(ArrayQueue::new(buffer_size)))
+    }
+
+    delegate! {
+        to self.0 {
+            fn len(&self) -> usize;
+            fn capacity(&self) -> usize;
+            fn pop(&self) -> Option<StereoSample>;
+            fn force_push(&self, frame: StereoSample) -> Option<StereoSample>;
+        }
+    }
+}
+impl Clone for AudioQueue {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "SampleRate", rename_all = "kebab-case")]
@@ -86,35 +110,57 @@ pub enum AudioServiceEvent {
     Underrun,
 }
 
-/// Wrapper for cpal structs that implements core::fmt::Debug.
+/// Wrapper for cpal structs that implements [core::fmt::Debug].
 struct WrappedStream {
     #[allow(dead_code)]
     // reason = "We need to keep a reference to the service or else it'll be dropped"
     cpal_stream: Stream,
 
+    /// The size, in frames, of a single group of frames in the audio buffer.
+    /// https://www.alsa-project.org/wiki/FramesPeriods
+    period_size: usize,
+
     queue: AudioQueue,
+
+    sample_rate: SampleRate,
+    channel_count: u8,
 }
 impl Debug for WrappedStream {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("WrappedStream")
             .field("config", &"(skipped)")
             .field("cpal_stream", &"(skipped)")
-            .field("queue", &self.queue)
+            .field("queue", &self.queue.0)
             .finish()
     }
 }
 impl WrappedStream {
     pub fn new_with(
-        buffer_size: usize,
+        period_size: usize,
         sender: &Sender<AudioServiceEvent>,
     ) -> anyhow::Result<Self> {
         let (_host, device, config) = Self::host_device_setup()?;
-        let queue = Arc::new(ArrayQueue::new(buffer_size));
 
-        let stream = Self::stream_setup_for(&device, &config, &queue, &sender)?;
+        // The buffer size is a multiple of the period size. It's a good idea to
+        // have at least two so that the hardware can consume one while the
+        // software is generating one
+        // (https://www.alsa-project.org/wiki/FramesPeriods).
+        //
+        // We have three because I was getting an occasional buffer overrun (too
+        // much production, not enough consumption), which caused the ring
+        // buffer to overflow. I think this is masking an error in how this
+        // service is emitting [AudioServiceEvent::FramesNeeded] to the client.
+        // TODO fix that
+        let buffer_size = period_size * 3;
+        let queue = AudioQueue::new(buffer_size);
+
+        let cpal_stream = Self::stream_setup_for(&device, &config, period_size, &queue, &sender)?;
         Ok(Self {
-            cpal_stream: stream,
+            cpal_stream,
+            period_size,
             queue,
+            sample_rate: SampleRate(config.sample_rate().0 as usize),
+            channel_count: config.channels() as u8,
         })
     }
 
@@ -139,11 +185,12 @@ impl WrappedStream {
     }
 
     /// Creates and returns a Stream for the given device and config. The Stream
-    /// will consume the data in the supplied AudioQueue. This function is
-    /// actually a wrapper around the generic stream_make<T>().
+    /// will consume the data in the supplied [AudioQueue]. This function is
+    /// actually a wrapper around the generic [stream_make<T>()].
     fn stream_setup_for(
         device: &cpal::Device,
         config: &SupportedStreamConfig,
+        period_size: usize,
         queue: &AudioQueue,
         sender: &Sender<AudioServiceEvent>,
     ) -> anyhow::Result<Stream, anyhow::Error> {
@@ -151,42 +198,40 @@ impl WrappedStream {
         let sample_format = config.sample_format();
         let mut config: StreamConfig = config.into();
 
-        // TODO: this is a short-term hack to confirm that good latency with
-        // Alsa is possible. (It is!) We do it here, rather than in
-        // host_device_setup(), because it's troublesome to create a
-        // [SupportedBufferSize] on the fly.
-        config.buffer_size = BufferSize::Fixed(512);
+        // We set buffer size here, rather than in host_device_setup(), because
+        // it's troublesome to create a [cpal::SupportedBufferSize] on the fly.
+        config.buffer_size = BufferSize::Fixed(period_size as u32);
 
         match sample_format {
             cpal::SampleFormat::I8 => {
-                Self::stream_make::<i8>(&config.into(), device, queue, sender)
+                Self::stream_make::<i8>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::I16 => {
-                Self::stream_make::<i16>(&config.into(), device, queue, sender)
+                Self::stream_make::<i16>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::I32 => {
-                Self::stream_make::<i32>(&config.into(), device, queue, sender)
+                Self::stream_make::<i32>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::I64 => {
-                Self::stream_make::<i64>(&config.into(), device, queue, sender)
+                Self::stream_make::<i64>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::U8 => {
-                Self::stream_make::<u8>(&config.into(), device, queue, sender)
+                Self::stream_make::<u8>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::U16 => {
-                Self::stream_make::<u16>(&config.into(), device, queue, sender)
+                Self::stream_make::<u16>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::U32 => {
-                Self::stream_make::<u32>(&config.into(), device, queue, sender)
+                Self::stream_make::<u32>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::U64 => {
-                Self::stream_make::<u64>(&config.into(), device, queue, sender)
+                Self::stream_make::<u64>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::F32 => {
-                Self::stream_make::<f32>(&config.into(), device, queue, sender)
+                Self::stream_make::<f32>(&config.into(), device, period_size, queue, sender)
             }
             cpal::SampleFormat::F64 => {
-                Self::stream_make::<f64>(&config.into(), device, queue, sender)
+                Self::stream_make::<f64>(&config.into(), device, period_size, queue, sender)
             }
             _ => todo!(),
         }
@@ -196,6 +241,7 @@ impl WrappedStream {
     fn stream_make<T>(
         config: &cpal::StreamConfig,
         device: &cpal::Device,
+        period_size: usize,
         queue: &AudioQueue,
         sender: &Sender<AudioServiceEvent>,
     ) -> Result<Stream, anyhow::Error>
@@ -204,13 +250,13 @@ impl WrappedStream {
     {
         let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-        let queue = Arc::clone(queue);
+        let queue = queue.clone();
         let sender = sender.clone();
         let channel_count = config.channels as usize;
         let stream = device.build_output_stream(
             config,
             move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
-                Self::on_window(output, channel_count, &queue, &sender)
+                Self::on_window(output, channel_count, period_size, &queue, &sender)
             },
             err_fn,
             None,
@@ -223,6 +269,7 @@ impl WrappedStream {
     fn on_window<T>(
         output: &mut [T],
         channel_count: usize,
+        period_size: usize,
         queue: &AudioQueue,
         sender: &Sender<AudioServiceEvent>,
     ) where
@@ -244,7 +291,7 @@ impl WrappedStream {
             // We're keeping up. Replace exactly what we're about to consume.
             need_len
         }
-        .min(AudioService::REASONABLE_BUFFER_SIZE);
+        .min(period_size);
 
         for frame in output.chunks_exact_mut(channel_count) {
             if let Some(sample) = queue.pop() {
@@ -266,6 +313,14 @@ impl WrappedStream {
         // Request the frames.
         let _ = sender.send(AudioServiceEvent::FramesNeeded(request_len));
     }
+
+    fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
+    }
+
+    fn channel_count(&self) -> u8 {
+        self.channel_count
+    }
 }
 
 /// [AudioService] provides channel-based communication with the cpal audio
@@ -281,7 +336,7 @@ pub struct AudioService {
 }
 impl Default for AudioService {
     fn default() -> Self {
-        Self::new()
+        Self::new_with(Self::SUGGESTED_PERIOD_SIZE)
     }
 }
 impl ProvidesService<AudioServiceInput, AudioServiceEvent> for AudioService {
@@ -294,27 +349,29 @@ impl ProvidesService<AudioServiceInput, AudioServiceEvent> for AudioService {
     }
 }
 impl AudioService {
-    /// This constant is provided to prevent decision paralysis when picking a
-    /// `buffer_size` argument. At a typical sample rate of 44.1kHz, a value of
-    /// 2048 would mean that samples at the end of a full buffer wouldn't reach
-    /// the audio interface for 46.44 milliseconds, which is arguably not
-    /// reasonable because audio latency is perceptible at as few as 10
-    /// milliseconds. However, on my Ubuntu 20.04 machine, the audio interface
-    /// asks for around 2,600 samples (1,300 stereo samples) at once, which
-    /// means that 2,048 leaves a cushion of less than a single callback of
-    /// samples.
-    pub const REASONABLE_BUFFER_SIZE: usize = 4 * 1024;
+    /// This value is on the upper edge of perceptible latency for 44.1KHz (512
+    /// / 44100 = 11.6 milliseconds).
+    pub const SUGGESTED_PERIOD_SIZE: usize = 512;
 
+    /// Creates a new [AudioService] with an internal buffer whose size is based
+    /// on the given number of audio frames. The buffer is actually 2x that size
+    /// to allow slack to fill the buffer while the hardware interface is
+    /// draining it.
     #[allow(missing_docs)]
-    pub fn new() -> Self {
-        let event_channels: CrossbeamChannel<AudioServiceEvent> = Default::default();
-        match WrappedStream::new_with(Self::REASONABLE_BUFFER_SIZE, &event_channels.sender) {
+    pub fn new_with(period_size: usize) -> Self {
+        let events: CrossbeamChannel<AudioServiceEvent> = Default::default();
+        match WrappedStream::new_with(period_size, &events.sender) {
             Ok(stream) => {
                 let audio_service = Self {
                     inputs: Default::default(),
-                    events: event_channels,
+                    events,
                     stream,
                 };
+                let _ = audio_service.events.sender.send(AudioServiceEvent::Reset(
+                    audio_service.stream.sample_rate(),
+                    audio_service.stream.channel_count(),
+                ));
+
                 audio_service.start_thread();
                 audio_service
             }
@@ -324,12 +381,12 @@ impl AudioService {
 
     fn start_thread(&self) {
         let receiver = self.inputs.receiver.clone();
-        let queue = Arc::clone(&self.stream.queue);
+        let queue = self.stream.queue.clone();
         std::thread::spawn(move || {
             while let Ok(input) = receiver.recv() {
                 match input {
                     AudioServiceInput::Quit => {
-                        println!("AudioServiceInput2::Quit");
+                        println!("AudioServiceInput::Quit");
                         break;
                     }
                     AudioServiceInput::Frames(frames) => {
