@@ -357,6 +357,8 @@ impl AudioService {
     /// on the given number of audio frames. The buffer is actually 2x that size
     /// to allow slack to fill the buffer while the hardware interface is
     /// draining it.
+    /// 
+    /// Read https://news.ycombinator.com/item?id=9388558 for food for thought.
     #[allow(missing_docs)]
     pub fn new_with(period_size: usize) -> Self {
         let events: CrossbeamChannel<AudioServiceEvent> = Default::default();
