@@ -131,7 +131,7 @@ pub enum AudioServiceEvent {
 /// the stream needs to live in its own thread, so we manage that here.
 struct WrappedStream {
     /// The size, in frames, of a single group of frames in the audio buffer.
-    /// https://www.alsa-project.org/wiki/FramesPeriods
+    /// <https://www.alsa-project.org/wiki/FramesPeriods>
     #[allow(dead_code)]
     period_size: usize,
 
@@ -160,7 +160,7 @@ impl WrappedStream {
         // The buffer size is a multiple of the period size. It's a good idea to
         // have at least two so that the hardware can consume one while the
         // software is generating one
-        // (https://www.alsa-project.org/wiki/FramesPeriods).
+        // <https://www.alsa-project.org/wiki/FramesPeriods>.
         //
         // We have three because I was getting an occasional buffer overrun (too
         // much production, not enough consumption), which caused the ring
@@ -171,7 +171,7 @@ impl WrappedStream {
         let queue = AudioQueue::new(buffer_size);
 
         // Stream creation needs to live in its own thread because it isn't
-        // `Send`. See https://github.com/RustAudio/cpal/issues/818 for more
+        // `Send`. See <https://github.com/RustAudio/cpal/issues/818> for more
         // discussion.
         let receiver = receiver.clone();
         let config_clone = config.clone();
@@ -322,8 +322,8 @@ impl WrappedStream {
         Ok(stream)
     }
 
-    /// cpal callback that supplies samples from the AudioQueue, converting
-    /// them if needed to the stream's expected data type.
+    /// cpal callback that supplies samples from the AudioQueue, converting them
+    /// if needed to the stream's expected data type.
     fn on_window<T>(
         output: &mut [T],
         channel_count: usize,
@@ -338,8 +338,8 @@ impl WrappedStream {
 
         // Calculate how many frames we should request.
         let request_len = if have_len < need_len {
-            // We're at risk of underrun. Increase work amount beyond what
-            // we're about to consume.
+            // We're at risk of underrun. Increase work amount beyond what we're
+            // about to consume.
             need_len * 2
         } else if have_len > need_len * 2 {
             // We are far ahead of the current window's needs. Replace only half
@@ -418,7 +418,7 @@ impl AudioService {
     /// the software some slack time to fill the buffer while the hardware audio
     /// interface is draining it.
     ///
-    /// Read https://news.ycombinator.com/item?id=9388558 for food for thought.
+    /// Read <https://news.ycombinator.com/item?id=9388558> for food for thought.
     #[allow(missing_docs)]
     pub fn new_with(period_size: Option<usize>) -> Self {
         let inputs: CrossbeamChannel<AudioServiceInput> = Default::default();

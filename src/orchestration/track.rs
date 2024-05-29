@@ -5,44 +5,24 @@ use delegate::delegate;
 use derivative::Derivative;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// Newtype for track title string.
-#[derive(Debug, Derivative, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Synonym, Derivative, Serialize, Deserialize)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct TrackTitle(#[derivative(Default(value = "\"Untitled\".to_string()"))] pub String);
-impl From<&str> for TrackTitle {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
 
 /// Identifies a track.
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Derivative,
-    Display,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Hash,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Synonym, Derivative, Serialize, Deserialize)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct TrackUid(#[derivative(Default(value = "1"))] pub usize);
 impl IsUid for TrackUid {
     fn as_usize(&self) -> usize {
         self.0
-    }
-}
-impl From<usize> for TrackUid {
-    fn from(value: usize) -> Self {
-        Self(value)
     }
 }
 

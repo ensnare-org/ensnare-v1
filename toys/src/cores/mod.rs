@@ -13,7 +13,7 @@ mod synth;
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use ensnare::{prelude::*, util::Rng};
+    use ensnare::prelude::*;
 
     pub trait GeneratesStereoSampleAndHandlesMidi: Generates<StereoSample> + HandlesMidi {}
 

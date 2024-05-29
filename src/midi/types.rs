@@ -1,13 +1,11 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
-use derive_more::Display as DeriveDisplay;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// Newtype for MIDI channel.
-#[derive(
-    Clone, Copy, Debug, Default, DeriveDisplay, PartialEq, Eq, Hash, Serialize, Deserialize,
-)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct MidiChannel(pub u8);
 #[allow(missing_docs)]
@@ -24,16 +22,6 @@ impl MidiChannel {
 impl From<u4> for MidiChannel {
     fn from(value: u4) -> Self {
         Self(value.as_int())
-    }
-}
-impl From<u8> for MidiChannel {
-    fn from(value: u8) -> Self {
-        Self(value)
-    }
-}
-impl From<MidiChannel> for u8 {
-    fn from(value: MidiChannel) -> Self {
-        value.0
     }
 }
 

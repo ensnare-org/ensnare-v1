@@ -135,7 +135,7 @@ impl<const LOWER: i8, const UPPER: i8> MulAssign<f64> for RangedF64<LOWER, UPPER
         self.0 = self.0 * rhs;
     }
 }
-/// A Normal is a [RangedF64] whose range is [0.0, 1.0].
+/// A [Normal] is a RangedF64 whose range is [0.0, 1.0].
 pub type Normal = RangedF64<0, 1>;
 #[allow(missing_docs)]
 impl Normal {
@@ -210,7 +210,7 @@ impl AddAssign<Self> for Normal {
     }
 }
 
-/// A BipolarNormal is a [RangedF64] whose range is [-1.0, 1.0].
+/// A [BipolarNormal] is a RangedF64 whose range is [-1.0, 1.0].
 pub type BipolarNormal = RangedF64<-1, 1>;
 #[allow(missing_docs)]
 impl BipolarNormal {

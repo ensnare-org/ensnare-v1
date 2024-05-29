@@ -6,6 +6,7 @@ use delegate::delegate;
 use derive_builder::Builder;
 use nonoverlapping_interval_tree::NonOverlappingIntervalTree;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// A representation of a single point in a [SignalPath].
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Builder, PartialEq)]
@@ -227,20 +228,7 @@ impl SignalPath {
 }
 
 /// A [PathUid] identifies a [SignalPath].
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Eq,
-    Hash,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-    derive_more::Display,
-)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PathUid(pub usize);
 impl IsUid for PathUid {
@@ -248,14 +236,9 @@ impl IsUid for PathUid {
         self.0
     }
 }
-impl From<usize> for PathUid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
 
 /// A factory that generates unique [PathUid]s.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Synonym, Debug, Serialize, Deserialize)]
 pub struct PathUidFactory(UidFactory<PathUid>);
 impl Default for PathUidFactory {
     fn default() -> Self {

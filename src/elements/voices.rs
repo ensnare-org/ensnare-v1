@@ -2,29 +2,16 @@
 
 use crate::{prelude::*, traits::GenerationBuffer};
 use anyhow::{anyhow, Result};
-use derive_more::{Add, Display, From, Into};
+use derivative::Derivative;
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// Newtype for the number of voices in a multi-voice instrument.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    From,
-    Into,
-    Add,
-    Display,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-pub struct VoiceCount(pub usize);
-impl Default for VoiceCount {
-    fn default() -> Self {
-        Self(8)
-    }
-}
+#[derive(Synonym, Derivative, Deserialize, Serialize)]
+#[derivative(Default)]
+#[synonym(skip(Default))]
+pub struct VoiceCount(#[derivative(Default(value = "8"))] pub usize);
 
 /// A [StoresVoices](crate::traits::StoresVoices) that fails when too many
 /// voices are used simultaneously.

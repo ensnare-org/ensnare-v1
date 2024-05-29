@@ -2,23 +2,21 @@
 
 use crate::prelude::*;
 use delegate::delegate;
-use derive_more::Display;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
-#[derive(Clone, Copy, Debug, Default, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]
+/// A [Uid] that identifies an arrangement, which is a sequence of notes that
+/// have been positioned on a track.
+#[derive(Synonym, Serialize, Deserialize)]
 pub struct ArrangementUid(usize);
 impl IsUid for ArrangementUid {
     fn as_usize(&self) -> usize {
         self.0
     }
 }
-impl From<usize> for ArrangementUid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Mints unique [ArrangementUid]s.
+#[derive(Synonym, Debug, Serialize, Deserialize)]
 pub struct ArrangementUidFactory(UidFactory<ArrangementUid>);
 impl Default for ArrangementUidFactory {
     fn default() -> Self {
@@ -28,6 +26,7 @@ impl Default for ArrangementUidFactory {
 impl ArrangementUidFactory {
     delegate! {
         to self.0 {
+            /// Generates the next unique [ArrangementUid].
             pub fn mint_next(&self) -> ArrangementUid;
         }
     }

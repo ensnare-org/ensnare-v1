@@ -3,31 +3,16 @@
 use crate::prelude::*;
 use anyhow::anyhow;
 use delegate::delegate;
-use derive_more::Display;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map;
+use synonym::Synonym;
 
 /// A globally unique identifier for a kind of entity, such as an arpeggiator
 /// controller, an FM synthesizer, or a reverb effect.
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityKey(String);
-impl From<&String> for EntityKey {
-    fn from(value: &String) -> Self {
-        EntityKey(value.to_string())
-    }
-}
-impl From<&str> for EntityKey {
-    fn from(value: &str) -> Self {
-        EntityKey(value.to_string())
-    }
-}
-impl From<String> for EntityKey {
-    fn from(value: String) -> Self {
-        EntityKey(value)
-    }
-}
 
 pub type EntityFactoryFn<E> = fn(Uid) -> Box<E>;
 
@@ -348,7 +333,8 @@ impl<E: EntityBounds + ?Sized> PartialEq for EntityStore<E> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Synonym, Debug, Serialize, Deserialize)]
+#[synonym(skip(Default))]
 pub struct EntityUidFactory(pub UidFactory<Uid>);
 impl EntityUidFactory {
     const FIRST_UID: usize = 1024;

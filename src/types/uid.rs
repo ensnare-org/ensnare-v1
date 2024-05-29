@@ -6,22 +6,14 @@
 use core::sync::atomic::Ordering;
 use serde::{Deserialize, Serialize};
 use std::{hash::Hash, marker::PhantomData, sync::atomic::AtomicUsize};
+use synonym::Synonym;
 
 /// An identifier that is unique within the current project.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Eq,
-    Hash,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-    derive_more::Display,
-)]
+#[derive(Synonym, Serialize, Deserialize, Eq, PartialEq)]
+// See
+// https://doc.rust-lang.org/stable/std/marker/trait.StructuralPartialEq.html
+// for explanation why we derive PartialEq rather than letting Synonym do it.
+#[synonym(skip(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct Uid(pub usize);
 impl IsUid for Uid {
@@ -29,14 +21,10 @@ impl IsUid for Uid {
         self.0
     }
 }
-impl From<usize> for Uid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
 
 /// An optional Uid trait.
 pub trait IsUid: Eq + Hash + Clone + From<usize> {
+    /// Returns the raw uid.
     fn as_usize(&self) -> usize;
 }
 
@@ -86,17 +74,13 @@ mod tests {
     use derivative::Derivative;
     use rustc_hash::FxHashSet;
 
-    #[derive(Copy, Clone, Debug, Derivative, Eq, PartialEq, Ord, PartialOrd, Hash)]
+    #[derive(Synonym, Serialize, Deserialize, Derivative)]
     #[derivative(Default)]
+    #[synonym(skip(Default))]
     pub struct TestUid(#[derivative(Default(value = "1"))] pub usize);
     impl IsUid for TestUid {
         fn as_usize(&self) -> usize {
             self.0
-        }
-    }
-    impl From<usize> for TestUid {
-        fn from(value: usize) -> Self {
-            Self(value)
         }
     }
     impl UidFactory<TestUid> {

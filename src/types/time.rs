@@ -4,19 +4,21 @@
 
 use crate::prelude::*;
 use anyhow::{anyhow, Error};
+use core::ops::Add;
 use derivative::Derivative;
-use derive_more::Display;
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::{Add, AddAssign, Div, Mul, Range, Sub, SubAssign},
+    ops::{Div, Mul, Range},
 };
 use strum_macros::{FromRepr, IntoStaticStr};
+use synonym::Synonym;
 
 /// Beats per minute.
-#[derive(Clone, Copy, Debug, Derivative, Serialize, Deserialize, PartialEq)]
+#[derive(Synonym, Serialize, Deserialize, Clone, Copy, Debug, Derivative, PartialEq)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct Tempo(#[derivative(Default(value = "128.0"))] pub ParameterType);
 impl fmt::Display for Tempo {
@@ -27,11 +29,6 @@ impl fmt::Display for Tempo {
 impl From<u16> for Tempo {
     fn from(value: u16) -> Self {
         Self(value as ParameterType)
-    }
-}
-impl From<ParameterType> for Tempo {
-    fn from(value: ParameterType) -> Self {
-        Self(value)
     }
 }
 impl Tempo {
@@ -142,11 +139,11 @@ impl Display for TimeSignature {
 #[allow(missing_docs)]
 impl TimeSignature {
     /// C time = common time = 4/4
-    /// https://en.wikipedia.org/wiki/Time_signature
+    /// <https://en.wikipedia.org/wiki/Time_signature>
     pub const COMMON_TIME: Self = TimeSignature { top: 4, bottom: 4 };
 
     /// 𝄵 time = cut common time = alla breve = 2/2
-    /// https://en.wikipedia.org/wiki/Time_signature
+    /// <https://en.wikipedia.org/wiki/Time_signature>
     pub const CUT_TIME: Self = TimeSignature { top: 2, bottom: 2 };
 
     pub fn new_with(top: usize, bottom: usize) -> anyhow::Result<Self, Error> {
@@ -197,13 +194,9 @@ impl TimeSignature {
 /// [MusicalTime] is the universal unit of time. It is in terms of musical
 /// beats. A "part" is a sixteenth of a beat, and a "unit" is 1/4096 of a part.
 /// Thus, beats are divided into 65,536 units.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct MusicalTime {
-    /// A unit is 1/65536 of a beat.
-    units: usize,
-}
+#[derive(Synonym, Serialize, Deserialize)]
+#[synonym(skip(Display))]
+pub struct MusicalTime(usize);
 
 #[allow(missing_docs)]
 impl MusicalTime {
@@ -238,12 +231,12 @@ impl MusicalTime {
         parts: usize,
         units: usize,
     ) -> Self {
-        Self {
-            units: Self::bars_to_units(time_signature, bars)
+        MusicalTime(
+            MusicalTime::bars_to_units(time_signature, bars)
                 + Self::beats_to_units(beats)
                 + Self::parts_to_units(parts)
                 + units,
-        }
+        )
     }
 
     // The entire number expressed in bars. This is provided for uniformity;
@@ -264,7 +257,7 @@ impl MusicalTime {
 
     // The entire number expressed in beats.
     pub fn total_beats(&self) -> usize {
-        self.units / Self::UNITS_IN_BEAT
+        self.0 / Self::UNITS_IN_BEAT
     }
 
     pub fn beats(&self, time_signature: &TimeSignature) -> usize {
@@ -272,7 +265,7 @@ impl MusicalTime {
     }
 
     pub fn fractional_beats(&self) -> f64 {
-        (self.units % Self::UNITS_IN_BEAT) as f64 / Self::UNITS_IN_BEAT as f64
+        (self.0 % Self::UNITS_IN_BEAT) as f64 / Self::UNITS_IN_BEAT as f64
     }
 
     #[allow(unused_variables)]
@@ -282,7 +275,7 @@ impl MusicalTime {
 
     // The entire number expressed in parts.
     pub fn total_parts(&self) -> usize {
-        self.units / Self::UNITS_IN_PART
+        self.0 / Self::UNITS_IN_PART
     }
 
     // A part is one sixteenth of a beat.
@@ -297,11 +290,11 @@ impl MusicalTime {
 
     // The entire number expressed in units.
     pub const fn total_units(&self) -> usize {
-        self.units
+        self.0
     }
 
     pub const fn units(&self) -> usize {
-        self.units % Self::UNITS_IN_PART
+        self.0 % Self::UNITS_IN_PART
     }
 
     #[allow(unused_variables)]
@@ -310,7 +303,7 @@ impl MusicalTime {
     }
 
     pub fn reset(&mut self) {
-        self.units = Default::default();
+        self.0 = Default::default();
     }
 
     pub const fn bars_to_units(time_signature: &TimeSignature, bars: usize) -> usize {
@@ -342,7 +335,7 @@ impl MusicalTime {
     }
 
     pub const fn new_with_units(units: usize) -> Self {
-        Self { units }
+        Self(units)
     }
 
     pub fn new_with_frames(tempo: Tempo, sample_rate: SampleRate, frames: usize) -> Self {
@@ -373,12 +366,12 @@ impl MusicalTime {
     }
 
     pub fn as_frames(&self, tempo: Tempo, sample_rate: SampleRate) -> usize {
-        Self::units_to_frames(tempo, sample_rate, self.units)
+        Self::units_to_frames(tempo, sample_rate, self.0)
     }
 
     pub fn quantized(&self, quantum: MusicalTime) -> MusicalTime {
-        let quanta = (self.units + quantum.units / 2) / quantum.units;
-        MusicalTime::new_with_units(quanta * quantum.units)
+        let quanta = (self.0 + quantum.0 / 2) / quantum.0;
+        MusicalTime::new_with_units(quanta * quantum.0)
     }
 
     // TODO: this is an oversimplied heuristic to quantize according to the
@@ -412,61 +405,25 @@ impl Display for MusicalTime {
         )
     }
 }
-impl Add<Self> for MusicalTime {
-    type Output = Self;
-
-    // We look at only the left side's beats-per-bar value, rather than trying
-    // to reconcile different ones.
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            units: self.units + rhs.units,
-        }
-    }
-}
 impl Add<usize> for MusicalTime {
     type Output = Self;
 
     fn add(self, rhs: usize) -> Self::Output {
-        Self {
-            units: self.units + rhs,
-        }
-    }
-}
-impl AddAssign<Self> for MusicalTime {
-    fn add_assign(&mut self, rhs: Self) {
-        self.units += rhs.units;
-    }
-}
-impl SubAssign<Self> for MusicalTime {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.units -= rhs.units;
+        Self(self.0 + rhs)
     }
 }
 impl Mul<usize> for MusicalTime {
     type Output = Self;
 
     fn mul(self, rhs: usize) -> Self::Output {
-        Self {
-            units: self.units * rhs,
-        }
+        Self(self.0 * rhs)
     }
 }
 impl Div<usize> for MusicalTime {
     type Output = Self;
 
     fn div(self, rhs: usize) -> Self::Output {
-        Self {
-            units: self.units / rhs,
-        }
-    }
-}
-impl Sub<Self> for MusicalTime {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self {
-            units: self.units - rhs.units,
-        }
+        Self(self.0 / rhs)
     }
 }
 
@@ -511,7 +468,7 @@ impl TimeRange {
     }
 
     /// Adds to both start and end. This is less ambiguous than implementing
-    /// Add<MusicalTime>, which could reasonably add only to the end.
+    /// `Add<MusicalTime>`, which could reasonably add only to the end.
     pub fn translate(&self, delta: MusicalTime) -> TimeRange {
         TimeRange(self.0.start + delta..self.0.end + delta)
     }
@@ -550,7 +507,7 @@ impl From<Range<MusicalTime>> for TimeRange {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Seconds(pub f64);
 impl Seconds {
@@ -563,16 +520,6 @@ impl Seconds {
 
     pub fn infinite() -> Seconds {
         Seconds(-1.0)
-    }
-}
-impl From<f64> for Seconds {
-    fn from(value: f64) -> Self {
-        Self(value)
-    }
-}
-impl From<Seconds> for f64 {
-    fn from(value: Seconds) -> Self {
-        value.0
     }
 }
 impl From<f32> for Seconds {
@@ -595,41 +542,6 @@ impl From<Seconds> for Normal {
         Self(value.0.clamp(0.0, Seconds::SCALE_FACTOR) / Seconds::SCALE_FACTOR)
     }
 }
-impl Add<f64> for Seconds {
-    type Output = Seconds;
-
-    fn add(self, rhs: f64) -> Self::Output {
-        Seconds(self.0 + rhs)
-    }
-}
-impl Add<Seconds> for Seconds {
-    type Output = Self;
-
-    fn add(self, rhs: Seconds) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-impl Div<Seconds> for Seconds {
-    type Output = Self;
-
-    fn div(self, rhs: Seconds) -> Self::Output {
-        Self(self.0 / rhs.0)
-    }
-}
-impl Mul<f64> for Seconds {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs)
-    }
-}
-impl Div<f64> for Seconds {
-    type Output = Self;
-
-    fn div(self, rhs: f64) -> Self::Output {
-        Self(self.0 / rhs)
-    }
-}
 impl Div<usize> for Seconds {
     type Output = Self;
 
@@ -639,8 +551,9 @@ impl Div<usize> for Seconds {
 }
 
 /// Samples per second. Always a positive integer; cannot be zero.
-#[derive(Clone, Copy, Debug, Derivative, Display, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Synonym, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct SampleRate(#[derivative(Default(value = "44100"))] pub usize);
 #[allow(missing_docs)]
@@ -664,16 +577,6 @@ impl From<f64> for SampleRate {
 impl From<SampleRate> for f64 {
     fn from(value: SampleRate) -> Self {
         value.0 as f64
-    }
-}
-impl From<SampleRate> for usize {
-    fn from(value: SampleRate) -> Self {
-        value.0
-    }
-}
-impl From<usize> for SampleRate {
-    fn from(value: usize) -> Self {
-        Self::new(value)
     }
 }
 impl From<SampleRate> for u32 {
@@ -853,9 +756,8 @@ mod tests {
                     let units = 0;
                     let t = MusicalTime::new(&ts, bars, beats, parts, units);
                     let frames = t.as_frames(tempo, sample_rate);
-                    let t_from_f = MusicalTime {
-                        units: MusicalTime::frames_to_units(tempo, sample_rate, frames),
-                    };
+                    let t_from_f =
+                        MusicalTime(MusicalTime::frames_to_units(tempo, sample_rate, frames));
                     assert_eq!(
                         t, t_from_f,
                         "{:?} - {}.{}.{}.{} -> {frames} -> {:?} <<< PROBLEM",

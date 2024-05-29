@@ -3,14 +3,16 @@
 //! Provides a programmatic way to load music samples.
 
 use crate::midi::MidiNote;
-use derive_more::Display;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use synonym::Synonym;
 
 static INSTANCE: OnceCell<SampleLibrary> = OnceCell::new();
 static KIT_INSTANCE: OnceCell<KitLibrary> = OnceCell::new();
 
+/// Call at start of app to let all sample-loading libraries initialize
+/// properly. TODO: is it necessary to make the app developer do this?
 pub fn init_sample_libraries() {
     let mut sample_library = SampleLibrary::default();
     let kit_library = KitLibrary::new_with(&mut sample_library);
@@ -18,14 +20,12 @@ pub fn init_sample_libraries() {
     KitLibrary::set_instance(kit_library);
 }
 
-#[derive(Debug, Default, Copy, Clone, Display, Serialize, Deserialize, PartialEq)]
+/// A unique numeric identifier for a sample in a sample library.
+// #[deprecated(note = "This is a hack")]
+#[derive(Synonym, Serialize, Deserialize)]
 pub struct SampleIndex(pub usize);
-impl From<usize> for SampleIndex {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
 
+/// Generally identifies a sample.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SampleSource {
     SampleLibrary(SampleIndex),
@@ -117,15 +117,10 @@ impl SampleLibrary {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Display, Serialize, Deserialize, PartialEq)]
+#[derive(Synonym, Serialize, Deserialize)]
 pub struct KitIndex(pub usize);
 impl KitIndex {
     pub const KIT_707: KitIndex = KitIndex(0);
-}
-impl From<usize> for KitIndex {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]

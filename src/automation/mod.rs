@@ -15,9 +15,8 @@
 //!
 //! Controllable entities have one or more parameters that are addressable by
 //! [ControlName] or [ControlIndex], which are discoverable through the
-//! [Controllable](crate::traits::Controllable) trait. The
-//! [Control](ensnare_proc_macros::Control) derive macro, with #[control] derive
-//! parameters, usually implements this trait.
+//! [Controllable] trait. The [Control](ensnare_proc_macros::Control) derive
+//! macro, with #[control] derive parameters, usually implements this trait.
 //!
 //! All values that pass through the automation subsystem are normalized to
 //! [ControlValue]s, which range from 0..=1.0. Sensible mappings exist for all

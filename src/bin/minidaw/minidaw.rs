@@ -294,7 +294,7 @@ impl MiniDaw {
         ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(format!(
             "{} - {}",
             Self::NAME,
-            title.as_str()
+            title.as_string()
         )));
     }
 

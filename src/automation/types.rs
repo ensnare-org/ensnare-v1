@@ -4,20 +4,16 @@ use crate::{prelude::*, util::Rng};
 use core::ops::{Add, Mul, Range, Sub};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// A human-readable description of the parameter being controlled. Not suitable
 /// for end-user viewing, but it's good for debugging.
-#[derive(Debug, Display)]
+#[derive(Synonym, Serialize, Deserialize)]
 pub struct ControlName(pub String);
-impl From<&str> for ControlName {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
 
 /// A zero-based index of the entity parameter being controlled. The index is
 /// specific to the entity type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, Serialize, Deserialize)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ControlIndex(pub usize);
 impl Add<usize> for ControlIndex {
@@ -25,11 +21,6 @@ impl Add<usize> for ControlIndex {
 
     fn add(self, rhs: usize) -> Self::Output {
         Self(self.0 + rhs)
-    }
-}
-impl From<usize> for ControlIndex {
-    fn from(value: usize) -> Self {
-        Self(value)
     }
 }
 

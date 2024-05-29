@@ -2,7 +2,7 @@
 
 use strum_macros::Display;
 
-/// The General MIDI instruments. https://en.wikipedia.org/wiki/General_MIDI
+/// The General MIDI instruments. <https://en.wikipedia.org/wiki/General_MIDI>
 #[allow(missing_docs)]
 #[derive(Display, Debug)]
 pub enum GeneralMidiProgram {
@@ -137,7 +137,7 @@ pub enum GeneralMidiProgram {
 }
 
 /// The General MIDI percussion instruments.
-/// https://en.wikipedia.org/wiki/General_MIDI#Percussion
+/// <https://en.wikipedia.org/wiki/General_MIDI#Percussion>
 ///
 /// These numbers correspond to MIDI notes that assume a certain sound-per-key
 /// set is loaded. For example, AcousticBassDrum is MIDI note #35, which is MIDI note B1, which is the B key below C2

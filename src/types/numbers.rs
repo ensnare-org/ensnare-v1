@@ -9,6 +9,7 @@ use std::{
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, Neg, RangeInclusive, Sub},
 };
+use synonym::Synonym;
 
 /// [SampleType] is the underlying primitive that makes up [StereoSample].
 pub type SampleType = f64;
@@ -22,7 +23,7 @@ pub type SignalType = f64;
 pub type ParameterType = f64;
 
 /// [Sample] represents a single-channel audio sample.
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Synonym, Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Sample(pub SampleType);
 impl Sample {
     /// The [SampleType] value of silence.
@@ -125,11 +126,6 @@ impl Mul<Normal> for Sample {
 
     fn mul(self, rhs: Normal) -> Self::Output {
         Self(self.0 * rhs.0 as f64)
-    }
-}
-impl From<f64> for Sample {
-    fn from(value: f64) -> Self {
-        Sample(value)
     }
 }
 impl From<f32> for Sample {
@@ -423,18 +419,16 @@ impl FrequencyRange {
 
 /// The [Ratio] type is a multiplier. A value of 2.0 would multiply another
 /// value by two (a x 2.0:1.0), and a value of 0.5 would divide it by two (a x
-/// 1.0:2.0 = a x 0.5).
+/// 1.0:2.0 = a x 0.5). Yes, that's exactly how a regular number behaves.
 ///
 /// Negative ratios are meaningless for current use cases.
-#[derive(Clone, Copy, Debug, Derivative, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(
+    Synonym, Debug, Clone, Copy, Derivative, PartialEq, PartialOrd, Serialize, Deserialize,
+)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct Ratio(#[derivative(Default(value = "1.0"))] pub ParameterType);
-impl From<f64> for Ratio {
-    fn from(value: f64) -> Self {
-        Self(value)
-    }
-}
 impl From<BipolarNormal> for Ratio {
     fn from(value: BipolarNormal) -> Self {
         Self(2.0f64.powf(value.0 * 3.0))

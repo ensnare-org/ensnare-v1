@@ -282,7 +282,7 @@ impl ProjectServiceDaemon {
                         }),
                     );
                 }
-                ProjectServiceInput::AudioReset(sample_rate, channel_count) => {
+                ProjectServiceInput::AudioReset(sample_rate, _channel_count) => {
                     self.project
                         .write()
                         .unwrap()
@@ -298,14 +298,16 @@ impl ProjectServiceDaemon {
 pub(super) mod egui {
     use super::*;
     use derivative::Derivative;
+    use synonym::Synonym;
 
     /// Represents an octave as MIDI conventions expect them: A before middle C is
     /// in octave 5, and the range is from 0 to 10.
     ///
     /// TODO: I looked around for a bounded integer type or crate, but all made a
     /// mountain out of this molehill-sized use case.
-    #[derive(Debug, Derivative)]
+    #[derive(Synonym, Derivative)]
     #[derivative(Default)]
+    #[synonym(skip(Default))]
     pub(super) struct Octave(#[derivative(Default(value = "5"))] pub u8);
     impl Octave {
         fn decrease(&mut self) {

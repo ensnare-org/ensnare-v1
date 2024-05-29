@@ -2,15 +2,13 @@
 
 use crate::{prelude::*, types::ColorScheme, util::Rng};
 use anyhow::anyhow;
-use core::fmt::Display;
 use delegate::delegate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
+use synonym::Synonym;
 
 /// Identifies a [Pattern].
-#[derive(
-    Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
-)]
+#[derive(Synonym, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PatternUid(pub usize);
 impl IsUid for PatternUid {
@@ -18,18 +16,8 @@ impl IsUid for PatternUid {
         self.0
     }
 }
-impl From<usize> for PatternUid {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
-impl Display for PatternUid {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.0))
-    }
-}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Synonym, Debug, Serialize, Deserialize)]
 pub struct PatternUidFactory(UidFactory<PatternUid>);
 impl Default for PatternUidFactory {
     fn default() -> Self {
@@ -307,7 +295,7 @@ impl Pattern {
     }
 
     /// Adds to both start and end. This is less ambiguous than implementing
-    /// Add<MusicalTime>, which could reasonably add only to the end.
+    /// `Add<MusicalTime>`, which could reasonably add only to the end.
     pub fn shift_right(&self, rhs: MusicalTime) -> Self {
         let mut r = self.clone();
         r.notes = self

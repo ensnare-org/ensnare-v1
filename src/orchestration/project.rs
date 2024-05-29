@@ -20,26 +20,19 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
+use synonym::Synonym;
 
 /// A user-visible project title.
-#[derive(Clone, Debug, Derivative, derive_more::Display, PartialEq, Serialize, Deserialize)]
+#[derive(Synonym, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
+#[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
-pub struct ProjectTitle(#[derivative(Default(value = "\"Untitled\".into()"))] String);
-impl From<ProjectTitle> for String {
-    fn from(value: ProjectTitle) -> Self {
-        value.0
-    }
-}
-impl From<&str> for ProjectTitle {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
+pub struct ProjectTitle(#[derivative(Default(value = "\"Untitled\".into()"))] pub String);
 impl ProjectTitle {
-    /// TODO: I don't know why From<&str> didn't give us this for free.
-    pub fn as_str(&self) -> &str {
-        &self.0
+    /// TODO: I don't know why Synonym's version of this method is private.
+    /// (thanks @synek317 for the useful crate!)
+    pub fn as_string(&self) -> &str {
+        self.0.as_str()
     }
 }
 
