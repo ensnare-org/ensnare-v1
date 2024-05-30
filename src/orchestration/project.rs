@@ -145,6 +145,14 @@ pub struct Project {
     #[serde(skip)]
     pub e: ProjectEphemerals,
 }
+impl Projects for Project {
+    fn create_track(&mut self, uid: Option<TrackUid>) -> anyhow::Result<TrackUid> {
+        let track_uid = self.orchestrator.create_track(uid)?;
+        self.track_to_midi_router
+            .insert(track_uid, MidiRouter::default());
+        Ok(track_uid)
+    }
+}
 impl Project {
     /// The fixed [Uid] for the project's Orchestrator.
     pub const ORCHESTRATOR_UID: Uid = Uid(1);
@@ -250,13 +258,6 @@ impl Project {
         self.track_titles
             .insert(track_uid, TrackTitle(format!("Aux {}", track_uid)));
         self.orchestrator.aux_track_uids.push(track_uid);
-        Ok(track_uid)
-    }
-
-    pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
-        let track_uid = self.orchestrator.create_track(uid)?;
-        self.track_to_midi_router
-            .insert(track_uid, MidiRouter::default());
         Ok(track_uid)
     }
 
