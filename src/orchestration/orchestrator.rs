@@ -40,7 +40,6 @@ impl Orchestrator {
                 &mut self,
                 track_uid: TrackUid,
                 entity: Box<dyn EntityBounds>,
-                uid: Option<Uid>,
             ) -> Result<Uid>;
             pub fn move_entity(
                 &mut self,
@@ -322,7 +321,7 @@ mod tests {
             "Getting track entries for a track that exists but is empty should return None"
         );
         let target_uid = orchestrator
-            .add_entity(track_uid, Box::new(TestInstrument::default()), None)
+            .add_entity(track_uid, Box::new(TestInstrument::default()))
             .unwrap();
         assert_eq!(
             orchestrator.track_for_entity(target_uid).unwrap(),

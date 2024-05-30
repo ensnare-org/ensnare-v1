@@ -207,7 +207,7 @@ impl ProjectServiceDaemon {
                     if let Ok(mut project) = self.project.write() {
                         let uid = project.mint_entity_uid();
                         if let Some(entity) = self.factory.new_entity(&key, uid) {
-                            let _ = project.add_entity(track_uid, entity, Some(uid));
+                            let _ = project.add_entity(track_uid, entity);
                         } else {
                             eprintln!("ProjectServiceInput::TrackAddEntity failed");
                         }

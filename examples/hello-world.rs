@@ -44,15 +44,11 @@ fn main() -> anyhow::Result<()> {
     // entity to a track forms a chain that sends MIDI, control, and audio data
     // appropriately.
     let synth = ToyInstrument::default();
-    let _synth_uid = project
-        .add_entity(track_uid, Box::new(synth), None)
-        .unwrap();
+    let _synth_uid = project.add_entity(track_uid, Box::new(synth)).unwrap();
 
     // An effect takes the edge off the synth.
     let effect = ToyEffect::default();
-    let _effect_uid = project
-        .add_entity(track_uid, Box::new(effect), None)
-        .unwrap();
+    let _effect_uid = project.add_entity(track_uid, Box::new(effect)).unwrap();
 
     // Once everything is set up, export_to_wav() renders an audio stream to disk.
     let _ = project.export_to_wav(std::path::PathBuf::from("output.wav"));

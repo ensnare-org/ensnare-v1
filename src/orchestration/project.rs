@@ -146,11 +146,48 @@ pub struct Project {
     pub e: ProjectEphemerals,
 }
 impl Projects for Project {
-    fn create_track(&mut self, uid: Option<TrackUid>) -> anyhow::Result<TrackUid> {
+    fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
         let track_uid = self.orchestrator.create_track(uid)?;
         self.track_to_midi_router
             .insert(track_uid, MidiRouter::default());
         Ok(track_uid)
+    }
+
+    fn delete_track(&mut self, uid: TrackUid) -> Result<()> {
+        self.track_to_midi_router.remove(&uid);
+        self.orchestrator.aux_track_uids.retain(|t| *t != uid);
+        self.orchestrator.delete_track(uid)
+    }
+
+    fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>) -> Result<Uid> {
+        let r = self.orchestrator.add_entity(track_uid, entity);
+        if let Ok(uid) = r {
+            if let Some(channel) = self.track_midi_channel(track_uid) {
+                self.set_midi_receiver_channel(uid, Some(channel))?;
+            }
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
+    }
+
+    fn delete_entity(&mut self, uid: Uid) -> Result<()> {
+        self.set_midi_receiver_channel(uid, None)?;
+        let track_uid = self.orchestrator.track_for_entity(uid);
+        let r = self.orchestrator.delete_entity(uid);
+        if let Some(track_uid) = track_uid {
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
+    }
+
+    fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
+        self.set_midi_receiver_channel(uid, None)?;
+        let track_uid = self.orchestrator.track_for_entity(uid);
+        let r = self.orchestrator.remove_entity(uid);
+        if let Some(track_uid) = track_uid {
+            self.regenerate_signal_chain(track_uid);
+        }
+        r
     }
 }
 impl Project {
@@ -259,12 +296,6 @@ impl Project {
             .insert(track_uid, TrackTitle(format!("Aux {}", track_uid)));
         self.orchestrator.aux_track_uids.push(track_uid);
         Ok(track_uid)
-    }
-
-    pub fn delete_track(&mut self, uid: TrackUid) -> Result<()> {
-        self.track_to_midi_router.remove(&uid);
-        self.orchestrator.aux_track_uids.retain(|t| *t != uid);
-        self.orchestrator.delete_track(uid)
     }
 
     pub fn get_midi_receiver_channel(&mut self, entity_uid: Uid) -> Option<MidiChannel> {
@@ -562,48 +593,6 @@ impl Project {
     pub fn set_rng_seed(&mut self, seed: u128) {
         self.rng_seed = seed;
         self.reset_rng();
-    }
-
-    /// Adds an entity to the given track. If the [Uid] is not specified,
-    /// generates a new one. Sets the MIDI channel to the track's preferred
-    /// channel. Returns the [Uid] if adding was successful.
-    pub fn add_entity(
-        &mut self,
-        track_uid: TrackUid,
-        entity: Box<dyn EntityBounds>,
-        uid: Option<Uid>,
-    ) -> Result<Uid> {
-        let r = self.orchestrator.add_entity(track_uid, entity, uid);
-        if let Ok(uid) = r {
-            if let Some(channel) = self.track_midi_channel(track_uid) {
-                self.set_midi_receiver_channel(uid, Some(channel))?;
-            }
-            self.regenerate_signal_chain(track_uid);
-        }
-        r
-    }
-
-    /// Deletes and discards an existing entity.
-    pub fn delete_entity(&mut self, uid: Uid) -> Result<()> {
-        self.set_midi_receiver_channel(uid, None)?;
-        let track_uid = self.orchestrator.track_for_entity(uid);
-        let r = self.orchestrator.delete_entity(uid);
-        if let Some(track_uid) = track_uid {
-            self.regenerate_signal_chain(track_uid);
-        }
-        r
-    }
-
-    /// Removes an existing entity from the project and returns it to the
-    /// caller.
-    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
-        self.set_midi_receiver_channel(uid, None)?;
-        let track_uid = self.orchestrator.track_for_entity(uid);
-        let r = self.orchestrator.remove_entity(uid);
-        if let Some(track_uid) = track_uid {
-            self.regenerate_signal_chain(track_uid);
-        }
-        r
     }
 
     /// Regenerates cacheable information associated with a track's entities.
@@ -973,7 +962,6 @@ mod tests {
                         .build()
                         .unwrap(),
                 )),
-                None,
             )
             .unwrap();
         let pattern_uid = project
@@ -1054,11 +1042,7 @@ mod tests {
 
         let track_uid = project.create_track(None).unwrap();
         let uid = project
-            .add_entity(
-                track_uid,
-                Box::new(TestControllerSendsOneEvent::default()),
-                None,
-            )
+            .add_entity(track_uid, Box::new(TestControllerSendsOneEvent::default()))
             .unwrap();
 
         assert!(
@@ -1092,9 +1076,7 @@ mod tests {
 
         let instrument = TestInstrumentCountsMidiMessages::default();
         let midi_messages_received = Arc::clone(instrument.received_midi_message_count_mutex());
-        let instrument_uid = project
-            .add_entity(track_uid, Box::new(instrument), None)
-            .unwrap();
+        let instrument_uid = project.add_entity(track_uid, Box::new(instrument)).unwrap();
 
         let test_message = MidiMessage::NoteOn {
             key: 7.into(),
@@ -1130,20 +1112,19 @@ mod tests {
             .add_entity(
                 track_a_uid,
                 Box::new(TestControllerAlwaysSendsMidiMessage::default()),
-                None,
             )
             .unwrap();
         let receiver_1 = TestInstrumentCountsMidiMessages::default();
         let counter_1 = Arc::clone(receiver_1.received_midi_message_count_mutex());
         let receiver_1_uid = project
-            .add_entity(track_a_uid, Box::new(receiver_1), None)
+            .add_entity(track_a_uid, Box::new(receiver_1))
             .unwrap();
 
         // On Track 2, put another receiver.
         let receiver_2 = TestInstrumentCountsMidiMessages::default();
         let counter_2 = Arc::clone(receiver_2.received_midi_message_count_mutex());
         let receiver_2_uid = project
-            .add_entity(track_b_uid, Box::new(receiver_2), None)
+            .add_entity(track_b_uid, Box::new(receiver_2))
             .unwrap();
 
         // We don't need to hook anyone up to MIDI, because add_entity() now
@@ -1181,7 +1162,6 @@ mod tests {
                     .build()
                     .unwrap(),
             )),
-            None,
         );
         let mut samples = [StereoSample::SILENCE; 64];
         project.generate_frames(&mut samples, None);
@@ -1202,11 +1182,7 @@ mod tests {
         });
 
         // Add an effect to the aux track.
-        let _ = project.add_entity(
-            aux_track_uid,
-            Box::new(TestEffectNegatesInput::default()),
-            None,
-        );
+        let _ = project.add_entity(aux_track_uid, Box::new(TestEffectNegatesInput::default()));
 
         let mut samples = [StereoSample::SILENCE; 64];
         project.generate_frames(&mut samples, None);
@@ -1232,7 +1208,6 @@ mod tests {
                     .build()
                     .unwrap(),
             )),
-            None,
         );
         let _ = project.add_entity(
             track_2_uid,
@@ -1243,7 +1218,6 @@ mod tests {
                     .build()
                     .unwrap(),
             )),
-            None,
         );
 
         let mut samples = [StereoSample::SILENCE; 4];

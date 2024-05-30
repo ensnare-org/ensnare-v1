@@ -66,7 +66,6 @@ fn edit_song() {
             factory
                 .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -102,7 +101,6 @@ fn edit_song() {
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -114,7 +112,6 @@ fn edit_song() {
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -125,7 +122,6 @@ fn edit_song() {
             factory
                 .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None
         )
         .is_ok());
     // And another.
@@ -135,7 +131,6 @@ fn edit_song() {
             factory
                 .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
     // Sounds better if gain is second in chain (index 1, after the synth).

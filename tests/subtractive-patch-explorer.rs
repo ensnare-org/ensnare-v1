@@ -21,7 +21,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
 
         let synth =
             SubtractiveSynth::new_with(Uid::default(), SubtractiveSynthCore::load_patch(&path)?);
-        let _synth_uid = project.add_entity(track_uid, Box::new(synth), None)?;
+        let _synth_uid = project.add_entity(track_uid, Box::new(synth))?;
 
         let mut rng = Rng::default();
         let pattern = PatternBuilder::default()

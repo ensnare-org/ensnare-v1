@@ -162,11 +162,11 @@ mod tests {
         tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
     }
     impl TestControllable {
-        pub fn new_with(tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>) -> Self {
-            Self {
-                uid: Default::default(),
-                tracker,
-            }
+        pub fn new_with(
+            uid: Uid,
+            tracker: Arc<RwLock<Vec<(Uid, ControlIndex, ControlValue)>>>,
+        ) -> Self {
+            Self { uid, tracker }
         }
     }
     impl Controllable for TestControllable {
@@ -228,12 +228,12 @@ mod tests {
         );
 
         let tracker = Arc::new(RwLock::new(Vec::default()));
-        let controllable_1 = TestControllable::new_with(Arc::clone(&tracker));
-        let controllable_2 = TestControllable::new_with(Arc::clone(&tracker));
+        let controllable_1 = TestControllable::new_with(target_1_uid, Arc::clone(&tracker));
+        let controllable_2 = TestControllable::new_with(target_2_uid, Arc::clone(&tracker));
         let track_uid = TrackUid(1);
         let mut repo = EntityRepository::default();
-        let _ = repo.add_entity(track_uid, Box::new(controllable_1), Some(target_1_uid));
-        let _ = repo.add_entity(track_uid, Box::new(controllable_2), Some(target_2_uid));
+        let _ = repo.add_entity(track_uid, Box::new(controllable_1));
+        let _ = repo.add_entity(track_uid, Box::new(controllable_2));
 
         let _ = automator.route(&mut repo, None, source_1_uid.into(), ControlValue(0.5));
         if let Ok(t) = tracker.read() {

@@ -57,7 +57,6 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
             factory
                 .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -71,7 +70,6 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
                     Uid::default(),
                 )
                 .unwrap(),
-            None,
         )
         .unwrap();
     project.set_humidity(filter_uid, Normal::from(0.0));
@@ -114,7 +112,6 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -125,7 +122,6 @@ fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
             factory
                 .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
     project.set_humidity(reverb_uid, Normal::from(0.2));

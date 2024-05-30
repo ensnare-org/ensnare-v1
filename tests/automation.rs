@@ -50,7 +50,6 @@ fn demo_automation() {
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -63,7 +62,6 @@ fn demo_automation() {
                     Uid::default(),
                     LfoControllerCoreBuilder::default().build().unwrap(),
                 )),
-                None,
             )
             .unwrap()
     };
@@ -125,7 +123,7 @@ fn demo_signal_path_automation() {
         .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
         .unwrap();
     let pan_param_index = entity.control_index_for_name("dca-pan").unwrap();
-    let synth_uid = project.add_entity(track_uid, entity, None).unwrap();
+    let synth_uid = project.add_entity(track_uid, entity).unwrap();
 
     // Create a SignalPath that ramps from zero to max over the desired
     // amount of time.

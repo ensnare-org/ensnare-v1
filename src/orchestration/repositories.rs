@@ -83,24 +83,20 @@ impl EntityRepository {
         }
     }
 
-    /// Adds the provided [Entity] to the repository.
+    /// Adds the provided Entity to the repository.
     ///
     /// The uid is determined using ordered rules.
     ///
-    /// 1. If the optional uid parameter is present, then it is used.
-    /// 2. If the entity has a non-default Uid, then it is used.
-    /// 3. The repository generates a new Uid.
+    /// 1. If the entity has a non-default Uid, then it is used.
+    /// 2. The repository generates a new Uid.
     ///
     /// In any case, the repo sets the entity Uid to match.
     pub fn add_entity(
         &mut self,
         track_uid: TrackUid,
         mut entity: Box<dyn EntityBounds>,
-        uid: Option<Uid>,
     ) -> Result<Uid> {
-        let uid = if let Some(uid) = uid {
-            uid
-        } else if entity.uid() != Uid::default() {
+        let uid = if entity.uid() != Uid::default() {
             entity.uid()
         } else {
             self.mint_entity_uid()
@@ -351,7 +347,7 @@ mod tests {
 
         let track_uid = TrackUid(1);
         let uid = repo
-            .add_entity(track_uid, Box::new(TestInstrument::default()), None)
+            .add_entity(track_uid, Box::new(TestInstrument::default()))
             .unwrap();
         let entity = repo.remove_entity(uid).unwrap();
         assert_ne!(
@@ -366,11 +362,7 @@ mod tests {
 
         let expected_uid = Uid(998877);
         let uid = repo
-            .add_entity(
-                track_uid,
-                Box::new(TestInstrument::new_with(expected_uid)),
-                None,
-            )
+            .add_entity(track_uid, Box::new(TestInstrument::new_with(expected_uid)))
             .unwrap();
         let entity = repo.remove_entity(uid).unwrap();
         assert_eq!(
@@ -385,11 +377,7 @@ mod tests {
 
         let expected_uid = Uid(998877);
         let uid = repo
-            .add_entity(
-                track_uid,
-                Box::new(TestInstrument::new_with(Uid(33333))),
-                Some(expected_uid),
-            )
+            .add_entity(track_uid, Box::new(TestInstrument::new_with(expected_uid)))
             .unwrap();
         let entity = repo.remove_entity(uid).unwrap();
         assert_eq!(

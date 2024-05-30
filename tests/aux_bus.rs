@@ -64,7 +64,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None
             )
             .is_ok());
         project
@@ -73,7 +72,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None,
             )
             .unwrap()
     };
@@ -88,7 +86,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None
             )
             .is_ok());
         project
@@ -97,7 +94,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None,
             )
             .unwrap()
     };
@@ -109,7 +105,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None,
             )
             .unwrap();
         project
@@ -118,7 +113,6 @@ fn aux_bus() {
                 factory
                     .new_entity(&EntityKey::from(Reverb::ENTITY_KEY), Uid::default())
                     .unwrap(),
-                None,
             )
             .unwrap()
     };

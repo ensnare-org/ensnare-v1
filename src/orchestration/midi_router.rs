@@ -178,13 +178,13 @@ mod tests {
             None,
             Arc::clone(&tracker),
         ));
-        let _ = repo.add_entity(TrackUid(1), entity, None);
+        let _ = repo.add_entity(TrackUid(1), entity);
         let entity = Box::new(TestHandlesMidi::new_with(
             Uid(2),
             None,
             Arc::clone(&tracker),
         ));
-        let _ = repo.add_entity(TrackUid(1), entity, None);
+        let _ = repo.add_entity(TrackUid(1), entity);
 
         let mut router = MidiRouter::default();
         let _ = router.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));
@@ -236,13 +236,13 @@ mod tests {
             Some(MidiChannel(2)),
             Arc::clone(&tracker),
         ));
-        let _ = repo.add_entity(TrackUid(1), entity, None);
+        let _ = repo.add_entity(TrackUid(1), entity);
         let entity = Box::new(TestHandlesMidi::new_with(
             Uid(2),
             None,
             Arc::clone(&tracker),
         ));
-        let _ = repo.add_entity(TrackUid(1), entity, None);
+        let _ = repo.add_entity(TrackUid(1), entity);
 
         let mut r = MidiRouter::default();
         let _ = r.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));
@@ -293,7 +293,7 @@ mod tests {
             Some(MidiChannel(1)),
             Arc::clone(&tracker),
         ));
-        let _ = repo.add_entity(TrackUid(1), entity, None);
+        let _ = repo.add_entity(TrackUid(1), entity);
 
         let mut r = MidiRouter::default();
         let _ = r.set_midi_receiver_channel(Uid(1), Some(MidiChannel(1)));

@@ -71,7 +71,6 @@ fn demo_sidechaining() {
             factory
                 .new_entity(&EntityKey::from(Drumkit::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -85,7 +84,6 @@ fn demo_sidechaining() {
                     Uid::default(),
                 )
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -116,7 +114,6 @@ fn demo_sidechaining() {
             factory
                 .new_entity(&EntityKey::from(ToySynth::ENTITY_KEY), Uid::default())
                 .unwrap(),
-            None,
         )
         .unwrap();
 
@@ -124,7 +121,7 @@ fn demo_sidechaining() {
         .new_entity(&EntityKey::from(Gain::ENTITY_KEY), Uid::default())
         .unwrap();
     let gain_ceiling_param_index = entity.control_index_for_name("ceiling").unwrap();
-    let gain_uid = project.add_entity(lead_track_uid, entity, None).unwrap();
+    let gain_uid = project.add_entity(lead_track_uid, entity).unwrap();
 
     // Link the sidechain control to the synth's gain.
     assert!(project
