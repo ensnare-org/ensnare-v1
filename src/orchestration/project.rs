@@ -28,13 +28,6 @@ use synonym::Synonym;
 #[synonym(skip(Default))]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectTitle(#[derivative(Default(value = "\"Untitled\".into()"))] pub String);
-impl ProjectTitle {
-    /// TODO: I don't know why Synonym's version of this method is private.
-    /// (thanks @synek317 for the useful crate!)
-    pub fn as_string(&self) -> &str {
-        self.0.as_str()
-    }
-}
 
 /// Indicates what should be shown in the track view.
 #[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq)]

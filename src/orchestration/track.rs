@@ -3,7 +3,6 @@
 use crate::prelude::*;
 use delegate::delegate;
 use derivative::Derivative;
-use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use synonym::Synonym;
 
