@@ -551,3 +551,42 @@ pub trait Displays {
 }
 #[cfg(not(feature = "egui"))]
 pub trait Displays {}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    pub(crate) fn test_trait_configurable(mut c: impl Configurable) {
+        assert_ne!(
+            c.sample_rate().0,
+            0,
+            "Default sample rate should be reasonable"
+        );
+        let new_sample_rate = SampleRate(3);
+        c.update_sample_rate(new_sample_rate);
+        assert_eq!(
+            c.sample_rate(),
+            new_sample_rate,
+            "Sample rate should be settable"
+        );
+
+        assert!(c.tempo().0 > 0.0, "Default tempo should be reasonable");
+        let new_tempo = Tempo(64.0);
+        c.update_tempo(new_tempo);
+        assert_eq!(c.tempo(), new_tempo, "Tempo should be settable");
+
+        assert_eq!(
+            c.time_signature(),
+            TimeSignature::default(),
+            "time signature should match default"
+        );
+        let new_time_signature = TimeSignature::new_with(13, 512).unwrap();
+        assert_ne!(new_time_signature, TimeSignature::default());
+        c.update_time_signature(new_time_signature);
+        assert_eq!(
+            c.time_signature(),
+            new_time_signature,
+            "Time signature should be settable"
+        );
+    }
+}

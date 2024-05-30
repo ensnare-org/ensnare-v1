@@ -21,15 +21,25 @@ impl TrackRepository {
         } else {
             self.uid_factory.mint_next()
         };
-        self.uids.push(uid);
-        Ok(uid)
+        if self.uids.contains(&uid) {
+            Err(anyhow!("Track {uid} already exists"))
+        } else {
+            self.uids.push(uid);
+            Ok(uid)
+        }
     }
 
     pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()> {
         if self.uids.contains(&uid) {
-            self.delete_track(uid)?;
-            self.uids.insert(new_position, uid);
-            Ok(())
+            if new_position <= self.uids.len() {
+                self.delete_track(uid)?;
+                self.uids.insert(new_position, uid);
+                Ok(())
+            } else {
+                Err(anyhow!(
+                    "Track {uid}'s new index {new_position} is out of bounds"
+                ))
+            }
         } else {
             Err(anyhow!("Track {uid} not found"))
         }
@@ -140,8 +150,12 @@ impl EntityRepository {
         if let Some(new_position) = new_position {
             if let Some(track_uid) = self.track_for_uid.get(&uid) {
                 let uids = self.uids_for_track.entry(*track_uid).or_default();
-                uids.retain(|u| *u != uid);
-                uids.insert(new_position, uid);
+                if new_position <= uids.len() {
+                    uids.retain(|u| *u != uid);
+                    uids.insert(new_position, uid);
+                } else {
+                    return Err(anyhow!("new position {new_position} is out of bounds"));
+                }
             }
         }
         Ok(())

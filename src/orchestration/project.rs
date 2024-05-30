@@ -189,6 +189,31 @@ impl Projects for Project {
         }
         r
     }
+
+    fn move_entity(
+        &mut self,
+        uid: Uid,
+        new_track_uid: Option<TrackUid>,
+        new_position: Option<usize>,
+    ) -> anyhow::Result<()> {
+        let midi_channel = self.get_midi_receiver_channel(uid);
+        let result = self
+            .orchestrator
+            .move_entity(uid, new_track_uid, new_position);
+        let _ = self.set_midi_receiver_channel(uid, midi_channel);
+        result
+    }
+
+    delegate! {
+        to self.orchestrator {
+            fn track_uids(&self) -> &[TrackUid];
+            fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
+            fn mint_entity_uid(&self) -> Uid;
+            fn mint_track_uid(&self) -> TrackUid;
+            fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]>;
+            fn track_for_entity(&self, uid: Uid) -> Option<TrackUid>;
+        }
+    }
 }
 impl Project {
     /// The fixed [Uid] for the project's Orchestrator.
@@ -199,9 +224,6 @@ impl Project {
 
     delegate! {
         to self.orchestrator {
-            pub fn track_uids(&self) -> &[TrackUid];
-            pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
-
             pub fn get_humidity(&self, uid: &Uid) -> Normal;
             pub fn set_humidity(&mut self, uid: Uid, humidity: Normal);
 
@@ -214,9 +236,6 @@ impl Project {
 
             pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
             pub fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
-
-            pub fn mint_entity_uid(&self) -> Uid;
-            pub fn mint_track_uid(&self) -> TrackUid;
         }
         to self.composer {
             pub fn add_pattern(&mut self, contents: Pattern, pattern_uid: Option<PatternUid>) -> Result<PatternUid>;
@@ -325,20 +344,6 @@ impl Project {
                 "set_midi_receiver_channel: no track found for entity {entity_uid}"
             ))
         }
-    }
-
-    pub fn move_entity(
-        &mut self,
-        uid: Uid,
-        new_track_uid: Option<TrackUid>,
-        new_position: Option<usize>,
-    ) -> Result<()> {
-        let midi_channel = self.get_midi_receiver_channel(uid);
-        let result = self
-            .orchestrator
-            .move_entity(uid, new_track_uid, new_position);
-        self.set_midi_receiver_channel(uid, midi_channel);
-        result
     }
 
     fn generate_frames(
@@ -895,6 +900,8 @@ mod tests {
             TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
             TestInstrumentCountsMidiMessages,
         },
+        orchestration::traits::tests::test_trait_projects,
+        traits::tests::test_trait_configurable,
     };
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use std::sync::Arc;
@@ -1407,5 +1414,11 @@ mod tests {
             Some(MidiChannel::default())
         );
         assert_eq!(p.track_midi_channel(track_2_uid), Some(MidiChannel::DRUM));
+    }
+
+    #[test]
+    fn project_adheres_to_trait_tests() {
+        test_trait_projects(Project::default());
+        test_trait_configurable(Project::default());
     }
 }

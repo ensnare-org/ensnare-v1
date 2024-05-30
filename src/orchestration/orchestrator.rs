@@ -84,8 +84,14 @@ impl Orchestrator {
         self.track_repo.delete_track(uid)
     }
 
-    pub fn entities_for_track(&self, uid: TrackUid) -> Option<&Vec<Uid>> {
-        self.entity_repo.uids_for_track.get(&uid)
+    pub fn entity_uids(&self, uid: TrackUid) -> Option<&[Uid]> {
+        let uids = self.entity_repo.uids_for_track.get(&uid);
+        if let Some(uids) = uids {
+            let uids: &[Uid] = uids;
+            Some(uids)
+        } else {
+            None
+        }
     }
 
     pub fn track_for_entity(&self, uid: Uid) -> Option<TrackUid> {
@@ -309,15 +315,13 @@ mod tests {
 
         let nonexistent_track_uid = TrackUid(12345);
         assert!(
-            orchestrator
-                .entities_for_track(nonexistent_track_uid)
-                .is_none(),
+            orchestrator.entity_uids(nonexistent_track_uid).is_none(),
             "Getting track entities for nonexistent track should return None"
         );
 
         let track_uid = orchestrator.create_track(None).unwrap();
         assert!(
-            orchestrator.entities_for_track(track_uid).is_none(),
+            orchestrator.entity_uids(track_uid).is_none(),
             "Getting track entries for a track that exists but is empty should return None"
         );
         let target_uid = orchestrator
@@ -328,7 +332,7 @@ mod tests {
             track_uid,
             "Added entity's track uid should be retrievable"
         );
-        let track_entities = orchestrator.entities_for_track(track_uid).unwrap();
+        let track_entities = orchestrator.entity_uids(track_uid).unwrap();
         assert_eq!(track_entities.len(), 1);
         assert!(track_entities.contains(&target_uid));
 
