@@ -38,7 +38,7 @@ fn demo_automation() {
     };
 
     // Arrange the lead pattern in the sequencer.
-    let track_uid = project.create_track(None).unwrap();
+    let track_uid = project.create_track().unwrap();
     assert!(project
         .arrange_pattern(track_uid, scale_pattern_uid, None, MusicalTime::START)
         .is_ok());
@@ -112,7 +112,7 @@ fn demo_signal_path_automation() {
         .unwrap();
 
     // Arrange the lead pattern.
-    let track_uid = project.create_track(None).unwrap();
+    let track_uid = project.create_track().unwrap();
     assert!(project
         .arrange_pattern(track_uid, scale_pattern_uid, None, MusicalTime::START)
         .is_ok());

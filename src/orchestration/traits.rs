@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao
 
 use crate::prelude::*;
+use derivative::Derivative;
 
 /// The [Projects] trait specifies the common behavior of an Ensnare project,
 /// which is everything that makes up a single musical piece, such as the tempo,
@@ -12,15 +13,12 @@ use crate::prelude::*;
 /// etymology of the word "project," and it originally meant "to cause to move
 /// forward" in the sense of making an idea transform into reality. So saying
 /// that a project projects is not totally strange.
-pub trait Projects: Configurable {
-    /// Generates a new, unique [TrackUid]. Uniqueness is guaranteed only within
-    /// this project.
+pub trait Projects: Configurable + Controls + Sized {
+    /// Generates a new [TrackUid] that is unique within this project.
     fn mint_track_uid(&self) -> TrackUid;
 
-    /// Creates a new track, optionally assigning the given [TrackUid]. Returns
-    /// the [TrackUid] of the new track. Specified [TrackUid]s must not
-    /// duplicate one that already exists in the project.
-    fn create_track(&mut self, track_uid: Option<TrackUid>) -> anyhow::Result<TrackUid>;
+    /// Creates a new track. Returns the [TrackUid] of the new track.
+    fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
     /// Deletes the given track. If the track owns anything, they're dropped.
     fn delete_track(&mut self, track_uid: TrackUid) -> anyhow::Result<()>;
@@ -36,7 +34,7 @@ pub trait Projects: Configurable {
         new_position: usize,
     ) -> anyhow::Result<()>;
 
-    /// Generates a new, unique [TrackUid].
+    /// Generates a new [Uid] that is unique within this project.
     fn mint_entity_uid(&self) -> Uid;
 
     /// Adds an entity to a track and takes ownership of the entity. If the
@@ -68,19 +66,86 @@ pub trait Projects: Configurable {
         new_track_uid: Option<TrackUid>,
         new_position: Option<usize>,
     ) -> anyhow::Result<()>;
+
+    /// Returns an [Iterator] that renders the project as [StereoSample]s from
+    /// start to finish.
+    fn render(&mut self) -> impl Iterator<Item = StereoSample> {
+        self.play();
+        ProjectsRenderer::new_with(self)
+    }
+
+    /// Fills the supplied buffer with [StereoSample]s that represent a portion
+    /// of the project performance. Renders as of the current position set in
+    /// [Controls] and advances the position appropriately. If the performance
+    /// ends midway, the remainder of the buffer will be untouched.
+    fn generate_audio_frames(
+        &mut self,
+        frames: &mut [StereoSample],
+        midi_events_fn: Option<&mut MidiMessagesFn>,
+    );
+}
+
+/// Renders a [Projects] start-to-finish as a sequence of [StereoSample]s.
+#[derive(Debug, Derivative)]
+struct ProjectsRenderer<'a, P: Projects> {
+    project: &'a mut P,
+    samples: GenerationBuffer<StereoSample>,
+    sample_pointer: usize,
+}
+impl<'a, P: Projects> ProjectsRenderer<'a, P> {
+    fn new_with(project: &'a mut P) -> Self {
+        Self {
+            project,
+            samples: GenerationBuffer::new_with(64),
+            sample_pointer: usize::MAX,
+        }
+    }
+}
+impl<'a, P: Projects> Iterator for ProjectsRenderer<'a, P> {
+    type Item = StereoSample;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // This catches the case where the project is zero-length. is_finished()
+        // was updated during play(), and here is where we test it.
+        if self.project.is_finished() {
+            return None;
+        }
+
+        if self.sample_pointer >= self.samples.buffer_size() {
+            self.samples.clear();
+            self.project
+                .generate_audio_frames(self.samples.buffer_mut(), None);
+
+            // End rendering if performance is over and silence is detected.
+            if !self.project.is_performing() {
+                if self.samples.buffer().iter().all(|s| s.almost_silent()) {
+                    return None;
+                }
+            }
+            self.sample_pointer = 0;
+        }
+        let r = self.samples.buffer()[self.sample_pointer];
+        self.sample_pointer += 1;
+        Some(r)
+    }
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::{entities::TestAudioSource, orchestration::TrackUidFactory};
+    use crate::{
+        entities::{TestAudioSource, Timer},
+        orchestration::TrackUidFactory,
+    };
     use anyhow::anyhow;
+    use delegate::delegate;
     use std::collections::HashMap;
 
     pub(crate) fn test_trait_projects(mut p: impl Projects) {
         test_projects_uids(&mut p);
         test_projects_track_lifetime(&mut p);
         test_projects_entity_lifetime(&mut p);
+        test_projects_rendering(&mut p);
     }
 
     fn test_projects_uids(p: &mut impl Projects) {
@@ -103,8 +168,8 @@ pub(crate) mod tests {
             "supplied impl Projects should be clean"
         );
 
-        let track_uid_1 = p.create_track(None).unwrap();
-        let track_uid_2 = p.create_track(None).unwrap();
+        let track_uid_1 = p.create_track().unwrap();
+        let track_uid_2 = p.create_track().unwrap();
         assert_ne!(
             track_uid_1, track_uid_2,
             "create_track should generate unique IDs"
@@ -116,17 +181,9 @@ pub(crate) mod tests {
             "track ordering is same order as track creation"
         );
 
-        assert!(
-            p.create_track(Some(track_uid_2)).is_err(),
-            "create_track should disallow assignment of duplicate uids."
-        );
-
         assert!(p.delete_track(track_uid_2).is_ok(), "delete_track succeeds");
         assert_eq!(p.track_uids().len(), 1);
-        assert!(
-            p.create_track(Some(track_uid_2)).is_ok(),
-            "delete_track works (should be able to create a track having same TrackUid of a just-deleted track)."
-        );
+        let track_uid_3 = p.create_track().unwrap();
         assert_eq!(p.track_uids().len(), 2);
 
         assert!(
@@ -139,13 +196,13 @@ pub(crate) mod tests {
         );
         assert_eq!(
             p.track_uids(),
-            &vec![track_uid_2, track_uid_1],
+            &vec![track_uid_3, track_uid_1],
             "set_track_position should work"
         );
 
         // Clean up
         let _ = p.delete_track(track_uid_1);
-        let _ = p.delete_track(track_uid_2);
+        let _ = p.delete_track(track_uid_3);
     }
 
     fn test_projects_entity_lifetime(p: &mut impl Projects) {
@@ -155,7 +212,7 @@ pub(crate) mod tests {
             "supplied impl Projects should be clean"
         );
 
-        let track_uid_1 = p.create_track(None).unwrap();
+        let track_uid_1 = p.create_track().unwrap();
 
         let e_uid_1 = p
             .add_entity(track_uid_1, Box::new(TestAudioSource::default()))
@@ -208,8 +265,59 @@ pub(crate) mod tests {
         let _ = p.delete_track(track_uid_1);
     }
 
-    /// [TestProject] is a harness that helps make the [Projects] trait
-    /// ergonomic.
+    fn test_projects_rendering(p: &mut impl Projects) {
+        // Because rounding errors are annoying for purposes of this test, we
+        // pick a sample rate that's an even multiple of the 64-byte buffer we
+        // know we're using. TODO: be more precise later on.
+        let prior_sample_rate = p.sample_rate();
+        p.update_sample_rate(SampleRate(32768));
+
+        assert!(
+            p.render().next().is_none(),
+            "A default project should render nothing"
+        );
+
+        assert!(
+            p.render().next().is_none(),
+            "A project should be able to render twice without exploding"
+        );
+
+        p.skip_to_start();
+        assert!(
+            p.render().next().is_none(),
+            "A project should be able to render after seeking"
+        );
+
+        let track_uid_1 = p.create_track().unwrap();
+        let _timer_uid = p
+            .add_entity(
+                track_uid_1,
+                Box::new(Timer::new_with(Uid::default(), MusicalTime::ONE_BEAT)),
+            )
+            .unwrap();
+
+        p.update_tempo(Tempo(60.0));
+        let sample_rate = p.sample_rate().0;
+
+        // Scope renderer so we can keep working with the project later in this
+        // function.
+        {
+            let mut renderer = p.render();
+            for i in 0..sample_rate {
+                assert!(renderer.next().is_some(),
+                        "A one-beat-long project with tempo 60 should render exactly a second of samples, but this one ended early at sample #{i}"
+                );
+            }
+            assert!(renderer.next().is_none(),
+                    "A one-beat-long project with tempo 60 should render exactly a second of samples, but this one kept going"
+            );
+        }
+
+        // Restore prior sample rate
+        p.update_sample_rate(prior_sample_rate);
+    }
+
+    /// [TestProject] is a harness that helps [Projects] trait development.
     #[derive(Default)]
     struct TestProject {
         track_uid_factory: TrackUidFactory,
@@ -219,18 +327,16 @@ pub(crate) mod tests {
         entity_uid_to_entity: HashMap<Uid, Box<dyn EntityBounds>>,
         entity_uid_to_track_uid: HashMap<Uid, TrackUid>,
         track_uid_to_entity_uids: HashMap<TrackUid, Vec<Uid>>,
+
+        transport: Transport,
     }
     impl Projects for TestProject {
-        fn create_track(&mut self, track_uid: Option<TrackUid>) -> anyhow::Result<TrackUid> {
-            let track_uid = if let Some(track_uid) = track_uid {
-                if self.track_uids.contains(&track_uid) {
-                    return Err(anyhow!("Duplicate TrackUid"));
-                }
-                track_uid
-            } else {
-                self.mint_track_uid()
-            };
+        fn mint_track_uid(&self) -> TrackUid {
+            self.track_uid_factory.mint_next()
+        }
 
+        fn create_track(&mut self) -> anyhow::Result<TrackUid> {
+            let track_uid = self.mint_track_uid();
             self.track_uids.push(track_uid);
             Ok(track_uid)
         }
@@ -268,6 +374,10 @@ pub(crate) mod tests {
             } else {
                 Err(anyhow!("Track {track_uid} not found"))
             }
+        }
+
+        fn mint_entity_uid(&self) -> Uid {
+            self.entity_uid_factory.mint_next()
         }
 
         fn add_entity(
@@ -312,12 +422,17 @@ pub(crate) mod tests {
             }
         }
 
-        fn mint_track_uid(&self) -> TrackUid {
-            self.track_uid_factory.mint_next()
+        fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]> {
+            if let Some(uids) = self.track_uid_to_entity_uids.get(&track_uid) {
+                let uids: &[Uid] = uids;
+                Some(uids)
+            } else {
+                None
+            }
         }
 
-        fn mint_entity_uid(&self) -> Uid {
-            self.entity_uid_factory.mint_next()
+        fn track_for_entity(&self, uid: Uid) -> Option<TrackUid> {
+            self.entity_uid_to_track_uid.get(&uid).copied()
         }
 
         fn move_entity(
@@ -357,20 +472,116 @@ pub(crate) mod tests {
             Ok(())
         }
 
-        fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]> {
-            if let Some(uids) = self.track_uid_to_entity_uids.get(&track_uid) {
-                let uids: &[Uid] = uids;
-                Some(uids)
+        fn generate_audio_frames(
+            &mut self,
+            frames: &mut [StereoSample],
+            mut midi_events_fn: Option<&mut MidiMessagesFn>,
+        ) {
+            let is_finished_at_start = self.is_finished();
+            let time_range = self.transport.advance(frames.len());
+            self.update_time_range(&time_range);
+            self.work(&mut |e| match e {
+                WorkEvent::Midi(channel, message) => {
+                    if let Some(midi_events_fn) = midi_events_fn.as_mut() {
+                        midi_events_fn(channel, message);
+                    }
+                }
+                WorkEvent::MidiForTrack(_, _, _) => todo!(),
+                WorkEvent::Control(_) => todo!(),
+            });
+            let is_finished_at_end = self.is_finished();
+            if !is_finished_at_start && is_finished_at_end {
+                self.stop();
+            }
+            if is_finished_at_end {
+                frames.fill(StereoSample::SILENCE);
             } else {
-                None
+                frames.fill(StereoSample::MAX);
+            }
+        }
+    }
+    impl Configurable for TestProject {
+        delegate! {
+            to self.transport {
+                fn sample_rate(&self) -> SampleRate;
+                fn tempo(&self) -> Tempo;
+                fn time_signature(&self) -> TimeSignature;
             }
         }
 
-        fn track_for_entity(&self, uid: Uid) -> Option<TrackUid> {
-            self.entity_uid_to_track_uid.get(&uid).copied()
+        fn update_sample_rate(&mut self, sample_rate: SampleRate) {
+            self.transport.update_sample_rate(sample_rate);
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.update_sample_rate(sample_rate));
+        }
+
+        fn update_tempo(&mut self, tempo: Tempo) {
+            self.transport.update_tempo(tempo);
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.update_tempo(tempo));
+        }
+
+        fn update_time_signature(&mut self, time_signature: TimeSignature) {
+            self.transport.update_time_signature(time_signature);
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.update_time_signature(time_signature));
+        }
+
+        fn reset(&mut self) {
+            self.transport.reset();
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.reset());
         }
     }
-    impl Configurable for TestProject {}
+    impl Controls for TestProject {
+        fn update_time_range(&mut self, time_range: &TimeRange) {
+            self.transport.update_time_range(time_range);
+            for entity in self.entity_uid_to_entity.values_mut() {
+                entity.update_time_range(time_range);
+            }
+        }
+
+        fn work(&mut self, control_events_fn: &mut ControlEventsFn) {
+            self.transport.work(control_events_fn);
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.work(control_events_fn));
+        }
+
+        fn is_finished(&self) -> bool {
+            self.transport.is_finished()
+                && self.entity_uid_to_entity.values().all(|e| e.is_finished())
+        }
+
+        fn play(&mut self) {
+            self.transport.play();
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.play());
+        }
+
+        fn stop(&mut self) {
+            self.transport.stop();
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.stop());
+        }
+
+        fn skip_to_start(&mut self) {
+            self.transport.skip_to_start();
+            self.entity_uid_to_entity
+                .values_mut()
+                .for_each(|e| e.skip_to_start());
+        }
+
+        fn is_performing(&self) -> bool {
+            self.transport.is_performing()
+        }
+    }
 
     #[test]
     fn trait_tests() {

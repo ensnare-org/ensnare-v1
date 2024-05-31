@@ -17,7 +17,7 @@ fn render_subtractive_patches() -> anyhow::Result<()> {
     std::fs::create_dir(&output_prefix)?;
     for path in paths {
         let mut project = Project::default();
-        let track_uid = project.create_track(None)?;
+        let track_uid = project.create_track()?;
 
         let synth =
             SubtractiveSynth::new_with(Uid::default(), SubtractiveSynthCore::load_patch(&path)?);

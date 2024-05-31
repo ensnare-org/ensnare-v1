@@ -32,7 +32,7 @@ fn demo_sidechaining() {
     let mut project = Project::default();
 
     // Add the sidechain source track.
-    let sidechain_track_uid = project.create_track(None).unwrap();
+    let sidechain_track_uid = project.create_track().unwrap();
     project.set_track_midi_channel(sidechain_track_uid, MidiChannel::DRUM);
     project.set_track_output(sidechain_track_uid, Normal::from(0.5));
 
@@ -91,7 +91,7 @@ fn demo_sidechaining() {
     project.set_track_output(sidechain_track_uid, Normal::zero());
 
     // Add the lead track that we want to duck.
-    let lead_track_uid = project.create_track(None).unwrap();
+    let lead_track_uid = project.create_track().unwrap();
     let lead_pattern_uid = project
         .add_pattern(
             PatternBuilder::default()

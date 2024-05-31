@@ -8,7 +8,7 @@ use ensnare_toys::prelude::*;
 
 fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
-    let track_uid = project.create_track(None).unwrap();
+    let track_uid = project.create_track().unwrap();
     project.set_track_midi_channel(track_uid, MidiChannel::DRUM);
     project.set_track_output(track_uid, Normal::from(0.5));
 
@@ -77,7 +77,7 @@ fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBo
 
 fn set_up_lead_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.
-    let track_uid = project.create_track(None).unwrap();
+    let track_uid = project.create_track().unwrap();
     project.set_track_output(track_uid, Normal::from(0.5));
 
     // Rest

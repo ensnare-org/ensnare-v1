@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
 
     // It manages a set of Tracks, which are what actually contains musical
     // devices.
-    let track_uid = project.create_track(None).unwrap();
+    let track_uid = project.create_track().unwrap();
 
     // TODO: add musical content to be played on the default MIDI channel.
 

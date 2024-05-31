@@ -29,7 +29,7 @@ pub struct Orchestrator {
 impl Orchestrator {
     delegate! {
         to self.track_repo {
-            pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid>;
+            pub fn create_track(&mut self) -> Result<TrackUid>;
             #[call(uids)]
             pub fn track_uids(&self) -> &[TrackUid];
             pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()>;
@@ -319,7 +319,7 @@ mod tests {
             "Getting track entities for nonexistent track should return None"
         );
 
-        let track_uid = orchestrator.create_track(None).unwrap();
+        let track_uid = orchestrator.create_track().unwrap();
         assert!(
             orchestrator.entity_uids(track_uid).is_none(),
             "Getting track entries for a track that exists but is empty should return None"

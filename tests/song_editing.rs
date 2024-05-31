@@ -16,9 +16,9 @@ fn edit_song() {
     let mut project = Project::default();
 
     // Create two MIDI tracks.
-    let rhythm_track_uid = project.create_track(None).unwrap();
+    let rhythm_track_uid = project.create_track().unwrap();
     project.set_track_midi_channel(rhythm_track_uid, MidiChannel::DRUM);
-    let lead_track_uid = project.create_track(None).unwrap();
+    let lead_track_uid = project.create_track().unwrap();
 
     // Prepare the rhythm track first. Create a rhythm pattern, add it to the
     // Composer, and then manipulate it. If we were really doing this in Rust

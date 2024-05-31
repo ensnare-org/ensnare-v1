@@ -67,6 +67,13 @@ impl<V: Default + Clone + Copy + std::ops::AddAssign> GenerationBuffer<V> {
             *dst += *src;
         }
     }
+
+    /// Creates a buffer of the specified size.
+    pub fn new_with(size: usize) -> Self {
+        let mut r = GenerationBuffer::default();
+        r.resize(size);
+        r
+    }
 }
 
 /// Something that [Generates] creates the given type `<V>` as its work product

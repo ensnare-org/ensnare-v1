@@ -15,18 +15,10 @@ pub struct TrackRepository {
     pub(crate) uids: Vec<TrackUid>,
 }
 impl TrackRepository {
-    pub fn create_track(&mut self, uid: Option<TrackUid>) -> Result<TrackUid> {
-        let uid = if let Some(uid) = uid {
-            uid
-        } else {
-            self.uid_factory.mint_next()
-        };
-        if self.uids.contains(&uid) {
-            Err(anyhow!("Track {uid} already exists"))
-        } else {
-            self.uids.push(uid);
-            Ok(uid)
-        }
+    pub fn create_track(&mut self) -> Result<TrackUid> {
+        let track_uid = self.uid_factory.mint_next();
+        self.uids.push(track_uid);
+        Ok(track_uid)
     }
 
     pub fn set_track_position(&mut self, uid: TrackUid, new_position: usize) -> Result<()> {
@@ -329,11 +321,11 @@ mod tests {
 
         assert!(repo.uids.is_empty(), "Default should have no tracks");
 
-        let track_1_uid = repo.create_track(None).unwrap();
+        let track_1_uid = repo.create_track().unwrap();
         assert_gt!(track_1_uid.0, 0, "new track's uid should be nonzero");
         assert_eq!(repo.uids.len(), 1, "should be one track after creating one");
 
-        let track_2_uid = repo.create_track(None).unwrap();
+        let track_2_uid = repo.create_track().unwrap();
         assert_eq!(
             repo.uids.len(),
             2,

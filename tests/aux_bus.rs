@@ -15,9 +15,9 @@ fn aux_bus() {
 
     let mut project = Project::default();
 
-    let track_uid_1 = project.create_track(None).unwrap();
-    let track_uid_2 = project.create_track(None).unwrap();
-    let aux_track_uid = project.create_track(None).unwrap();
+    let track_uid_1 = project.create_track().unwrap();
+    let track_uid_2 = project.create_track().unwrap();
+    let aux_track_uid = project.create_track().unwrap();
 
     let synth_pattern_uid_1 = project
         .add_pattern(
