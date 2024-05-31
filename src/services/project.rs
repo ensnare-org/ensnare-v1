@@ -120,11 +120,13 @@ impl ProjectServiceDaemon {
         factory: Arc<EntityFactory<dyn EntityBounds>>,
         audio_sender: &Sender<AudioServiceInput>,
     ) -> Self {
+        let mut project = Project::new_project();
+        project.set_audio_service_sender(audio_sender);
         Self {
             receiver,
             sender,
             factory,
-            project: Arc::new(RwLock::new(Project::new_project())),
+            project: Arc::new(RwLock::new(project)),
             #[cfg(feature = "egui")]
             key_handler: Default::default(),
             audio_sender: audio_sender.clone(),
@@ -268,9 +270,8 @@ impl ProjectServiceDaemon {
                     let _ = self.project.write().unwrap().export_to_wav(path);
                 }
                 ProjectServiceInput::FramesNeeded(count) => {
-                    self.project.write().unwrap().fill_audio_queue(
+                    self.project.write().unwrap().generate_and_dispatch_audio(
                         count,
-                        &self.audio_sender,
                         Some(&mut |c, m| {
                             // If we had a channel sender to the MIDI service,
                             // then we could send directly there from here. But

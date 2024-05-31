@@ -6,8 +6,8 @@ use derivative::Derivative;
 /// The [Projects] trait specifies the common behavior of an Ensnare project,
 /// which is everything that makes up a single musical piece, such as the tempo,
 /// the time signature, the musical notes, the tracks, and instrument layouts
-/// and configurations. [Projects] is a trait because we have different
-/// implementations of project behavior, depending on the use case.
+/// and configurations. [Projects] is a trait because we have different project
+/// implementations, depending on the use case.
 ///
 /// Incidentally, the name "Projects" sounds awkward, but I looked up the
 /// etymology of the word "project," and it originally meant "to cause to move
@@ -17,17 +17,18 @@ pub trait Projects: Configurable + Controls + Sized {
     /// Generates a new [TrackUid] that is unique within this project.
     fn mint_track_uid(&self) -> TrackUid;
 
-    /// Creates a new track. Returns the [TrackUid] of the new track.
+    /// Creates a new track and appends it to the list of tracks. Returns the
+    /// generated [TrackUid] of the new track.
     fn create_track(&mut self) -> anyhow::Result<TrackUid>;
 
-    /// Deletes the given track. If the track owns anything, they're dropped.
+    /// Deletes the given track. Anything the track owns is dropped.
     fn delete_track(&mut self, track_uid: TrackUid) -> anyhow::Result<()>;
 
     /// Returns an ordered list of [TrackUid]s.
     fn track_uids(&self) -> &[TrackUid];
 
-    /// Moves the given track to the new position, shifting later tracks to make
-    /// room if needed.
+    /// Moves the given track to the new position in the track list. Shifts
+    /// later tracks to make room if needed.
     fn set_track_position(
         &mut self,
         track_uid: TrackUid,
@@ -37,9 +38,25 @@ pub trait Projects: Configurable + Controls + Sized {
     /// Generates a new [Uid] that is unique within this project.
     fn mint_entity_uid(&self) -> Uid;
 
-    /// Adds an entity to a track and takes ownership of the entity. If the
-    /// entity's [Uid] is [Uid::default()], generates a new one, setting the
-    /// entity's [Uid] to match. Returns the entity's [Uid].
+    /// Adds an entity to the end of a track and takes ownership of the entity.
+    /// If the entity's [Uid] is [Uid::default()], generates a new one, setting
+    /// the entity's [Uid] to match. Returns the entity's [Uid].
+    ///
+    /// Note that entity ordering is more complicated than a single linear list.
+    /// This is because entities have different roles, and certain roles precede
+    /// other roles. Some entities are controllers, others are instruments,
+    /// others are effects, and some are hybrids. Instruments must generate
+    /// sounds before effects process those sounds, and controllers must issue
+    /// MIDI messages for instruments to generate sounds. Thus, even though a
+    /// controller might be later in the entity list than an instrument, and an
+    /// instrument might be later than an effect, the controller will do its
+    /// work first, and then the instrument will play, and then the effect will
+    /// process.
+    ///
+    /// However, in the case of a single role, entities are processed in the
+    /// order in which they appear in the entity list. If a reverb is earlier
+    /// than a delay, for example, then the reverb will be applied before the
+    /// delay.
     fn add_entity(
         &mut self,
         track_uid: TrackUid,
@@ -60,6 +77,7 @@ pub trait Projects: Configurable + Controls + Sized {
     fn track_for_entity(&self, uid: Uid) -> Option<TrackUid>;
 
     /// Moves the given entity to a new track and/or position within that track.
+    /// Fails if the track doesn't exist or the position is out of bounds.
     fn move_entity(
         &mut self,
         uid: Uid,
@@ -78,9 +96,18 @@ pub trait Projects: Configurable + Controls + Sized {
     /// of the project performance. Renders as of the current position set in
     /// [Controls] and advances the position appropriately. If the performance
     /// ends midway, the remainder of the buffer will be untouched.
-    fn generate_audio_frames(
+    fn generate_audio(
         &mut self,
         frames: &mut [StereoSample],
+        midi_events_fn: Option<&mut MidiMessagesFn>,
+    );
+
+    /// Generates the specified number of frames of the project and sends them
+    /// to the preconfigured destination. The destination depends on the
+    /// implementation of the [Projects] trait.
+    fn generate_and_dispatch_audio(
+        &mut self,
+        count: usize,
         midi_events_fn: Option<&mut MidiMessagesFn>,
     );
 }
@@ -113,8 +140,7 @@ impl<'a, P: Projects> Iterator for ProjectsRenderer<'a, P> {
 
         if self.sample_pointer >= self.samples.buffer_size() {
             self.samples.clear();
-            self.project
-                .generate_audio_frames(self.samples.buffer_mut(), None);
+            self.project.generate_audio(self.samples.buffer_mut(), None);
 
             // End rendering if performance is over and silence is detected.
             if !self.project.is_performing() {
@@ -313,6 +339,12 @@ pub(crate) mod tests {
             );
         }
 
+        // The trait behavior isn't sufficiently specified for us to test
+        // anything. We'll call it to make sure it doesn't blow up.
+        p.skip_to_start();
+        p.play();
+        p.generate_and_dispatch_audio(64, None);
+
         // Restore prior sample rate
         p.update_sample_rate(prior_sample_rate);
     }
@@ -472,7 +504,7 @@ pub(crate) mod tests {
             Ok(())
         }
 
-        fn generate_audio_frames(
+        fn generate_audio(
             &mut self,
             frames: &mut [StereoSample],
             mut midi_events_fn: Option<&mut MidiMessagesFn>,
@@ -497,6 +529,27 @@ pub(crate) mod tests {
                 frames.fill(StereoSample::SILENCE);
             } else {
                 frames.fill(StereoSample::MAX);
+            }
+        }
+
+        fn generate_and_dispatch_audio(
+            &mut self,
+            count: usize,
+            mut midi_events_fn: Option<&mut MidiMessagesFn>,
+        ) {
+            if count == 0 {
+                return;
+            }
+            const BUFFER_LEN: usize = 64;
+            let mut buffer = [StereoSample::SILENCE; BUFFER_LEN];
+            let mut remaining = count;
+
+            while remaining != 0 {
+                let to_generate = remaining.min(BUFFER_LEN);
+                let buffer_slice = &mut buffer[0..to_generate];
+                buffer_slice.fill(StereoSample::SILENCE);
+                self.generate_audio(buffer_slice, midi_events_fn.as_deref_mut());
+                remaining -= to_generate;
             }
         }
     }

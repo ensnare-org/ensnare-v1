@@ -94,6 +94,9 @@ pub struct ProjectEphemerals {
     /// from disk.
     pub load_path: Option<PathBuf>,
 
+    /// The AudioServiceInput channel to send generated audio.
+    audio_sender: Option<Sender<AudioServiceInput>>,
+
     /// A non-owned VecDeque that acts as a ring buffer of the most recent
     /// generated audio frames.
     pub visualization_queue: Option<VisualizationQueue>,
@@ -204,7 +207,7 @@ impl Projects for Project {
         result
     }
 
-    fn generate_audio_frames(
+    fn generate_audio(
         &mut self,
         frames: &mut [StereoSample],
         mut midi_events_fn: Option<&mut MidiMessagesFn>,
@@ -235,6 +238,42 @@ impl Projects for Project {
             fn mint_track_uid(&self) -> TrackUid;
             fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]>;
             fn track_for_entity(&self, uid: Uid) -> Option<TrackUid>;
+        }
+    }
+
+    fn generate_and_dispatch_audio(
+        &mut self,
+        count: usize,
+        mut midi_events_fn: Option<&mut MidiMessagesFn>,
+    ) {
+        if count == 0 {
+            return;
+        }
+        let mut buffer = [StereoSample::SILENCE; 64];
+        let buffer_len = buffer.len();
+        let mut remaining = count;
+
+        while remaining != 0 {
+            let to_generate = if remaining >= buffer_len {
+                buffer_len
+            } else {
+                remaining
+            };
+            let buffer_slice = &mut buffer[0..to_generate];
+            buffer_slice.fill(StereoSample::SILENCE);
+            self.generate_audio(buffer_slice, midi_events_fn.as_deref_mut());
+            if let Some(sender) = self.e.audio_sender.as_ref() {
+                let _ = sender.try_send(AudioServiceInput::Frames(Arc::new(buffer_slice.to_vec())));
+            }
+            if let Some(queue) = self.e.visualization_queue.as_ref() {
+                if let Ok(mut queue) = queue.0.write() {
+                    buffer_slice.iter().for_each(|s| {
+                        let mono_sample: Sample = (*s).into();
+                        queue.push_back(mono_sample);
+                    });
+                }
+            }
+            remaining -= to_generate;
         }
     }
 }
@@ -393,43 +432,6 @@ impl Project {
         }
 
         Ok(())
-    }
-
-    /// Generates the requested number of audio frames and sends them to the
-    /// audio service.
-    pub fn fill_audio_queue(
-        &mut self,
-        count: usize,
-        sender: &Sender<AudioServiceInput>,
-        mut midi_events_fn: Option<&mut MidiMessagesFn>,
-    ) {
-        if count == 0 {
-            return;
-        }
-        let mut buffer = [StereoSample::SILENCE; 64];
-        let buffer_len = buffer.len();
-        let mut remaining = count;
-
-        while remaining != 0 {
-            let to_generate = if remaining >= buffer_len {
-                buffer_len
-            } else {
-                remaining
-            };
-            let buffer_slice = &mut buffer[0..to_generate];
-            buffer_slice.fill(StereoSample::SILENCE);
-            self.generate_audio_frames(buffer_slice, midi_events_fn.as_deref_mut());
-            let _ = sender.try_send(AudioServiceInput::Frames(Arc::new(buffer_slice.to_vec())));
-            if let Some(queue) = self.e.visualization_queue.as_ref() {
-                if let Ok(mut queue) = queue.0.write() {
-                    buffer_slice.iter().for_each(|s| {
-                        let mono_sample: Sample = (*s).into();
-                        queue.push_back(mono_sample);
-                    });
-                }
-            }
-            remaining -= to_generate;
-        }
     }
 
     fn dispatch_control_event(&mut self, source: ControlLinkSource, value: ControlValue) {
@@ -725,6 +727,10 @@ impl Project {
         let router = self.track_to_midi_router.entry(track_uid).or_default();
         router.set_midi_channel(midi_channel);
     }
+
+    pub(crate) fn set_audio_service_sender(&mut self, audio_sender: &Sender<AudioServiceInput>) {
+        self.e.audio_sender = Some(audio_sender.clone());
+    }
 }
 impl Generates<StereoSample> for Project {
     delegate! {
@@ -979,7 +985,7 @@ mod tests {
 
         project.play();
         let mut frames = [StereoSample::SILENCE; 4];
-        project.generate_audio_frames(&mut frames, None);
+        project.generate_audio(&mut frames, None);
         assert!(frames
             .iter()
             .any(|frame| { *frame != StereoSample::SILENCE }));
@@ -1162,7 +1168,7 @@ mod tests {
             )),
         );
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(EXPECTED_LEVEL);
         assert!(
             samples.iter().all(|s| *s == expected_sample),
@@ -1173,7 +1179,7 @@ mod tests {
             .add_send(midi_track_uid, aux_track_uid, Normal::from(0.5))
             .is_ok());
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.75);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "With a 50% send to an aux track with no effects, we should see the original MEDIUM=0.5 plus 50% of it = 0.75, but at sample #{index} we got {:?}", s);
@@ -1183,7 +1189,7 @@ mod tests {
         let _ = project.add_entity(aux_track_uid, Box::new(TestEffectNegatesInput::default()));
 
         let mut samples = [StereoSample::SILENCE; 64];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5 * -1.0);
         samples.iter().enumerate().for_each(|(index,s)| {
             assert_eq!(*s ,expected_sample, "With a 50% send to an aux with a negating effect, we should see the original 0.5 plus a negation of 50% of 0.5 = 0.250, but at sample #{index} we got {:?}", s);
@@ -1219,7 +1225,7 @@ mod tests {
         );
 
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Two tracks each with a 0.5 output should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -1227,7 +1233,7 @@ mod tests {
 
         project.set_track_output(track_1_uid, Normal::from(0.5));
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 + 0.5 * 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Setting one track's output to 50% should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -1235,7 +1241,7 @@ mod tests {
 
         project.set_solo_track(Some(track_1_uid));
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.5 * 0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Soloing Track #1 (which is set to 50%) should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -1244,7 +1250,7 @@ mod tests {
         project.set_solo_track(None);
         project.mute_track(track_1_uid, true);
         let mut samples = [StereoSample::SILENCE; 4];
-        project.generate_audio_frames(&mut samples, None);
+        project.generate_audio(&mut samples, None);
         let expected_sample = StereoSample::from(0.5);
         samples.iter().enumerate().for_each(|(index, s)| {
             assert_eq!(*s, expected_sample, "Muting Track #1 and ending solo should mix to {expected_sample:?}, but at sample #{index} we got {s:?}");
@@ -1275,7 +1281,7 @@ mod tests {
         let mut messages = Vec::default();
         let mut samples = [StereoSample::SILENCE; 4];
         project.play();
-        project.generate_audio_frames(&mut samples, Some(&mut |c, m| messages.push((c, m))));
+        project.generate_audio(&mut samples, Some(&mut |c, m| messages.push((c, m))));
 
         assert!(
             !messages.is_empty(),
