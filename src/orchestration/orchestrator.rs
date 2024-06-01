@@ -72,7 +72,7 @@ impl Orchestrator {
         to self.mixer {
             pub fn track_output(&mut self, track_uid: TrackUid) -> Normal;
             pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal);
-            pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool);
+            pub fn mute_track(&mut self, track_uid: TrackUid, should_mute: bool);
             pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
             pub fn solo_track(&self) -> Option<TrackUid>;
             pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
@@ -287,8 +287,8 @@ impl Mixer {
         self.track_output.insert(track_uid, output);
     }
 
-    pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool) {
-        self.track_mute.insert(track_uid, muted);
+    pub fn mute_track(&mut self, track_uid: TrackUid, should_mute: bool) {
+        self.track_mute.insert(track_uid, should_mute);
     }
 
     pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool {
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn humidifier_mainline() {
-        let mut humidifier = Humidifier::default();
+        let humidifier = Humidifier::default();
 
         let mut effect = TestEffectNegatesInputCore::default();
         assert_eq!(

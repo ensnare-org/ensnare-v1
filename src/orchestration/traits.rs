@@ -35,6 +35,20 @@ pub trait Projects: Configurable + Controls + Sized {
         new_position: usize,
     ) -> anyhow::Result<()>;
 
+    /// Indicates whether a track is currently muted.
+    fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
+    /// Mutes or unmutes a track.
+    fn mute_track(&mut self, track_uid: TrackUid, should_mute: bool);
+
+    /// Returns which track is currently soloing, or None.
+    ///
+    /// Soloing means all but one track is muted. The solo state is independent
+    /// of mute state; when soloing is enabled, muting is ignored, and when
+    /// soloing is disabled, any prior mute state is reactivated.
+    fn solo_track(&self) -> Option<TrackUid>;
+    /// Sets or clears the single solo track.
+    fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
+
     /// Generates a new [Uid] that is unique within this project.
     fn mint_entity_uid(&self) -> Uid;
 
@@ -165,11 +179,12 @@ pub(crate) mod tests {
     };
     use anyhow::anyhow;
     use delegate::delegate;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     pub(crate) fn test_trait_projects(mut p: impl Projects) {
         test_projects_uids(&mut p);
         test_projects_track_lifetime(&mut p);
+        test_projects_track_signal_flow(&mut p);
         test_projects_entity_lifetime(&mut p);
         test_projects_rendering(&mut p);
     }
@@ -229,6 +244,79 @@ pub(crate) mod tests {
         // Clean up
         let _ = p.delete_track(track_uid_1);
         let _ = p.delete_track(track_uid_3);
+    }
+
+    fn test_projects_track_signal_flow(p: &mut impl Projects) {
+        assert_eq!(
+            p.track_uids().len(),
+            0,
+            "supplied impl Projects should be clean"
+        );
+
+        let track_uid_1 = p.create_track().unwrap();
+        let track_uid_2 = p.create_track().unwrap();
+
+        assert!(
+            !p.is_track_muted(track_uid_1),
+            "Initial mute state should be empty"
+        );
+        assert!(
+            !p.is_track_muted(track_uid_2),
+            "Initial mute state should be empty"
+        );
+        assert!(
+            p.solo_track().is_none(),
+            "Initial solo state should be empty"
+        );
+
+        p.mute_track(track_uid_1, true);
+        assert!(p.is_track_muted(track_uid_1));
+        assert!(!p.is_track_muted(track_uid_2));
+        assert!(
+            p.solo_track().is_none(),
+            "Muting shouldn't affect solo state"
+        );
+
+        p.set_solo_track(Some(track_uid_2));
+        assert_eq!(p.solo_track(), Some(track_uid_2), "Soloing should work");
+        assert!(
+            p.is_track_muted(track_uid_1),
+            "Soloing shouldn't change mute state"
+        );
+        assert!(
+            !p.is_track_muted(track_uid_2),
+            "Soloing shouldn't change mute state"
+        );
+
+        p.set_solo_track(Some(track_uid_1));
+        assert_eq!(
+            p.solo_track(),
+            Some(track_uid_1),
+            "Changing solo track should work"
+        );
+
+        p.mute_track(track_uid_1, false);
+        p.mute_track(track_uid_2, true);
+        assert_eq!(
+            p.solo_track(),
+            Some(track_uid_1),
+            "Muting shouldn't change solo state"
+        );
+
+        p.set_solo_track(None);
+        assert!(p.solo_track().is_none());
+        assert!(
+            !p.is_track_muted(track_uid_1),
+            "Ending solo should return to prior mute state"
+        );
+        assert!(
+            p.is_track_muted(track_uid_2),
+            "Ending solo should return to prior mute state"
+        );
+
+        // Clean up
+        let _ = p.delete_track(track_uid_1);
+        let _ = p.delete_track(track_uid_2);
     }
 
     fn test_projects_entity_lifetime(p: &mut impl Projects) {
@@ -339,8 +427,9 @@ pub(crate) mod tests {
             );
         }
 
-        // The trait behavior isn't sufficiently specified for us to test
-        // anything. We'll call it to make sure it doesn't blow up.
+        // The trait behavior of `generate_and_dispatch_audio()` isn't
+        // sufficiently specified for us to test anything. We'll call it to make
+        // sure it doesn't blow up.
         p.skip_to_start();
         p.play();
         p.generate_and_dispatch_audio(64, None);
@@ -354,6 +443,8 @@ pub(crate) mod tests {
     struct TestProject {
         track_uid_factory: TrackUidFactory,
         track_uids: Vec<TrackUid>,
+        track_mute_state: HashSet<TrackUid>,
+        track_solo_state: Option<TrackUid>,
 
         entity_uid_factory: EntityUidFactory,
         entity_uid_to_entity: HashMap<Uid, Box<dyn EntityBounds>>,
@@ -406,6 +497,26 @@ pub(crate) mod tests {
             } else {
                 Err(anyhow!("Track {track_uid} not found"))
             }
+        }
+
+        fn is_track_muted(&mut self, track_uid: TrackUid) -> bool {
+            self.track_mute_state.contains(&track_uid)
+        }
+
+        fn mute_track(&mut self, track_uid: TrackUid, should_mute: bool) {
+            if should_mute {
+                self.track_mute_state.insert(track_uid);
+            } else {
+                self.track_mute_state.remove(&track_uid);
+            }
+        }
+
+        fn solo_track(&self) -> Option<TrackUid> {
+            self.track_solo_state
+        }
+
+        fn set_solo_track(&mut self, track_uid: Option<TrackUid>) {
+            self.track_solo_state = track_uid
         }
 
         fn mint_entity_uid(&self) -> Uid {

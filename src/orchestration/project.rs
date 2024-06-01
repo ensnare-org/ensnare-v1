@@ -238,6 +238,10 @@ impl Projects for Project {
             fn mint_track_uid(&self) -> TrackUid;
             fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]>;
             fn track_for_entity(&self, uid: Uid) -> Option<TrackUid>;
+            fn mute_track(&mut self, track_uid: TrackUid, should_mute: bool);
+            fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
+            fn solo_track(&self) -> Option<TrackUid>;
+            fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
         }
     }
 
@@ -291,10 +295,6 @@ impl Project {
 
             pub fn track_output(&mut self, track_uid: TrackUid) -> Normal;
             pub fn set_track_output(&mut self, track_uid: TrackUid, output: Normal);
-            pub fn mute_track(&mut self, track_uid: TrackUid, muted: bool);
-            pub fn is_track_muted(&mut self, track_uid: TrackUid) -> bool;
-            pub fn solo_track(&self) -> Option<TrackUid>;
-            pub fn set_solo_track(&mut self, track_uid: Option<TrackUid>);
 
             pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
             pub fn remove_send(&mut self, send_track_uid: TrackUid, aux_track_uid: TrackUid);
