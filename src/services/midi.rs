@@ -6,6 +6,7 @@ use super::midi_interface::{
 use crate::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
+use ensnare_services::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{Arc, Mutex, RwLock},

@@ -9,13 +9,14 @@ use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
 use ensnare::prelude::*;
+use ensnare_services::prelude::*;
 use std::sync::{Arc, Mutex};
 
 mod calculator;
 
 struct CalculatorApp {
     calculator: Arc<Mutex<Calculator>>,
-    audio_service: AudioService,
+    audio_service: CpalAudioService,
 }
 impl CalculatorApp {
     const APP_NAME: &'static str = "Pocket Calculator";
@@ -23,7 +24,7 @@ impl CalculatorApp {
     fn new(_cc: &CreationContext) -> Self {
         Self {
             calculator: Arc::new(Mutex::new(Calculator::default())),
-            audio_service: AudioService::new_with(None),
+            audio_service: CpalAudioService::new_with(None),
         }
     }
 }
@@ -32,13 +33,13 @@ impl eframe::App for CalculatorApp {
         while let Ok(event) = self.audio_service.receiver().try_recv() {
             {
                 match event {
-                    AudioServiceEvent::Reset(sample_rate, _channel_count) => {
+                    CpalAudioServiceEvent::Reset(sample_rate, _channel_count) => {
                         self.calculator
                             .lock()
                             .unwrap()
-                            .update_sample_rate(sample_rate);
+                            .update_sample_rate(SampleRate(sample_rate));
                     }
-                    AudioServiceEvent::FramesNeeded(count) => {
+                    CpalAudioServiceEvent::FramesNeeded(count) => {
                         let mut buffer = [StereoSample::SILENCE; 64];
 
                         for _ in 0..(count / buffer.len()) + 1 {
@@ -59,14 +60,18 @@ impl eframe::App for CalculatorApp {
                                 calculator.update_time_range(&range);
                                 calculator.work(&mut |_| {});
                                 calculator.generate(&mut buffer);
-                                let _ = self
-                                    .audio_service
-                                    .sender()
-                                    .send(AudioServiceInput::Frames(Arc::new(buffer.to_vec())));
+                                let _ = self.audio_service.sender().send(
+                                    CpalAudioServiceInput::Frames(Arc::new(
+                                        buffer
+                                            .iter()
+                                            .map(|s| (s.0 .0 as f32, s.1 .0 as f32))
+                                            .collect(),
+                                    )),
+                                );
                             }
                         }
                     }
-                    AudioServiceEvent::Underrun => {
+                    CpalAudioServiceEvent::Underrun => {
                         eprintln!("AudioServiceEvent::Underrun");
                     }
                 }
@@ -86,7 +91,10 @@ impl eframe::App for CalculatorApp {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        let _ = self.audio_service.sender().send(AudioServiceInput::Quit);
+        let _ = self
+            .audio_service
+            .sender()
+            .send(CpalAudioServiceInput::Quit);
     }
 }
 

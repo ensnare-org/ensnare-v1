@@ -5,12 +5,12 @@ use crossbeam_channel::{Receiver, Select, Sender};
 use ensnare::{
     midi::MidiInterfaceServiceInput,
     services::{
-        AudioService, AudioServiceEvent, AudioServiceInput, MidiService, MidiServiceEvent,
-        MidiServiceInput, ProjectService, ProjectServiceEvent, ProjectServiceInput,
-        ProvidesService,
+        MidiService, MidiServiceEvent, MidiServiceInput, ProjectService, ProjectServiceEvent,
+        ProjectServiceInput,
     },
-    util::CrossbeamChannel,
+    types::SampleRate,
 };
+use ensnare_services::prelude::*;
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -35,7 +35,7 @@ pub(super) enum MiniDawInput {
 #[derive(Debug)]
 pub(super) enum MiniDawEvent {
     MidiPanelEvent(MidiServiceEvent),
-    AudioServiceEvent(AudioServiceEvent),
+    CpalAudioServiceEvent(CpalAudioServiceEvent),
     ProjectServiceEvent(ProjectServiceEvent),
     Quit,
 }
@@ -47,7 +47,7 @@ pub(super) struct MiniDawEventAggregationService {
 
     // The aggregated services. Avoid speaking directly to them; use the
     // channels instead.
-    audio_service: AudioService,
+    audio_service: CpalAudioService,
     midi_service: MidiService,
     project_service: ProjectService,
 
@@ -55,7 +55,7 @@ pub(super) struct MiniDawEventAggregationService {
 }
 impl MiniDawEventAggregationService {
     pub fn new_with(
-        audio_service: AudioService,
+        audio_service: CpalAudioService,
         midi_service: MidiService,
         project_service: ProjectService,
         settings_receiver: &Receiver<SettingsEvent>,
@@ -112,7 +112,7 @@ impl MiniDawEventAggregationService {
                         if let Ok(input) = operation.recv(&app_receiver) {
                             match input {
                                 MiniDawInput::Quit => {
-                                    let _ = audio_sender.send(AudioServiceInput::Quit);
+                                    let _ = audio_sender.send(CpalAudioServiceInput::Quit);
                                     let _ = midi_sender.send(MidiServiceInput::Quit);
                                     let _ = project_sender.send(ProjectServiceInput::ServiceQuit);
                                     let _ = app_sender.send(MiniDawEvent::Quit);
@@ -124,19 +124,19 @@ impl MiniDawEventAggregationService {
                     index if index == audio_index => {
                         if let Ok(event) = operation.recv(&audio_receiver) {
                             match event {
-                                AudioServiceEvent::FramesNeeded(count) => {
+                                CpalAudioServiceEvent::FramesNeeded(count) => {
                                     let _ = project_sender
                                         .send(ProjectServiceInput::FramesNeeded(count));
                                 }
-                                AudioServiceEvent::Reset(sample_rate, channel_count) => {
+                                CpalAudioServiceEvent::Reset(sample_rate, channel_count) => {
                                     let _ = project_sender.send(ProjectServiceInput::AudioReset(
-                                        sample_rate,
+                                        SampleRate(sample_rate),
                                         channel_count,
                                     ));
                                 }
-                                AudioServiceEvent::Underrun => {}
+                                CpalAudioServiceEvent::Underrun => {}
                             }
-                            let _ = app_sender.send(MiniDawEvent::AudioServiceEvent(event));
+                            let _ = app_sender.send(MiniDawEvent::CpalAudioServiceEvent(event));
                         }
                     }
                     index if index == midi_index => {

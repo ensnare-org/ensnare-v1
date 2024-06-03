@@ -25,6 +25,7 @@ use ensnare::{
     prelude::*,
     traits::DisplaysAction,
 };
+use ensnare_services::prelude::*;
 use native_dialog::FileDialog;
 use std::{
     sync::{Arc, RwLock},
@@ -166,7 +167,7 @@ pub(super) struct MiniDaw {
 
     // Channels for sending commands to services.
     #[allow(dead_code)]
-    audio_sender: Sender<AudioServiceInput>,
+    audio_sender: Sender<CpalAudioServiceInput>,
     #[allow(dead_code)]
     midi_sender: Sender<MidiServiceInput>,
     project_sender: Sender<ProjectServiceInput>,
@@ -203,7 +204,7 @@ impl MiniDaw {
         let factory = Arc::new(factory);
 
         let mut settings = Settings::load().unwrap_or_default();
-        let audio_service = AudioService::new_with(None);
+        let audio_service = CpalAudioService::new_with(None);
         let midi_service = MidiService::new_with(&settings.midi_settings);
         settings.set_midi_sender(midi_service.sender());
         let project_service = ProjectService::new_with(&factory, audio_service.sender());
@@ -322,15 +323,15 @@ impl MiniDaw {
                         }
                     }
                 }
-                MiniDawEvent::AudioServiceEvent(event) => match event {
-                    AudioServiceEvent::Reset(_sample_rate, _channel_count) => {
+                MiniDawEvent::CpalAudioServiceEvent(event) => match event {
+                    CpalAudioServiceEvent::Reset(_sample_rate, _channel_count) => {
                         // Already forwarded by aggregator to project.
                         self.update_orchestrator_audio_interface_config();
                     }
-                    AudioServiceEvent::FramesNeeded(_count) => {
+                    CpalAudioServiceEvent::FramesNeeded(_count) => {
                         // Forward was already handled by aggregator.
                     }
-                    AudioServiceEvent::Underrun => {
+                    CpalAudioServiceEvent::Underrun => {
                         eprintln!("Warning: audio buffer underrun")
                     }
                 },
@@ -644,9 +645,9 @@ impl MiniDaw {
     }
 
     #[allow(dead_code)]
-    fn send_to_audio(&self, input: AudioServiceInput) {
+    fn send_to_audio(&self, input: CpalAudioServiceInput) {
         if let Err(e) = self.audio_sender.send(input) {
-            eprintln!("Error {e} while sending AudioServiceInput");
+            eprintln!("Error {e} while sending CpalAudioServiceInput");
         }
     }
 

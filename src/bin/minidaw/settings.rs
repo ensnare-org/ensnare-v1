@@ -8,10 +8,11 @@ use eframe::egui::Frame;
 use ensnare::{
     egui::{AudioSettingsWidget, MidiSettingsWidget},
     midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
-    services::{AudioSettings, MidiSettings},
+    services::MidiSettings,
     traits::{Displays, HasSettings},
-    util::CrossbeamChannel,
+    util::settings::AudioSettings,
 };
+use ensnare_services::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,

@@ -7,6 +7,7 @@ use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Key;
 #[cfg(feature = "egui")]
 use egui::KeyHandler;
+use ensnare_services::prelude::*;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -59,7 +60,7 @@ pub struct ProjectService {
     events: CrossbeamChannel<ProjectServiceEvent>,
 
     factory: Arc<EntityFactory<dyn EntityBounds>>,
-    audio_sender: Sender<AudioServiceInput>,
+    audio_sender: Sender<CpalAudioServiceInput>,
 }
 impl ProvidesService<ProjectServiceInput, ProjectServiceEvent> for ProjectService {
     fn sender(&self) -> &Sender<ProjectServiceInput> {
@@ -74,7 +75,7 @@ impl ProjectService {
     #[allow(missing_docs)]
     pub fn new_with(
         factory: &Arc<EntityFactory<dyn EntityBounds>>,
-        audio_sender: &Sender<AudioServiceInput>,
+        audio_sender: &Sender<CpalAudioServiceInput>,
     ) -> Self {
         let r = Self {
             inputs: Default::default(),
@@ -110,7 +111,6 @@ struct ProjectServiceDaemon {
     #[cfg(feature = "egui")]
     key_handler: KeyHandler,
 
-    audio_sender: Sender<AudioServiceInput>,
     visualization_queue: Option<VisualizationQueue>,
 }
 impl ProjectServiceDaemon {
@@ -118,7 +118,7 @@ impl ProjectServiceDaemon {
         receiver: Receiver<ProjectServiceInput>,
         sender: Sender<ProjectServiceEvent>,
         factory: Arc<EntityFactory<dyn EntityBounds>>,
-        audio_sender: &Sender<AudioServiceInput>,
+        audio_sender: &Sender<CpalAudioServiceInput>,
     ) -> Self {
         let mut project = Project::new_project();
         project.set_audio_service_sender(audio_sender);
@@ -129,7 +129,6 @@ impl ProjectServiceDaemon {
             project: Arc::new(RwLock::new(project)),
             #[cfg(feature = "egui")]
             key_handler: Default::default(),
-            audio_sender: audio_sender.clone(),
             visualization_queue: Default::default(),
         }
     }

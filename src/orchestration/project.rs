@@ -16,6 +16,7 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
 use delegate::delegate;
 use derivative::Derivative;
+use ensnare_services::CpalAudioServiceInput;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -95,7 +96,7 @@ pub struct ProjectEphemerals {
     pub load_path: Option<PathBuf>,
 
     /// The AudioServiceInput channel to send generated audio.
-    audio_sender: Option<Sender<AudioServiceInput>>,
+    audio_sender: Option<Sender<CpalAudioServiceInput>>,
 
     /// A non-owned VecDeque that acts as a ring buffer of the most recent
     /// generated audio frames.
@@ -267,7 +268,12 @@ impl Projects for Project {
             buffer_slice.fill(StereoSample::SILENCE);
             self.generate_audio(buffer_slice, midi_events_fn.as_deref_mut());
             if let Some(sender) = self.e.audio_sender.as_ref() {
-                let _ = sender.try_send(AudioServiceInput::Frames(Arc::new(buffer_slice.to_vec())));
+                let _ = sender.try_send(CpalAudioServiceInput::Frames(Arc::new(
+                    buffer_slice
+                        .iter()
+                        .map(|s| (s.0 .0 as f32, s.1 .0 as f32))
+                        .collect(),
+                )));
             }
             if let Some(queue) = self.e.visualization_queue.as_ref() {
                 if let Ok(mut queue) = queue.0.write() {
@@ -728,7 +734,10 @@ impl Project {
         router.set_midi_channel(midi_channel);
     }
 
-    pub(crate) fn set_audio_service_sender(&mut self, audio_sender: &Sender<AudioServiceInput>) {
+    pub(crate) fn set_audio_service_sender(
+        &mut self,
+        audio_sender: &Sender<CpalAudioServiceInput>,
+    ) {
         self.e.audio_sender = Some(audio_sender.clone());
     }
 }

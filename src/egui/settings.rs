@@ -1,8 +1,12 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::services::{AudioSettings, MidiPortDescriptor, MidiSettings};
+use crate::{
+    services::{MidiPortDescriptor, MidiSettings},
+    util::settings::AudioSettings,
+};
 use eframe::egui::{Checkbox, ComboBox, Widget};
 
+/// Renders [AudioSettings].
 #[derive(Debug)]
 pub struct AudioSettingsWidget<'a> {
     settings: &'a mut AudioSettings,
@@ -24,6 +28,7 @@ impl<'a> eframe::egui::Widget for AudioSettingsWidget<'a> {
     }
 }
 
+/// Renders [MidiSettings].
 #[derive(Debug)]
 pub struct MidiSettingsWidget<'a> {
     pub(crate) settings: &'a mut MidiSettings,
