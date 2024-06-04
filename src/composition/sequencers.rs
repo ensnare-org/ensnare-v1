@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use delegate::delegate;
 use derive_builder::Builder;
-use ensnare::util::Rng;
+use ensnare::{prelude::*, util::Rng};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Builder, PartialEq)]
@@ -652,11 +652,7 @@ mod tests {
     // }
 
     use super::PatternSequencerBuilder;
-    use crate::{
-        midi::MidiChannel,
-        prelude::{MusicalTime, PatternBuilder, TimeRange, TimeSignature},
-        traits::{HasExtent, Sequences},
-    };
+    use ensnare::prelude::*;
 
     #[test]
     fn pattern_sequencer_handles_extents() {

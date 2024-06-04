@@ -3,6 +3,7 @@
 use super::fill_remaining_ui_space;
 use crate::{orchestration::SignalChainItem, prelude::*};
 use eframe::egui::{Button, Frame, Sense, Widget};
+use ensnare::prelude::*;
 use strum_macros::Display;
 
 #[derive(Debug, Display)]

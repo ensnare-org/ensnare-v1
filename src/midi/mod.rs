@@ -10,19 +10,13 @@ pub mod prelude {
 }
 
 pub use {
-    ensnare::types::MidiPortDescriptor,
-    general_midi::GeneralMidiPercussionCode,
-    midly::{
-        live::LiveEvent,
-        num::{u4, u7},
-        MidiMessage,
+    ensnare::types::{
+        u4, u7, GeneralMidiPercussionCode, MidiChannel, MidiNote, MidiPortDescriptor,
     },
-    note::MidiNote,
-    types::{MidiChannel, MidiEvent},
+    midly::{live::LiveEvent, MidiMessage},
+    types::MidiEvent,
     util::MidiUtils,
 };
 
-mod general_midi;
-mod note;
 mod types;
 mod util;

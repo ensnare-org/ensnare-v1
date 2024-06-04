@@ -67,7 +67,7 @@ typetag = "0.2.14"
 default = ["std", "test", "egui"]
 std = ["getrandom/std"]
 test = []
-egui = ["eframe", "egui-notify", "egui_extras"]
+egui = ["eframe", "egui-notify", "egui_extras", "ensnare/egui"]
 
 [dev-dependencies]
 clap = { version = "4.4.4", features = ["derive"] }

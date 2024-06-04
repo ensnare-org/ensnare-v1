@@ -2,6 +2,7 @@
 
 use crate::{cores::instruments::SamplerCore, prelude::*};
 use eframe::egui::{ComboBox, Widget};
+use ensnare::prelude::*;
 use strum_macros::Display;
 
 #[derive(Debug, Display)]

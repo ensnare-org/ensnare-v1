@@ -8,6 +8,7 @@ use crate::{
     prelude::*,
 };
 use eframe::egui::{Frame, Slider, Widget};
+use ensnare::prelude::*;
 use strum_macros::Display;
 
 #[derive(Debug, Display)]

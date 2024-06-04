@@ -10,6 +10,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{Color32, Stroke},
 };
+use ensnare::prelude::*;
 use rustc_hash::FxHashMap;
 
 #[derive(Debug)]

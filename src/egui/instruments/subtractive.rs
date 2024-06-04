@@ -6,10 +6,10 @@ use crate::{
         generators::LfoWidget, util::EnumComboBoxWidget, BiQuadFilterLowPass24dbWidget,
         BiQuadFilterWidgetAction, DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget,
     },
-    prelude::*,
 };
 use convert_case::{Case, Casing};
 use eframe::egui::{CollapsingHeader, ComboBox, Slider, Widget};
+use ensnare::prelude::*;
 use strum_macros::Display;
 
 #[derive(Debug, Display)]

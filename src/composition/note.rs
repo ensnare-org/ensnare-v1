@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
 use crate::prelude::*;
+use ensnare::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// A [Note] is a single played note. It knows which key it's playing (which

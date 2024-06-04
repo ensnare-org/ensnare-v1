@@ -4,7 +4,7 @@ use crate::{prelude::*, types::ColorScheme};
 use anyhow::anyhow;
 use delegate::delegate;
 use derive_builder::Builder;
-use ensnare::util::Rng;
+use ensnare::{prelude::*, util::Rng};
 use serde::{Deserialize, Serialize};
 use synonym::Synonym;
 

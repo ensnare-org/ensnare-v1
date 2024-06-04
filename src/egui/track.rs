@@ -20,6 +20,7 @@ use eframe::{
         text::LayoutJob, vec2, Color32, FontId, Galley, Rect, Shape, Stroke, TextShape, Vec2,
     },
 };
+use ensnare::prelude::*;
 use std::{f32::consts::PI, sync::Arc};
 use strum_macros::Display;
 

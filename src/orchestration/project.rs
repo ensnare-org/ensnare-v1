@@ -13,7 +13,7 @@ use crate::{
     util::SelectionSet,
 };
 use anyhow::{anyhow, Result};
-use ensnare::util::Rng;
+use ensnare::{prelude::*, util::Rng};
 //use crossbeam_channel::Sender;
 use delegate::delegate;
 use derivative::Derivative;

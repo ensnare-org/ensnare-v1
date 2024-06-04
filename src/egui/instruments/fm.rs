@@ -3,9 +3,9 @@
 use crate::{
     cores::instruments::FmSynthCore,
     egui::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget},
-    prelude::*,
 };
 use eframe::egui::{CollapsingHeader, Slider, Widget};
+use ensnare::prelude::*;
 use strum_macros::Display;
 
 #[derive(Debug, Display)]
