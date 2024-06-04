@@ -9,20 +9,6 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection, SendError};
 use std::{fmt::Debug, thread::JoinHandle};
 
-/// Provides user-friendly strings for displaying available MIDI ports.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MidiPortDescriptor {
-    /// The port descriptor's index.
-    pub index: usize,
-    /// The port descriptor's human-readable name.
-    pub name: String,
-}
-impl std::fmt::Display for MidiPortDescriptor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.name)
-    }
-}
-
 /// The client sends requests to the MIDI interface through
 /// [MidiInterfaceServiceInput] messages.
 ///

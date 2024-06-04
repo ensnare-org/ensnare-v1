@@ -5,13 +5,12 @@
 /// Recommended imports for easy onboarding.
 pub mod prelude {
     pub use super::{
-        u4, u7, MidiChannel, MidiEvent, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
-        MidiMessage, MidiNote, MidiPortDescriptor, MidiUtils,
+        u4, u7, MidiChannel, MidiEvent, MidiMessage, MidiNote, MidiPortDescriptor, MidiUtils,
     };
 }
 
 pub use {
-    crate::services::{MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor},
+    ensnare::types::MidiPortDescriptor,
     general_midi::GeneralMidiPercussionCode,
     midly::{
         live::LiveEvent,

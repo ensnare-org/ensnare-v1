@@ -15,7 +15,7 @@ version.workspace = true
 anyhow = "1.0.79"
 delegate = "0.12"
 eframe = "0.27"
-ensnare = { path = "../", features = ["egui"]}
+ensnare-v1 = { path = "../", features = ["egui"]}
 ensnare-proc-macros = { path = "../proc-macros" }
 serde = { version = "1.0.193", features = ["derive"] }
 typetag = "0.2.14"

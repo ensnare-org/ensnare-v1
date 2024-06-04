@@ -1,11 +1,11 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use delegate::delegate;
-use ensnare::{
+use ensnare_proc_macros::Control;
+use ensnare_v1::{
     prelude::*,
     traits::{CanPrototype, GeneratesEnvelope, GenerationBuffer},
 };
-use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
@@ -191,7 +191,7 @@ impl ToySynthCore {
 mod tests {
     use super::*;
     use crate::cores::tests::{check_instrument, GeneratesStereoSampleAndHandlesMidi};
-    use ensnare::elements::OscillatorBuilder;
+    use ensnare_v1::elements::OscillatorBuilder;
 
     #[test]
     fn toy_synth_control() {

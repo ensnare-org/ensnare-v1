@@ -1,13 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::cores::{ToyInstrumentCore, ToySynthCore};
-use ensnare::{
-    egui::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget},
-    prelude::*,
-};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsEntity, Metadata,
+};
+use ensnare_v1::{
+    egui::{DcaWidget, DcaWidgetAction, EnvelopeWidget, OscillatorWidget},
+    prelude::*,
 };
 use serde::{Deserialize, Serialize};
 

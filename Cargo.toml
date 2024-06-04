@@ -9,7 +9,7 @@ repository = "https://github.com/ensnare-org/ensnare"
 version = "0.0.17"
 
 [package]
-name = "ensnare"
+name = "ensnare-v1"
 description = "Audio tools"
 default-run = "minidaw"
 homepage = "https://ensnare.me"
@@ -38,8 +38,8 @@ eframe = { version = "0.27", optional = true }
 egui-notify = { version = "0.14", optional = true }
 egui_dock = { git = "https://github.com/sowbug/egui_dock/" }
 egui_extras = { version = "0.27", features = ["image"], optional = true }
+ensnare = { path = "../ensnare" }
 ensnare-proc-macros = { path = "proc-macros" }
-ensnare-services = "0.0.2"
 env_logger = "0.10"
 float-cmp = "0.9.0"
 getrandom = { version = "0.2.12", features = [] }
@@ -75,6 +75,7 @@ egui_extras_xt = { git = "https://github.com/sowbug/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
+ensnare-services = "0.0.2"
 ensnare-toys = { path = "toys" }
 more-asserts = "0.3.1"
 regex = "1.7"
@@ -83,10 +84,15 @@ typetag = "0.2.13"
 
 [[bin]]
 name = "minidaw"
-required-features = ["std", "egui", "ensnare-services/audio"]
+required-features = [
+    "std",
+    "egui",
+    "ensnare-services/audio",
+    "ensnare-services/midi",
+]
 
 [lib]
-name = "ensnare"
+name = "ensnare_v1"
 path = "src/lib.rs"
 
 [workspace]

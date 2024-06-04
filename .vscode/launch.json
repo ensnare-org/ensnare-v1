@@ -12,7 +12,7 @@
                 "args": [
                     "build",
                     "--bin=minidaw",
-                    "--package=ensnare",
+                    "--package=ensnare-v1",
                     "--features=",
                 ],
                 "filter": {
@@ -26,16 +26,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'ensnare'",
+            "name": "Debug unit tests in library 'ensnare_v1'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=ensnare"
+                    "--package=ensnare-v1"
                 ],
                 "filter": {
-                    "name": "ensnare",
+                    "name": "ensnare_v1",
                     "kind": "lib"
                 }
             },
@@ -50,7 +50,7 @@
                 "args": [
                     "build",
                     "--example=hello-world",
-                    "--package=ensnare"
+                    "--package=ensnare-v1"
                 ],
                 "filter": {
                     "name": "hello-world",
@@ -68,7 +68,7 @@
                 "args": [
                     "build",
                     "--example=pocket-calculator",
-                    "--package=ensnare"
+                    "--package=ensnare-v1"
                 ],
                 "filter": {
                     "name": "pocket-calculator",
@@ -86,7 +86,7 @@
                 "args": [
                     "build",
                     "--example=render",
-                    "--package=ensnare",
+                    "--package=ensnare-v1",
                 ],
                 "filter": {
                     "name": "render",
@@ -107,7 +107,7 @@
                 "args": [
                     "build",
                     "--example=widget-explorer",
-                    "--package=ensnare",
+                    "--package=ensnare-v1",
                 ],
                 "filter": {
                     "name": "widget-explorer",
@@ -125,7 +125,7 @@
                 "args": [
                     "build",
                     "--example=entity-gui-explorer",
-                    "--package=ensnare",
+                    "--package=ensnare-v1",
                 ],
                 "filter": {
                     "name": "entity-gui-explorer",

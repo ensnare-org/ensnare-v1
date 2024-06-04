@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::prelude::*;
+use ensnare_v1::prelude::*;
 use std::sync::Arc;
 use strum_macros::Display;
 

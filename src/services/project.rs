@@ -1,13 +1,13 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, types::VisualizationQueue};
+use crate::{orchestration::AudioSenderFn, prelude::*, types::VisualizationQueue};
 use anyhow::Error;
 use crossbeam_channel::{Receiver, Sender};
 #[cfg(feature = "egui")]
 use eframe::egui::Key;
 #[cfg(feature = "egui")]
 use egui::KeyHandler;
-use ensnare_services::prelude::*;
+use ensnare::{traits::ProvidesService, types::CrossbeamChannel};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -60,7 +60,6 @@ pub struct ProjectService {
     events: CrossbeamChannel<ProjectServiceEvent>,
 
     factory: Arc<EntityFactory<dyn EntityBounds>>,
-    audio_sender: Sender<CpalAudioServiceInput>,
 }
 impl ProvidesService<ProjectServiceInput, ProjectServiceEvent> for ProjectService {
     fn sender(&self) -> &Sender<ProjectServiceInput> {
@@ -75,27 +74,25 @@ impl ProjectService {
     #[allow(missing_docs)]
     pub fn new_with(
         factory: &Arc<EntityFactory<dyn EntityBounds>>,
-        audio_sender: &Sender<CpalAudioServiceInput>,
+        audio_sender_fn: AudioSenderFn,
     ) -> Self {
         let r = Self {
             inputs: Default::default(),
             events: Default::default(),
             factory: Arc::clone(factory),
-            audio_sender: audio_sender.clone(),
         };
-        r.spawn_thread();
+        r.spawn_thread(audio_sender_fn);
         let _ = r.sender().send(ProjectServiceInput::ServiceInit);
         r
     }
 
-    fn spawn_thread(&self) {
+    fn spawn_thread(&self, audio_sender_fn: AudioSenderFn) {
         let receiver = self.inputs.receiver.clone();
         let sender = self.events.sender.clone();
         let factory = Arc::clone(&self.factory);
-        let audio_sender = self.audio_sender.clone();
         std::thread::spawn(move || {
             let mut daemon =
-                ProjectServiceDaemon::new_with(receiver, sender, factory, &audio_sender);
+                ProjectServiceDaemon::new_with(receiver, sender, factory, audio_sender_fn);
             daemon.execute();
         });
     }
@@ -118,10 +115,10 @@ impl ProjectServiceDaemon {
         receiver: Receiver<ProjectServiceInput>,
         sender: Sender<ProjectServiceEvent>,
         factory: Arc<EntityFactory<dyn EntityBounds>>,
-        audio_sender: &Sender<CpalAudioServiceInput>,
+        audio_sender_fn: AudioSenderFn,
     ) -> Self {
         let mut project = Project::new_project();
-        project.set_audio_service_sender(audio_sender);
+        project.set_audio_service_sender_fn(audio_sender_fn);
         Self {
             receiver,
             sender,

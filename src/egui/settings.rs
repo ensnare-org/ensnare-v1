@@ -1,10 +1,8 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{
-    services::{MidiPortDescriptor, MidiSettings},
-    util::settings::AudioSettings,
-};
+use crate::util::settings::{AudioSettings, MidiSettings};
 use eframe::egui::{Checkbox, ComboBox, Widget};
+use ensnare::types::MidiPortDescriptor;
 
 /// Renders [AudioSettings].
 #[derive(Debug)]

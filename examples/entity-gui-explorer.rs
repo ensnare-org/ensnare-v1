@@ -11,7 +11,7 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
-use ensnare::{app_version, prelude::*};
+use ensnare_v1::{app_version, prelude::*};
 use rustc_hash::FxHashMap;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};

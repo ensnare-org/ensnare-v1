@@ -5,14 +5,14 @@
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Frame;
-use ensnare::{
+use ensnare_services::prelude::*;
+use ensnare_v1::{
     egui::{AudioSettingsWidget, MidiSettingsWidget},
     midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
     services::MidiSettings,
     traits::{Displays, HasSettings},
     util::settings::AudioSettings,
 };
-use ensnare_services::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,

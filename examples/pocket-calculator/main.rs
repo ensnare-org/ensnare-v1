@@ -8,8 +8,8 @@
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
-use ensnare::prelude::*;
 use ensnare_services::prelude::*;
+use ensnare_v1::prelude::*;
 use std::sync::{Arc, Mutex};
 
 mod calculator;

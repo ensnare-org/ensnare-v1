@@ -2,15 +2,11 @@
 
 use crate::settings::SettingsEvent;
 use crossbeam_channel::{Receiver, Select, Sender};
-use ensnare::{
-    midi::MidiInterfaceServiceInput,
-    services::{
-        MidiService, MidiServiceEvent, MidiServiceInput, ProjectService, ProjectServiceEvent,
-        ProjectServiceInput,
-    },
+use ensnare_services::prelude::*;
+use ensnare_v1::{
+    services::{ProjectService, ProjectServiceEvent, ProjectServiceInput},
     types::SampleRate,
 };
-use ensnare_services::prelude::*;
 use thiserror::Error;
 
 #[allow(dead_code)]

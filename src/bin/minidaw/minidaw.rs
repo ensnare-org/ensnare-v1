@@ -16,7 +16,8 @@ use eframe::{
 };
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex, TabViewer};
 use egui_notify::Toasts;
-use ensnare::{
+use ensnare_services::prelude::*;
+use ensnare_v1::{
     app_version,
     egui::{
         ComposerWidget, ControlBar, ControlBarAction, ControlBarWidget, EntityPaletteWidget,
@@ -25,7 +26,6 @@ use ensnare::{
     prelude::*,
     traits::DisplaysAction,
 };
-use ensnare_services::prelude::*;
 use native_dialog::FileDialog;
 use std::{
     sync::{Arc, RwLock},

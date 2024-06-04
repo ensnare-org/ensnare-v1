@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
+use ensnare_toys::prelude::*;
+use ensnare_v1::{
     entities::{BiQuadFilterLowPass24db, Drumkit, Reverb},
     prelude::*,
 };
-use ensnare_toys::prelude::*;
 
 fn set_up_drum_track(project: &mut Project, factory: &EntityFactory<dyn EntityBounds>) {
     // Create the track and set it to 50% gain, because we'll have two tracks total.

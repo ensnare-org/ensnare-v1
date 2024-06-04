@@ -25,7 +25,7 @@ pub(crate) fn impl_derive_control(
         let data = &input.data;
         let struct_name = &input.ident;
         let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
-        let main_crate = main_crate_name();
+        let crate_name = main_crate_name();
 
         // Code adapted from https://blog.turbo.fish/proc-macro-error-handling/
         // Thank you!
@@ -161,13 +161,13 @@ pub(crate) fn impl_derive_control(
                 let field_index_name = index_const_id(ident);
                 let name_const = name_const_id(ident);
                 let notify_const = format_ident!("notify_change_{}", ident);
-                id_bodies.push(quote! { Some(format!("{}-{}", Self::#name_const, self.#ident.control_name_for_index(#main_crate::automation::ControlIndex(index.0 - Self::#field_index_name)).unwrap()))});
+                id_bodies.push(quote! { Some(format!("{}-{}", Self::#name_const, self.#ident.control_name_for_index(#crate_name::automation::ControlIndex(index.0 - Self::#field_index_name)).unwrap()))});
                 setter_bodies
-                    .push(quote! {self.#ident.control_set_param_by_index(#main_crate::automation::ControlIndex(index.0 - Self::#field_index_name), value); self.#notify_const(); });
+                    .push(quote! {self.#ident.control_set_param_by_index(#crate_name::automation::ControlIndex(index.0 - Self::#field_index_name), value); self.#notify_const(); });
             }
         });
         let control_name_for_index_body = quote! {
-            fn control_name_for_index(&self, index: #main_crate::automation::ControlIndex) -> Option<String> {
+            fn control_name_for_index(&self, index: #crate_name::automation::ControlIndex) -> Option<String> {
                 match index.0 {
                     #( Self::#index_const_ids..=Self::#index_const_range_end_ids => {#id_bodies}, )*
                     _ => {None},
@@ -175,7 +175,7 @@ pub(crate) fn impl_derive_control(
             }
         };
         let control_set_param_by_index_bodies = quote! {
-            fn control_set_param_by_index(&mut self, index: #main_crate::automation::ControlIndex, value: #main_crate::automation::ControlValue) {
+            fn control_set_param_by_index(&mut self, index: #crate_name::automation::ControlIndex, value: #crate_name::automation::ControlValue) {
                 match index.0 {
                     #( Self::#index_const_ids..=Self::#index_const_range_end_ids => {#setter_bodies}, )*
                     _ => {},
@@ -207,14 +207,14 @@ pub(crate) fn impl_derive_control(
             }
         });
         let control_index_for_name_body = quote! {
-            fn control_index_for_name(&self, name: & str) -> Option<#main_crate::automation::ControlIndex> {
+            fn control_index_for_name(&self, name: & str) -> Option<#crate_name::automation::ControlIndex> {
                 match name {
-                    #( #leaf_names => Some(#main_crate::automation::ControlIndex(#leaf_indexes)), )*
+                    #( #leaf_names => Some(#crate_name::automation::ControlIndex(#leaf_indexes)), )*
                     _ => {
                         #(
                             if name.starts_with(#node_names) {
                                 if let Some(r) = self.#node_fields.control_index_for_name(&name[#node_field_lens..]) {
-                                    return Some(#main_crate::automation::ControlIndex(r.0 + #node_indexes))
+                                    return Some(#crate_name::automation::ControlIndex(r.0 + #node_indexes))
                                 }
                             }
                         )*
@@ -234,9 +234,9 @@ pub(crate) fn impl_derive_control(
                 #struct_size_const_body
             }
             #[automatically_derived]
-            impl #generics #main_crate::automation::Controllable for #struct_name #ty_generics {
+            impl #generics #crate_name::automation::Controllable for #struct_name #ty_generics {
                 fn control_index_count(&self) -> usize { Self::STRUCT_SIZE }
-                fn control_set_param_by_name(&mut self, name: &str, value: #main_crate::automation::ControlValue) {
+                fn control_set_param_by_name(&mut self, name: &str, value: #crate_name::automation::ControlValue) {
                     if let Some(index) = self.control_index_for_name(name) {
                         self.control_set_param_by_index(index, value);
                     } else {

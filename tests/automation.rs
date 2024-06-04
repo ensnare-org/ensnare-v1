@@ -1,12 +1,12 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
+use ensnare_toys::prelude::*;
+use ensnare_v1::{
     cores::controllers::LfoControllerCoreBuilder,
     entities::{BuiltInEntities, LfoController},
     prelude::*,
     util::library::init_sample_libraries,
 };
-use ensnare_toys::prelude::*;
 
 // Demonstrates the control (automation) system.
 #[test]

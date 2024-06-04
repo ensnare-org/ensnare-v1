@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
+use ensnare_toys::prelude::*;
+use ensnare_v1::{
     entities::{Drumkit, Gain},
     prelude::*,
 };
-use ensnare_toys::prelude::*;
 
 // Demonstrates sidechaining (which could be considered a kind of automation,
 // but it's important enough to put top-level and make sure it's a good

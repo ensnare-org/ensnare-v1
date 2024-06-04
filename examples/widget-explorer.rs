@@ -16,7 +16,8 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
-use ensnare::{
+use ensnare_toys::prelude::*;
+use ensnare_v1::{
     app_version,
     composition::{NoteSequencer, NoteSequencerBuilder},
     egui::{
@@ -32,7 +33,6 @@ use ensnare::{
     types::VisualizationQueue,
     util::Rng,
 };
-use ensnare_toys::prelude::*;
 use std::sync::Arc;
 
 #[derive(Debug, Derivative)]

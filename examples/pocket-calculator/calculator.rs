@@ -17,13 +17,13 @@ use eframe::{
     epaint::{Color32, Stroke, Vec2},
 };
 use egui_extras_xt::displays::SegmentedDisplayWidget;
-use ensnare::{
+use ensnare_proc_macros::Control;
+use ensnare_v1::{
     cores::instruments::{SamplerCore, SamplerVoice},
     elements::VoicePerNoteStore,
     prelude::*,
     util::Paths,
 };
-use ensnare_proc_macros::Control;
 use std::{path::Path, sync::Arc};
 use strum_macros::{Display, FromRepr};
 

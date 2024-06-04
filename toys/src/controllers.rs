@@ -2,11 +2,11 @@
 
 use crate::cores::ToyControllerCore;
 use eframe::egui::Slider;
-use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerControls, InnerHandlesMidi, InnerSerializable,
     IsEntity, Metadata,
 };
+use ensnare_v1::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(

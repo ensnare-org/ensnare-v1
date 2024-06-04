@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use ensnare::{
+use ensnare_toys::prelude::*;
+use ensnare_v1::{
     entities::{Gain, Reverb},
     prelude::*,
 };
-use ensnare_toys::prelude::*;
 
 // Demonstrates use of aux buses.
 #[test]

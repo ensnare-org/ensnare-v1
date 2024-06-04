@@ -1,8 +1,8 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
-use ensnare::elements::OscillatorBuilder;
-use ensnare::prelude::*;
+use ensnare_v1::elements::OscillatorBuilder;
+use ensnare_v1::prelude::*;
 
 /// Registers toy entities for the given [EntityFactory]. Toy entities are very
 /// simple but working instruments. They're helpful when you think you're going

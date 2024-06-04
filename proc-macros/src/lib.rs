@@ -141,18 +141,19 @@ pub fn derive_inner_transforms_audio(input: TokenStream) -> TokenStream {
 
 // See https://github.com/bkchr/proc-macro-crate/issues/14, ModProg's solution
 fn main_crate_name() -> proc_macro2::TokenStream {
-    const MAIN_CRATE_NAME: &str = "ensnare";
+    const MAIN_CRATE_NAME: &str = "ensnare-v1";
+    const MAIN_CRATE_NAME_SANITIZED: &str = "ensnare_v1"; // Same thing but any dashes are changed to underscores
     let name = match (
         proc_macro_crate::crate_name(MAIN_CRATE_NAME),
         std::env::var("CARGO_CRATE_NAME").as_deref(),
     ) {
-        (Ok(proc_macro_crate::FoundCrate::Itself), Ok(MAIN_CRATE_NAME)) => quote!(crate),
+        (Ok(proc_macro_crate::FoundCrate::Itself), Ok(MAIN_CRATE_NAME_SANITIZED)) => quote!(crate),
         (Ok(proc_macro_crate::FoundCrate::Name(name)), _) => {
             let ident = Ident::new(&name, proc_macro2::Span::call_site());
             quote!(::#ident)
         }
         _ => {
-            let n = format_ident!("{}", MAIN_CRATE_NAME);
+            let n = format_ident!("{}", MAIN_CRATE_NAME_SANITIZED);
             quote!(::#n)
         }
     };

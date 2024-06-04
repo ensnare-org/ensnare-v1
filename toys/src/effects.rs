@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::cores::ToyEffectCore;
-use ensnare::{egui::DragNormalWidget, prelude::*};
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
+use ensnare_v1::{egui::DragNormalWidget, prelude::*};
 use serde::{Deserialize, Serialize};
 
 #[derive(

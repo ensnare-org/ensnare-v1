@@ -1,12 +1,13 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::midi_interface::{
-    MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput, MidiPortDescriptor,
-};
+// use ensnare_services::{
+//     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
+// };
+use crate::midi::MidiPortDescriptor;
 use crate::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
-use ensnare_services::prelude::*;
+use ensnare::{traits::ProvidesService, types::CrossbeamChannel};
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{Arc, Mutex, RwLock},
@@ -50,76 +51,6 @@ mod opt_external_struct {
     }
 }
 
-/// Contains persistent MIDI settings.
-#[derive(Debug, Derivative, Serialize, Deserialize)]
-#[derivative(Default)]
-pub struct MidiSettings {
-    #[serde(default, with = "opt_external_struct")]
-    pub(crate) selected_input: Option<MidiPortDescriptor>,
-    #[serde(default, with = "opt_external_struct")]
-    pub(crate) selected_output: Option<MidiPortDescriptor>,
-
-    #[serde(default)]
-    #[derivative(Default(value = "true"))]
-    should_route_externally: bool,
-
-    #[serde(skip)]
-    pub(crate) e: MidiSettingsEphemerals,
-}
-#[derive(Debug, Derivative)]
-#[derivative(Default)]
-pub struct MidiSettingsEphemerals {
-    has_been_saved: bool,
-
-    #[derivative(Default(value = "Self::create_last_input_instant()"))]
-    last_input_instant: Arc<Mutex<Instant>>,
-    #[derivative(Default(value = "Instant::now()"))]
-    last_output_instant: Instant,
-}
-impl MidiSettingsEphemerals {
-    fn create_last_input_instant() -> Arc<Mutex<Instant>> {
-        Arc::new(Mutex::new(Instant::now()))
-    }
-}
-
-impl HasSettings for MidiSettings {
-    fn has_been_saved(&self) -> bool {
-        self.e.has_been_saved
-    }
-
-    fn needs_save(&mut self) {
-        self.e.has_been_saved = false;
-    }
-
-    fn mark_clean(&mut self) {
-        self.e.has_been_saved = true;
-    }
-}
-impl MidiSettings {
-    /// Updates the field and marks the struct eligible to save.
-    pub fn set_input(&mut self, input: Option<MidiPortDescriptor>) {
-        if input != self.selected_input {
-            self.selected_input = input;
-            self.needs_save();
-        }
-    }
-    /// Updates the field and marks the struct eligible to save.
-    pub fn set_output(&mut self, output: Option<MidiPortDescriptor>) {
-        if output != self.selected_output {
-            self.selected_output = output;
-            self.needs_save();
-        }
-    }
-    pub fn should_route_externally(&self) -> bool {
-        self.should_route_externally
-    }
-    pub fn set_should_route_externally(&mut self, should_route: bool) {
-        if should_route != self.should_route_externally {
-            self.should_route_externally = should_route;
-            self.needs_save();
-        }
-    }
-}
 
 /// The app sends [MidiServiceInput] messages to control the service.
 #[derive(Debug)]

@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use ensnare::{
+use ensnare_v1::{
     cores::{
         effects::BiQuadFilterLowPass24dbCoreBuilder,
         instruments::{LfoRouting, SubtractiveSynthCoreBuilder},
