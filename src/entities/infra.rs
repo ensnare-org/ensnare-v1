@@ -1,8 +1,8 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::prelude::*;
 use anyhow::anyhow;
 use delegate::delegate;
+use ensnare::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map;
@@ -19,14 +19,14 @@ pub type EntityFactoryFn<E> = fn(Uid) -> Box<E>;
 /// [EntityFactory] accepts [EntityKey]s and creates instruments, controllers,
 /// and effects. It makes sure every entity has a proper [Uid].
 #[derive(Debug)]
-pub struct EntityFactory<E: EntityBounds + ?Sized> {
+pub struct EntityFactory<E: Entity + ?Sized> {
     entities: FxHashMap<EntityKey, EntityFactoryFn<E>>,
     keys: FxHashSet<EntityKey>,
 
     is_registration_complete: bool,
     sorted_keys: Vec<EntityKey>,
 }
-impl<E: EntityBounds + ?Sized> Default for EntityFactory<E> {
+impl<E: Entity + ?Sized> Default for EntityFactory<E> {
     fn default() -> Self {
         Self {
             entities: Default::default(),
@@ -36,7 +36,7 @@ impl<E: EntityBounds + ?Sized> Default for EntityFactory<E> {
         }
     }
 }
-impl<E: EntityBounds + ?Sized> EntityFactory<E> {
+impl<E: Entity + ?Sized> EntityFactory<E> {
     /// Specifies the range of [Uid]s that [EntityFactory] will never issue.
     pub const MAX_RESERVED_UID: usize = 1024 - 1;
 
@@ -111,7 +111,7 @@ pub trait ReturnsHandlesMidi {
 /// owned entities, making it easier for the owner of an [EntityStore] to treat
 /// all its entities as a single [Entity].
 #[derive(Debug)]
-pub struct EntityStore<E: EntityBounds + ?Sized> {
+pub struct EntityStore<E: Entity + ?Sized> {
     sample_rate: SampleRate,
     tempo: Tempo,
     entities: FxHashMap<Uid, Box<E>>,
@@ -120,7 +120,7 @@ pub struct EntityStore<E: EntityBounds + ?Sized> {
     // to implement.
     time_range: TimeRange,
 }
-impl<E: EntityBounds + ?Sized> Default for EntityStore<E> {
+impl<E: Entity + ?Sized> Default for EntityStore<E> {
     fn default() -> Self {
         Self {
             sample_rate: Default::default(),
@@ -130,7 +130,7 @@ impl<E: EntityBounds + ?Sized> Default for EntityStore<E> {
         }
     }
 }
-impl<E: EntityBounds + ?Sized> EntityStore<E> {
+impl<E: Entity + ?Sized> EntityStore<E> {
     /// Adds an [Entity] to the store.
     pub fn add(&mut self, mut entity: Box<E>, uid: Uid) -> anyhow::Result<()> {
         if uid.0 == 0 {
@@ -203,7 +203,7 @@ impl<E: EntityBounds + ?Sized> EntityStore<E> {
         self.entities.contains_key(uid)
     }
 }
-impl<E: EntityBounds + ?Sized> Configurable for EntityStore<E> {
+impl<E: Entity + ?Sized> Configurable for EntityStore<E> {
     fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
@@ -232,7 +232,7 @@ impl<E: EntityBounds + ?Sized> Configurable for EntityStore<E> {
         });
     }
 }
-impl<E: EntityBounds + ?Sized> Controls for EntityStore<E> {
+impl<E: Entity + ?Sized> Controls for EntityStore<E> {
     fn time_range(&self) -> Option<TimeRange> {
         if self.is_performing() {
             Some(self.time_range.clone())
@@ -300,7 +300,7 @@ impl<E: EntityBounds + ?Sized> Controls for EntityStore<E> {
         })
     }
 }
-impl<E: EntityBounds + ?Sized> ControlsAsProxy for EntityStore<E> {
+impl<E: Entity + ?Sized> ControlsAsProxy for EntityStore<E> {
     fn work_as_proxy(&mut self, control_events_fn: &mut ControlProxyEventsFn) {
         self.entities.iter_mut().for_each(|(uid, entity)| {
             // if let Some(entity) = entity.as_controller_mut() {
@@ -311,12 +311,12 @@ impl<E: EntityBounds + ?Sized> ControlsAsProxy for EntityStore<E> {
         });
     }
 }
-impl<E: EntityBounds + ?Sized> Serializable for EntityStore<E> {
+impl<E: Entity + ?Sized> Serializable for EntityStore<E> {
     fn after_deser(&mut self) {
         self.entities.iter_mut().for_each(|(_, t)| t.after_deser());
     }
 }
-impl<E: EntityBounds + ?Sized> PartialEq for EntityStore<E> {
+impl<E: Entity + ?Sized> PartialEq for EntityStore<E> {
     fn eq(&self, other: &Self) -> bool {
         self.time_range == other.time_range && self.tempo == other.tempo && {
             self.entities.len() == other.entities.len() && {
@@ -454,7 +454,7 @@ mod tests {
 
     #[test]
     fn entity_store_partial_eq_excludes_sample_rate() {
-        let es1 = EntityStore::<dyn EntityBounds>::default();
+        let es1 = EntityStore::<dyn Entity>::default();
         let mut es2 = EntityStore::default();
 
         assert_eq!(es1, es2, "Two default EntityStores should be equal");

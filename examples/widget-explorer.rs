@@ -16,7 +16,7 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
-use ensnare::util::Rng;
+use ensnare::{prelude::*, util::Rng};
 use ensnare_toys::prelude::*;
 use ensnare_v1::{
     app_version,
@@ -226,7 +226,7 @@ struct DevicePaletteSettings {
 impl DevicePaletteSettings {
     const NAME: &'static str = "Device Palette";
 
-    fn new(factory: EntityFactory<dyn EntityBounds>) -> Self {
+    fn new(factory: EntityFactory<dyn Entity>) -> Self {
         Self {
             hide: Default::default(),
             keys: factory.sorted_keys().to_vec(),
@@ -683,7 +683,7 @@ struct WidgetExplorer {
 impl WidgetExplorer {
     pub const NAME: &'static str = "Widget Explorer";
 
-    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
+    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn Entity>) -> Self {
         Self {
             legend: Default::default(),
             grid: Default::default(),

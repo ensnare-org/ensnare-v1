@@ -8,6 +8,7 @@ use super::{
 };
 use crate::{orchestration::TrackViewMode, prelude::*};
 use eframe::{egui::Widget, epaint::Galley};
+use ensnare::prelude::*;
 use std::sync::Arc;
 use strum_macros::Display;
 

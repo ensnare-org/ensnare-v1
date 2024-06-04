@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use derivative::Derivative;
+use ensnare::prelude::*;
 
 /// The [Projects] trait specifies the common behavior of an Ensnare project,
 /// which is everything that makes up a single musical piece, such as the tempo,
@@ -71,18 +72,14 @@ pub trait Projects: Configurable + Controls + Sized {
     /// order in which they appear in the entity list. If a reverb is earlier
     /// than a delay, for example, then the reverb will be applied before the
     /// delay.
-    fn add_entity(
-        &mut self,
-        track_uid: TrackUid,
-        entity: Box<dyn EntityBounds>,
-    ) -> anyhow::Result<Uid>;
+    fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn Entity>) -> anyhow::Result<Uid>;
 
     /// Deletes and discards an existing entity.
     fn delete_entity(&mut self, entity_uid: Uid) -> anyhow::Result<()>;
 
     /// Removes an existing entity from the project and returns it to the
     /// caller.
-    fn remove_entity(&mut self, entity_uid: Uid) -> anyhow::Result<Box<dyn EntityBounds>>;
+    fn remove_entity(&mut self, entity_uid: Uid) -> anyhow::Result<Box<dyn Entity>>;
 
     /// Returns an ordered list of entity uids for the specified track.
     fn entity_uids(&self, track_uid: TrackUid) -> Option<&[Uid]>;
@@ -447,7 +444,7 @@ pub(crate) mod tests {
         track_solo_state: Option<TrackUid>,
 
         entity_uid_factory: EntityUidFactory,
-        entity_uid_to_entity: HashMap<Uid, Box<dyn EntityBounds>>,
+        entity_uid_to_entity: HashMap<Uid, Box<dyn Entity>>,
         entity_uid_to_track_uid: HashMap<Uid, TrackUid>,
         track_uid_to_entity_uids: HashMap<TrackUid, Vec<Uid>>,
 
@@ -526,7 +523,7 @@ pub(crate) mod tests {
         fn add_entity(
             &mut self,
             track_uid: TrackUid,
-            mut entity: Box<dyn EntityBounds>,
+            mut entity: Box<dyn Entity>,
         ) -> anyhow::Result<Uid> {
             if !self.track_uids.contains(&track_uid) {
                 return Err(anyhow!("Nonexistent track {track_uid}"));
@@ -552,7 +549,7 @@ pub(crate) mod tests {
             Ok(())
         }
 
-        fn remove_entity(&mut self, uid: Uid) -> anyhow::Result<Box<dyn EntityBounds>> {
+        fn remove_entity(&mut self, uid: Uid) -> anyhow::Result<Box<dyn Entity>> {
             if let Some(track_uid) = self.entity_uid_to_track_uid.remove(&uid) {
                 if let Some(entities) = self.track_uid_to_entity_uids.get_mut(&track_uid) {
                     entities.retain(|e| *e != uid);

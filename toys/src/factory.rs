@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
 use crate::{controllers::*, effects::*, instruments::*};
+use ensnare::prelude::*;
 use ensnare_v1::elements::OscillatorBuilder;
 use ensnare_v1::prelude::*;
 
@@ -11,9 +12,7 @@ use ensnare_v1::prelude::*;
 pub struct ToyEntities {}
 impl ToyEntities {
     /// Registers all the entities in this collection.
-    pub fn register(
-        mut factory: EntityFactory<dyn EntityBounds>,
-    ) -> EntityFactory<dyn EntityBounds> {
+    pub fn register(mut factory: EntityFactory<dyn Entity>) -> EntityFactory<dyn Entity> {
         factory.register_entity(EntityKey::from(ToySynth::ENTITY_KEY), |uid| {
             Box::new(ToySynth::new_with(
                 uid,

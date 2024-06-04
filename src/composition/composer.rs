@@ -4,12 +4,11 @@ use crate::{
     composition::{ArrangementUid, ArrangementUidFactory},
     orchestration::TrackUid,
     prelude::*,
-    traits::MidiNoteLabelMetadata,
     types::ColorScheme,
 };
 use anyhow::{anyhow, Result};
 use core::ops::Range;
-use ensnare::{prelude::*, util::Rng};
+use ensnare::{prelude::*, traits::MidiNoteLabelMetadata, util::Rng};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

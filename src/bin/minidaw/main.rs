@@ -10,6 +10,7 @@ use eframe::{
     egui::{Context, FontData, FontDefinitions, TextStyle},
     epaint::{Color32, FontFamily, FontId},
 };
+use ensnare::prelude::*;
 use ensnare_v1::prelude::*;
 use env_logger;
 use minidaw::MiniDaw;

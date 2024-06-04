@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use eframe::egui::Widget;
+use ensnare::prelude::*;
 
 /// A tree view of devices that can be placed in tracks.
 #[derive(Debug)]

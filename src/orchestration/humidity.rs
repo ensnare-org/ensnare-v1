@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use core::fmt::Debug;
+use ensnare::prelude::*;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +27,7 @@ impl Humidifier {
     pub fn transform_batch(
         &mut self,
         humidity: Normal,
-        effect: &mut Box<dyn EntityBounds>,
+        effect: &mut Box<dyn Entity>,
         samples: &mut [StereoSample],
     ) {
         self.transformation_buffer.resize(samples.len());

@@ -8,6 +8,7 @@ use crate::{
     },
     prelude::*,
 };
+use ensnare::prelude::*;
 use ensnare_proc_macros::{
     Control, InnerConfigurable, InnerControls, InnerHandlesMidi, InnerSerializable,
     InnerTransformsAudio, IsEntity, Metadata,

@@ -5,7 +5,6 @@ use crate::{
     elements::VoicePerNoteStore,
     midi::prelude::*,
     prelude::*,
-    traits::MidiNoteLabelMetadata,
     util::{
         library::{KitIndex, KitLibrary},
         Paths,
@@ -13,6 +12,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use delegate::delegate;
+use ensnare::{prelude::*, traits::MidiNoteLabelMetadata};
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

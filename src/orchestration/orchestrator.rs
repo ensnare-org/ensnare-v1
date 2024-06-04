@@ -9,6 +9,7 @@ use crate::prelude::*;
 use anyhow::Result;
 use core::fmt::Debug;
 use delegate::delegate;
+use ensnare::prelude::*;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -39,7 +40,7 @@ impl Orchestrator {
             pub fn add_entity(
                 &mut self,
                 track_uid: TrackUid,
-                entity: Box<dyn EntityBounds>,
+                entity: Box<dyn Entity>,
             ) -> Result<Uid>;
             pub fn move_entity(
                 &mut self,
@@ -48,12 +49,12 @@ impl Orchestrator {
                 new_position: Option<usize>,
             ) -> Result<()>;
             pub fn delete_entity(&mut self, uid: Uid) -> Result<()>;
-            pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>>;
+            pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn Entity>>;
             pub fn mint_entity_uid(&self) -> Uid;
         }
         to self.entity_repo.entities {
             #[call(get_mut)]
-            pub fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<(dyn EntityBounds)>>;
+            pub fn get_entity_mut(&mut self, uid: &Uid) -> Option<&mut Box<(dyn Entity)>>;
         }
         to self.bus_station {
             pub fn add_send(&mut self, src_uid: TrackUid, dst_uid: TrackUid, amount: Normal) -> anyhow::Result<()>;
@@ -65,7 +66,7 @@ impl Orchestrator {
             pub fn transform_batch(
                 &mut self,
                 humidity: Normal,
-                effect: &mut Box<dyn EntityBounds>,
+                effect: &mut Box<dyn Entity>,
                 samples: &mut [StereoSample],
             );
         }

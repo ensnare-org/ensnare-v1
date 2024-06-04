@@ -15,6 +15,7 @@ use crate::{
     prelude::*,
     traits::DisplaysAction,
 };
+use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerHandlesMidi, InnerInstrument, InnerSerializable,
     IsEntity, Metadata,

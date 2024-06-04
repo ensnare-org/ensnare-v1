@@ -8,6 +8,7 @@
 use anyhow::anyhow;
 use calculator::Calculator;
 use eframe::CreationContext;
+use ensnare::traits::ProvidesService;
 use ensnare_services::prelude::*;
 use ensnare_v1::prelude::*;
 use std::sync::{Arc, Mutex};

@@ -81,10 +81,7 @@ pub(crate) fn parse_and_generate_entity(input: TokenStream) -> TokenStream {
         let quote = quote! {
             #[automatically_derived]
             #[typetag::serde]
-            impl #generics #crate_name::traits::Entity for #struct_name #ty_generics {
-            }
-            #[typetag::serde]
-            impl #generics #crate_name::traits::EntityBounds for #struct_name #ty_generics {}
+            impl #generics #crate_name::traits::Entity for #struct_name #ty_generics {}
             #( impl #generics #top_level_trait_names for #struct_name #ty_generics {} )*
         };
         quote

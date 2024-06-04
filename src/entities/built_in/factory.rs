@@ -19,6 +19,7 @@ use crate::{
     elements::OscillatorBuilder,
     prelude::*,
 };
+use ensnare::prelude::*;
 
 /// A collection of all entities that are suitable for normal use. Allows the
 /// creation of an [EntityFactory] that lets apps refer to entities by
@@ -26,9 +27,7 @@ use crate::{
 pub struct BuiltInEntities {}
 impl BuiltInEntities {
     /// Registers all the entities in this collection.
-    pub fn register(
-        mut factory: EntityFactory<dyn EntityBounds>,
-    ) -> EntityFactory<dyn EntityBounds> {
+    pub fn register(mut factory: EntityFactory<dyn Entity>) -> EntityFactory<dyn Entity> {
         let include_internals = false;
 
         // Controllers
@@ -214,9 +213,7 @@ mod tests {
     #[test]
     fn creation_of_production_entities() {
         assert!(
-            EntityFactory::<dyn EntityBounds>::default()
-                .entities()
-                .is_empty(),
+            EntityFactory::<dyn Entity>::default().entities().is_empty(),
             "A new EntityFactory should be empty"
         );
 
@@ -235,7 +232,7 @@ mod tests {
     }
 
     // TODO: this is copied from crate::core::entities::factory
-    pub fn check_entity_factory(factory: EntityFactory<dyn EntityBounds>) {
+    pub fn check_entity_factory(factory: EntityFactory<dyn Entity>) {
         assert!(factory
             .new_entity(&EntityKey::from(".9-#$%)@#)"), Uid::default())
             .is_none());
@@ -260,7 +257,7 @@ mod tests {
     // This could be a test specific to the Control proc macro, but we'd like to
     // run it over all the entities we know about in case someone implements the
     // Controls trait manually.
-    fn validate_controllable(entity: &mut dyn EntityBounds) {
+    fn validate_controllable(entity: &mut dyn Entity) {
         let mut param_names: FxHashSet<String> = FxHashSet::default();
 
         for index in 0..entity.control_index_count() {
@@ -301,7 +298,7 @@ mod tests {
         }
     }
 
-    fn validate_configurable(entity: &mut dyn EntityBounds) {
+    fn validate_configurable(entity: &mut dyn Entity) {
         let sample_rate = entity.sample_rate();
         let new_sample_rate = (sample_rate.0 + 100).into();
         entity.update_sample_rate(new_sample_rate);

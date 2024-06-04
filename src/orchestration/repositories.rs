@@ -5,6 +5,7 @@ use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use core::fmt::Debug;
 use delegate::delegate;
+use ensnare::prelude::*;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -63,7 +64,7 @@ impl Serializable for TrackRepository {
 #[serde(rename_all = "kebab-case")]
 pub struct EntityRepository {
     pub(crate) uid_factory: EntityUidFactory,
-    pub(crate) entities: FxHashMap<Uid, Box<dyn EntityBounds>>,
+    pub(crate) entities: FxHashMap<Uid, Box<dyn Entity>>,
     pub(crate) uids_for_track: FxHashMap<TrackUid, Vec<Uid>>,
     pub(crate) track_for_uid: FxHashMap<Uid, TrackUid>,
 
@@ -93,11 +94,7 @@ impl EntityRepository {
     /// 2. The repository generates a new Uid.
     ///
     /// In any case, the repo sets the entity Uid to match.
-    pub fn add_entity(
-        &mut self,
-        track_uid: TrackUid,
-        mut entity: Box<dyn EntityBounds>,
-    ) -> Result<Uid> {
+    pub fn add_entity(&mut self, track_uid: TrackUid, mut entity: Box<dyn Entity>) -> Result<Uid> {
         let uid = if entity.uid() != Uid::default() {
             entity.uid()
         } else {
@@ -158,7 +155,7 @@ impl EntityRepository {
         Ok(())
     }
 
-    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
+    pub fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn Entity>> {
         if let Some(track_uid) = self.track_for_uid.get(&uid) {
             self.uids_for_track
                 .entry(*track_uid)
@@ -172,11 +169,11 @@ impl EntityRepository {
         Err(anyhow!("Entity {uid} not found"))
     }
 
-    pub fn entity(&self, uid: Uid) -> Option<&Box<dyn EntityBounds>> {
+    pub fn entity(&self, uid: Uid) -> Option<&Box<dyn Entity>> {
         self.entities.get(&uid)
     }
 
-    pub fn entity_mut(&mut self, uid: Uid) -> Option<&mut Box<dyn EntityBounds>> {
+    pub fn entity_mut(&mut self, uid: Uid) -> Option<&mut Box<dyn Entity>> {
         self.entities.get_mut(&uid)
     }
 

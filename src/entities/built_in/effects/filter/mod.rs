@@ -8,6 +8,7 @@ use crate::{
     egui::BiQuadFilterWidgetAction,
     prelude::*,
 };
+use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };

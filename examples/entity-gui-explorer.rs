@@ -11,6 +11,7 @@ use eframe::{
     emath::Align,
     CreationContext,
 };
+use ensnare::prelude::*;
 use ensnare_v1::{app_version, prelude::*};
 use rustc_hash::FxHashMap;
 use strum::IntoEnumIterator;
@@ -24,17 +25,17 @@ enum DisplayMode {
 }
 #[derive(Debug, Default)]
 struct EntityGuiExplorer {
-    factory: EntityFactory<dyn EntityBounds>,
+    factory: EntityFactory<dyn Entity>,
     sorted_keys: Vec<EntityKey>,
     selected_key: Option<EntityKey>,
     uid_factory: EntityUidFactory,
     display_mode: DisplayMode,
-    entities: FxHashMap<EntityKey, Box<dyn EntityBounds>>,
+    entities: FxHashMap<EntityKey, Box<dyn Entity>>,
 }
 impl EntityGuiExplorer {
     pub const NAME: &'static str = "Entity GUI Explorer";
 
-    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
+    pub fn new(_cc: &CreationContext, factory: EntityFactory<dyn Entity>) -> Self {
         let sorted_keys = Self::generate_entity_key_list(&factory);
         Self {
             factory,
@@ -43,7 +44,7 @@ impl EntityGuiExplorer {
         }
     }
 
-    fn generate_entity_key_list(factory: &EntityFactory<dyn EntityBounds>) -> Vec<EntityKey> {
+    fn generate_entity_key_list(factory: &EntityFactory<dyn Entity>) -> Vec<EntityKey> {
         // let skips = vec![EntityKey::from(ControlTrip::ENTITY_KEY)];
         let skips = [];
 
@@ -185,7 +186,7 @@ fn main() -> anyhow::Result<()> {
 
     // We want to add internal entities here, so we do it here and then hand the
     // result to register_factory_entities().
-    let factory = EntityFactory::<dyn EntityBounds>::default();
+    let factory = EntityFactory::<dyn Entity>::default();
     let factory = BuiltInEntities::register(factory).finalize();
 
     if let Err(e) = eframe::run_native(

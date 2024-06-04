@@ -3,7 +3,6 @@
 use crate::{
     egui::{colors::ColorSchemeConverter, fill_remaining_ui_space},
     prelude::*,
-    traits::MidiNoteLabelMetadata,
     types::ColorScheme,
 };
 use derivative::Derivative;
@@ -12,6 +11,7 @@ use eframe::{
     emath::{Align2, RectTransform},
     epaint::{pos2, vec2, FontId, Rect, Rounding, Shape, Stroke},
 };
+use ensnare::{prelude::*, traits::MidiNoteLabelMetadata};
 use std::sync::Arc;
 
 pub type NoteLabelerFn = dyn Fn(MidiNote) -> String + 'static + Send + Sync;

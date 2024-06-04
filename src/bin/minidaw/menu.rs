@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
+use ensnare::prelude::*;
 use ensnare_v1::prelude::*;
 use std::sync::Arc;
 use strum_macros::Display;
@@ -71,12 +72,12 @@ impl MenuBarItem {
 
 #[derive(Debug)]
 pub(crate) struct MenuBar {
-    factory: Arc<EntityFactory<dyn EntityBounds>>,
+    factory: Arc<EntityFactory<dyn Entity>>,
     action: Option<MenuBarAction>,
     is_track_selected: bool,
 }
 impl MenuBar {
-    pub fn new_with(factory: &Arc<EntityFactory<dyn EntityBounds>>) -> Self {
+    pub fn new_with(factory: &Arc<EntityFactory<dyn Entity>>) -> Self {
         Self {
             factory: Arc::clone(factory),
             action: Default::default(),

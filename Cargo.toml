@@ -23,9 +23,9 @@ version.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
-app_dirs2 = "2.5"                                                         # for utils::Paths
+app_dirs2 = "2.5"                                                                     # for utils::Paths
 bit-vec = "0.6.3"
-bounded-vec-deque = "0.1"                                                 # for VisualizationQueue
+bounded-vec-deque = "0.1"                                                             # for VisualizationQueue
 byteorder = "1.5.0"
 convert_case = "0.6.0"
 crossbeam = "0.8"
@@ -40,15 +40,16 @@ egui_dock = { git = "https://github.com/sowbug/egui_dock/" }
 egui_extras = { version = "0.27", features = ["image"], optional = true }
 ensnare = { path = "../ensnare" }
 ensnare-proc-macros = { path = "proc-macros" }
+ensnare-services = { version = "0.0.5", path = "../ensnare/crates/services" }
 env_logger = "0.10"
 float-cmp = "0.9.0"
 getrandom = { version = "0.2.12", features = [] }
 hound = "3.5.1"
 include_dir = "0.7.3"
-kahan = "0.1.4"                                                           # for Oscillator
+kahan = "0.1.4"                                                                       # for Oscillator
 midir = "0.9.1"
 midly = "0.5.3"
-nalgebra = "0.32.3"                                                       # for Envelope
+nalgebra = "0.32.3"                                                                   # for Envelope
 native-dialog = "0.7.0"
 nonoverlapping_interval_tree = "0.1.5"
 once_cell = "1.19.0"
@@ -75,7 +76,6 @@ egui_extras_xt = { git = "https://github.com/sowbug/egui_extras_xt/", features =
     "knobs",
     "displays",
 ] }
-ensnare-services = "0.0.2"
 ensnare-toys = { path = "toys" }
 more-asserts = "0.3.1"
 regex = "1.7"

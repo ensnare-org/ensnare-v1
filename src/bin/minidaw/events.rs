@@ -2,6 +2,7 @@
 
 use crate::settings::SettingsEvent;
 use crossbeam_channel::{Receiver, Select, Sender};
+use ensnare::{prelude::*, traits::ProvidesService, types::CrossbeamChannel};
 use ensnare_services::prelude::*;
 use ensnare_v1::{
     services::{ProjectService, ProjectServiceEvent, ProjectServiceInput},
@@ -82,10 +83,8 @@ impl MiniDawEventAggregationService {
         let audio_sender = self.audio_service.sender().clone();
         let audio_receiver = self.audio_service.receiver().clone();
 
-        // Note that this one is temporarily different! MidiInterfaceService and
-        // MidiService are separate but shouldn't be. It's confusing!
-        let midi_sender = self.midi_service.inputs.sender.clone();
-        let midi_interface_sender = self.midi_service.interface_sender().clone();
+        let midi_sender = self.midi_service.sender().clone();
+        let midi_receiver = self.midi_service.receiver().clone();
 
         let midi_receiver = self.midi_service.receiver().clone();
         let project_sender = self.project_service.sender().clone();
@@ -163,9 +162,8 @@ impl MiniDawEventAggregationService {
                                         // doesn't have to. This handles
                                         // ProjectServiceEvent::Midi, so the app
                                         // should never see it.
-                                        let _ = midi_interface_sender.send(
-                                            MidiInterfaceServiceInput::Midi(channel, message),
-                                        );
+                                        let _ = midi_sender
+                                            .send(MidiServiceInput::Midi(channel, message));
                                     }
                                 }
                                 _ => {

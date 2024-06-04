@@ -174,7 +174,7 @@ impl Projects for Project {
         self.orchestrator.delete_track(uid)
     }
 
-    fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn EntityBounds>) -> Result<Uid> {
+    fn add_entity(&mut self, track_uid: TrackUid, entity: Box<dyn Entity>) -> Result<Uid> {
         let r = self.orchestrator.add_entity(track_uid, entity);
         if let Ok(uid) = r {
             if let Some(channel) = self.track_midi_channel(track_uid) {
@@ -195,7 +195,7 @@ impl Projects for Project {
         r
     }
 
-    fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn EntityBounds>> {
+    fn remove_entity(&mut self, uid: Uid) -> Result<Box<dyn Entity>> {
         self.set_midi_receiver_channel(uid, None)?;
         let track_uid = self.orchestrator.track_for_entity(uid);
         let r = self.orchestrator.remove_entity(uid);
@@ -920,10 +920,10 @@ mod tests {
         orchestration::traits::tests::test_trait_projects,
         traits::tests::test_trait_configurable,
     };
+    use ensnare::traits::Entity;
     use ensnare_proc_macros::{Control, IsEntity, Metadata};
     use std::sync::Arc;
-
-    trait TestEntity: EntityBounds {}
+    trait TestEntity: Entity {}
 
     /// An [IsEntity] that sends one Control event each time work() is called.
     #[derive(Debug, Default, Control, IsEntity, Metadata, Serialize, Deserialize)]

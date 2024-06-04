@@ -12,10 +12,10 @@ pub mod prelude {
 }
 pub use colors::ColorScheme;
 pub use ensnare::types::{
-    BipolarNormal, FrequencyHz, IsUid, MusicalTime, Normal, Ratio, Sample, SampleRate, Seconds,
-    StereoSample, Tempo, TimeRange, TimeSignature, Uid, UidFactory, ViewRange,
+    BipolarNormal, FrequencyHz, IsUid, MusicalTime, Normal, ParameterType, Ratio, Sample,
+    SampleRate, Seconds, StereoSample, Tempo, TimeRange, TimeSignature, Uid, UidFactory, ViewRange,
 };
-pub use numbers::{FrequencyRange, ParameterType, SampleType, SignalType};
+pub use numbers::{FrequencyRange, SampleType, SignalType};
 pub use queues::VisualizationQueue;
 
 mod colors;

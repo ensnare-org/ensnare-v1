@@ -5,13 +5,14 @@
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Frame;
+use ensnare::{
+    prelude::*,
+    types::{CrossbeamChannel, MidiPortDescriptor},
+};
 use ensnare_services::prelude::*;
 use ensnare_v1::{
     egui::{AudioSettingsWidget, MidiSettingsWidget},
-    midi::{MidiInterfaceServiceInput, MidiPortDescriptor},
-    services::MidiSettings,
-    traits::{Displays, HasSettings},
-    util::settings::AudioSettings,
+    util::settings::{AudioSettings, MidiSettings},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -39,7 +40,7 @@ pub(crate) struct Settings {
 #[derive(Debug, Default)]
 pub(crate) struct SettingsEphemerals {
     events: CrossbeamChannel<SettingsEvent>,
-    midi_sender: Option<Sender<MidiInterfaceServiceInput>>,
+    midi_sender: Option<Sender<MidiServiceInput>>,
 
     // Cached options for fast menu drawing.
     midi_inputs: Vec<MidiPortDescriptor>,
@@ -108,7 +109,7 @@ impl Settings {
         self.e.midi_outputs = ports.to_vec();
     }
 
-    pub(crate) fn set_midi_sender(&mut self, sender: &Sender<MidiInterfaceServiceInput>) {
+    pub(crate) fn set_midi_sender(&mut self, sender: &Sender<MidiServiceInput>) {
         self.e.midi_sender = Some(sender.clone());
     }
 
@@ -191,14 +192,10 @@ impl Displays for Settings {
 
         if let Some(sender) = &self.e.midi_sender {
             if let Some(new_input) = &new_input {
-                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiInput(
-                    new_input.clone(),
-                ));
+                let _ = sender.send(MidiServiceInput::SelectMidiInput(new_input.clone()));
             }
             if let Some(new_output) = &new_output {
-                let _ = sender.send(MidiInterfaceServiceInput::SelectMidiOutput(
-                    new_output.clone(),
-                ));
+                let _ = sender.send(MidiServiceInput::SelectMidiOutput(new_output.clone()));
             }
         }
 

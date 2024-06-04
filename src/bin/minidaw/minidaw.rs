@@ -16,13 +16,15 @@ use eframe::{
 };
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex, TabViewer};
 use egui_notify::Toasts;
-use ensnare_services::prelude::*;
+use ensnare::{prelude::*, traits::ProvidesService, types::BoundedCrossbeamChannel};
+use ensnare_services::{prelude::*, AudioStereoSampleType};
 use ensnare_v1::{
     app_version,
     egui::{
         ComposerWidget, ControlBar, ControlBarAction, ControlBarWidget, EntityPaletteWidget,
         ObliqueStrategiesWidget, ProjectAction, ProjectWidget, TransportWidget,
     },
+    orchestration::AudioSenderFn,
     prelude::*,
     traits::DisplaysAction,
 };
@@ -53,7 +55,7 @@ enum TabType {
 
 struct MiniDawTabViewer<'a> {
     pub action: &'a mut Option<ProjectAction>,
-    pub factory: Arc<EntityFactory<dyn EntityBounds>>,
+    pub factory: Arc<EntityFactory<dyn Entity>>,
     pub project: &'a Option<Arc<RwLock<Project>>>,
 }
 impl<'a> TabViewer for MiniDawTabViewer<'a> {
@@ -159,7 +161,7 @@ type Tab = TabType;
 
 pub(super) struct MiniDaw {
     // factory creates new entities.
-    factory: Arc<EntityFactory<dyn EntityBounds>>,
+    factory: Arc<EntityFactory<dyn Entity>>,
 
     // Takes a number of individual services' event channels and aggregates them
     // into a single stream that the app can consume.
@@ -200,20 +202,26 @@ impl MiniDaw {
     /// The user-visible name of the application.
     pub(super) const NAME: &'static str = "MiniDAW";
 
-    pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn EntityBounds>) -> Self {
+    pub(super) fn new(cc: &CreationContext, factory: EntityFactory<dyn Entity>) -> Self {
         let factory = Arc::new(factory);
 
         let mut settings = Settings::load().unwrap_or_default();
         let audio_service = CpalAudioService::new_with(None);
-        let midi_service = MidiService::new_with(&settings.midi_settings);
+        let midi_service = MidiService::default();
         settings.set_midi_sender(midi_service.sender());
-        let project_service = ProjectService::new_with(&factory, audio_service.sender());
+        let audio_sender = audio_service.sender().clone();
+        let audio_sender_fn: AudioSenderFn = Box::new(move |x| {
+            let frames: Arc<Vec<AudioStereoSampleType>> =
+                Arc::new(x.iter().map(|s| (s.0 .0 as f32, s.1 .0 as f32)).collect());
+            let _ = audio_sender.send(CpalAudioServiceInput::Frames(frames));
+        });
+        let project_service = ProjectService::new_with(&factory, audio_sender_fn);
         let control_bar = ControlBar::default();
         let (dock, detail_node_index) = Self::create_tree();
 
         let mut r = Self {
             audio_sender: audio_service.sender().clone(),
-            midi_sender: midi_service.inputs.sender.clone(),
+            midi_sender: midi_service.sender().clone(),
             project_sender: project_service.sender().clone(),
             app_channel_watcher_channel: Default::default(),
             aggregator: MiniDawEventAggregationService::new_with(
@@ -313,14 +321,17 @@ impl MiniDaw {
                             self.control_bar.tickle_midi_in();
                         }
                         MidiServiceEvent::MidiOut => self.control_bar.tickle_midi_out(),
-                        MidiServiceEvent::InputPortsRefreshed(ports) => {
+                        MidiServiceEvent::InputPorts(ports) => {
                             // TODO: remap any saved preferences to ports that we've found
                             self.settings.handle_midi_input_port_refresh(&ports);
                         }
-                        MidiServiceEvent::OutputPortsRefreshed(ports) => {
+                        MidiServiceEvent::OutputPorts(ports) => {
                             // TODO: remap any saved preferences to ports that we've found
                             self.settings.handle_midi_output_port_refresh(&ports);
                         }
+                        MidiServiceEvent::InputPortSelected(_) => todo!(),
+                        MidiServiceEvent::OutputPortSelected(_) => todo!(),
+                        MidiServiceEvent::Quit => todo!(),
                     }
                 }
                 MiniDawEvent::CpalAudioServiceEvent(event) => match event {

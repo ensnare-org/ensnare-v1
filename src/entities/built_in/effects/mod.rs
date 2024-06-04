@@ -9,6 +9,7 @@ use crate::{
     },
     prelude::*,
 };
+use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
 };
