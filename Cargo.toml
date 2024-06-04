@@ -40,7 +40,7 @@ egui_dock = { git = "https://github.com/sowbug/egui_dock/" }
 egui_extras = { version = "0.27", features = ["image"], optional = true }
 ensnare = { path = "../ensnare" }
 ensnare-proc-macros = { path = "proc-macros" }
-ensnare-services = { version = "0.0.5", path = "../ensnare/crates/services" }
+ensnare-services = { version = "0.0.6", path = "../ensnare/crates/services" }
 env_logger = "0.10"
 float-cmp = "0.9.0"
 getrandom = { version = "0.2.12", features = [] }
