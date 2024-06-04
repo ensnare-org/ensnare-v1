@@ -5,16 +5,14 @@
 /// The most commonly used imports.
 pub mod prelude {
     pub use super::{
-        init_sample_libraries, BoundedCrossbeamChannel, KitIndex, KitItem, KitLibrary, ModSerial,
-        Paths, SampleIndex, SampleLibrary, SampleSource,
+        init_sample_libraries, KitIndex, KitItem, KitLibrary, ModSerial, Paths, SampleIndex,
+        SampleLibrary, SampleSource,
     };
 }
 
-pub use channels::BoundedCrossbeamChannel;
 pub use rng::Rng;
 pub use selection_set::SelectionSet;
 
-mod channels;
 pub mod rng;
 pub mod selection_set;
 
