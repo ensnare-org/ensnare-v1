@@ -1,9 +1,10 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, util::Rng};
+use crate::prelude::*;
 use core::ops::Range;
 use delegate::delegate;
 use derive_builder::Builder;
+use ensnare::util::Rng;
 use nonoverlapping_interval_tree::NonOverlappingIntervalTree;
 use serde::{Deserialize, Serialize};
 use synonym::Synonym;

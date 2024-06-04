@@ -6,10 +6,10 @@ use crate::{
     prelude::*,
     traits::MidiNoteLabelMetadata,
     types::ColorScheme,
-    util::Rng,
 };
 use anyhow::{anyhow, Result};
 use core::ops::Range;
+use ensnare::util::Rng;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

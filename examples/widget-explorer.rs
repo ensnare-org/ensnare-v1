@@ -16,6 +16,7 @@ use eframe::{
     epaint::{vec2, Galley},
     CreationContext,
 };
+use ensnare::util::Rng;
 use ensnare_toys::prelude::*;
 use ensnare_v1::{
     app_version,
@@ -31,7 +32,6 @@ use ensnare_v1::{
     orchestration::TrackTitle,
     prelude::*,
     types::VisualizationQueue,
-    util::Rng,
 };
 use std::sync::Arc;
 

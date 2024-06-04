@@ -10,9 +10,10 @@ use crate::{
     orchestration::{MidiRouter, Orchestrator, TrackTitle},
     prelude::*,
     types::{ColorScheme, VisualizationQueue},
-    util::{Rng, SelectionSet},
+    util::SelectionSet,
 };
 use anyhow::{anyhow, Result};
+use ensnare::util::Rng;
 //use crossbeam_channel::Sender;
 use delegate::delegate;
 use derivative::Derivative;

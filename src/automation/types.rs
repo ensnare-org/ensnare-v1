@@ -1,8 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, util::Rng};
+use crate::prelude::*;
 use core::ops::{Add, Mul, Range, Sub};
 use derive_more::Display;
+use ensnare::util::Rng;
 use serde::{Deserialize, Serialize};
 use synonym::Synonym;
 

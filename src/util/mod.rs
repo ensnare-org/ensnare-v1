@@ -10,10 +10,8 @@ pub mod prelude {
     };
 }
 
-pub use rng::Rng;
 pub use selection_set::SelectionSet;
 
-pub mod rng;
 pub mod selection_set;
 
 #[cfg(feature = "std")]

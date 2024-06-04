@@ -1,8 +1,9 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use crate::{prelude::*, util::Rng};
+use crate::prelude::*;
 use delegate::delegate;
 use derive_builder::Builder;
+use ensnare::util::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Builder, PartialEq)]
