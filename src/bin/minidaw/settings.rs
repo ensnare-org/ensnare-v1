@@ -192,10 +192,10 @@ impl Displays for Settings {
 
         if let Some(sender) = &self.e.midi_sender {
             if let Some(new_input) = &new_input {
-                let _ = sender.send(MidiServiceInput::SelectMidiInput(new_input.clone()));
+                let _ = sender.send(MidiServiceInput::SelectInputPort(Some(new_input.clone())));
             }
             if let Some(new_output) = &new_output {
-                let _ = sender.send(MidiServiceInput::SelectMidiOutput(new_output.clone()));
+                let _ = sender.send(MidiServiceInput::SelectOutputPort(Some(new_output.clone())));
             }
         }
 

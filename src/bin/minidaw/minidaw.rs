@@ -208,6 +208,7 @@ impl MiniDaw {
         let mut settings = Settings::load().unwrap_or_default();
         let audio_service = CpalAudioService::new_with(None);
         let midi_service = MidiService::default();
+//        let _ = midi_service.sender().send(MidiServiceInput::RefreshPorts);
         settings.set_midi_sender(midi_service.sender());
         let audio_sender = audio_service.sender().clone();
         let audio_sender_fn: AudioSenderFn = Box::new(move |x| {
@@ -320,7 +321,7 @@ impl MiniDaw {
                             // This was already forwarded to Orchestrator. Here we update the UI.
                             self.control_bar.tickle_midi_in();
                         }
-                        MidiServiceEvent::MidiOut => self.control_bar.tickle_midi_out(),
+                        //                        MidiServiceEvent::MidiOut => self.control_bar.tickle_midi_out(),
                         MidiServiceEvent::InputPorts(ports) => {
                             // TODO: remap any saved preferences to ports that we've found
                             self.settings.handle_midi_input_port_refresh(&ports);
@@ -329,9 +330,19 @@ impl MiniDaw {
                             // TODO: remap any saved preferences to ports that we've found
                             self.settings.handle_midi_output_port_refresh(&ports);
                         }
-                        MidiServiceEvent::InputPortSelected(_) => todo!(),
-                        MidiServiceEvent::OutputPortSelected(_) => todo!(),
+                        MidiServiceEvent::InputPortSelected(port) => {
+                            self.settings.midi_settings.write().unwrap().set_input(port)
+                        }
+                        MidiServiceEvent::OutputPortSelected(port) => self
+                            .settings
+                            .midi_settings
+                            .write()
+                            .unwrap()
+                            .set_output(port),
                         MidiServiceEvent::Quit => todo!(),
+                        MidiServiceEvent::Error(e) => {
+                            eprintln!("MidiServiceEvent::Error {e:?}");
+                        }
                     }
                 }
                 MiniDawEvent::CpalAudioServiceEvent(event) => match event {
