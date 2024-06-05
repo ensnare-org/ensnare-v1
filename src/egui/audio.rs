@@ -9,7 +9,6 @@ use eframe::{
 };
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
-
 use super::DragNormalWidget;
 
 #[derive(Debug)]

@@ -29,7 +29,6 @@ pub use ensnare::traits::{Displays, DisplaysAction};
 
 use crate::prelude::*;
 use ensnare::prelude::*;
-use strum_macros::Display;
 
 /// Describes the public interface of an envelope generator, which provides a
 /// normalized amplitude (0.0..=1.0) that changes over time according to its
