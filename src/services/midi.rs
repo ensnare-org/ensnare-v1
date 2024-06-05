@@ -1,13 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-// use ensnare_services::{
-//     MidiInterfaceService, MidiInterfaceServiceEvent, MidiInterfaceServiceInput,
-// };
-use crate::midi::MidiPortDescriptor;
-use crate::prelude::*;
+use crate::{midi::MidiPortDescriptor, prelude::*};
 use crossbeam_channel::{Receiver, Sender};
 use derivative::Derivative;
-use ensnare::{traits::ProvidesService, types::CrossbeamChannel};
+use ensnare::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{Arc, Mutex, RwLock},
@@ -50,7 +46,6 @@ mod opt_external_struct {
         Ok(helper.map(|Helper(external)| external))
     }
 }
-
 
 /// The app sends [MidiServiceInput] messages to control the service.
 #[derive(Debug)]

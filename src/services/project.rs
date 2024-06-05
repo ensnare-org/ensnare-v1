@@ -7,7 +7,7 @@ use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::Key;
 #[cfg(feature = "egui")]
 use egui::KeyHandler;
-use ensnare::{prelude::*, traits::ProvidesService, types::CrossbeamChannel};
+use ensnare::prelude::*;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},

@@ -16,7 +16,7 @@ use eframe::{
 };
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex, TabViewer};
 use egui_notify::Toasts;
-use ensnare::{prelude::*, traits::ProvidesService, types::BoundedCrossbeamChannel};
+use ensnare::{prelude::*, types::BoundedCrossbeamChannel};
 use ensnare_services::{prelude::*, AudioStereoSampleType};
 use ensnare_v1::{
     app_version,

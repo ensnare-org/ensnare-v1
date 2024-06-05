@@ -2,12 +2,9 @@
 
 use crate::settings::SettingsEvent;
 use crossbeam_channel::{Receiver, Select, Sender};
-use ensnare::{prelude::*, traits::ProvidesService, types::CrossbeamChannel};
+use ensnare::prelude::*;
 use ensnare_services::prelude::*;
-use ensnare_v1::{
-    services::{ProjectService, ProjectServiceEvent, ProjectServiceInput},
-    types::SampleRate,
-};
+use ensnare_v1::services::{ProjectService, ProjectServiceEvent, ProjectServiceInput};
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -84,7 +81,7 @@ impl MiniDawEventAggregationService {
         let audio_receiver = self.audio_service.receiver().clone();
 
         let midi_sender = self.midi_service.sender().clone();
-        let midi_receiver = self.midi_service.receiver().clone();
+        let _midi_receiver = self.midi_service.receiver().clone();
 
         let midi_receiver = self.midi_service.receiver().clone();
         let project_sender = self.project_service.sender().clone();
