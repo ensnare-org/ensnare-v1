@@ -38,7 +38,7 @@ eframe = { version = "0.27", optional = true }
 egui-notify = { version = "0.14", optional = true }
 egui_dock = { git = "https://github.com/sowbug/egui_dock/" }
 egui_extras = { version = "0.27", features = ["image"], optional = true }
-ensnare = { version = "0.0.2-alpha.15", path = "../ensnare" }
+ensnare = { version = "0.0.2-alpha.17", path = "../ensnare" }
 ensnare-proc-macros = { version = "0.0", path = "proc-macros" }
 ensnare-services = { version = "0.0", path = "../ensnare/crates/services" }
 env_logger = "0.10"
