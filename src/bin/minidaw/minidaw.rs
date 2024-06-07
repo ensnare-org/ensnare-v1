@@ -208,7 +208,6 @@ impl MiniDaw {
         let mut settings = Settings::load().unwrap_or_default();
         let audio_service = CpalAudioService::new_with(None);
         let midi_service = MidiService::default();
-//        let _ = midi_service.sender().send(MidiServiceInput::RefreshPorts);
         settings.set_midi_sender(midi_service.sender());
         let audio_sender = audio_service.sender().clone();
         let audio_sender_fn: AudioSenderFn = Box::new(move |x| {

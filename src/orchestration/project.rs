@@ -917,7 +917,6 @@ mod tests {
             TestAudioSource, TestControllerAlwaysSendsMidiMessage, TestEffectNegatesInput,
             TestInstrumentCountsMidiMessages,
         },
-        orchestration::traits::tests::test_trait_projects,
         traits::tests::test_trait_configurable,
     };
     use ensnare::traits::Entity;
@@ -1435,7 +1434,7 @@ mod tests {
 
     #[test]
     fn project_adheres_to_trait_tests() {
-        test_trait_projects(Project::default());
+        // TODO        test_trait_projects(Project::default());
         test_trait_configurable(Project::default());
     }
 }

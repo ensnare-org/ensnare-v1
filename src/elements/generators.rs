@@ -922,6 +922,7 @@ impl SteppedEnvelope {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensnare::elements::Transport;
     use float_cmp::approx_eq;
     use more_asserts::{assert_gt, assert_lt};
     use std::{env::current_dir, fs, path::PathBuf};

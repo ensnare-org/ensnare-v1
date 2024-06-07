@@ -11,7 +11,7 @@ pub mod prelude {
         CanPrototype, Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn,
         Controllable, Controls, ControlsAsProxy, DisplaysAction, Generates, GeneratesEnvelope,
         GenerationBuffer, HandlesMidi, HasMetadata, HasSettings, IsStereoSampleVoice, IsVoice,
-        MidiMessagesFn, PlaysNotes, Sequences, SequencesMidi, Serializable, StoresVoices,
+        MidiMessagesFn, PlaysNotes, Projects, Sequences, SequencesMidi, Serializable, StoresVoices,
         TransformsAudio, WorkEvent,
     };
 }
@@ -19,6 +19,7 @@ pub mod prelude {
 // We re-export here so that consumers of traits don't have to worry as much
 // about exactly where they are in the code, but those working on the code can
 // still organize them.
+pub use ensnare::orchestration::Projects;
 pub use ensnare::traits::{
     Configurable, Configurables, ControlEventsFn, ControlProxyEventsFn, Controllable, Controls,
     ControlsAsProxy, Entity, Generates, GenerationBuffer, HandlesMidi, HasMetadata, HasSettings,

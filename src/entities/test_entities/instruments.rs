@@ -5,7 +5,7 @@ use ensnare_proc_macros::{Control, InnerControllable, InnerInstrument, IsEntity,
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-/// The smallest possible [IsEntity].
+/// The smallest possible [IsEntity] that acts like an instrument.
 #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[entity(

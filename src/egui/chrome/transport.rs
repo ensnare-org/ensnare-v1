@@ -1,8 +1,9 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use crate::{elements::Transport, prelude::*};
+use crate::prelude::*;
 use anyhow::{anyhow, Error};
 use eframe::egui::{ComboBox, DragValue, Label, RichText, Ui, Widget};
+use ensnare::elements::Transport;
 use strum::IntoEnumIterator;
 use strum_macros::{AsRefStr, EnumIter, IntoStaticStr};
 

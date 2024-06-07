@@ -1,6 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
-use ensnare::util::Rng;
+use ensnare::{prelude::*, util::Rng};
 use ensnare_v1::{
     cores::instruments::SubtractiveSynthCore, entities::SubtractiveSynth, prelude::*,
 };

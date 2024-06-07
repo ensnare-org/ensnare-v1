@@ -4,7 +4,7 @@
 
 /// The most commonly used imports.
 pub mod prelude {
-    pub use super::{Orchestrator, Project, ProjectTitle, Projects, TrackUid};
+    pub use super::{Orchestrator, Project, ProjectTitle, TrackUid};
 }
 
 pub use bus::{BusRoute, BusStation};
@@ -15,7 +15,6 @@ pub use project::{
     AudioSenderFn, Project, ProjectTitle, ProjectViewState, SignalChainItem, TrackViewMode,
 };
 pub(crate) use repositories::EntityRepository;
-pub use traits::Projects;
 
 mod bus;
 mod humidity;
@@ -24,4 +23,3 @@ mod orchestrator;
 mod project;
 mod repositories;
 mod track;
-mod traits;

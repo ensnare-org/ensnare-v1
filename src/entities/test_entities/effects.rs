@@ -4,7 +4,7 @@ use crate::{cores::effects::TestEffectNegatesInputCore, prelude::*};
 use ensnare_proc_macros::{InnerControllable, InnerTransformsAudio, IsEntity, Metadata};
 use serde::{Deserialize, Serialize};
 
-/// The smallest possible [IsEntity].
+/// The smallest possible [IsEntity] that acts like an effect.
 #[derive(Debug, Default, IsEntity, Metadata, Serialize, Deserialize)]
 #[entity(
     Configurable,

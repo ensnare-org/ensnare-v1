@@ -1,5 +1,6 @@
 // Copyright (c) 2024 Mike Tsao. All rights reserved.
 
+use super::DragNormalWidget;
 use crate::prelude::*;
 use anyhow::anyhow;
 use eframe::{
@@ -9,7 +10,6 @@ use eframe::{
 };
 use spectrum_analyzer::{scaling::divide_by_N_sqrt, FrequencyLimit};
 use strum::IntoEnumIterator;
-use super::DragNormalWidget;
 
 #[derive(Debug)]
 pub struct WaveformWidget<'a> {

@@ -15,7 +15,7 @@ pub use {
     //EntityFactory,
 };
 
-pub use factory::BuiltInEntities;
+pub use ensnare::entities::BuiltInEntities;
 
 mod controllers;
 mod effects;

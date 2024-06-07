@@ -3,7 +3,6 @@
 //! This module assembles all the available entities so that an application can
 //! use them.
 
-use crate::prelude::*;
 use ensnare::prelude::*;
 
 /// A wrapper that contains all the entities we know about.
