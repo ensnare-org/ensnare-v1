@@ -12,14 +12,13 @@ use crate::{
         effects::{
             BiQuadFilterAllPassCoreBuilder, BiQuadFilterBandPassCoreBuilder,
             BiQuadFilterBandStopCoreBuilder, BiQuadFilterHighPassCoreBuilder,
-            BiQuadFilterLowPass24dbCoreBuilder, BitcrusherCoreBuilder, DelayCoreBuilder,
-            GainCoreBuilder, LimiterCoreBuilder, ReverbCoreBuilder,
+            BiQuadFilterLowPass24dbCoreBuilder, BitcrusherCoreBuilder, LimiterCoreBuilder,
         },
     },
     elements::OscillatorBuilder,
     prelude::*,
 };
-use ensnare::prelude::*;
+use ensnare::{cores::GainCoreBuilder, prelude::*};
 
 /// A collection of all entities that are suitable for normal use. Allows the
 /// creation of an [EntityFactory] that lets apps refer to entities by
@@ -79,12 +78,6 @@ impl BuiltInEntities {
         factory.register_entity_with_str_key(Chorus::ENTITY_KEY, |_uid| Box::<Chorus>::default());
         factory.register_entity_with_str_key(Compressor::ENTITY_KEY, |_uid| {
             Box::<Compressor>::default()
-        });
-        factory.register_entity_with_str_key(Delay::ENTITY_KEY, |uid| {
-            Box::new(Delay::new_with(
-                uid,
-                DelayCoreBuilder::default().build().unwrap(),
-            ))
         });
         factory.register_entity_with_str_key(BiQuadFilterLowPass24db::ENTITY_KEY, |uid| {
             Box::new(BiQuadFilterLowPass24db::new_with(
@@ -162,16 +155,6 @@ impl BuiltInEntities {
                 ))
             });
         }
-        factory.register_entity_with_str_key(Reverb::ENTITY_KEY, |uid| {
-            Box::new(Reverb::new_with(
-                uid,
-                ReverbCoreBuilder::default()
-                    .attenuation(0.8.into())
-                    .seconds(1.0.into())
-                    .build()
-                    .unwrap(),
-            ))
-        });
 
         // Instruments
         factory.register_entity_with_str_key(Drumkit::ENTITY_KEY, |uid| {

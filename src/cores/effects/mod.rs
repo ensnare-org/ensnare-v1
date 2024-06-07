@@ -8,7 +8,6 @@ pub use {
     bitcrusher::{BitcrusherCore, BitcrusherCoreBuilder},
     chorus::{ChorusCore, ChorusCoreBuilder},
     compressor::{CompressorCore, CompressorCoreBuilder},
-    delay::{DelayCore, DelayCoreBuilder},
     filter::{
         BiQuadFilterAllPassCore, BiQuadFilterAllPassCoreBuilder, BiQuadFilterBandPassCore,
         BiQuadFilterBandPassCoreBuilder, BiQuadFilterBandStopCore, BiQuadFilterBandStopCoreBuilder,
@@ -18,18 +17,13 @@ pub use {
         BiQuadFilterLowShelfCoreBuilder, BiQuadFilterNoneCoreBuilder, BiQuadFilterPeakingEqCore,
         BiQuadFilterPeakingEqCoreBuilder,
     },
-    gain::{GainCore, GainCoreBuilder},
     limiter::{LimiterCore, LimiterCoreBuilder},
-    reverb::{ReverbCore, ReverbCoreBuilder},
     test::*,
 };
 
 mod bitcrusher;
 mod chorus;
 mod compressor;
-mod delay;
 mod filter;
-mod gain;
 mod limiter;
-mod reverb;
 mod test;

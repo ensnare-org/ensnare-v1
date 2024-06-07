@@ -3,7 +3,7 @@
 use ensnare::prelude::*;
 use ensnare_toys::prelude::*;
 use ensnare_v1::{
-    entities::{Gain, Reverb},
+    entities::{Gain, Reverb, TestEffect},
     prelude::*,
 };
 

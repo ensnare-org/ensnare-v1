@@ -9,13 +9,13 @@ pub use {
             BiQuadFilterAllPass, BiQuadFilterBandPass, BiQuadFilterBandStop, BiQuadFilterHighPass,
             BiQuadFilterLowPass24db,
         },
-        Bitcrusher, Chorus, Compressor, Delay, Gain, Limiter, Reverb,
+        Bitcrusher, Chorus, Compressor, Limiter,
     },
     instruments::{Drumkit, FmSynth, Sampler, SubtractiveSynth},
     //EntityFactory,
 };
 
-pub use ensnare::entities::BuiltInEntities;
+pub use ensnare::entities::{BuiltInEntities, Delay, Gain, Reverb};
 
 mod controllers;
 mod effects;

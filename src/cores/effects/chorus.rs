@@ -1,10 +1,10 @@
 // Copyright (c) 2023 Mike Tsao. All rights reserved.
 
-use super::delay::{DelayLine, Delays};
 use crate::prelude::*;
 use delegate::delegate;
 use derivative::Derivative;
 use derive_builder::Builder;
+use ensnare::cores::{DelayLine, Delays};
 use ensnare_proc_macros::Control;
 use serde::{Deserialize, Serialize};
 

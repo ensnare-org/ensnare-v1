@@ -6,7 +6,6 @@ use crate::{
         ArpeggiatorCore, LfoControllerCore, SignalPassthroughControllerCore,
         SignalPassthroughControllerCoreBuilder,
     },
-    prelude::*,
 };
 use ensnare::prelude::*;
 use ensnare_proc_macros::{

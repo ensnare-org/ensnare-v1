@@ -2,13 +2,7 @@
 
 pub mod filter;
 
-use crate::{
-    cores::effects::{
-        self, BitcrusherCore, ChorusCore, CompressorCore, DelayCore, GainCore, LimiterCore,
-        ReverbCore,
-    },
-    prelude::*,
-};
+use crate::cores::effects::{self, BitcrusherCore, ChorusCore, CompressorCore, LimiterCore};
 use ensnare::prelude::*;
 use ensnare_proc_macros::{
     InnerConfigurable, InnerControllable, InnerEffect, InnerSerializable, IsEntity, Metadata,
@@ -100,84 +94,12 @@ impl Compressor {
 )]
 #[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
 
-pub struct Delay {
-    uid: Uid,
-    inner: DelayCore,
-}
-impl Delay {
-    pub fn new_with(uid: Uid, inner: DelayCore) -> Self {
-        Self { uid, inner }
-    }
-}
-
-#[derive(
-    Debug,
-    Default,
-    InnerControllable,
-    InnerConfigurable,
-    InnerEffect,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
-    Serialize,
-    Deserialize,
-)]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
-
-pub struct Gain {
-    uid: Uid,
-    inner: GainCore,
-}
-impl Gain {
-    pub fn new_with(uid: Uid, inner: GainCore) -> Self {
-        Self { uid, inner }
-    }
-}
-
-#[derive(
-    Debug,
-    Default,
-    InnerControllable,
-    InnerConfigurable,
-    InnerEffect,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
-    Serialize,
-    Deserialize,
-)]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
-
 pub struct Limiter {
     uid: Uid,
     inner: LimiterCore,
 }
 impl Limiter {
     pub fn new_with(uid: Uid, inner: LimiterCore) -> Self {
-        Self { uid, inner }
-    }
-}
-
-#[derive(
-    Debug,
-    Default,
-    InnerControllable,
-    InnerConfigurable,
-    InnerEffect,
-    InnerSerializable,
-    IsEntity,
-    Metadata,
-    Serialize,
-    Deserialize,
-)]
-#[entity(Controls, GeneratesStereoSample, HandlesMidi, SkipInner)]
-
-pub struct Reverb {
-    uid: Uid,
-    inner: ReverbCore,
-}
-impl Reverb {
-    pub fn new_with(uid: Uid, inner: ReverbCore) -> Self {
         Self { uid, inner }
     }
 }
@@ -248,24 +170,6 @@ mod egui {
         }
     }
 
-    impl Displays for Delay {}
-
-    impl Displays for Gain {
-        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            let mut ceiling = self.inner.ceiling().to_percentage();
-            let response = ui.add(
-                Slider::new(&mut ceiling, 0.0..=100.0)
-                    .fixed_decimals(2)
-                    .suffix(" %")
-                    .text("Ceiling"),
-            );
-            if response.changed() {
-                self.inner.set_ceiling(Normal::from_percentage(ceiling));
-            };
-            response
-        }
-    }
-
     impl Displays for Limiter {
         fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
             let mut min = self.inner.minimum().to_percentage();
@@ -289,12 +193,6 @@ mod egui {
                 self.inner.set_maximum(Normal::from_percentage(max));
             };
             min_response | max_response
-        }
-    }
-
-    impl Displays for Reverb {
-        fn ui(&mut self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-            ui.label("Coming soon!")
         }
     }
 }
